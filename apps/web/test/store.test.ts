@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useStore } from './store';
+import { useStore } from '../src/store';
 import { emptyModel } from '@hyphae/schema';
 
 beforeEach(() => useStore.getState().setModel(emptyModel()));

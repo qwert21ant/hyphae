@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { validateModel } from './validate';
-import { emptyModel } from './model';
-import { c4Backend } from './profiles/c4-backend';
-import type { Node } from './node';
+import { validateModel } from '../src/validate';
+import { emptyModel } from '../src/model';
+import { c4Backend } from '../src/profiles/c4-backend';
+import type { Node } from '../src/node';
 
 const node = (over: Partial<Node>): Node => ({
   id: 'x', name: 'X', type: 'Component', description: '', responsibilities: [],

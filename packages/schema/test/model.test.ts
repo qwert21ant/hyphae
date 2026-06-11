@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { HyphaeModelSchema, emptyModel } from './model';
+import { HyphaeModelSchema, emptyModel } from '../src/model';
 
 describe('HyphaeModel', () => {
   it('emptyModel parses and has reserved collections', () => {

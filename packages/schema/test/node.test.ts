@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { NodeSchema } from './node';
+import { NodeSchema } from '../src/node';
 
 describe('NodeSchema', () => {
   it('fills defaults for a minimal node', () => {

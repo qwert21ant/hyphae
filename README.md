@@ -1,7 +1,7 @@
 # Hyphae
 
 Local visual editor for a C4-style architecture model, readable by LLM agents over MCP.
-See `MVP_RU.md` for the thin-slice scope, `MODEL_RU.md` for the model concept.
+See `docs/MVP_RU.md` for the thin-slice scope, `docs/MODEL_RU.md` for the model concept.
 
 ## Develop
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hyphaeJsonSchema } from './json-schema';
+import { hyphaeJsonSchema } from '../src/json-schema';
 
 describe('hyphaeJsonSchema', () => {
   it('produces a JSON Schema object with model properties', () => {

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { SidePanel } from './SidePanel';
-import { useStore } from './store';
+import { SidePanel } from '../src/SidePanel';
+import { useStore } from '../src/store';
 import { emptyModel } from '@hyphae/schema';
 
 beforeEach(() => useStore.getState().setModel(emptyModel()));

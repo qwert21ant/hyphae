@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { getContext } from './context';
-import { emptyModel } from './model';
+import { getContext } from '../src/context';
+import { emptyModel } from '../src/model';
 
 describe('getContext', () => {
   it('renders nodes with semantics and connections as plain text', () => {

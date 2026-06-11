@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toFlowNodes, toFlowEdges } from './toModel';
+import { toFlowNodes, toFlowEdges } from '../src/toModel';
 import { emptyModel, layerOfType, c4Backend } from '@hyphae/schema';
 
 describe('toModel mapping', () => {

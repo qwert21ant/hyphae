@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTools } from './mcp';
+import { buildTools } from '../src/mcp';
 import { emptyModel } from '@hyphae/schema';
 
 function model() {

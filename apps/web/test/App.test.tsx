@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { App } from './App';
-import { useStore } from './store';
+import { App } from '../src/App';
+import { useStore } from '../src/store';
 import { emptyModel } from '@hyphae/schema';
 
 beforeEach(() => {

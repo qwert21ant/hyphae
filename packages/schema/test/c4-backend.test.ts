@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { c4Backend, layerOfType, allowedParentTypes } from './c4-backend';
-import { ProfileSchema } from '../profile';
+import { c4Backend, layerOfType, allowedParentTypes } from '../src/profiles/c4-backend';
+import { ProfileSchema } from '../src/profile';
 
 describe('c4-backend profile', () => {
   it('is a valid Profile', () => {

@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ModelStore } from './store';
-import { createApp } from './routes';
+import { ModelStore } from '../src/store';
+import { createApp } from '../src/routes';
 
 let dir: string;
 let app: ReturnType<typeof createApp>;
