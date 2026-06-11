@@ -1,6 +1,7 @@
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
-import { join } from 'node:path';
+import { join, dirname, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import { ModelStore } from './store';
 import { createApp } from './routes';
@@ -12,9 +13,14 @@ const store = new ModelStore(MODEL_FILE);
 const app = createApp(store);
 
 // In prod, serve the built SPA. In dev, Vite serves the UI and proxies /model here.
-const dist = join(process.cwd(), 'apps/web/dist');
+// Resolve the dist dir relative to this module so it works regardless of cwd
+// (e.g. when launched via `pnpm --filter @hyphae/server start`, cwd is apps/server).
+const here = dirname(fileURLToPath(import.meta.url)); // apps/server/src
+const dist = join(here, '../../web/dist');            // -> apps/web/dist
 if (existsSync(dist)) {
-  app.use('/*', serveStatic({ root: './apps/web/dist' }));
+  // serveStatic's `root` is resolved relative to cwd, so hand it a cwd-relative path.
+  const root = relative(process.cwd(), dist).split('\\').join('/');
+  app.use('/*', serveStatic({ root }));
 }
 
 process.on('SIGINT', async () => {
