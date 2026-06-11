@@ -1,0 +1,8 @@
+html, body, #root { height: 100%; margin: 0; font-family: system-ui, sans-serif; }
+.app { display: flex; flex-direction: column; height: 100%; }
+.toolbar { display: flex; gap: 12px; align-items: center; padding: 8px 12px; border-bottom: 1px solid #ddd; }
+.body { display: flex; flex: 1; min-height: 0; }
+.panel { width: 320px; border-left: 1px solid #ddd; padding: 12px; overflow-y: auto; }
+.field { display: flex; flex-direction: column; margin-bottom: 8px; font-size: 12px; }
+.field input, .field textarea { font-size: 13px; padding: 4px; }
+.field textarea { min-height: 56px; }
