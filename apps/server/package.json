@@ -10,10 +10,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@hyphae/schema": "workspace:*",
     "@hono/node-server": "^1.12.0",
+    "@hyphae/schema": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.0.4",
-    "hono": "^4.5.0"
+    "hono": "^4.5.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "tsx": "^4.16.2"
