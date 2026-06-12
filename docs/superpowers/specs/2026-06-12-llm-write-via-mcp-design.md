@@ -65,7 +65,7 @@ Granular endpoints translate HTTP ↔ store and map errors:
 - Success returns the created/updated entity **plus** `version`.
 - `GET /events` — Hono `streamSSE`; on connect emit `hello {version}`, then one `changed {version}` per `notify()`; unsubscribe on disconnect.
 - `GET /model` — returns the model; exposes version via `X-Hyphae-Version` header (body stays a clean `HyphaeModel`).
-- `PUT /model` — kept for whole-model import only (validated, bumps version, broadcasts); not used for per-edit anymore.
+- **`PUT /model` is removed.** All edits go through the granular endpoints; there is no whole-model write path. (The existing `PUT /model` route and its test are deleted.)
 
 ### Entry / dev proxy
 
@@ -91,7 +91,7 @@ Error handling: `422` → return the `Issue[]` verbatim so the agent self-correc
 ## Web editor
 
 - `api.ts`: add `createNode/updateNode/deleteNode/createConnection/deleteConnection` (granular fetches), each returning `{entity, version}`. `loadModel` also returns the current `version` (read from the `X-Hyphae-Version` header) so the store can seed `ownVersion` on initial load — otherwise the first SSE `changed` event always exceeds `ownVersion (0)` and forces a redundant refetch.
-- `store.ts`: actions apply the change **optimistically** to local state, then call the endpoint; on `422` they **revert** and surface the issue. The client generates the id for its own creates (server accepts a provided id), so the selected-node id stays stable. Each successful response carries the new `version`, stored as `ownVersion`.
+- `store.ts`: actions are **non-optimistic** for this slice. Each action calls the endpoint and waits: on success it applies the returned entity to local state (insert/patch/remove) and stores the new `version` as `ownVersion`; on `422` it refetches `GET /model` (`setModel`) to resync and surfaces the issue. The client generates the id for its own creates (server accepts a provided id) so the selected-node id stays stable. Note for a later slice: switch to optimistic-update-then-revert (apply locally immediately, roll back on `422`) for snappier UX — deferred now to keep the store simple.
 - **SSE subscription:** on mount, open `EventSource('/events')`. On `changed {version}` with `version > ownVersion` (external/LLM edit) → refetch `GET /model` and `setModel`; events at/below `ownVersion` are the editor's own echoes → ignored.
 
 ## Testing
@@ -99,11 +99,12 @@ Error handling: `422` → return the `Issue[]` verbatim so the agent self-correc
 - **schema:** `newIssues` (only-new-issues semantics; pre-existing issues don't count); `resolveProfile` (returns c4Backend / throws).
 - **server (via `app.request`):** each endpoint happy path (entity + version); `422` with exact issues for unknown type / bad parent / dangling endpoint; `404` for missing id; version increments on success, not on rejection; delete-node cascades connections. `ModelStore`: `commit` rejects on new issues without mutating; `subscribe/notify` fans out. SSE: broadcaster unit test + `GET /events` sets `text/event-stream` and emits `hello`. Full SSE streaming = manual smoke.
 - **mcp:** `buildTools` against an injected in-memory fake `api` — `create_node` success + `422` surfacing; read tools unchanged. Stdio wiring untested (as today).
-- **web:** store actions with mocked fetch — optimistic apply, revert + issue on `422`, `ownVersion` from response. SSE handler — refetch when `version > ownVersion`, ignore at/below. Canvas/SidePanel unchanged.
+- **web:** store actions with mocked fetch — on success apply the returned entity + set `ownVersion`; on `422` refetch (`setModel`) + surface issue. SSE handler — refetch when `version > ownVersion`, ignore at/below. Canvas/SidePanel unchanged.
 
 ## Out of scope (this slice)
 
 - Editing reserved axes (flows, state machines, data types, requirements, decisions).
 - A Claude Code skill or MCP prompt for modeling guidance (tool descriptions only for now).
 - Multi-profile support beyond `c4-backend` (the seam — `resolveProfile` — is in place).
-- Whole-model conflict merge UI; the version/echo scheme prevents clobbering, and a stale whole-model `PUT` (import only) is last-write-wins.
+- Whole-model write/import path (`PUT /model` is removed); all edits are granular. The version/echo scheme prevents clobbering between the editor and the LLM.
+- Optimistic UI (apply-then-revert) in the web store; this slice is non-optimistic (await server, refetch on rejection).
