@@ -1,6 +1,6 @@
 import type { HyphaeModel } from './model';
 import type { Profile } from './profile';
-import { allowedParentTypes } from './profiles/c4-backend';
+import { allowedParentTypes, c4Backend } from './profiles/c4-backend';
 
 export type Issue = {
   kind: 'unknown-type' | 'bad-parent' | 'missing-parent' | 'dangling-endpoint';
@@ -34,4 +34,18 @@ export function validateModel(model: HyphaeModel, profile: Profile): Issue[] {
     }
   }
   return issues;
+}
+
+const issueKey = (i: Issue) => `${i.kind}:${i.ref}`;
+
+/** Issues present in `next` but not already in `prev` (identity = kind+ref). */
+export function newIssues(prev: HyphaeModel, next: HyphaeModel, profile: Profile): Issue[] {
+  const before = new Set(validateModel(prev, profile).map(issueKey));
+  return validateModel(next, profile).filter((i) => !before.has(issueKey(i)));
+}
+
+/** The Profile for a model's activeProfile. Only c4-backend exists today. */
+export function resolveProfile(model: HyphaeModel): Profile {
+  if (model.activeProfile === c4Backend.id) return c4Backend;
+  throw new Error(`Unknown profile: ${model.activeProfile}`);
 }

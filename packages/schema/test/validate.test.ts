@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateModel } from '../src/validate';
+import { validateModel, newIssues, resolveProfile } from '../src/validate';
 import { emptyModel } from '../src/model';
 import { c4Backend } from '../src/profiles/c4-backend';
 import type { Node } from '../src/node';
@@ -43,5 +43,34 @@ describe('validateModel', () => {
     expect(validateModel(m, c4Backend)).toContainEqual(
       expect.objectContaining({ kind: 'dangling-endpoint', ref: 'c1' }),
     );
+  });
+});
+
+describe('newIssues', () => {
+  it('returns only issues that are new in next', () => {
+    const prev = emptyModel();
+    const next = emptyModel();
+    next.nodes.push(node({ id: 'a', type: 'Bogus' }));
+    const result = newIssues(prev, next, c4Backend);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ kind: 'unknown-type', ref: 'a' });
+  });
+
+  it('ignores issues that already existed in prev', () => {
+    const prev = emptyModel();
+    prev.nodes.push(node({ id: 'a', type: 'Bogus' }));
+    const next = { ...prev, nodes: [...prev.nodes] };
+    expect(newIssues(prev, next, c4Backend)).toEqual([]);
+  });
+});
+
+describe('resolveProfile', () => {
+  it('returns c4Backend for the c4-backend profile', () => {
+    expect(resolveProfile(emptyModel())).toBe(c4Backend);
+  });
+
+  it('throws for an unknown profile', () => {
+    const m = { ...emptyModel(), activeProfile: 'nope' };
+    expect(() => resolveProfile(m as never)).toThrow();
   });
 });
