@@ -13,7 +13,15 @@ export function App() {
   const types = layerTypes(layer);
 
   useEffect(() => {
-    loadModel().then(setModel).catch((e) => console.error('load failed', e));
+    loadModel()
+      .then(({ model, version }) => setModel(model, version))
+      .catch((e) => console.error('load failed', e));
+    const es = new EventSource('/events');
+    es.addEventListener('changed', (e) => {
+      const version = Number((e as MessageEvent).data);
+      if (version > useStore.getState().ownVersion) void useStore.getState().syncFromServer();
+    });
+    return () => es.close();
   }, [setModel]);
 
   return (

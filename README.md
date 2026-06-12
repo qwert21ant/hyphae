@@ -13,11 +13,19 @@ See `docs/MVP_RU.md` for the thin-slice scope, `docs/MODEL_RU.md` for the model 
 
     pnpm -r test
 
-## MCP (read-only, for an agent)
+## MCP (read + write, for an agent)
 
-    HYPHAE_FILE=/abs/path/to/hyphae.json pnpm --filter @hyphae/server mcp
+The MCP server is an HTTP client of the running Hyphae server, so the server must be up:
 
-Tools: `get_text_context`, `get_node`, `list_nodes`, `find_connections`.
+    pnpm --filter @hyphae/server dev          # terminal A — owns hyphae.json on :5173
+    HYPHAE_SERVER=http://localhost:5173 pnpm --filter @hyphae/server mcp   # terminal B
+
+Read tools: `get_text_context`, `get_node`, `list_nodes`, `find_connections`.
+Write tools: `create_node`, `update_node`, `delete_node`, `create_connection`, `delete_connection`.
+
+All edits go through the server's granular, validated endpoints (strict — a write that would
+break the model is rejected with the specific issues). The web editor subscribes to `/events`
+(SSE) and shows the agent's changes live.
 
 ## Production
 
