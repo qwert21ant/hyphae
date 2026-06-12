@@ -13,33 +13,72 @@ beforeEach(() => {
 });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
+const post = (path: string, body: unknown) =>
+  app.request(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+const createNode = async (body: unknown) => (await (await post('/nodes', body)).json()).node;
+
 describe('routes', () => {
-  it('GET /model returns the current model', async () => {
+  it('GET /model returns the model and the version header', async () => {
     const res = await app.request('/model');
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.nodes).toEqual([]);
+    expect(res.headers.get('X-Hyphae-Version')).toBe('0');
+    expect((await res.json()).nodes).toEqual([]);
   });
 
-  it('PUT /model stores a valid model', async () => {
-    const get = await (await app.request('/model')).json();
-    get.metadata.name = 'Via API';
-    const res = await app.request('/model', {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(get),
+  it('POST /nodes creates a node and bumps version', async () => {
+    const res = await post('/nodes', { name: 'API', type: 'Container' });
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.node).toMatchObject({ name: 'API', type: 'Container' });
+    expect(body.version).toBe(1);
+  });
+
+  it('POST /nodes rejects an unknown type with 422 and issues', async () => {
+    const res = await post('/nodes', { name: 'X', type: 'Bogus' });
+    expect(res.status).toBe(422);
+    expect((await res.json()).issues[0]).toMatchObject({ kind: 'unknown-type' });
+  });
+
+  it('PATCH /nodes/:id updates a node', async () => {
+    const node = await createNode({ name: 'API', type: 'Container' });
+    const res = await app.request(`/nodes/${node.id}`, {
+      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: 'Renamed' }),
     });
     expect(res.status).toBe(200);
-    const after = await (await app.request('/model')).json();
-    expect(after.metadata.name).toBe('Via API');
+    expect((await res.json()).node.name).toBe('Renamed');
   });
 
-  it('PUT /model rejects an invalid model with 400', async () => {
-    const res = await app.request('/model', {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ nope: true }),
+  it('PATCH /nodes/:id returns 404 for a missing id', async () => {
+    const res = await app.request('/nodes/nope', {
+      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: 'X' }),
     });
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(404);
+  });
+
+  it('DELETE /nodes/:id cascades its connections', async () => {
+    const a = await createNode({ name: 'A', type: 'Component' });
+    const b = await createNode({ name: 'B', type: 'Component' });
+    await post('/connections', { from: a.id, to: b.id, relationCategory: 'Dependency' });
+    expect((await app.request(`/nodes/${a.id}`, { method: 'DELETE' })).status).toBe(200);
+    const model = await (await app.request('/model')).json();
+    expect(model.nodes.map((n: { id: string }) => n.id)).toEqual([b.id]);
+    expect(model.connections).toEqual([]);
+  });
+
+  it('POST /connections rejects a dangling endpoint with 422', async () => {
+    const a = await createNode({ name: 'A', type: 'Component' });
+    const res = await post('/connections', { from: a.id, to: 'ghost', relationCategory: 'Dependency' });
+    expect(res.status).toBe(422);
+    expect((await res.json()).issues[0]).toMatchObject({ kind: 'dangling-endpoint' });
+  });
+
+  it('PUT /views/:layer/positions/:nodeId stores a position', async () => {
+    const a = await createNode({ name: 'A', type: 'Component' });
+    const res = await app.request(`/views/Component/positions/${a.id}`, {
+      method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ x: 5, y: 6 }),
+    });
+    expect(res.status).toBe(200);
+    const model = await (await app.request('/model')).json();
+    expect(model.views.find((v: { layer: string }) => v.layer === 'Component').nodePositions[a.id]).toEqual({ x: 5, y: 6 });
   });
 });
