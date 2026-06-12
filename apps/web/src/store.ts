@@ -1,100 +1,115 @@
 import { create } from 'zustand';
 import {
-  emptyModel, newId, now, c4Backend, typesForLayer,
+  emptyModel, newId, c4Backend, typesForLayer,
   type HyphaeModel, type Node, type Position,
 } from '@hyphae/schema';
-import { saveModel } from './api';
+import * as api from './api';
 
 type State = {
   model: HyphaeModel;
   layer: string;
   selectedId: string | null;
-  setModel: (m: HyphaeModel) => void;
+  ownVersion: number;
+  error: string | null;
+  setModel: (m: HyphaeModel, version?: number) => void;
+  syncFromServer: () => Promise<void>;
   setLayer: (layer: string) => void;
   select: (id: string | null) => void;
-  addNode: (type: string) => void;
-  updateNode: (id: string, patch: Partial<Node>) => void;
-  deleteNode: (id: string) => void;
-  addConnection: (from: string, to: string) => void;
-  deleteConnection: (id: string) => void;
-  setNodePosition: (id: string, pos: Position) => void;
+  addNode: (type: string) => Promise<void>;
+  updateNode: (id: string, patch: Partial<Node>) => Promise<void>;
+  deleteNode: (id: string) => Promise<void>;
+  addConnection: (from: string, to: string) => Promise<void>;
+  deleteConnection: (id: string) => Promise<void>;
+  setNodePosition: (id: string, pos: Position) => Promise<void>;
 };
 
-function persist(model: HyphaeModel) {
-  model.metadata.updatedAt = now();
-  void saveModel(model).catch((e) => console.error(e));
-}
-
-export const useStore = create<State>((set, get) => ({
-  model: emptyModel(),
-  layer: 'Component',
-  selectedId: null,
-
-  setModel: (model) => set({ model }),
-  setLayer: (layer) => set({ layer, selectedId: null }),
-  select: (selectedId) => set({ selectedId }),
-
-  addNode: (type) => {
-    const ts = now();
-    const node: Node = {
-      id: newId(), name: type, type, description: '', responsibilities: [],
-      invariants: [], assumptions: [], failureModes: [], tags: [], status: 'Active',
-      parentId: null, codeRefs: [], docRefs: [], createdAt: ts, updatedAt: ts,
-    };
-    const model = { ...get().model, nodes: [...get().model.nodes, node] };
-    set({ model, selectedId: node.id });
-    persist(model);
-  },
-
-  updateNode: (id, patch) => {
-    const model = {
-      ...get().model,
-      nodes: get().model.nodes.map((n) => (n.id === id ? { ...n, ...patch, updatedAt: now() } : n)),
-    };
-    set({ model });
-    persist(model);
-  },
-
-  deleteNode: (id) => {
-    const model = {
-      ...get().model,
-      nodes: get().model.nodes.filter((n) => n.id !== id),
-      connections: get().model.connections.filter((c) => c.from !== id && c.to !== id),
-    };
-    set({ model, selectedId: null });
-    persist(model);
-  },
-
-  addConnection: (from, to) => {
-    const conn = {
-      id: newId(), from, to, relationCategory: 'Dependency' as const, transport: 'None' as const,
-      description: '', direction: 'Unidirectional' as const, realizes: [], codeRefs: [],
-    };
-    const model = { ...get().model, connections: [...get().model.connections, conn] };
-    set({ model });
-    persist(model);
-  },
-
-  deleteConnection: (id) => {
-    const model = { ...get().model, connections: get().model.connections.filter((c) => c.id !== id) };
-    set({ model });
-    persist(model);
-  },
-
-  setNodePosition: (id, pos) => {
-    const { model, layer } = get();
-    const views = [...model.views];
-    let view = views.find((v) => v.layer === layer);
-    if (!view) {
-      view = { id: newId(), name: layer, layer, nodePositions: {} };
-      views.push(view);
+export const useStore = create<State>((set, get) => {
+  // On a rejected write: resync from the server (single source of truth) and surface the issue.
+  async function recover(e: unknown): Promise<void> {
+    if (e instanceof api.ApiError && e.status === 422) {
+      const body = e.body as { issues?: Array<{ message: string }> };
+      const { model, version } = await api.loadModel();
+      set({ model, ownVersion: version, error: (body.issues ?? []).map((i) => i.message).join('; ') || 'rejected' });
+    } else {
+      set({ error: String(e) });
     }
-    view.nodePositions = { ...view.nodePositions, [id]: pos };
-    const next = { ...model, views };
-    set({ model: next });
-    persist(next);
-  },
-}));
+  }
+
+  return {
+    model: emptyModel(),
+    layer: 'Component',
+    selectedId: null,
+    ownVersion: 0,
+    error: null,
+
+    setModel: (model, version = 0) => set({ model, ownVersion: version }),
+    syncFromServer: async () => {
+      const { model, version } = await api.loadModel();
+      set({ model, ownVersion: version });
+    },
+    setLayer: (layer) => set({ layer, selectedId: null }),
+    select: (selectedId) => set({ selectedId }),
+
+    addNode: async (type) => {
+      try {
+        const { node, version } = await api.createNode({ id: newId(), name: type, type });
+        set((s) => ({ model: { ...s.model, nodes: [...s.model.nodes, node] }, selectedId: node.id, ownVersion: version, error: null }));
+      } catch (e) { await recover(e); }
+    },
+
+    updateNode: async (id, patch) => {
+      try {
+        const { node, version } = await api.updateNode(id, patch);
+        set((s) => ({ model: { ...s.model, nodes: s.model.nodes.map((n) => (n.id === id ? node : n)) }, ownVersion: version, error: null }));
+      } catch (e) { await recover(e); }
+    },
+
+    deleteNode: async (id) => {
+      try {
+        const { version } = await api.deleteNode(id);
+        set((s) => ({
+          model: {
+            ...s.model,
+            nodes: s.model.nodes.filter((n) => n.id !== id),
+            connections: s.model.connections.filter((c) => c.from !== id && c.to !== id),
+          },
+          selectedId: null, ownVersion: version, error: null,
+        }));
+      } catch (e) { await recover(e); }
+    },
+
+    addConnection: async (from, to) => {
+      try {
+        const { connection, version } = await api.createConnection({ id: newId(), from, to, relationCategory: 'Dependency' });
+        set((s) => ({ model: { ...s.model, connections: [...s.model.connections, connection] }, ownVersion: version, error: null }));
+      } catch (e) { await recover(e); }
+    },
+
+    deleteConnection: async (id) => {
+      try {
+        const { version } = await api.deleteConnection(id);
+        set((s) => ({ model: { ...s.model, connections: s.model.connections.filter((c) => c.id !== id) }, ownVersion: version, error: null }));
+      } catch (e) { await recover(e); }
+    },
+
+    setNodePosition: async (id, pos) => {
+      const layer = get().layer;
+      try {
+        const { version } = await api.setNodePosition(layer, id, pos);
+        set((s) => {
+          const views = s.model.views.map((v) => ({ ...v, nodePositions: { ...v.nodePositions } }));
+          let view = views.find((v) => v.layer === layer);
+          if (!view) {
+            view = { id: newId(), name: layer, layer, nodePositions: {} };
+            views.push(view);
+          }
+          view.nodePositions[id] = pos;
+          return { model: { ...s.model, views }, ownVersion: version };
+        });
+      } catch (e) { await recover(e); }
+    },
+  };
+});
 
 export const layerTypes = (layer: string) => typesForLayer(c4Backend, layer);
 export const layers = c4Backend.layers;
