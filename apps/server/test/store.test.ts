@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ModelStore } from '../src/store';
+import { ValidationError, NotFoundError } from '../src/errors';
 
 let dir: string;
 let file: string;
@@ -13,26 +14,57 @@ beforeEach(() => {
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 describe('ModelStore', () => {
-  it('returns an empty model when file is absent', () => {
-    const store = new ModelStore(file);
-    expect(store.get().nodes).toEqual([]);
+  it('returns an empty model when the file is absent', () => {
+    expect(new ModelStore(file).get().nodes).toEqual([]);
   });
 
-  it('persists atomically and reloads', async () => {
+  it('addNode persists atomically and reloads', async () => {
     const store = new ModelStore(file);
-    const m = store.get();
-    m.metadata.name = 'Persisted';
-    store.set(m);
+    const node = store.addNode({ name: 'API', type: 'Container' });
+    expect(node.id).toBeTruthy();
+    expect(store.version).toBe(1);
     await store.flush();
     expect(existsSync(file)).toBe(true);
     expect(existsSync(file + '.tmp')).toBe(false);
-    const fromDisk = JSON.parse(readFileSync(file, 'utf8'));
-    expect(fromDisk.metadata.name).toBe('Persisted');
-    expect(new ModelStore(file).get().metadata.name).toBe('Persisted');
+    expect(new ModelStore(file).get().nodes.map((n) => n.name)).toEqual(['API']);
   });
 
-  it('rejects an invalid model on set', () => {
+  it('rejects a mutation that introduces an issue, leaving state unchanged', () => {
     const store = new ModelStore(file);
-    expect(() => store.set({ nope: true } as never)).toThrow();
+    expect(() => store.addNode({ name: 'X', type: 'Bogus' })).toThrow(ValidationError);
+    expect(store.get().nodes).toEqual([]);
+    expect(store.version).toBe(0);
+  });
+
+  it('updateNode throws NotFoundError for a missing id', () => {
+    expect(() => new ModelStore(file).updateNode('nope', { name: 'X' })).toThrow(NotFoundError);
+  });
+
+  it('deleteNode cascades its connections', () => {
+    const store = new ModelStore(file);
+    const a = store.addNode({ name: 'A', type: 'Component' });
+    const b = store.addNode({ name: 'B', type: 'Component' });
+    store.addConnection({ from: a.id, to: b.id, relationCategory: 'Dependency' });
+    store.deleteNode(a.id);
+    expect(store.get().nodes.map((n) => n.id)).toEqual([b.id]);
+    expect(store.get().connections).toEqual([]);
+  });
+
+  it('notifies subscribers with the new version on each change', () => {
+    const store = new ModelStore(file);
+    const seen: number[] = [];
+    const unsub = store.subscribe((v) => seen.push(v));
+    store.addNode({ name: 'A', type: 'Component' });
+    store.addNode({ name: 'B', type: 'Component' });
+    unsub();
+    store.addNode({ name: 'C', type: 'Component' });
+    expect(seen).toEqual([1, 2]);
+  });
+
+  it('stores a node position in the layer view', () => {
+    const store = new ModelStore(file);
+    const n = store.addNode({ name: 'A', type: 'Component' });
+    store.setNodePosition('Component', n.id, { x: 10, y: 20 });
+    expect(store.get().views.find((v) => v.layer === 'Component')?.nodePositions[n.id]).toEqual({ x: 10, y: 20 });
   });
 });
