@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { streamSSE } from 'hono/streaming';
 import type { Context } from 'hono';
 import type { ModelStore } from './store';
 import { ValidationError, NotFoundError } from './errors';
@@ -56,6 +57,16 @@ export function createApp(store: ModelStore) {
     try { store.setNodePosition(c.req.param('layer'), c.req.param('nodeId'), { x, y }); return c.json({ version: store.version }); }
     catch (e) { return mapError(c, e); }
   });
+
+  app.get('/events', (c) =>
+    streamSSE(c, async (stream) => {
+      await stream.writeSSE({ event: 'hello', data: String(store.version) });
+      const unsub = store.subscribe((v) => {
+        void stream.writeSSE({ event: 'changed', data: String(v) }).catch(() => undefined);
+      });
+      await new Promise<void>((resolve) => stream.onAbort(() => { unsub(); resolve(); }));
+    }),
+  );
 
   return app;
 }
