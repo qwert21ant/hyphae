@@ -45,3 +45,26 @@ reconciliation bundle, and resumability across partial runs. None of those are e
 finished 12-node model. **The discriminating test is the deferred end-to-end run on a real
 multi-package repo (plan Task 7).** Task 6 below is kept as a positive technique check (does the
 skill make an agent read-first and stop at GATE 1), not as a RED→GREEN differentiator.
+
+## Idempotency / technique check (GREEN) — Task 6
+
+Ran a fresh subagent: "invoke the building-architecture-models skill, ensure
+`C:/projects/hyphae` is modeled, stop at GATE 1." Result:
+
+- **Read-first:** yes — called `get_text_context` before any write; found the model non-empty.
+- **Created vs. skipped:** created **nothing** in the model. System + 3 Containers matched existing
+  nodes by (name + parentId) and were reused, not duplicated. Components left untouched.
+- **Direct verification:** `list_nodes` after the run = **12 nodes, identical ids** to the Before
+  snapshot. No duplicates. (The subagent's prose said "14 nodes/10 components" — a self-report
+  arithmetic error; the live model is unchanged. Lesson reinforced: verify with `list_nodes`,
+  never trust the agent's narrated count.)
+- **Phase 0 verification worked:** it checked `pnpm-workspace.yaml` and confirmed the real layout
+  is `packages/schema`, `apps/server`, `apps/web` — i.e. it did NOT take the spec's flat
+  `packages/` snippet on faith. Drift recorded in `docs/hyphae/model-plan.md`.
+- **Stopped at GATE 1:** yes — produced the container map, dispatched no Phase 2 subagents.
+
+**PASS.** Read-first idempotency, docs-vs-reality verification, the plan artifact, and the GATE 1
+stop all behaved as specified. Worked GATE 1 output kept at `docs/hyphae/model-plan.md`.
+
+The full large-repo flow (decomposition of an unknown repo, parallel Phase 2 subagents, Phase 3
+reconciliation bundle, GATE 2) remains to be validated in plan Task 7, which is deferred.
