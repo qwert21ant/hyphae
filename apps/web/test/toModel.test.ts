@@ -52,4 +52,44 @@ describe('toModel mapping', () => {
     });
     expect(toFlowEdges(m, 'Component')[0].label).toBe('Dependency / Sync');
   });
+
+  it('groups children into a synthesized parent region', () => {
+    const m = emptyModel();
+    m.nodes.push({
+      id: 'cont', name: 'API', type: 'Container', description: '', responsibilities: [],
+      invariants: [], assumptions: [], failureModes: [], tags: [], status: 'Active',
+      parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+    });
+    m.nodes.push({
+      id: 'a', name: 'A', type: 'Component', description: '', responsibilities: [],
+      invariants: [], assumptions: [], failureModes: [], tags: [], status: 'Active',
+      parentId: 'cont', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+    });
+    m.nodes.push({
+      id: 'b', name: 'B', type: 'Component', description: '', responsibilities: [],
+      invariants: [], assumptions: [], failureModes: [], tags: [], status: 'Active',
+      parentId: 'cont', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+    });
+    const flow = toFlowNodes(m, 'Component');
+    const group = flow.find((n) => n.id === 'cont');
+    expect(group?.type).toBe('group');
+    expect((group?.data as { label?: string }).label).toBe('API');
+    const a = flow.find((n) => n.id === 'a');
+    expect(a?.parentId).toBe('cont');
+    expect(a?.extent).toBe('parent');
+    // group must come before its children in the array (React Flow v12 requirement)
+    expect(flow.findIndex((n) => n.id === 'cont')).toBeLessThan(flow.findIndex((n) => n.id === 'a'));
+  });
+
+  it('keeps unparented nodes at the top level', () => {
+    const m = emptyModel();
+    m.nodes.push({
+      id: 'c', name: 'C', type: 'Component', description: '', responsibilities: [],
+      invariants: [], assumptions: [], failureModes: [], tags: [], status: 'Active',
+      parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+    });
+    const c = toFlowNodes(m, 'Component').find((n) => n.id === 'c');
+    expect(c?.parentId).toBeUndefined();
+    expect(c?.type).toBeUndefined();
+  });
 });

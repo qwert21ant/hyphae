@@ -6,6 +6,9 @@ import {
 import '@xyflow/react/dist/style.css';
 import { useStore } from './store';
 import { toFlowNodes, toFlowEdges } from './toModel';
+import { GroupNode } from './GroupNode';
+
+const nodeTypes = { group: GroupNode };
 
 export function Canvas() {
   const model = useStore((s) => s.model);
@@ -37,6 +40,7 @@ export function Canvas() {
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onConnect={onConnect}
         onNodeClick={(_, n) => select(n.id)}

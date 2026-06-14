@@ -1,6 +1,7 @@
 import { useStore } from './store';
 import {
   RelationCategorySchema, TransportSchema, DirectionSchema, IntentSchema,
+  allowedParentTypes, c4Backend,
   type Node, type Connection,
 } from '@hyphae/schema';
 
@@ -11,11 +12,15 @@ export function SidePanel() {
   const connection = useStore((s) => s.model.connections.find((c) => c.id === s.selectedId));
   const nodes = useStore((s) => s.model.nodes);
   const updateNode = useStore((s) => s.updateNode);
+  const reparent = useStore((s) => s.reparent);
   const deleteNode = useStore((s) => s.deleteNode);
   const updateConnection = useStore((s) => s.updateConnection);
   const deleteConnection = useStore((s) => s.deleteConnection);
 
   if (node) {
+    const parentTypes = allowedParentTypes(c4Backend, node.type);
+    const parentOptions = nodes.filter((p) => parentTypes.includes(p.type) && p.id !== node.id);
+
     const text = (label: keyof Node, value: string) => (
       <label className="field">
         <span>{label}</span>
@@ -47,6 +52,16 @@ export function SidePanel() {
         {list('invariants')}
         {list('assumptions')}
         {list('failureModes')}
+        {parentTypes.length > 0 && (
+          <label className="field">
+            <span>parent</span>
+            <select aria-label="parent" value={node.parentId ?? ''}
+              onChange={(e) => reparent(node.id, e.target.value || null)}>
+              <option value="">(none)</option>
+              {parentOptions.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.type})</option>)}
+            </select>
+          </label>
+        )}
         <button onClick={() => deleteNode(node.id)}>Delete node</button>
       </aside>
     );

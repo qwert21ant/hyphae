@@ -29,7 +29,7 @@ vi.mock('../src/api', () => {
 
 import { SidePanel } from '../src/SidePanel';
 import { useStore } from '../src/store';
-import { emptyModel } from '@hyphae/schema';
+import { emptyModel, type Node } from '@hyphae/schema';
 
 beforeEach(() => useStore.getState().setModel(emptyModel(), 0));
 
@@ -51,6 +51,24 @@ describe('SidePanel', () => {
     render(<SidePanel />);
     fireEvent.change(screen.getByLabelText('invariants') as HTMLTextAreaElement, { target: { value: 'a\nb' } });
     await waitFor(() => expect(useStore.getState().model.nodes[0].invariants).toEqual(['a', 'b']));
+  });
+
+  it('reparents the selected node via the parent dropdown', async () => {
+    const mk = (over: Partial<Node>): Node => ({
+      id: 'x', name: 'X', type: 'Component', description: '', responsibilities: [], invariants: [],
+      assumptions: [], failureModes: [], tags: [], status: 'Active', parentId: null, codeRefs: [],
+      docRefs: [], createdAt: 't', updatedAt: 't', ...over,
+    });
+    useStore.setState((s) => ({
+      model: {
+        ...s.model,
+        nodes: [mk({ id: 'cont', name: 'API', type: 'Container' }), mk({ id: 'comp', name: 'C', type: 'Component' })],
+      },
+      selectedId: 'comp',
+    }));
+    render(<SidePanel />);
+    fireEvent.change(screen.getByLabelText('parent'), { target: { value: 'cont' } });
+    await waitFor(() => expect(useStore.getState().model.nodes.find((n) => n.id === 'comp')?.parentId).toBe('cont'));
   });
 
   it('shows the selected connection and edits its transport', async () => {

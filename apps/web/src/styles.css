@@ -4,5 +4,7 @@ html, body, #root { height: 100%; margin: 0; font-family: system-ui, sans-serif;
 .body { display: flex; flex: 1; min-height: 0; }
 .panel { width: 320px; border-left: 1px solid #ddd; padding: 12px; overflow-y: auto; }
 .field { display: flex; flex-direction: column; margin-bottom: 8px; font-size: 12px; }
-.field input, .field textarea { font-size: 13px; padding: 4px; }
+.field input, .field textarea, .field select { font-size: 13px; padding: 4px; }
 .field textarea { min-height: 56px; }
+.group-node { width: 100%; height: 100%; border: 1px solid #b8c2cc; border-radius: 12px; background: rgba(70, 100, 130, 0.06); }
+.group-node__label { position: absolute; top: 6px; left: 12px; font-size: 12px; font-weight: 600; color: #5a6b7b; pointer-events: none; }

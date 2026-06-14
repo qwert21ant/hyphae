@@ -17,6 +17,7 @@ type State = {
   select: (id: string | null) => void;
   addNode: (type: string) => Promise<void>;
   updateNode: (id: string, patch: Partial<Node>) => Promise<void>;
+  reparent: (id: string, parentId: string | null) => Promise<void>;
   deleteNode: (id: string) => Promise<void>;
   addConnection: (from: string, to: string) => Promise<void>;
   updateConnection: (id: string, patch: Partial<Connection>) => Promise<void>;
@@ -63,6 +64,12 @@ export const useStore = create<State>((set, get) => {
         const { node, version } = await api.updateNode(id, patch);
         set((s) => ({ model: { ...s.model, nodes: s.model.nodes.map((n) => (n.id === id ? node : n)) }, ownVersion: version, error: null }));
       } catch (e) { await recover(e); }
+    },
+
+    reparent: async (id, parentId) => {
+      await get().updateNode(id, { parentId });
+      // Snap to a default slot in the new frame (relative inside a parent, absolute at top level).
+      await get().setNodePosition(id, parentId ? { x: 30, y: 50 } : { x: 120, y: 120 });
     },
 
     deleteNode: async (id) => {
