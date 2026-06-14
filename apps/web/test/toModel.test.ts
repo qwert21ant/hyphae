@@ -53,7 +53,7 @@ describe('toModel mapping', () => {
     expect(toFlowEdges(m, 'Component')[0].label).toBe('Dependency / Sync');
   });
 
-  it('groups children into a synthesized parent region', () => {
+  it('wraps children in a computed region sized to contain them', () => {
     const m = emptyModel();
     m.nodes.push({
       id: 'cont', name: 'API', type: 'Container', description: '', responsibilities: [],
@@ -71,14 +71,17 @@ describe('toModel mapping', () => {
       parentId: 'cont', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
     });
     const flow = toFlowNodes(m, 'Component');
-    const group = flow.find((n) => n.id === 'cont');
-    expect(group?.type).toBe('group');
-    expect((group?.data as { label?: string }).label).toBe('API');
+    const region = flow.find((n) => n.id === 'cont');
+    expect(region?.type).toBe('region');
+    expect((region?.data as { label?: string }).label).toBe('API');
     const a = flow.find((n) => n.id === 'a');
-    expect(a?.parentId).toBe('cont');
-    expect(a?.extent).toBe('parent');
-    // group must come before its children in the array (React Flow v12 requirement)
+    // children are plain absolute nodes — no React Flow parenting/extent
+    expect(a?.parentId).toBeUndefined();
+    expect(a?.extent).toBeUndefined();
+    // region paints before its children, and wraps up-and-left of them
     expect(flow.findIndex((n) => n.id === 'cont')).toBeLessThan(flow.findIndex((n) => n.id === 'a'));
+    expect(region!.position.x).toBeLessThan(a!.position.x);
+    expect(region!.position.y).toBeLessThan(a!.position.y);
   });
 
   it('keeps unparented nodes at the top level', () => {

@@ -67,9 +67,8 @@ export const useStore = create<State>((set, get) => {
     },
 
     reparent: async (id, parentId) => {
+      // Positions are absolute; the node keeps its spot and the new region grows to wrap it.
       await get().updateNode(id, { parentId });
-      // Snap to a default slot in the new frame (relative inside a parent, absolute at top level).
-      await get().setNodePosition(id, parentId ? { x: 30, y: 50 } : { x: 120, y: 120 });
     },
 
     deleteNode: async (id) => {

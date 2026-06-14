@@ -70,7 +70,7 @@ describe('editor store', () => {
     expect(useStore.getState().model.connections[0].transport).toBe('Sync');
   });
 
-  it('reparents a node (sets parentId and snaps its position)', async () => {
+  it('reparents a node (sets parentId)', async () => {
     await useStore.getState().addNode('Component');
     const id = useStore.getState().model.nodes[0].id;
     await useStore.getState().reparent(id, 'cont');
