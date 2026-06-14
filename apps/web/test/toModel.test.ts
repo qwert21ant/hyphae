@@ -83,6 +83,7 @@ describe('toModel mapping', () => {
     expect(region!.position.x).toBeLessThan(a!.position.x);
     expect(region!.position.y).toBeLessThan(a!.position.y);
     expect(region?.draggable).toBe(true);
+    expect(region?.dragHandle).toBe('.region__handle');
     expect(regionChildIds(m, 'Component', 'cont')).toEqual(new Set(['a', 'b']));
   });
 

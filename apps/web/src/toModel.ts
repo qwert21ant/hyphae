@@ -34,9 +34,12 @@ export function toFlowNodes(model: HyphaeModel, layer: string): FlowNode[] {
       type: 'region',
       position: { x: minX - PAD, y: minY - LABEL_H - PAD },
       data: { label: nameById.get(pid) ?? pid },
-      style: { width: maxX - minX + 2 * PAD, height: maxY - minY + LABEL_H + 2 * PAD },
+      // Body is click-through (so edges/nodes inside the box stay selectable);
+      // only the title bar (.region__handle) initiates a region drag.
+      style: { width: maxX - minX + 2 * PAD, height: maxY - minY + LABEL_H + 2 * PAD, pointerEvents: 'none' as const },
       draggable: true,
       selectable: false,
+      dragHandle: '.region__handle',
     };
   });
 
