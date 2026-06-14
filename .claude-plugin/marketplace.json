@@ -1,0 +1,15 @@
+{
+  "name": "hyphae",
+  "owner": {
+    "name": "qwert21",
+    "email": "qwert21ant@gmail.com"
+  },
+  "description": "Plugins for Hyphae — the visual, LLM-readable architecture-modeling tool.",
+  "plugins": [
+    {
+      "name": "hyphae-modeling",
+      "source": "./plugins/hyphae-modeling",
+      "description": "Build and incrementally deepen a Hyphae C4 architecture model of a large repository via the hyphae MCP tools."
+    }
+  ]
+}

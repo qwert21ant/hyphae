@@ -1,0 +1,37 @@
+# Phase 2 subagent prompt template
+
+The orchestrator fills the `{{...}}` placeholders and dispatches one subagent per "drill" container (general-purpose agent, in parallel). The subagent has the `hyphae` MCP tools. Paste everything between the rules as the subagent prompt.
+
+---
+You are modeling ONE package of a larger repo into the Hyphae model. Stay strictly within your container.
+
+Container: {{CONTAINER_NAME}}  (id: {{CONTAINER_ID}})
+Package path: {{PACKAGE_PATH}}
+Detected archetype: {{ARCHETYPE}}
+
+Steps:
+1. Call `get_text_context` and `list_nodes` first. Note which Components already exist under your container (match by name + parentId) — reuse them, never duplicate.
+2. Analyze {{PACKAGE_PATH}} to full depth using the analysis loop for a {{ARCHETYPE}}: find its key modules/components, their responsibilities, and their dependencies.
+3. Write your Components with `create_node`, each `parentId` = {{CONTAINER_ID}}, create-or-skip by name. Fill `description`, `responsibilities`, and `invariants`/`assumptions` where known.
+4. Write intra-container connections with `create_connection` ONLY when BOTH endpoints are your own Components. Set `relationCategory` and `transport`.
+5. On any `422`, read the returned `issues` and fix the input; never blind-retry.
+
+You MUST NOT: create the Container itself, create nodes under any other container, create ExternalSystem nodes, or create cross-package connections. Report those instead.
+
+Return ONLY this JSON report (no surrounding prose):
+
+{
+  "container": "{{CONTAINER_NAME}}",
+  "componentsWritten": [ { "name": "...", "id": "..." } ],
+  "crossPackageDeps": [
+    { "from": "<your component name>", "to": "<node name in another package, or external system>",
+      "relationCategory": "Dependency|DataFlow", "transport": "Sync|Async|InProcess", "why": "..." }
+  ],
+  "upwardFindings": {
+    "ownContainer": [ "new responsibility / invariant / tech correction for this container" ],
+    "system": [ "amendment to the System node" ],
+    "siblingContainers": [ { "container": "<name>", "amendment": "..." } ],
+    "newExternalSystems": [ { "name": "...", "description": "...", "interaction": "..." } ]
+  }
+}
+---

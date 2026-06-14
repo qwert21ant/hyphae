@@ -1,0 +1,10 @@
+{
+  "name": "hyphae-modeling",
+  "version": "0.1.0",
+  "description": "Build and incrementally deepen a Hyphae C4 architecture model of a large repository, top-down and resumably, via the hyphae MCP tools.",
+  "author": {
+    "name": "qwert21",
+    "email": "qwert21ant@gmail.com"
+  },
+  "keywords": ["hyphae", "architecture", "c4", "mcp", "modeling", "code-architecture"]
+}
