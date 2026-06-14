@@ -108,18 +108,22 @@ export const useStore = create<State>((set, get) => {
 
     setNodePosition: async (id, pos) => {
       const layer = get().layer;
+      // Optimistic: positions are always valid, and applying immediately lets multiple
+      // moves (e.g. a region drag persisting every child) batch into one re-render —
+      // avoids the partial-state flicker from awaiting the server between each child.
+      set((s) => {
+        const views = s.model.views.map((v) => ({ ...v, nodePositions: { ...v.nodePositions } }));
+        let view = views.find((v) => v.layer === layer);
+        if (!view) {
+          view = { id: newId(), name: layer, layer, nodePositions: {} };
+          views.push(view);
+        }
+        view.nodePositions[id] = pos;
+        return { model: { ...s.model, views } };
+      });
       try {
         const { version } = await api.setNodePosition(layer, id, pos);
-        set((s) => {
-          const views = s.model.views.map((v) => ({ ...v, nodePositions: { ...v.nodePositions } }));
-          let view = views.find((v) => v.layer === layer);
-          if (!view) {
-            view = { id: newId(), name: layer, layer, nodePositions: {} };
-            views.push(view);
-          }
-          view.nodePositions[id] = pos;
-          return { model: { ...s.model, views }, ownVersion: version };
-        });
+        set({ ownVersion: version });
       } catch (e) { await recover(e); }
     },
   };
