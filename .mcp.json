@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "hyphae": {
+      "command": "cmd",
+      "args": ["/c", "pnpm", "--filter", "@hyphae/server", "mcp"],
+      "env": {
+        "HYPHAE_SERVER": "http://localhost:5173"
+      }
+    }
+  }
+}
