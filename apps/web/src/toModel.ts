@@ -34,8 +34,8 @@ export function toFlowNodes(model: HyphaeModel, layer: string): FlowNode[] {
       type: 'region',
       position: { x: minX - PAD, y: minY - LABEL_H - PAD },
       data: { label: nameById.get(pid) ?? pid },
-      style: { width: maxX - minX + 2 * PAD, height: maxY - minY + LABEL_H + 2 * PAD, pointerEvents: 'none' as const },
-      draggable: false,
+      style: { width: maxX - minX + 2 * PAD, height: maxY - minY + LABEL_H + 2 * PAD },
+      draggable: true,
       selectable: false,
     };
   });
@@ -49,6 +49,15 @@ export function toFlowNodes(model: HyphaeModel, layer: string): FlowNode[] {
 
   // Regions first so they paint behind their children.
   return [...regions, ...nodes];
+}
+
+/** Ids of the visible nodes that belong to a given parent region on a layer. */
+export function regionChildIds(model: HyphaeModel, layer: string, parentId: string): Set<string> {
+  return new Set(
+    model.nodes
+      .filter((n) => layerOfType(c4Backend, n.type) === layer && n.parentId === parentId)
+      .map((n) => n.id),
+  );
 }
 
 export function toFlowEdges(model: HyphaeModel, layer: string): FlowEdge[] {

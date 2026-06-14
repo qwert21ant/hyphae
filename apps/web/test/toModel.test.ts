@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toFlowNodes, toFlowEdges } from '../src/toModel';
+import { toFlowNodes, toFlowEdges, regionChildIds } from '../src/toModel';
 import { emptyModel, layerOfType, c4Backend } from '@hyphae/schema';
 
 describe('toModel mapping', () => {
@@ -82,6 +82,8 @@ describe('toModel mapping', () => {
     expect(flow.findIndex((n) => n.id === 'cont')).toBeLessThan(flow.findIndex((n) => n.id === 'a'));
     expect(region!.position.x).toBeLessThan(a!.position.x);
     expect(region!.position.y).toBeLessThan(a!.position.y);
+    expect(region?.draggable).toBe(true);
+    expect(regionChildIds(m, 'Component', 'cont')).toEqual(new Set(['a', 'b']));
   });
 
   it('keeps unparented nodes at the top level', () => {
