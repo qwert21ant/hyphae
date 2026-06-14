@@ -44,6 +44,13 @@ export function createApp(store: ModelStore) {
     catch (e) { return mapError(c, e); }
   });
 
+  app.patch('/connections/:id', async (c) => {
+    let body: unknown;
+    try { body = await c.req.json(); } catch { return c.json({ error: 'invalid JSON' }, 400); }
+    try { const connection = store.updateConnection(c.req.param('id'), body as never); return c.json({ connection, version: store.version }); }
+    catch (e) { return mapError(c, e); }
+  });
+
   app.delete('/connections/:id', (c) => {
     try { store.deleteConnection(c.req.param('id')); return c.json({ version: store.version }); }
     catch (e) { return mapError(c, e); }

@@ -18,5 +18,10 @@ export function toFlowEdges(model: HyphaeModel, layer: string): FlowEdge[] {
   );
   return model.connections
     .filter((c) => visible.has(c.from) && visible.has(c.to))
-    .map((c) => ({ id: c.id, source: c.from, target: c.to }));
+    .map((c) => ({
+      id: c.id,
+      source: c.from,
+      target: c.to,
+      label: c.transport && c.transport !== 'None' ? `${c.relationCategory} / ${c.transport}` : c.relationCategory,
+    }));
 }

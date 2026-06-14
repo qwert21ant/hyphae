@@ -39,6 +39,9 @@ export function deleteNode(id: string): Promise<{ version: number }> {
 export function createConnection(input: { id: string; from: string; to: string; relationCategory: string }): Promise<{ connection: Connection; version: number }> {
   return mutate('POST', '/connections', input) as Promise<{ connection: Connection; version: number }>;
 }
+export function updateConnection(id: string, patch: Partial<Connection>): Promise<{ connection: Connection; version: number }> {
+  return mutate('PATCH', `/connections/${id}`, patch) as Promise<{ connection: Connection; version: number }>;
+}
 export function deleteConnection(id: string): Promise<{ version: number }> {
   return mutate('DELETE', `/connections/${id}`) as Promise<{ version: number }>;
 }

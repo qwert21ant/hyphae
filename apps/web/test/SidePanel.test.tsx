@@ -21,6 +21,7 @@ vi.mock('../src/api', () => {
     updateNode: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ node: base({ id, ...patch }), version: ++v })),
     deleteNode: vi.fn(async () => ({ version: ++v })),
     createConnection: vi.fn(async () => ({ connection: {}, version: ++v })),
+    updateConnection: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ connection: { id, from: 'a', to: 'b', relationCategory: 'Dependency', transport: 'None', description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], ...patch }, version: ++v })),
     deleteConnection: vi.fn(async () => ({ version: ++v })),
     setNodePosition: vi.fn(async () => ({ version: ++v })),
   };
@@ -50,5 +51,22 @@ describe('SidePanel', () => {
     render(<SidePanel />);
     fireEvent.change(screen.getByLabelText('invariants') as HTMLTextAreaElement, { target: { value: 'a\nb' } });
     await waitFor(() => expect(useStore.getState().model.nodes[0].invariants).toEqual(['a', 'b']));
+  });
+
+  it('shows the selected connection and edits its transport', async () => {
+    await useStore.getState().addNode('Component');
+    await useStore.getState().addNode('Component');
+    const [a, b] = useStore.getState().model.nodes.map((n) => n.id);
+    useStore.setState((s) => ({
+      model: {
+        ...s.model,
+        connections: [{ id: 'conn1', from: a, to: b, relationCategory: 'Dependency', transport: 'None', description: '', direction: 'Unidirectional', realizes: [], codeRefs: [] }],
+      },
+      selectedId: 'conn1',
+    }));
+    render(<SidePanel />);
+    expect(screen.getByRole('heading', { name: /connection/i })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('transport'), { target: { value: 'Sync' } });
+    await waitFor(() => expect(useStore.getState().model.connections[0].transport).toBe('Sync'));
   });
 });

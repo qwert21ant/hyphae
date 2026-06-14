@@ -70,6 +70,14 @@ export class ModelStore {
     return conn;
   }
 
+  updateConnection(id: string, patch: Partial<Connection>): Connection {
+    const existing = this.model.connections.find((c) => c.id === id);
+    if (!existing) throw new NotFoundError(`connection ${id} not found`);
+    const updated = ConnectionSchema.parse({ ...existing, ...patch, id });
+    this.commit({ ...this.model, connections: this.model.connections.map((c) => (c.id === id ? updated : c)) });
+    return updated;
+  }
+
   deleteConnection(id: string): void {
     if (!this.model.connections.some((c) => c.id === id)) throw new NotFoundError(`connection ${id} not found`);
     this.commit({ ...this.model, connections: this.model.connections.filter((c) => c.id !== id) });

@@ -72,6 +72,24 @@ describe('routes', () => {
     expect((await res.json()).issues[0]).toMatchObject({ kind: 'dangling-endpoint' });
   });
 
+  it('PATCH /connections/:id updates a connection', async () => {
+    const a = await createNode({ name: 'A', type: 'Component' });
+    const b = await createNode({ name: 'B', type: 'Component' });
+    const conn = (await (await post('/connections', { from: a.id, to: b.id, relationCategory: 'Dependency' })).json()).connection;
+    const res = await app.request(`/connections/${conn.id}`, {
+      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ transport: 'Sync' }),
+    });
+    expect(res.status).toBe(200);
+    expect((await res.json()).connection.transport).toBe('Sync');
+  });
+
+  it('PATCH /connections/:id returns 404 for a missing id', async () => {
+    const res = await app.request('/connections/nope', {
+      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ transport: 'Sync' }),
+    });
+    expect(res.status).toBe(404);
+  });
+
   it('PUT /views/:layer/positions/:nodeId stores a position', async () => {
     const a = await createNode({ name: 'A', type: 'Component' });
     const res = await app.request(`/views/Component/positions/${a.id}`, {

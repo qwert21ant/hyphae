@@ -33,4 +33,23 @@ describe('toModel mapping', () => {
     });
     expect(toFlowEdges(m, 'Component')).toHaveLength(0);
   });
+
+  it('labels edges with their relation info', () => {
+    const m = emptyModel();
+    m.nodes.push({
+      id: 'a', name: 'A', type: 'Component', description: '', responsibilities: [],
+      invariants: [], assumptions: [], failureModes: [], tags: [], status: 'Active',
+      parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+    });
+    m.nodes.push({
+      id: 'b', name: 'B', type: 'Component', description: '', responsibilities: [],
+      invariants: [], assumptions: [], failureModes: [], tags: [], status: 'Active',
+      parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+    });
+    m.connections.push({
+      id: 'c1', from: 'a', to: 'b', relationCategory: 'Dependency', transport: 'Sync',
+      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [],
+    });
+    expect(toFlowEdges(m, 'Component')[0].label).toBe('Dependency / Sync');
+  });
 });

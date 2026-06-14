@@ -61,6 +61,20 @@ describe('ModelStore', () => {
     expect(seen).toEqual([1, 2]);
   });
 
+  it('updateConnection updates a field', () => {
+    const store = new ModelStore(file);
+    const a = store.addNode({ name: 'A', type: 'Component' });
+    const b = store.addNode({ name: 'B', type: 'Component' });
+    const conn = store.addConnection({ from: a.id, to: b.id, relationCategory: 'Dependency' });
+    const updated = store.updateConnection(conn.id, { transport: 'Sync', description: 'calls' });
+    expect(updated).toMatchObject({ id: conn.id, transport: 'Sync', description: 'calls' });
+    expect(store.get().connections[0].transport).toBe('Sync');
+  });
+
+  it('updateConnection throws NotFoundError for a missing id', () => {
+    expect(() => new ModelStore(file).updateConnection('nope', { transport: 'Sync' })).toThrow(NotFoundError);
+  });
+
   it('stores a node position in the layer view', () => {
     const store = new ModelStore(file);
     const n = store.addNode({ name: 'A', type: 'Component' });

@@ -23,6 +23,7 @@ vi.mock('../src/api', () => {
     updateNode: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ node: base({ id, ...patch }), version: ++v })),
     deleteNode: vi.fn(async () => ({ version: ++v })),
     createConnection: vi.fn(async (input: { id: string; from: string; to: string }) => ({ connection: { id: input.id, from: input.from, to: input.to, relationCategory: 'Dependency', transport: 'None', description: '', direction: 'Unidirectional', realizes: [], codeRefs: [] }, version: ++v })),
+    updateConnection: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ connection: { id, from: 'a', to: 'b', relationCategory: 'Dependency', transport: 'None', description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], ...patch }, version: ++v })),
     deleteConnection: vi.fn(async () => ({ version: ++v })),
     setNodePosition: vi.fn(async () => ({ version: ++v })),
   };
@@ -57,6 +58,16 @@ describe('editor store', () => {
     const m = useStore.getState().model;
     expect(m.nodes).toHaveLength(1);
     expect(m.connections).toHaveLength(0);
+  });
+
+  it('updates a connection field', async () => {
+    await useStore.getState().addNode('Component');
+    await useStore.getState().addNode('Component');
+    const [a, b] = useStore.getState().model.nodes.map((n) => n.id);
+    await useStore.getState().addConnection(a, b);
+    const cid = useStore.getState().model.connections[0].id;
+    await useStore.getState().updateConnection(cid, { transport: 'Sync' });
+    expect(useStore.getState().model.connections[0].transport).toBe('Sync');
   });
 
   it('stores a node position in the layer view', async () => {

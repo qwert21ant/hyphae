@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import {
   emptyModel, newId, c4Backend, typesForLayer,
-  type HyphaeModel, type Node, type Position,
+  type HyphaeModel, type Node, type Connection, type Position,
 } from '@hyphae/schema';
 import * as api from './api';
 
@@ -19,6 +19,7 @@ type State = {
   updateNode: (id: string, patch: Partial<Node>) => Promise<void>;
   deleteNode: (id: string) => Promise<void>;
   addConnection: (from: string, to: string) => Promise<void>;
+  updateConnection: (id: string, patch: Partial<Connection>) => Promise<void>;
   deleteConnection: (id: string) => Promise<void>;
   setNodePosition: (id: string, pos: Position) => Promise<void>;
 };
@@ -82,6 +83,13 @@ export const useStore = create<State>((set, get) => {
       try {
         const { connection, version } = await api.createConnection({ id: newId(), from, to, relationCategory: 'Dependency' });
         set((s) => ({ model: { ...s.model, connections: [...s.model.connections, connection] }, ownVersion: version, error: null }));
+      } catch (e) { await recover(e); }
+    },
+
+    updateConnection: async (id, patch) => {
+      try {
+        const { connection, version } = await api.updateConnection(id, patch);
+        set((s) => ({ model: { ...s.model, connections: s.model.connections.map((c) => (c.id === id ? connection : c)) }, ownVersion: version, error: null }));
       } catch (e) { await recover(e); }
     },
 
