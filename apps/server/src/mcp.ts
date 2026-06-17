@@ -9,6 +9,7 @@ export interface HyphaeApi {
   updateNode(id: string, patch: unknown): Promise<unknown>;
   deleteNode(id: string): Promise<unknown>;
   createConnection(input: unknown): Promise<unknown>;
+  updateConnection(id: string, patch: unknown): Promise<unknown>;
   deleteConnection(id: string): Promise<unknown>;
 }
 
@@ -27,6 +28,7 @@ export function buildTools(api: HyphaeApi) {
     update_node: async ({ id, ...patch }: { id: string } & Record<string, unknown>) => api.updateNode(id, patch),
     delete_node: async ({ id }: { id: string }) => api.deleteNode(id),
     create_connection: async (input: Record<string, unknown>) => api.createConnection(input),
+    update_connection: async ({ id, ...patch }: { id: string } & Record<string, unknown>) => api.updateConnection(id, patch),
     delete_connection: async ({ id }: { id: string }) => api.deleteConnection(id),
   };
 }
@@ -56,6 +58,7 @@ function httpApi(base: string): HyphaeApi {
     updateNode: (id, patch) => mutate('PATCH', `/nodes/${id}`, patch),
     deleteNode: (id) => mutate('DELETE', `/nodes/${id}`),
     createConnection: (input) => mutate('POST', '/connections', input),
+    updateConnection: (id, patch) => mutate('PATCH', `/connections/${id}`, patch),
     deleteConnection: (id) => mutate('DELETE', `/connections/${id}`),
   };
 }
@@ -114,6 +117,20 @@ async function main() {
       direction: z.enum(['Unidirectional', 'Bidirectional']).optional(),
     },
     async (a) => text(await tools.create_connection(a)),
+  );
+  server.tool(
+    'update_connection',
+    'Update fields of an existing connection by id. Only provided fields change (relationCategory, transport, intent, description, direction, from, to). Returns the updated connection, or {issues} if rejected.',
+    {
+      id: z.string(),
+      from: z.string().optional(), to: z.string().optional(),
+      relationCategory: z.enum(['Dependency', 'DataFlow', 'Realization', 'Trace']).optional(),
+      transport: z.enum(['Sync', 'Async', 'InProcess', 'None']).optional(),
+      intent: z.enum(['Read', 'Write', 'Trigger', 'Notify', 'Use']).optional(),
+      description: z.string().optional(),
+      direction: z.enum(['Unidirectional', 'Bidirectional']).optional(),
+    },
+    async (a) => text(await tools.update_connection(a)),
   );
   server.tool('delete_connection', 'Delete a connection by id.', { id: z.string() }, async (a) => text(await tools.delete_connection(a)));
 

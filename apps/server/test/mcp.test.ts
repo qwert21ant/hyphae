@@ -23,6 +23,7 @@ function fakeApi(over: Partial<HyphaeApi> = {}): HyphaeApi {
     updateNode: async (id, patch) => ({ node: { id, ...(patch as object) }, version: 1 }),
     deleteNode: async () => ({ version: 1 }),
     createConnection: async (input) => ({ connection: { id: 'c2', ...(input as object) }, version: 1 }),
+    updateConnection: async (id, patch) => ({ connection: { id, ...(patch as object) }, version: 1 }),
     deleteConnection: async () => ({ version: 1 }),
     ...over,
   };
@@ -53,5 +54,9 @@ describe('MCP tool handlers', () => {
   it('update_node splits id from the patch', async () => {
     const r = await buildTools(fakeApi()).update_node({ id: 'api', name: 'Renamed' });
     expect(r).toMatchObject({ node: { id: 'api', name: 'Renamed' } });
+  });
+  it('update_connection splits id from the patch', async () => {
+    const r = await buildTools(fakeApi()).update_connection({ id: 'c1', relationCategory: 'Realization' });
+    expect(r).toMatchObject({ connection: { id: 'c1', relationCategory: 'Realization' } });
   });
 });

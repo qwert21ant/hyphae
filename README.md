@@ -44,7 +44,7 @@ The MCP server is an HTTP client of the running Hyphae server, so the server mus
     HYPHAE_SERVER=http://localhost:5173 pnpm --filter @hyphae/server mcp   # terminal B
 
 Read tools: `get_text_context`, `get_node`, `list_nodes`, `find_connections`.
-Write tools: `create_node`, `update_node`, `delete_node`, `create_connection`, `delete_connection`.
+Write tools: `create_node`, `update_node`, `delete_node`, `create_connection`, `update_connection`, `delete_connection`.
 
 For Claude Code, `.mcp.json` registers this server (project scope) — approve it on session start,
 then check `/mcp`. A ready-made "analyze this repo and build its model" prompt lives in
