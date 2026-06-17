@@ -16,8 +16,8 @@ export interface HyphaeApi {
 /** Pure tool handlers over an injected API client (re-reads the model per call). */
 export function buildTools(api: HyphaeApi) {
   return {
-    get_text_context: async ({ layer }: { layer?: string }) =>
-      getContext(await api.getModel(), layer ? { layer } : {}),
+    get_text_context: async (scope: { mode?: 'summary' | 'full'; layer?: string; root?: string; fields?: string[] } = {}) =>
+      getContext(await api.getModel(), scope),
     get_node: async ({ id }: { id: string }) =>
       (await api.getModel()).nodes.find((n) => n.id === id) ?? null,
     list_nodes: async ({ parentId, type, limit, offset }: { parentId?: string; type?: string; limit?: number; offset?: number } = {}) => {
@@ -137,7 +137,21 @@ async function main() {
   const tools = buildTools(httpApi(base));
   const server = new McpServer({ name: 'hyphae', version: '0.1.0' });
 
-  server.tool('get_text_context', 'Compact plain-text view of the architecture model. Call this FIRST to see what already exists before creating or editing.', { layer: z.string().optional() }, async (a) => text(await tools.get_text_context(a)));
+  server.tool(
+    'get_text_context',
+    'Plain-text view of the architecture model — call this FIRST to orient. By default returns a COMPACT SUMMARY of the whole model (one line per node) so it stays small even on large models. Use mode:"full" or a narrower scope when you need detail. Recommended flow on a big model: call with no args for the summary, then drill in with a root-scoped full call, get_node, get_subgraph, or search_nodes.',
+    {
+      mode: z.enum(['summary', 'full']).optional()
+        .describe('summary = headline + one-line purpose + parent per node; full = all semantic fields (description, technology, responsibilities, invariants, assumptions, failureModes). Default: summary, unless `root` is set (then full).'),
+      layer: z.string().optional()
+        .describe('Restrict to one layer: Context, Container, or Component.'),
+      root: z.string().optional()
+        .describe('A node id; render only that node and its descendants — e.g. one container plus its components.'),
+      fields: z.array(z.string()).optional()
+        .describe('Explicit node fields to include, e.g. ["responsibilities","invariants"]; overrides mode.'),
+    },
+    async (a) => text(await tools.get_text_context(a)),
+  );
   server.tool('get_node', 'Get one node by id.', { id: z.string() }, async (a) => text(await tools.get_node(a)));
   server.tool(
     'list_nodes',
