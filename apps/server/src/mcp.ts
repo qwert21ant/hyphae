@@ -20,10 +20,61 @@ export function buildTools(api: HyphaeApi) {
       getContext(await api.getModel(), layer ? { layer } : {}),
     get_node: async ({ id }: { id: string }) =>
       (await api.getModel()).nodes.find((n) => n.id === id) ?? null,
-    list_nodes: async (_: Record<string, never>) =>
-      (await api.getModel()).nodes.map((n) => ({ id: n.id, name: n.name, type: n.type })),
+    list_nodes: async ({ parentId, type, limit, offset }: { parentId?: string; type?: string; limit?: number; offset?: number } = {}) => {
+      let nodes = (await api.getModel()).nodes;
+      if (parentId !== undefined) nodes = nodes.filter((n) => n.parentId === parentId);
+      if (type !== undefined) nodes = nodes.filter((n) => n.type === type);
+      const start = offset ?? 0;
+      nodes = limit !== undefined ? nodes.slice(start, start + limit) : nodes.slice(start);
+      return nodes.map((n) => ({ id: n.id, name: n.name, type: n.type, parentId: n.parentId }));
+    },
+    search_nodes: async ({ query, type, parentId, fields, limit }: { query: string; type?: string; parentId?: string; fields?: string[]; limit?: number }) => {
+      const q = query.toLowerCase();
+      const searchFields = fields?.length
+        ? fields
+        : ['name', 'description', 'purpose', 'technology', 'responsibilities', 'invariants', 'assumptions', 'failureModes', 'tags'];
+      const model = await api.getModel();
+      const nameById = new Map(model.nodes.map((n) => [n.id, n.name]));
+      const hit = (n: Record<string, unknown>) =>
+        searchFields.some((f) => {
+          const v = n[f];
+          if (typeof v === 'string') return v.toLowerCase().includes(q);
+          if (Array.isArray(v)) return v.some((x) => typeof x === 'string' && x.toLowerCase().includes(q));
+          return false;
+        });
+      return model.nodes
+        .filter((n) => (type === undefined || n.type === type) && (parentId === undefined || n.parentId === parentId) && hit(n as unknown as Record<string, unknown>))
+        .slice(0, limit ?? 25)
+        .map((n) => ({ id: n.id, name: n.name, type: n.type, parentId: n.parentId, parent: n.parentId ? nameById.get(n.parentId) ?? null : null, purpose: n.purpose }));
+    },
     find_connections: async ({ nodeId }: { nodeId: string }) =>
       (await api.getModel()).connections.filter((c) => c.from === nodeId || c.to === nodeId),
+    get_subgraph: async ({ nodeId, depth, direction, relationCategory }: { nodeId: string; depth?: number; direction?: 'in' | 'out' | 'both'; relationCategory?: string }) => {
+      const model = await api.getModel();
+      if (!model.nodes.some((n) => n.id === nodeId)) return { error: `node ${nodeId} not found` };
+      const maxDepth = depth ?? 1;
+      const dir = direction ?? 'both';
+      const edges = relationCategory ? model.connections.filter((c) => c.relationCategory === relationCategory) : model.connections;
+      const reached = new Set<string>([nodeId]);
+      let frontier = [nodeId];
+      for (let d = 0; d < maxDepth && frontier.length; d++) {
+        const next: string[] = [];
+        for (const id of frontier) {
+          for (const c of edges) {
+            if ((dir === 'out' || dir === 'both') && c.from === id && !reached.has(c.to)) { reached.add(c.to); next.push(c.to); }
+            if ((dir === 'in' || dir === 'both') && c.to === id && !reached.has(c.from)) { reached.add(c.from); next.push(c.from); }
+          }
+        }
+        frontier = next;
+      }
+      return {
+        root: nodeId,
+        depth: maxDepth,
+        direction: dir,
+        nodes: model.nodes.filter((n) => reached.has(n.id)).map((n) => ({ id: n.id, name: n.name, type: n.type, parentId: n.parentId })),
+        connections: edges.filter((c) => reached.has(c.from) && reached.has(c.to)),
+      };
+    },
     create_node: async (input: Record<string, unknown>) => api.createNode(input),
     update_node: async ({ id, ...patch }: { id: string } & Record<string, unknown>) => api.updateNode(id, patch),
     delete_node: async ({ id }: { id: string }) => api.deleteNode(id),
@@ -88,8 +139,25 @@ async function main() {
 
   server.tool('get_text_context', 'Compact plain-text view of the architecture model. Call this FIRST to see what already exists before creating or editing.', { layer: z.string().optional() }, async (a) => text(await tools.get_text_context(a)));
   server.tool('get_node', 'Get one node by id.', { id: z.string() }, async (a) => text(await tools.get_node(a)));
-  server.tool('list_nodes', 'List node summaries (id, name, type).', {}, async () => text(await tools.list_nodes({})));
+  server.tool(
+    'list_nodes',
+    'List node summaries (id, name, type, parentId). Optional filters: `parentId` (e.g. the components of one container), `type`; plus `offset`/`limit` for pagination. Prefer this (or search_nodes / get_subgraph) over get_text_context on a large model.',
+    { parentId: z.string().optional(), type: z.string().optional(), limit: z.number().optional(), offset: z.number().optional() },
+    async (a) => text(await tools.list_nodes(a)),
+  );
+  server.tool(
+    'search_nodes',
+    'Find nodes by case-insensitive substring across text fields (name, description, purpose, technology, responsibilities, invariants, assumptions, failureModes, tags). Optional: `type`/`parentId` filters, `fields` to restrict which fields are searched, `limit` (default 25). Returns compact summaries with the parent name for disambiguation (component names can repeat across containers).',
+    { query: z.string(), type: z.string().optional(), parentId: z.string().optional(), fields: z.array(z.string()).optional(), limit: z.number().optional() },
+    async (a) => text(await tools.search_nodes(a)),
+  );
   server.tool('find_connections', 'List the connections touching a node id.', { nodeId: z.string() }, async (a) => text(await tools.find_connections(a)));
+  server.tool(
+    'get_subgraph',
+    'Local subgraph around a node: BFS to `depth` hops (default 1) following edges `out`, `in`, or `both` (default both), optionally restricted to one `relationCategory`. Returns the reached node summaries and every connection among them. Use this to explore around a node instead of dumping the whole model.',
+    { nodeId: z.string(), depth: z.number().optional(), direction: z.enum(['in', 'out', 'both']).optional(), relationCategory: z.enum(['Dependency', 'DataFlow', 'Realization', 'Trace']).optional() },
+    async (a) => text(await tools.get_subgraph(a)),
+  );
 
   server.tool(
     'create_node',

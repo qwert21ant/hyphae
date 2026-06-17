@@ -11,16 +11,16 @@ registration. **Write** tools go through the existing routes → `ModelStore` �
 Status legend: ✅ done · 🚧 in progress · ⬜ planned.
 
 ## Existing tools
-`get_text_context`, `get_node`, `list_nodes`, `find_connections` (read);
+`get_text_context`, `get_node`, `list_nodes`, `search_nodes`, `find_connections`, `get_subgraph` (read);
 `create_node`, `update_node`, `delete_node`, `create_connection`, `update_connection`, `delete_connection` (write).
 
 ## Tier 1 — highest impact, low cost
 
 | Status | Tool | What it does | LLM impact | Complexity |
 |:------:|------|--------------|-----------|------------|
-| ⬜ | `search_nodes(query, {type?, parentId?, fields?, limit})` | Text match across name/description/responsibilities/etc. | Very high — the missing entry point; locate a node without dumping everything | Low — pure filter over `getModel()`, no route change |
-| ⬜ | `get_subgraph(nodeId, {depth, direction?, relationCategory?})` | BFS neighborhood to N hops; returns local nodes + edges | Very high — core "explore around X" primitive | Low–Med — BFS over `connections`, client-side |
-| ⬜ | `list_nodes` + filters/pagination (`{parentId?, type?, limit, offset}`) | Scoped enumeration ("components of container X") | High — avoids the full node dump | Trivial–Low — extend existing handler |
+| ✅ | `search_nodes(query, {type?, parentId?, fields?, limit})` | Text match across name/description/responsibilities/etc. | Very high — the missing entry point; locate a node without dumping everything | Low — pure filter over `getModel()`, no route change |
+| ✅ | `get_subgraph(nodeId, {depth, direction?, relationCategory?})` | BFS neighborhood to N hops; returns local nodes + edges | Very high — core "explore around X" primitive | Low–Med — BFS over `connections`, client-side |
+| ✅ | `list_nodes` + filters/pagination (`{parentId?, type?, limit, offset}`) | Scoped enumeration ("components of container X") | High — avoids the full node dump | Trivial–Low — extend existing handler |
 | ⬜ | `get_text_context` summary/scope mode (`{mode:'summary'\|'full', scope?:nodeId, fields?}`) | Compact render and/or subtree scope | Very high — fixes the >100 KB problem | Low–Med — extend `getContext()` in `context.ts` |
 | ✅ | `update_connection(id, patch)` | Edit an edge's category/transport/intent/description/direction | Medium — today you must delete+recreate | Trivial — store + `PATCH /connections/:id` already exist; only the MCP wrapper is missing |
 
