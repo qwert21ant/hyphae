@@ -137,84 +137,100 @@ async function main() {
   const tools = buildTools(httpApi(base));
   const server = new McpServer({ name: 'hyphae', version: '0.1.0' });
 
-  server.tool(
+  server.registerTool(
     'get_text_context',
-    'Plain-text view of the architecture model — call this FIRST to orient. By default returns a COMPACT SUMMARY of the whole model (one line per node) so it stays small even on large models. Use mode:"full" or a narrower scope when you need detail. Recommended flow on a big model: call with no args for the summary, then drill in with a root-scoped full call, get_node, get_subgraph, or search_nodes.',
     {
-      mode: z.enum(['summary', 'full']).optional()
-        .describe('summary = headline + one-line purpose + parent per node; full = all semantic fields (description, technology, responsibilities, invariants, assumptions, failureModes). Default: summary, unless `root` is set (then full).'),
-      layer: z.string().optional()
-        .describe('Restrict to one layer: Context, Container, or Component.'),
-      root: z.string().optional()
-        .describe('A node id; render only that node and its descendants — e.g. one container plus its components.'),
-      fields: z.array(z.string()).optional()
-        .describe('Explicit node fields to include, e.g. ["responsibilities","invariants"]; overrides mode.'),
+      description: 'Plain-text view of the architecture model — call this FIRST to orient. By default returns a COMPACT SUMMARY of the whole model (one line per node) so it stays small even on large models. Use mode:"full" or a narrower scope when you need detail. Recommended flow on a big model: call with no args for the summary, then drill in with a root-scoped full call, get_node, get_subgraph, or search_nodes.',
+      inputSchema: {
+        mode: z.enum(['summary', 'full']).optional()
+          .describe('summary = headline + one-line purpose + parent per node; full = all semantic fields (description, technology, responsibilities, invariants, assumptions, failureModes). Default: summary, unless `root` is set (then full).'),
+        layer: z.string().optional()
+          .describe('Restrict to one layer: Context, Container, or Component.'),
+        root: z.string().optional()
+          .describe('A node id; render only that node and its descendants — e.g. one container plus its components.'),
+        fields: z.array(z.string()).optional()
+          .describe('Explicit node fields to include, e.g. ["responsibilities","invariants"]; overrides mode.'),
+      },
     },
     async (a) => text(await tools.get_text_context(a)),
   );
-  server.tool('get_node', 'Get one node by id.', { id: z.string() }, async (a) => text(await tools.get_node(a)));
-  server.tool(
+  server.registerTool('get_node', { description: 'Get one node by id.', inputSchema: { id: z.string() } }, async (a) => text(await tools.get_node(a)));
+  server.registerTool(
     'list_nodes',
-    'List node summaries (id, name, type, parentId). Optional filters: `parentId` (e.g. the components of one container), `type`; plus `offset`/`limit` for pagination. Prefer this (or search_nodes / get_subgraph) over get_text_context on a large model.',
-    { parentId: z.string().optional(), type: z.string().optional(), limit: z.number().optional(), offset: z.number().optional() },
+    {
+      description: 'List node summaries (id, name, type, parentId). Optional filters: `parentId` (e.g. the components of one container), `type`; plus `offset`/`limit` for pagination. Prefer this (or search_nodes / get_subgraph) over get_text_context on a large model.',
+      inputSchema: { parentId: z.string().optional(), type: z.string().optional(), limit: z.number().optional(), offset: z.number().optional() },
+    },
     async (a) => text(await tools.list_nodes(a)),
   );
-  server.tool(
+  server.registerTool(
     'search_nodes',
-    'Find nodes by case-insensitive substring across text fields (name, description, purpose, technology, responsibilities, invariants, assumptions, failureModes, tags). Optional: `type`/`parentId` filters, `fields` to restrict which fields are searched, `limit` (default 25). Returns compact summaries with the parent name for disambiguation (component names can repeat across containers).',
-    { query: z.string(), type: z.string().optional(), parentId: z.string().optional(), fields: z.array(z.string()).optional(), limit: z.number().optional() },
+    {
+      description: 'Find nodes by case-insensitive substring across text fields (name, description, purpose, technology, responsibilities, invariants, assumptions, failureModes, tags). Optional: `type`/`parentId` filters, `fields` to restrict which fields are searched, `limit` (default 25). Returns compact summaries with the parent name for disambiguation (component names can repeat across containers).',
+      inputSchema: { query: z.string(), type: z.string().optional(), parentId: z.string().optional(), fields: z.array(z.string()).optional(), limit: z.number().optional() },
+    },
     async (a) => text(await tools.search_nodes(a)),
   );
-  server.tool('find_connections', 'List the connections touching a node id.', { nodeId: z.string() }, async (a) => text(await tools.find_connections(a)));
-  server.tool(
+  server.registerTool('find_connections', { description: 'List the connections touching a node id.', inputSchema: { nodeId: z.string() } }, async (a) => text(await tools.find_connections(a)));
+  server.registerTool(
     'get_subgraph',
-    'Local subgraph around a node: BFS to `depth` hops (default 1) following edges `out`, `in`, or `both` (default both), optionally restricted to one `relationCategory`. Returns the reached node summaries and every connection among them. Use this to explore around a node instead of dumping the whole model.',
-    { nodeId: z.string(), depth: z.number().optional(), direction: z.enum(['in', 'out', 'both']).optional(), relationCategory: z.enum(['Dependency', 'DataFlow', 'Realization', 'Trace']).optional() },
+    {
+      description: 'Local subgraph around a node: BFS to `depth` hops (default 1) following edges `out`, `in`, or `both` (default both), optionally restricted to one `relationCategory`. Returns the reached node summaries and every connection among them. Use this to explore around a node instead of dumping the whole model.',
+      inputSchema: { nodeId: z.string(), depth: z.number().optional(), direction: z.enum(['in', 'out', 'both']).optional(), relationCategory: z.enum(['Dependency', 'DataFlow', 'Realization', 'Trace']).optional() },
+    },
     async (a) => text(await tools.get_subgraph(a)),
   );
 
-  server.tool(
+  server.registerTool(
     'create_node',
-    "Add a node to the model. Call after get_text_context. `type` must be one of the active profile kinds: System, Container, Component, Actor, ExternalSystem. Containment: a Component's parentId must reference a Container, and a Container's parentId a System. Fill responsibilities/invariants/assumptions — these are the value this model gives other agents. Returns the created node, or {issues} if the write is rejected.",
-    { name: z.string(), type: z.string(), ...nodeFields },
+    {
+      description: "Add a node to the model. Call after get_text_context. `type` must be one of the active profile kinds: System, Container, Component, Actor, ExternalSystem. Containment: a Component's parentId must reference a Container, and a Container's parentId a System. Fill responsibilities/invariants/assumptions — these are the value this model gives other agents. Returns the created node, or {issues} if the write is rejected.",
+      inputSchema: { name: z.string(), type: z.string(), ...nodeFields },
+    },
     async (a) => text(await tools.create_node(a)),
   );
-  server.tool(
+  server.registerTool(
     'update_node',
-    'Update fields of an existing node by id. Only provided fields change. Returns the updated node, or {issues} if rejected.',
-    { id: z.string(), name: z.string().optional(), type: z.string().optional(), ...nodeFields },
+    {
+      description: 'Update fields of an existing node by id. Only provided fields change. Returns the updated node, or {issues} if rejected.',
+      inputSchema: { id: z.string(), name: z.string().optional(), type: z.string().optional(), ...nodeFields },
+    },
     async (a) => text(await tools.update_node(a)),
   );
-  server.tool('delete_node', 'Delete a node by id. Its connections are removed too.', { id: z.string() }, async (a) => text(await tools.delete_node(a)));
+  server.registerTool('delete_node', { description: 'Delete a node by id. Its connections are removed too.', inputSchema: { id: z.string() } }, async (a) => text(await tools.delete_node(a)));
 
-  server.tool(
+  server.registerTool(
     'create_connection',
-    'Connect two existing nodes by id. relationCategory is required: Dependency, DataFlow, Realization, or Trace. transport: Sync, Async, InProcess, None. direction: Unidirectional or Bidirectional. Returns the created connection, or {issues} if rejected.',
     {
-      from: z.string(), to: z.string(),
-      relationCategory: z.enum(['Dependency', 'DataFlow', 'Realization', 'Trace']),
-      transport: z.enum(['Sync', 'Async', 'InProcess', 'None']).optional(),
-      intent: z.enum(['Read', 'Write', 'Trigger', 'Notify', 'Use']).optional(),
-      description: z.string().optional(),
-      direction: z.enum(['Unidirectional', 'Bidirectional']).optional(),
+      description: 'Connect two existing nodes by id. relationCategory is required: Dependency, DataFlow, Realization, or Trace. transport: Sync, Async, InProcess, None. direction: Unidirectional or Bidirectional. Returns the created connection, or {issues} if rejected.',
+      inputSchema: {
+        from: z.string(), to: z.string(),
+        relationCategory: z.enum(['Dependency', 'DataFlow', 'Realization', 'Trace']),
+        transport: z.enum(['Sync', 'Async', 'InProcess', 'None']).optional(),
+        intent: z.enum(['Read', 'Write', 'Trigger', 'Notify', 'Use']).optional(),
+        description: z.string().optional(),
+        direction: z.enum(['Unidirectional', 'Bidirectional']).optional(),
+      },
     },
     async (a) => text(await tools.create_connection(a)),
   );
-  server.tool(
+  server.registerTool(
     'update_connection',
-    'Update fields of an existing connection by id. Only provided fields change (relationCategory, transport, intent, description, direction, from, to). Returns the updated connection, or {issues} if rejected.',
     {
-      id: z.string(),
-      from: z.string().optional(), to: z.string().optional(),
-      relationCategory: z.enum(['Dependency', 'DataFlow', 'Realization', 'Trace']).optional(),
-      transport: z.enum(['Sync', 'Async', 'InProcess', 'None']).optional(),
-      intent: z.enum(['Read', 'Write', 'Trigger', 'Notify', 'Use']).optional(),
-      description: z.string().optional(),
-      direction: z.enum(['Unidirectional', 'Bidirectional']).optional(),
+      description: 'Update fields of an existing connection by id. Only provided fields change (relationCategory, transport, intent, description, direction, from, to). Returns the updated connection, or {issues} if rejected.',
+      inputSchema: {
+        id: z.string(),
+        from: z.string().optional(), to: z.string().optional(),
+        relationCategory: z.enum(['Dependency', 'DataFlow', 'Realization', 'Trace']).optional(),
+        transport: z.enum(['Sync', 'Async', 'InProcess', 'None']).optional(),
+        intent: z.enum(['Read', 'Write', 'Trigger', 'Notify', 'Use']).optional(),
+        description: z.string().optional(),
+        direction: z.enum(['Unidirectional', 'Bidirectional']).optional(),
+      },
     },
     async (a) => text(await tools.update_connection(a)),
   );
-  server.tool('delete_connection', 'Delete a connection by id.', { id: z.string() }, async (a) => text(await tools.delete_connection(a)));
+  server.registerTool('delete_connection', { description: 'Delete a connection by id.', inputSchema: { id: z.string() } }, async (a) => text(await tools.delete_connection(a)));
 
   await server.connect(new StdioServerTransport());
 }

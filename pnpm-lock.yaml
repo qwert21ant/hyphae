@@ -24,7 +24,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/schema
       '@modelcontextprotocol/sdk':
-        specifier: ^1.0.4
+        specifier: ^1.29.0
         version: 1.29.0(zod@3.25.76)
       hono:
         specifier: ^4.5.0
