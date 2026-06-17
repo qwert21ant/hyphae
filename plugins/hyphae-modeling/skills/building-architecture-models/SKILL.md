@@ -47,7 +47,7 @@ Dispatch one subagent per container marked "drill", in parallel. Build each suba
 
 ### Phase 3 — Reconcile + connections + GATE 2
 1. Aggregate all reports into one review bundle:
-   - cross-package connections (resolve name→id, dedupe),
+   - cross-package connections — resolve each endpoint to an id by **(container, name)**, not by bare name (component names repeat across containers); dedupe,
    - proposed amendments to System / Containers (`update_node`),
    - new ExternalSystem nodes + edges to them.
 2. **GATE 2: show the bundle. Conflicting amendments from different subagents are surfaced for the user to resolve — never last-write-wins. Wait for approval/trim.**

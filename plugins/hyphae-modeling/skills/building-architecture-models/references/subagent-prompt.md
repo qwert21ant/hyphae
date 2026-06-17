@@ -18,13 +18,17 @@ Steps:
 
 You MUST NOT: create the Container itself, create nodes under any other container, create ExternalSystem nodes, or create cross-package connections. Report those instead.
 
+For every cross-package dependency, name the **target's container** (`toContainer`) as well as the target node name. Component names repeat across containers (e.g. several packages each have a `Contracts`), so a bare name is ambiguous — the orchestrator resolves the endpoint by (container, name).
+
 Return ONLY this JSON report (no surrounding prose):
 
 {
   "container": "{{CONTAINER_NAME}}",
   "componentsWritten": [ { "name": "...", "id": "..." } ],
   "crossPackageDeps": [
-    { "from": "<your component name>", "to": "<node name in another package, or external system>",
+    { "from": "<your component name>",
+      "toContainer": "<the container/package that owns the target, or \"external\" for an external system>",
+      "to": "<target node name within that container (or the external system name)>",
       "relationCategory": "Dependency|DataFlow", "transport": "Sync|Async|InProcess", "why": "..." }
   ],
   "upwardFindings": {
