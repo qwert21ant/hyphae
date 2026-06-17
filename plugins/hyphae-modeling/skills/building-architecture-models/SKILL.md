@@ -57,6 +57,15 @@ Dispatch one subagent per container marked "drill", in parallel. Build each suba
 ### Phase 4 — Deepen (optional, later passes)
 Each is an independent re-runnable pass: code-level nodes via gitnexus (only if connected and indexed), Flows for key scenarios, Data/Intent axes when the editor supports them.
 
+### Phase 5 — Verify (optional, re-runnable)
+A standalone consistency pass over an existing model. Run it right after Phase 3, or any time later — it is independent of Phase 4. Read-mostly: gaps are filled by the owning subagent, never by the orchestrator inventing edges.
+1. **Coverage sweep.** With `list_nodes` + `find_connections`, flag: Components with **zero connections** (orphans); and "hub" Components whose `description`/`invariants` claim broad dependence ("all others depend on it", "implements", "used by") but have few or no inbound edges. A Component a subagent listed under `standaloneComponents` is expected — not a flag.
+2. **VERIFY CHECKPOINT: show the user the flagged gaps**, separating likely-real gaps from legitimately standalone nodes. Wait for confirmation of which to fix.
+3. For confirmed gaps, **re-dispatch the owning container's subagent** (same `references/subagent-prompt.md`) to add the missing intra-container edges. The orchestrator must not write intra-container edges itself.
+4. Idempotent (create-or-skip), so Verify can be re-run until clean.
+
+> Cost note: this is one `find_connections` per Component — fine at current scale; cheaper once a `list_connections`/summary read tool exists.
+
 ## Idempotency contract (every run, every agent)
 
 - **Read first** (`get_text_context` / `list_nodes`). Never assume empty.
