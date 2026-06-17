@@ -138,4 +138,26 @@ describe('MCP query tools', () => {
     const r = (await buildTools(api()).get_subgraph({ nodeId: 'nope' })) as { error?: string };
     expect(r).toMatchObject({ error: expect.stringContaining('not found') });
   });
+
+  it('get_subgraph descends into child nodes by default', async () => {
+    const r = (await buildTools(api()).get_subgraph({ nodeId: 'ca', depth: 1 })) as { nodes: Array<{ id: string }> };
+    expect(r.nodes.map((n) => n.id).sort()).toEqual(['ca', 'n1', 'n2']);
+  });
+
+  it('get_subgraph respects depth while descending containment', async () => {
+    const d1 = (await buildTools(api()).get_subgraph({ nodeId: 'sys', depth: 1 })) as { nodes: Array<{ id: string }> };
+    expect(d1.nodes.map((n) => n.id).sort()).toEqual(['ca', 'cb', 'sys']);
+    const d2 = (await buildTools(api()).get_subgraph({ nodeId: 'sys', depth: 2 })) as { nodes: Array<{ id: string }> };
+    expect(d2.nodes.map((n) => n.id).sort()).toEqual(['ca', 'cb', 'n1', 'n2', 'n3', 'n4', 'sys']);
+  });
+
+  it('get_subgraph containment:none ignores parent/child links', async () => {
+    const r = (await buildTools(api()).get_subgraph({ nodeId: 'ca', containment: 'none' })) as { nodes: Array<{ id: string }> };
+    expect(r.nodes.map((n) => n.id)).toEqual(['ca']);
+  });
+
+  it('get_subgraph containment:up reaches the parent', async () => {
+    const r = (await buildTools(api()).get_subgraph({ nodeId: 'n1', depth: 1, containment: 'up' })) as { nodes: Array<{ id: string }> };
+    expect(r.nodes.map((n) => n.id)).toContain('ca');
+  });
 });

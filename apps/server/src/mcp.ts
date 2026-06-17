@@ -49,21 +49,34 @@ export function buildTools(api: HyphaeApi) {
     },
     find_connections: async ({ nodeId }: { nodeId: string }) =>
       (await api.getModel()).connections.filter((c) => c.from === nodeId || c.to === nodeId),
-    get_subgraph: async ({ nodeId, depth, direction, relationCategory }: { nodeId: string; depth?: number; direction?: 'in' | 'out' | 'both'; relationCategory?: string }) => {
+    get_subgraph: async ({ nodeId, depth, direction, relationCategory, containment }: { nodeId: string; depth?: number; direction?: 'in' | 'out' | 'both'; relationCategory?: string; containment?: 'down' | 'up' | 'both' | 'none' }) => {
       const model = await api.getModel();
       if (!model.nodes.some((n) => n.id === nodeId)) return { error: `node ${nodeId} not found` };
       const maxDepth = depth ?? 1;
       const dir = direction ?? 'both';
+      const cont = containment ?? 'down';
       const edges = relationCategory ? model.connections.filter((c) => c.relationCategory === relationCategory) : model.connections;
+      const childrenByParent = new Map<string, string[]>();
+      const parentOf = new Map<string, string | null>();
+      for (const n of model.nodes) {
+        parentOf.set(n.id, n.parentId);
+        if (!n.parentId) continue;
+        const arr = childrenByParent.get(n.parentId);
+        if (arr) arr.push(n.id);
+        else childrenByParent.set(n.parentId, [n.id]);
+      }
       const reached = new Set<string>([nodeId]);
       let frontier = [nodeId];
+      const visit = (id: string, next: string[]) => { if (!reached.has(id)) { reached.add(id); next.push(id); } };
       for (let d = 0; d < maxDepth && frontier.length; d++) {
         const next: string[] = [];
         for (const id of frontier) {
           for (const c of edges) {
-            if ((dir === 'out' || dir === 'both') && c.from === id && !reached.has(c.to)) { reached.add(c.to); next.push(c.to); }
-            if ((dir === 'in' || dir === 'both') && c.to === id && !reached.has(c.from)) { reached.add(c.from); next.push(c.from); }
+            if ((dir === 'out' || dir === 'both') && c.from === id) visit(c.to, next);
+            if ((dir === 'in' || dir === 'both') && c.to === id) visit(c.from, next);
           }
+          if (cont === 'down' || cont === 'both') for (const child of childrenByParent.get(id) ?? []) visit(child, next);
+          if (cont === 'up' || cont === 'both') { const p = parentOf.get(id); if (p) visit(p, next); }
         }
         frontier = next;
       }
@@ -71,6 +84,7 @@ export function buildTools(api: HyphaeApi) {
         root: nodeId,
         depth: maxDepth,
         direction: dir,
+        containment: cont,
         nodes: model.nodes.filter((n) => reached.has(n.id)).map((n) => ({ id: n.id, name: n.name, type: n.type, parentId: n.parentId })),
         connections: edges.filter((c) => reached.has(c.from) && reached.has(c.to)),
       };
@@ -175,8 +189,14 @@ async function main() {
   server.registerTool(
     'get_subgraph',
     {
-      description: 'Local subgraph around a node: BFS to `depth` hops (default 1) following edges `out`, `in`, or `both` (default both), optionally restricted to one `relationCategory`. Returns the reached node summaries and every connection among them. Use this to explore around a node instead of dumping the whole model.',
-      inputSchema: { nodeId: z.string(), depth: z.number().optional(), direction: z.enum(['in', 'out', 'both']).optional(), relationCategory: z.enum(['Dependency', 'DataFlow', 'Realization', 'Trace']).optional() },
+      description: 'Local subgraph around a node: BFS to `depth` hops (default 1). Traverses BOTH connection edges (`direction` out/in/both, default both; optional `relationCategory` filter) AND containment (`containment` down/up/both/none, default down). So get_subgraph on a Container returns its child Components (depth 1) and their wiring (depth 2). Returns the reached node summaries and every connection among them. Use this to explore around a node instead of dumping the whole model.',
+      inputSchema: {
+        nodeId: z.string(),
+        depth: z.number().optional().describe('Max hops from the root, default 1. Containment and connection steps both count.'),
+        direction: z.enum(['in', 'out', 'both']).optional().describe('Which connection edges to follow: out (from→to), in (to→from), or both (default).'),
+        relationCategory: z.enum(['Dependency', 'DataFlow', 'Realization', 'Trace']).optional().describe('Only traverse connections of this category.'),
+        containment: z.enum(['down', 'up', 'both', 'none']).optional().describe('Follow parentId links: down = into children (default), up = to parents, both, or none. Default down means a Container returns its Components.'),
+      },
     },
     async (a) => text(await tools.get_subgraph(a)),
   );
