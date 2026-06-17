@@ -49,6 +49,63 @@ export function buildTools(api: HyphaeApi) {
     },
     find_connections: async ({ nodeId }: { nodeId: string }) =>
       (await api.getModel()).connections.filter((c) => c.from === nodeId || c.to === nodeId),
+    list_connections: async ({ relationCategory, transport, containerId, crossingBoundary, involvingExternal, limit, offset }: { relationCategory?: string; transport?: string; containerId?: string; crossingBoundary?: boolean; involvingExternal?: boolean; limit?: number; offset?: number } = {}) => {
+      const model = await api.getModel();
+      const byId = new Map(model.nodes.map((n) => [n.id, n]));
+      const containerCache = new Map<string, string | null>();
+      const containerOf = (id: string): string | null => {
+        const cached = containerCache.get(id);
+        if (cached !== undefined) return cached;
+        let node = byId.get(id);
+        const seen = new Set<string>();
+        let result: string | null = null;
+        while (node && !seen.has(node.id)) {
+          seen.add(node.id);
+          if (node.type === 'Container') { result = node.id; break; }
+          node = node.parentId ? byId.get(node.parentId) : undefined;
+        }
+        containerCache.set(id, result);
+        return result;
+      };
+      let subtree: Set<string> | null = null;
+      if (containerId !== undefined) {
+        const childrenByParent = new Map<string, string[]>();
+        for (const n of model.nodes) {
+          if (!n.parentId) continue;
+          const arr = childrenByParent.get(n.parentId);
+          if (arr) arr.push(n.id);
+          else childrenByParent.set(n.parentId, [n.id]);
+        }
+        subtree = new Set([containerId]);
+        const stack = [containerId];
+        while (stack.length) {
+          const cur = stack.pop();
+          if (!cur) continue;
+          for (const child of childrenByParent.get(cur) ?? []) if (!subtree.has(child)) { subtree.add(child); stack.push(child); }
+        }
+      }
+      let conns = model.connections.filter((c) => {
+        if (relationCategory !== undefined && c.relationCategory !== relationCategory) return false;
+        if (transport !== undefined && c.transport !== transport) return false;
+        if (subtree && !(subtree.has(c.from) || subtree.has(c.to))) return false;
+        if (involvingExternal !== undefined) {
+          const ext = byId.get(c.from)?.type === 'ExternalSystem' || byId.get(c.to)?.type === 'ExternalSystem';
+          if (ext !== involvingExternal) return false;
+        }
+        if (crossingBoundary !== undefined && (containerOf(c.from) !== containerOf(c.to)) !== crossingBoundary) return false;
+        return true;
+      });
+      const start = offset ?? 0;
+      conns = limit !== undefined ? conns.slice(start, start + limit) : conns.slice(start);
+      const containerName = (id: string) => { const cid = containerOf(id); return cid ? byId.get(cid)?.name ?? null : null; };
+      return conns.map((c) => ({
+        id: c.id, from: c.from, to: c.to,
+        fromName: byId.get(c.from)?.name ?? c.from, toName: byId.get(c.to)?.name ?? c.to,
+        fromContainer: containerName(c.from), toContainer: containerName(c.to),
+        relationCategory: c.relationCategory, transport: c.transport, intent: c.intent,
+        direction: c.direction, description: c.description,
+      }));
+    },
     get_subgraph: async ({ nodeId, depth, direction, relationCategory, containment }: { nodeId: string; depth?: number; direction?: 'in' | 'out' | 'both'; relationCategory?: string; containment?: 'down' | 'up' | 'both' | 'none' }) => {
       const model = await api.getModel();
       if (!model.nodes.some((n) => n.id === nodeId)) return { error: `node ${nodeId} not found` };
@@ -186,6 +243,22 @@ async function main() {
     async (a) => text(await tools.search_nodes(a)),
   );
   server.registerTool('find_connections', { description: 'List the connections touching a node id.', inputSchema: { nodeId: z.string() } }, async (a) => text(await tools.find_connections(a)));
+  server.registerTool(
+    'list_connections',
+    {
+      description: 'Query connections across the model. Filters (all optional, AND-combined): relationCategory, transport, containerId (edges touching that container or any of its descendants), crossingBoundary (true = endpoints in different owning containers — i.e. inter-container / external edges; false = intra-container only), involvingExternal (an endpoint is an ExternalSystem). Supports offset/limit. Each result is enriched with fromName/toName and fromContainer/toContainer, so you can read cross-container dependencies without extra lookups.',
+      inputSchema: {
+        relationCategory: z.enum(['Dependency', 'DataFlow', 'Realization', 'Trace']).optional().describe('Only connections of this category.'),
+        transport: z.enum(['Sync', 'Async', 'InProcess', 'None']).optional().describe('Only connections with this transport.'),
+        containerId: z.string().optional().describe('A container node id; keep only edges touching it or one of its descendants.'),
+        crossingBoundary: z.boolean().optional().describe('true = only edges whose endpoints belong to different containers (inter-container/external); false = only intra-container edges.'),
+        involvingExternal: z.boolean().optional().describe('true = only edges with an ExternalSystem endpoint; false = only edges between in-system nodes.'),
+        limit: z.number().optional(),
+        offset: z.number().optional(),
+      },
+    },
+    async (a) => text(await tools.list_connections(a)),
+  );
   server.registerTool(
     'get_subgraph',
     {

@@ -161,3 +161,63 @@ describe('MCP query tools', () => {
     expect(r.nodes.map((n) => n.id)).toContain('ca');
   });
 });
+
+function connModel(): HyphaeModel {
+  const m = emptyModel();
+  const base = {
+    description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
+    tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+  };
+  m.nodes.push(
+    { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
+    { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
+    { id: 'cb', name: 'Beta', type: 'Container', parentId: 'sys', ...base },
+    { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
+    { id: 'a2', name: 'A2', type: 'Component', parentId: 'ca', ...base },
+    { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
+    { id: 'ext', name: 'Ext', type: 'ExternalSystem', parentId: null, ...base },
+  );
+  const e = { description: '', direction: 'Unidirectional' as const, realizes: [], codeRefs: [] };
+  m.connections.push(
+    { id: 'x1', from: 'a1', to: 'b1', relationCategory: 'Dependency', transport: 'Sync', ...e },
+    { id: 'x2', from: 'a1', to: 'ext', relationCategory: 'DataFlow', transport: 'Async', ...e },
+    { id: 'x3', from: 'b1', to: 'ext', relationCategory: 'Dependency', transport: 'Sync', ...e },
+    { id: 'x4', from: 'a1', to: 'a2', relationCategory: 'Dependency', transport: 'InProcess', ...e },
+  );
+  return m;
+}
+
+describe('list_connections', () => {
+  const api = () => fakeApi({ getModel: async () => connModel() });
+  const ids = (r: unknown) => (r as Array<{ id: string }>).map((c) => c.id).sort();
+
+  it('lists all connections by default', async () => {
+    expect(ids(await buildTools(api()).list_connections({}))).toEqual(['x1', 'x2', 'x3', 'x4']);
+  });
+
+  it('filters by relationCategory and transport', async () => {
+    expect(ids(await buildTools(api()).list_connections({ relationCategory: 'Dependency' }))).toEqual(['x1', 'x3', 'x4']);
+    expect(ids(await buildTools(api()).list_connections({ transport: 'Sync' }))).toEqual(['x1', 'x3']);
+  });
+
+  it('filters by involvingExternal', async () => {
+    expect(ids(await buildTools(api()).list_connections({ involvingExternal: true }))).toEqual(['x2', 'x3']);
+    expect(ids(await buildTools(api()).list_connections({ involvingExternal: false }))).toEqual(['x1', 'x4']);
+  });
+
+  it('filters by crossingBoundary (different owning containers)', async () => {
+    expect(ids(await buildTools(api()).list_connections({ crossingBoundary: true }))).toEqual(['x1', 'x2', 'x3']);
+    expect(ids(await buildTools(api()).list_connections({ crossingBoundary: false }))).toEqual(['x4']);
+  });
+
+  it('filters by containerId (subtree touch)', async () => {
+    expect(ids(await buildTools(api()).list_connections({ containerId: 'cb' }))).toEqual(['x1', 'x3']);
+    expect(ids(await buildTools(api()).list_connections({ containerId: 'ca' }))).toEqual(['x1', 'x2', 'x4']);
+  });
+
+  it('enriches results with endpoint names and owning containers', async () => {
+    const r = (await buildTools(api()).list_connections({ crossingBoundary: true })) as Array<Record<string, unknown>>;
+    const x1 = r.find((c) => c.id === 'x1')!;
+    expect(x1).toMatchObject({ fromName: 'A1', toName: 'B1', fromContainer: 'Alpha', toContainer: 'Beta' });
+  });
+});

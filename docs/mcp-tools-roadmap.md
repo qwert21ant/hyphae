@@ -11,7 +11,7 @@ registration. **Write** tools go through the existing routes → `ModelStore` �
 Status legend: ✅ done · 🚧 in progress · ⬜ planned.
 
 ## Existing tools
-`get_text_context`, `get_node`, `list_nodes`, `search_nodes`, `find_connections`, `get_subgraph` (read);
+`get_text_context`, `get_node`, `list_nodes`, `search_nodes`, `find_connections`, `list_connections`, `get_subgraph` (read);
 `create_node`, `update_node`, `delete_node`, `create_connection`, `update_connection`, `delete_connection` (write).
 
 ## Tier 1 — highest impact, low cost
@@ -28,7 +28,7 @@ Status legend: ✅ done · 🚧 in progress · ⬜ planned.
 
 | Status | Tool | What it does | LLM impact | Complexity |
 |:------:|------|--------------|-----------|------------|
-| ⬜ | `list_connections({relationCategory?, transport?, containerId?, crossingBoundary?, involvingExternal?})` | Query edges, incl. boundary-crossing | High — dependency analysis + feeds roll-up | Low–Med — filter; `crossingBoundary` needs parent lookup |
+| ✅ | `list_connections({relationCategory?, transport?, containerId?, crossingBoundary?, involvingExternal?, limit?, offset?})` | Query edges, incl. boundary-crossing; results enriched with endpoint names + owning containers | High — dependency analysis + feeds roll-up | Low–Med — filter; `crossingBoundary` needs parent lookup |
 | ⬜ | `get_rollup_connections(layer)` | Derives Component↔Component-across-containers ⇒ Container↔Container (and →External at context) | High — makes higher layers meaningful (B6) | Med — aggregation; shared with the UI roll-up feature |
 | ⬜ | `model_stats()` | Counts per type/layer/container, edge-category histogram, orphan count | Medium — cheap orientation before drilling | Low — reductions over the model |
 
