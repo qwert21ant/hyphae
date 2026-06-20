@@ -87,6 +87,56 @@ describe('toModel mapping', () => {
     expect(regionChildIds(m, 'Component', 'cont')).toEqual(new Set(['a', 'b']));
   });
 
+  it('filters connections by relationCategory and transport', () => {
+    const m = emptyModel();
+    const base = {
+      description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
+      tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+    };
+    m.nodes.push(
+      { id: 'a', name: 'A', type: 'Component', parentId: null, ...base },
+      { id: 'b', name: 'B', type: 'Component', parentId: null, ...base },
+      { id: 'c', name: 'C', type: 'Component', parentId: null, ...base },
+    );
+    const e = { description: '', direction: 'Unidirectional' as const, realizes: [], codeRefs: [] };
+    m.connections.push(
+      { id: 'e1', from: 'a', to: 'b', relationCategory: 'Dependency', transport: 'Sync', ...e },
+      { id: 'e2', from: 'a', to: 'c', relationCategory: 'DataFlow', transport: 'Async', ...e },
+      { id: 'e3', from: 'b', to: 'c', relationCategory: 'Dependency', transport: 'InProcess', ...e },
+    );
+    const ids = (f: { relationCategories: string[]; transports: string[] }) =>
+      toFlowEdges(m, 'Component', f).map((x) => x.id).sort();
+
+    expect(ids({ relationCategories: [], transports: [] })).toEqual(['e1', 'e2', 'e3']); // no filter
+    expect(ids({ relationCategories: ['Dependency'], transports: [] })).toEqual(['e1', 'e3']);
+    expect(ids({ relationCategories: [], transports: ['Sync'] })).toEqual(['e1']);
+    expect(ids({ relationCategories: ['Dependency'], transports: ['Async'] })).toEqual([]); // AND
+  });
+
+  it('applies the connection filter through the rollup at the Container layer', () => {
+    const m = emptyModel();
+    const base = {
+      description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
+      tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+    };
+    m.nodes.push(
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
+      { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
+      { id: 'cb', name: 'Beta', type: 'Container', parentId: 'sys', ...base },
+      { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
+      { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
+    );
+    const e = { description: '', direction: 'Unidirectional' as const, realizes: [], codeRefs: [] };
+    m.connections.push(
+      { id: 'x1', from: 'a1', to: 'b1', relationCategory: 'Dependency', transport: 'Sync', ...e },
+      { id: 'x2', from: 'a1', to: 'b1', relationCategory: 'DataFlow', transport: 'Async', ...e },
+    );
+    // Filtering to DataFlow leaves only x2 behind the ca->cb rollup edge.
+    const edges = toFlowEdges(m, 'Container', { relationCategories: ['DataFlow'], transports: [] });
+    expect(edges).toHaveLength(1);
+    expect((edges[0].data as { realizedBy: string[] }).realizedBy).toEqual(['x2']);
+  });
+
   it('shows a derived rollup edge between containers, visually distinct', () => {
     const m = emptyModel();
     const base = {

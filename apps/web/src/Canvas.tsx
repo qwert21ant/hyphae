@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import {
-  ReactFlow, Background, Controls, useNodesState, ConnectionMode,
+  ReactFlow, Background, Controls, Panel, useNodesState, ConnectionMode,
   type Connection as RFConnection, type Node as FlowNode,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -10,6 +10,7 @@ import { GroupNode } from './GroupNode';
 import { NodeBox } from './NodeBox';
 import { FloatingEdge } from './FloatingEdge';
 import { FloatingConnectionLine } from './FloatingConnectionLine';
+import { FilterPanel } from './FilterPanel';
 
 type XY = { x: number; y: number };
 type RegionDrag = { id: string; last: XY; start: XY; childStart: Map<string, XY> };
@@ -20,6 +21,7 @@ const edgeTypes = { floating: FloatingEdge };
 export function Canvas() {
   const model = useStore((s) => s.model);
   const layer = useStore((s) => s.layer);
+  const connFilter = useStore((s) => s.connFilter);
   const select = useStore((s) => s.select);
   const addConnection = useStore((s) => s.addConnection);
   const deleteConnection = useStore((s) => s.deleteConnection);
@@ -27,7 +29,7 @@ export function Canvas() {
 
   // Local node state so dragging is smooth (controlled nodes only repaint on commit).
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([]);
-  const edges = useMemo(() => toFlowEdges(model, layer), [model, layer]);
+  const edges = useMemo(() => toFlowEdges(model, layer, connFilter), [model, layer, connFilter]);
 
   // Tracks an in-progress region drag so its children move with it.
   const regionDrag = useRef<RegionDrag | null>(null);
@@ -95,6 +97,7 @@ export function Canvas() {
         onPaneClick={() => select(null)}
         fitView
       >
+        <Panel position="top-left"><FilterPanel /></Panel>
         <Background />
         <Controls />
       </ReactFlow>
