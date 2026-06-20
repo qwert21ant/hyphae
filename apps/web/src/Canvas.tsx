@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useRef } from 'react';
 import {
-  ReactFlow, Background, Controls, useNodesState,
+  ReactFlow, Background, Controls, useNodesState, ConnectionMode,
   type Connection as RFConnection, type Node as FlowNode,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useStore } from './store';
 import { toFlowNodes, toFlowEdges, regionChildIds } from './toModel';
 import { GroupNode } from './GroupNode';
+import { NodeBox } from './NodeBox';
+import { FloatingEdge } from './FloatingEdge';
+import { FloatingConnectionLine } from './FloatingConnectionLine';
 
 type XY = { x: number; y: number };
 type RegionDrag = { id: string; last: XY; start: XY; childStart: Map<string, XY> };
 
-const nodeTypes = { region: GroupNode };
+const nodeTypes = { region: GroupNode, node: NodeBox };
+const edgeTypes = { floating: FloatingEdge };
 
 export function Canvas() {
   const model = useStore((s) => s.model);
@@ -77,6 +81,9 @@ export function Canvas() {
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        connectionMode={ConnectionMode.Loose}
+        connectionLineComponent={FloatingConnectionLine}
         onNodesChange={onNodesChange}
         onNodeDragStart={onNodeDragStart}
         onNodeDrag={onNodeDrag}

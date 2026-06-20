@@ -174,6 +174,6 @@ describe('toModel mapping', () => {
     });
     const c = toFlowNodes(m, 'Component').find((n) => n.id === 'c');
     expect(c?.parentId).toBeUndefined();
-    expect(c?.type).toBeUndefined();
+    expect(c?.type).toBe('node');
   });
 });

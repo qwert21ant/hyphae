@@ -43,9 +43,10 @@ export function toFlowNodes(model: HyphaeModel, layer: string): FlowNode[] {
     };
   });
 
-  // All visible nodes are plain, absolutely-positioned nodes (no RF parenting).
+  // All visible nodes are plain, absolutely-positioned NodeBox nodes (no RF parenting).
   const nodes: FlowNode[] = visible.map((n) => ({
     id: n.id,
+    type: 'node',
     position: abs.get(n.id)!,
     data: { label: `${n.name}\n(${n.type})` },
   }));
@@ -66,6 +67,7 @@ export function regionChildIds(model: HyphaeModel, layer: string, parentId: stri
 function realEdge(c: Connection): FlowEdge {
   return {
     id: c.id,
+    type: 'floating',
     source: c.from,
     target: c.to,
     label: c.transport && c.transport !== 'None' ? `${c.relationCategory} / ${c.transport}` : c.relationCategory,
@@ -77,6 +79,7 @@ function realEdge(c: Connection): FlowEdge {
 function derivedEdge(e: RollupConnection): FlowEdge {
   return {
     id: `rollup:${e.from}:${e.to}`,
+    type: 'floating',
     source: e.from,
     target: e.to,
     label: String(e.realizedBy.length),
@@ -85,8 +88,8 @@ function derivedEdge(e: RollupConnection): FlowEdge {
     deletable: false,
     focusable: false,
     style: { stroke: '#7c3aed', strokeDasharray: '6 4', strokeWidth: 2 },
-    labelStyle: { fill: '#7c3aed', fontWeight: 600 },
-    labelBgStyle: { fill: '#ede9fe' },
+    labelStyle: { color: '#6d28d9', fontWeight: 600 },
+    labelBgStyle: { background: '#ede9fe' },
   };
 }
 
