@@ -1,7 +1,30 @@
 import { describe, it, expect } from 'vitest';
-import { toFlowNodes, toFlowEdges, regionChildIds, highlightSets } from '../src/toModel';
+import { toFlowNodes, toFlowEdges, regionChildIds, highlightSets, drillTarget } from '../src/toModel';
 import type { Edge as FlowEdge } from '@xyflow/react';
 import { emptyModel, layerOfType, c4Backend } from '@hyphae/schema';
+
+describe('drillTarget', () => {
+  function model() {
+    const m = emptyModel();
+    const base = {
+      description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
+      tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+    };
+    m.nodes.push(
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
+      { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
+      { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
+    );
+    return m;
+  }
+  it('returns the child layer for a node that has children', () => {
+    expect(drillTarget(model(), 'sys')).toBe('Container');
+    expect(drillTarget(model(), 'ca')).toBe('Component');
+  });
+  it('returns null for a leaf node', () => {
+    expect(drillTarget(model(), 'a1')).toBeNull();
+  });
+});
 
 describe('highlightSets', () => {
   const edges: FlowEdge[] = [
@@ -26,6 +49,12 @@ describe('highlightSets', () => {
     const h = highlightSets('e2', edges);
     expect([...h.edges]).toEqual(['e2']);
     expect([...h.nodes].sort()).toEqual(['b', 'c']);
+  });
+
+  it('selecting a region highlights it, its children, and edges touching them', () => {
+    const h = highlightSets('ca', edges, new Set(['a', 'b']));
+    expect([...h.nodes].sort()).toEqual(['a', 'b', 'ca']);
+    expect([...h.edges].sort()).toEqual(['e1', 'e2', 'e3']); // all edges touch a or b
   });
 });
 

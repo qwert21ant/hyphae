@@ -173,16 +173,26 @@ export function toFlowEdges(model: HyphaeModel, layer: string, filter?: ConnFilt
 }
 
 /**
- * Given the current selection, the node/edge ids to highlight. Selecting a node highlights it, its
- * adjacent edges, and the nodes on the other end of those edges; selecting an edge highlights it and
- * the two nodes it connects.
+ * Given the current selection, the node/edge ids to highlight:
+ * - an edge → the edge and the two nodes it connects;
+ * - a region/container (its child ids passed in `childIds`) → the region, its children, and the
+ *   edges touching them (focus the container's contents);
+ * - a plain node → the node, its adjacent edges, and the nodes on the other end.
  */
-export function highlightSets(selectedId: string | null, edges: FlowEdge[]): { nodes: Set<string>; edges: Set<string> } {
+export function highlightSets(selectedId: string | null, edges: FlowEdge[], childIds: Set<string> = new Set()): { nodes: Set<string>; edges: Set<string> } {
   if (!selectedId) return { nodes: new Set(), edges: new Set() };
+
   const selectedEdge = edges.find((e) => e.id === selectedId);
   if (selectedEdge) {
     return { nodes: new Set([selectedEdge.source, selectedEdge.target]), edges: new Set([selectedId]) };
   }
+
+  if (childIds.size) {
+    const nodes = new Set<string>([selectedId, ...childIds]);
+    const within = edges.filter((e) => childIds.has(e.source) || childIds.has(e.target)).map((e) => e.id);
+    return { nodes, edges: new Set(within) };
+  }
+
   const adjacent = edges.filter((e) => e.source === selectedId || e.target === selectedId);
   const nodes = new Set<string>([selectedId]);
   for (const e of adjacent) {
@@ -190,4 +200,11 @@ export function highlightSets(selectedId: string | null, edges: FlowEdge[]): { n
     nodes.add(e.target);
   }
   return { nodes, edges: new Set(adjacent.map((e) => e.id)) };
+}
+
+/** The layer to drill into when a node is double-clicked: the layer of its children, or null if it
+ *  has no children (e.g. a leaf component or an external system). */
+export function drillTarget(model: HyphaeModel, nodeId: string): string | null {
+  const child = model.nodes.find((n) => n.parentId === nodeId);
+  return child ? layerOfType(c4Backend, child.type) ?? null : null;
 }

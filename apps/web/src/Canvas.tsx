@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef } from 'react';
 import {
   ReactFlow, Background, Controls, Panel, useNodesState, ConnectionMode,
-  type Connection as RFConnection, type Node as FlowNode,
+  type Connection as RFConnection, type Node as FlowNode, type ReactFlowInstance,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useStore } from './store';
-import { toFlowNodes, toFlowEdges, regionChildIds, highlightSets } from './toModel';
+import { toFlowNodes, toFlowEdges, regionChildIds, highlightSets, drillTarget } from './toModel';
 import { GroupNode } from './GroupNode';
 import { NodeBox } from './NodeBox';
 import { GhostNode } from './GhostNode';
@@ -25,6 +25,7 @@ export function Canvas() {
   const connFilter = useStore((s) => s.connFilter);
   const selectedId = useStore((s) => s.selectedId);
   const select = useStore((s) => s.select);
+  const setLayer = useStore((s) => s.setLayer);
   const addConnection = useStore((s) => s.addConnection);
   const deleteConnection = useStore((s) => s.deleteConnection);
   const setNodePosition = useStore((s) => s.setNodePosition);
@@ -33,8 +34,12 @@ export function Canvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([]);
   const edges = useMemo(() => toFlowEdges(model, layer, connFilter), [model, layer, connFilter]);
 
-  // Highlight the selection + its neighbors, and dim everything else.
-  const hi = useMemo(() => highlightSets(selectedId, edges), [selectedId, edges]);
+  const rf = useRef<ReactFlowInstance | null>(null);
+  const pendingFocus = useRef<string | null>(null);
+
+  // Highlight the selection + its neighbors (a region highlights its children), and dim the rest.
+  const childIds = useMemo(() => (selectedId ? regionChildIds(model, layer, selectedId) : new Set<string>()), [selectedId, model, layer]);
+  const hi = useMemo(() => highlightSets(selectedId, edges, childIds), [selectedId, edges, childIds]);
   const styledEdges = useMemo(
     () =>
       edges.map((e) => {
@@ -48,7 +53,9 @@ export function Canvas() {
   const styledNodes = useMemo(
     () =>
       nodes.map((n) => {
-        if (n.type === 'region') return n;
+        if (n.type === 'region') {
+          return n.id === selectedId ? { ...n, style: { ...n.style, outline: '2px solid #2563eb', outlineOffset: 2 } } : n;
+        }
         if (hi.nodes.has(n.id)) return { ...n, style: { ...n.style, boxShadow: '0 0 0 2px #2563eb', borderRadius: 4 }, zIndex: 5 };
         return selectedId ? { ...n, style: { ...n.style, opacity: 0.4 } } : n;
       }),
@@ -64,8 +71,26 @@ export function Canvas() {
     setNodes(toFlowNodes(model, layer, connFilter));
   }, [model, layer, connFilter, setNodes]);
 
+  // After a drill changed the layer and re-seeded nodes, pan/zoom to the focused region.
+  useEffect(() => {
+    const id = pendingFocus.current;
+    if (!id || !rf.current || !nodes.some((n) => n.id === id)) return;
+    pendingFocus.current = null;
+    const inst = rf.current;
+    requestAnimationFrame(() => inst.fitView({ nodes: [{ id }], duration: 500, padding: 0.3 }));
+  }, [nodes]);
+
   const onConnect = (c: RFConnection) => {
     if (c.source && c.target) addConnection(c.source, c.target);
+  };
+
+  // Double-click a node to drill into the layer of its children (if any), focus its region, and select it.
+  const onNodeDoubleClick = (_: unknown, node: FlowNode) => {
+    const target = drillTarget(model, node.id);
+    if (!target || target === layer) return;
+    pendingFocus.current = node.id;
+    setLayer(target);
+    select(node.id);
   };
 
   const onNodeDragStart = (_: unknown, node: FlowNode) => {
@@ -110,12 +135,14 @@ export function Canvas() {
         edgeTypes={edgeTypes}
         connectionMode={ConnectionMode.Loose}
         connectionLineComponent={FloatingConnectionLine}
+        onInit={(inst) => { rf.current = inst; }}
         onNodesChange={onNodesChange}
         onNodeDragStart={onNodeDragStart}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
         onConnect={onConnect}
         onNodeClick={(_, n) => select(n.id)}
+        onNodeDoubleClick={onNodeDoubleClick}
         onEdgeClick={(_, e) => { if (!(e.data as { derived?: boolean } | undefined)?.derived) select(e.id); }}
         onEdgesDelete={(es) => es.forEach((e) => deleteConnection(e.id))}
         onPaneClick={() => select(null)}
