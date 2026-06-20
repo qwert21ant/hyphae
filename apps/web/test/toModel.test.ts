@@ -1,6 +1,33 @@
 import { describe, it, expect } from 'vitest';
-import { toFlowNodes, toFlowEdges, regionChildIds } from '../src/toModel';
+import { toFlowNodes, toFlowEdges, regionChildIds, highlightSets } from '../src/toModel';
+import type { Edge as FlowEdge } from '@xyflow/react';
 import { emptyModel, layerOfType, c4Backend } from '@hyphae/schema';
+
+describe('highlightSets', () => {
+  const edges: FlowEdge[] = [
+    { id: 'e1', source: 'a', target: 'b' },
+    { id: 'e2', source: 'b', target: 'c' },
+    { id: 'e3', source: 'a', target: 'c' },
+  ];
+
+  it('returns empty sets when nothing is selected', () => {
+    const h = highlightSets(null, edges);
+    expect(h.nodes.size).toBe(0);
+    expect(h.edges.size).toBe(0);
+  });
+
+  it('selecting a node highlights it and its adjacent edges', () => {
+    const h = highlightSets('a', edges);
+    expect([...h.nodes]).toEqual(['a']);
+    expect([...h.edges].sort()).toEqual(['e1', 'e3']);
+  });
+
+  it('selecting an edge highlights it and the two connected nodes', () => {
+    const h = highlightSets('e2', edges);
+    expect([...h.edges]).toEqual(['e2']);
+    expect([...h.nodes].sort()).toEqual(['b', 'c']);
+  });
+});
 
 describe('toModel mapping', () => {
   it('keeps only nodes whose type belongs to the active layer', () => {

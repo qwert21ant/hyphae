@@ -5,7 +5,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useStore } from './store';
-import { toFlowNodes, toFlowEdges, regionChildIds } from './toModel';
+import { toFlowNodes, toFlowEdges, regionChildIds, highlightSets } from './toModel';
 import { GroupNode } from './GroupNode';
 import { NodeBox } from './NodeBox';
 import { GhostNode } from './GhostNode';
@@ -23,6 +23,7 @@ export function Canvas() {
   const model = useStore((s) => s.model);
   const layer = useStore((s) => s.layer);
   const connFilter = useStore((s) => s.connFilter);
+  const selectedId = useStore((s) => s.selectedId);
   const select = useStore((s) => s.select);
   const addConnection = useStore((s) => s.addConnection);
   const deleteConnection = useStore((s) => s.deleteConnection);
@@ -31,6 +32,28 @@ export function Canvas() {
   // Local node state so dragging is smooth (controlled nodes only repaint on commit).
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([]);
   const edges = useMemo(() => toFlowEdges(model, layer, connFilter), [model, layer, connFilter]);
+
+  // Highlight the selection + its neighbors, and dim everything else.
+  const hi = useMemo(() => highlightSets(selectedId, edges), [selectedId, edges]);
+  const styledEdges = useMemo(
+    () =>
+      edges.map((e) => {
+        if (hi.edges.has(e.id)) {
+          return { ...e, style: { ...e.style, strokeWidth: (typeof e.style?.strokeWidth === 'number' ? e.style.strokeWidth : 1.5) + 1.5, opacity: 1 }, zIndex: 10 };
+        }
+        return selectedId ? { ...e, style: { ...e.style, opacity: 0.12 } } : e;
+      }),
+    [edges, hi, selectedId],
+  );
+  const styledNodes = useMemo(
+    () =>
+      nodes.map((n) => {
+        if (n.type === 'region') return n;
+        if (hi.nodes.has(n.id)) return { ...n, style: { ...n.style, boxShadow: '0 0 0 2px #2563eb', borderRadius: 4 }, zIndex: 5 };
+        return selectedId ? { ...n, style: { ...n.style, opacity: 0.4 } } : n;
+      }),
+    [nodes, hi, selectedId],
+  );
 
   // Tracks an in-progress region drag so its children move with it.
   const regionDrag = useRef<RegionDrag | null>(null);
@@ -81,8 +104,8 @@ export function Canvas() {
   return (
     <div style={{ flex: 1, height: '100%' }}>
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        nodes={styledNodes}
+        edges={styledEdges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         connectionMode={ConnectionMode.Loose}

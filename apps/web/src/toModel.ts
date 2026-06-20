@@ -171,3 +171,17 @@ export function crossLayerEdges(model: HyphaeModel, layer: string, filter?: Conn
 export function toFlowEdges(model: HyphaeModel, layer: string, filter?: ConnFilter): FlowEdge[] {
   return crossLayerEdges(model, layer, filter).edges;
 }
+
+/**
+ * Given the current selection, the node/edge ids to highlight. Selecting a node highlights it and
+ * its adjacent edges; selecting an edge highlights it and the two nodes it connects.
+ */
+export function highlightSets(selectedId: string | null, edges: FlowEdge[]): { nodes: Set<string>; edges: Set<string> } {
+  if (!selectedId) return { nodes: new Set(), edges: new Set() };
+  const selectedEdge = edges.find((e) => e.id === selectedId);
+  if (selectedEdge) {
+    return { nodes: new Set([selectedEdge.source, selectedEdge.target]), edges: new Set([selectedId]) };
+  }
+  const adjacent = edges.filter((e) => e.source === selectedId || e.target === selectedId).map((e) => e.id);
+  return { nodes: new Set([selectedId]), edges: new Set(adjacent) };
+}
