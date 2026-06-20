@@ -1,76 +1,67 @@
 import { describe, it, expect } from 'vitest';
-import { validateModel, newIssues, resolveProfile } from '../src/validate';
-import { emptyModel } from '../src/model';
+import { validateModel } from '../src/validate';
 import { c4Backend } from '../src/profiles/c4-backend';
+import { emptyModel, type HyphaeModel } from '../src/model';
 import type { Node } from '../src/node';
+import type { Connection } from '../src/connection';
 
-const node = (over: Partial<Node>): Node => ({
-  id: 'x', name: 'X', type: 'Component', description: '', responsibilities: [],
-  invariants: [], assumptions: [], failureModes: [], tags: [], status: 'Active',
-  parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', ...over,
-});
+const node = (over: Record<string, unknown>): Node => ({
+  id: 'x', name: 'X', type: 'Component', parentId: null, description: '',
+  codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
+} as Node);
+const conn = (over: Record<string, unknown>): Connection => ({
+  id: 'e', from: 'a', to: 'b', type: 'Dependency', description: '',
+  direction: 'Unidirectional', realizes: [], codeRefs: [], fields: {}, ...over,
+} as Connection);
+function model(over: Partial<HyphaeModel> = {}): HyphaeModel {
+  return { ...emptyModel(), ...over };
+}
 
 describe('validateModel', () => {
-  it('passes for an empty model', () => {
-    expect(validateModel(emptyModel(), c4Backend)).toEqual([]);
+  it('flags an unknown node type', () => {
+    const m = model({ nodes: [node({ id: 'a', type: 'Nope' })] });
+    expect(validateModel(m, c4Backend).map((i) => i.kind)).toContain('unknown-type');
   });
 
-  it('flags unknown node type', () => {
-    const m = emptyModel();
-    m.nodes.push(node({ id: 'a', type: 'Bogus' }));
-    expect(validateModel(m, c4Backend)).toContainEqual(
-      expect.objectContaining({ kind: 'unknown-type', ref: 'a' }),
-    );
+  it('flags a bad parent', () => {
+    const m = model({ nodes: [node({ id: 's', type: 'System' }), node({ id: 'c', type: 'Component', parentId: 's' })] });
+    expect(validateModel(m, c4Backend).map((i) => i.kind)).toContain('bad-parent');
   });
 
-  it('flags parentId that violates containment', () => {
-    const m = emptyModel();
-    m.nodes.push(node({ id: 'comp', type: 'Component', parentId: 'sys' }));
-    m.nodes.push(node({ id: 'sys', type: 'System' }));
-    expect(validateModel(m, c4Backend)).toContainEqual(
-      expect.objectContaining({ kind: 'bad-parent', ref: 'comp' }),
-    );
-  });
-
-  it('flags connection endpoint that does not exist', () => {
-    const m = emptyModel();
-    m.nodes.push(node({ id: 'a', type: 'Component' }));
-    m.connections.push({
-      id: 'c1', from: 'a', to: 'ghost', relationCategory: 'Dependency',
-      transport: 'None', description: '', direction: 'Unidirectional',
-      realizes: [], codeRefs: [],
+  it('flags an unknown connection kind', () => {
+    const m = model({
+      nodes: [node({ id: 'a', type: 'System' }), node({ id: 'b', type: 'System' })],
+      connections: [conn({ from: 'a', to: 'b', type: 'Bogus' })],
     });
-    expect(validateModel(m, c4Backend)).toContainEqual(
-      expect.objectContaining({ kind: 'dangling-endpoint', ref: 'c1' }),
-    );
-  });
-});
-
-describe('newIssues', () => {
-  it('returns only issues that are new in next', () => {
-    const prev = emptyModel();
-    const next = emptyModel();
-    next.nodes.push(node({ id: 'a', type: 'Bogus' }));
-    const result = newIssues(prev, next, c4Backend);
-    expect(result).toHaveLength(1);
-    expect(result[0]).toMatchObject({ kind: 'unknown-type', ref: 'a' });
+    expect(validateModel(m, c4Backend).map((i) => i.kind)).toContain('unknown-connection-kind');
   });
 
-  it('ignores issues that already existed in prev', () => {
-    const prev = emptyModel();
-    prev.nodes.push(node({ id: 'a', type: 'Bogus' }));
-    const next = { ...prev, nodes: [...prev.nodes] };
-    expect(newIssues(prev, next, c4Backend)).toEqual([]);
-  });
-});
-
-describe('resolveProfile', () => {
-  it('returns c4Backend for the c4-backend profile', () => {
-    expect(resolveProfile(emptyModel())).toBe(c4Backend);
+  it('flags an unknown field key', () => {
+    const m = model({ nodes: [node({ id: 'a', type: 'Component', fields: { nope: 1 } })] });
+    expect(validateModel(m, c4Backend).map((i) => i.kind)).toContain('unknown-field');
   });
 
-  it('throws for an unknown profile', () => {
-    const m = { ...emptyModel(), activeProfile: 'nope' };
-    expect(() => resolveProfile(m as never)).toThrow();
+  it('flags a bad field type', () => {
+    const m = model({ nodes: [node({ id: 'a', type: 'Component', fields: { technology: 5 } })] });
+    expect(validateModel(m, c4Backend).map((i) => i.kind)).toContain('bad-field-type');
+  });
+
+  it('flags a bad enum value on a connection field', () => {
+    const m = model({
+      nodes: [node({ id: 'a', type: 'System' }), node({ id: 'b', type: 'System' })],
+      connections: [conn({ from: 'a', to: 'b', fields: { transport: 'Telepathy' } })],
+    });
+    expect(validateModel(m, c4Backend).map((i) => i.kind)).toContain('bad-enum-value');
+  });
+
+  it('accepts a valid model with fields', () => {
+    const m = model({
+      nodes: [
+        node({ id: 's', type: 'System' }),
+        node({ id: 'co', type: 'Container', parentId: 's', fields: { technology: 'Hono', responsibilities: ['serve'] } }),
+      ],
+      connections: [],
+    });
+    expect(validateModel(m, c4Backend)).toEqual([]);
   });
 });

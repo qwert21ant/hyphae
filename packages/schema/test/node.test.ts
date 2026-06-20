@@ -2,24 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { NodeSchema } from '../src/node';
 
 describe('NodeSchema', () => {
-  it('fills defaults for a minimal node', () => {
-    const parsed = NodeSchema.parse({
-      id: 'n1',
-      name: 'Orders',
-      type: 'Component',
-      createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: '2026-01-01T00:00:00.000Z',
-    });
-    expect(parsed.description).toBe('');
-    expect(parsed.responsibilities).toEqual([]);
-    expect(parsed.invariants).toEqual([]);
-    expect(parsed.status).toBe('Active');
-    expect(parsed.parentId).toBeNull();
+  it('applies defaults for the lean core shape', () => {
+    const n = NodeSchema.parse({ id: 'a', name: 'A', type: 'Component', createdAt: 't', updatedAt: 't' });
+    expect(n).toMatchObject({ description: '', parentId: null, codeRefs: [], docRefs: [], fields: {} });
   });
-
-  it('rejects a node missing required name', () => {
-    expect(() =>
-      NodeSchema.parse({ id: 'n1', type: 'Component', createdAt: 'x', updatedAt: 'x' }),
-    ).toThrow();
+  it('keeps an arbitrary fields bag', () => {
+    const n = NodeSchema.parse({ id: 'a', name: 'A', type: 'Component', createdAt: 't', updatedAt: 't', fields: { technology: 'Go', responsibilities: ['x'] } });
+    expect(n.fields).toEqual({ technology: 'Go', responsibilities: ['x'] });
+  });
+  it('rejects an empty name', () => {
+    expect(() => NodeSchema.parse({ id: 'a', name: '', type: 'Component', createdAt: 't', updatedAt: 't' })).toThrow();
   });
 });

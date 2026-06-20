@@ -6,8 +6,7 @@ import type { HyphaeModel } from '../src/model';
 function model(): HyphaeModel {
   const m = emptyModel();
   const base = {
-    description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
-    tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+    description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {},
   };
   m.nodes.push(
     { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
@@ -18,12 +17,12 @@ function model(): HyphaeModel {
     { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
     { id: 'ext', name: 'Ext', type: 'ExternalSystem', parentId: null, ...base },
   );
-  const e = { description: '', direction: 'Unidirectional' as const, realizes: [], codeRefs: [] };
+  const e = { description: '', direction: 'Unidirectional' as const, realizes: [], codeRefs: [], fields: {} };
   m.connections.push(
-    { id: 'x1', from: 'a1', to: 'b1', relationCategory: 'Dependency', transport: 'Sync', ...e }, // ca->cb
-    { id: 'x2', from: 'a2', to: 'b1', relationCategory: 'DataFlow', transport: 'Async', ...e }, // ca->cb (same pair)
-    { id: 'x3', from: 'a1', to: 'ext', relationCategory: 'Dependency', transport: 'Sync', ...e }, // ca->ext
-    { id: 'x4', from: 'a1', to: 'a2', relationCategory: 'Dependency', transport: 'InProcess', ...e }, // intra ca
+    { id: 'x1', from: 'a1', to: 'b1', type: 'Dependency', ...e }, // ca->cb
+    { id: 'x2', from: 'a2', to: 'b1', type: 'DataFlow', ...e }, // ca->cb (same pair)
+    { id: 'x3', from: 'a1', to: 'ext', type: 'Dependency', ...e }, // ca->ext
+    { id: 'x4', from: 'a1', to: 'a2', type: 'Dependency', ...e }, // intra ca
   );
   return m;
 }
