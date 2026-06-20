@@ -69,8 +69,9 @@ type Profile = {
 ```
 
 **Effective fields** for a kind = its profile's `common*Fields` ++ the kind's own `fields`. A helper
-`effectiveFields(profile, kind, 'node'|'connection')` returns this merged list (keys are unique;
-a per-kind field with the same key as a common field overrides it).
+`effectiveFields(profile, kind, 'node'|'connection')` returns this merged list. Keys must be unique:
+**common fields always win** — a per-kind field that reuses a common key is ignored (it is a profile
+authoring mistake, not a redefinition). Common fields are listed first.
 
 `FieldType` semantics:
 - `text` → string; `number` → number; `boolean` → boolean.
@@ -124,7 +125,7 @@ ConnectionSchema = {
   `tags` (dropped), `owner` (dropped), `status` (dropped).
 - Connection: `relationCategory` (→ `type`), `transport` (→ common field), `intent` (→ common field),
   `protocol` (dropped), `frequency` (dropped), `latencyBudgetMs` (dropped), `security` (dropped),
-  `dataTypeRef` (→ field on DataFlow). Node `docRefs` stays core; connections have no `docRefs` today
+  `dataTypeRef` (deferred — see §4). Node `docRefs` stays core; connections have no `docRefs` today
   and none is added.
 
 Dropped fields are not lost forever — any profile may re-introduce them as documented fields later.
@@ -162,14 +163,14 @@ commonConnectionFields:
 
 connectionKinds:
   Dependency  "A depends on / uses B."                      fields []
-  DataFlow    "Data flows from A to B."                     fields [dataTypeRef (ref)]
+  DataFlow    "Data flows from A to B."                     fields []
   Realization "A realizes/implements an interface of B."    fields []
   Trace       "Traceability link (e.g. requirement -> impl)." fields []
 ```
 
-`technology` is `text`, described "Implementation stack / technology." `dataTypeRef` is `ref`
-(no `refKind` yet, since DataType nodes are a reserved axis), described "The data type this flow
-carries."
+`technology` is `text`, described "Implementation stack / technology." (The `ref` field type still
+exists in the system for future profiles; `dataTypeRef` is deferred — DataType nodes are a reserved
+axis, so a ref to one would have no valid target yet.)
 
 ---
 
