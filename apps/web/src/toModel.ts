@@ -173,8 +173,9 @@ export function toFlowEdges(model: HyphaeModel, layer: string, filter?: ConnFilt
 }
 
 /**
- * Given the current selection, the node/edge ids to highlight. Selecting a node highlights it and
- * its adjacent edges; selecting an edge highlights it and the two nodes it connects.
+ * Given the current selection, the node/edge ids to highlight. Selecting a node highlights it, its
+ * adjacent edges, and the nodes on the other end of those edges; selecting an edge highlights it and
+ * the two nodes it connects.
  */
 export function highlightSets(selectedId: string | null, edges: FlowEdge[]): { nodes: Set<string>; edges: Set<string> } {
   if (!selectedId) return { nodes: new Set(), edges: new Set() };
@@ -182,6 +183,11 @@ export function highlightSets(selectedId: string | null, edges: FlowEdge[]): { n
   if (selectedEdge) {
     return { nodes: new Set([selectedEdge.source, selectedEdge.target]), edges: new Set([selectedId]) };
   }
-  const adjacent = edges.filter((e) => e.source === selectedId || e.target === selectedId).map((e) => e.id);
-  return { nodes: new Set([selectedId]), edges: new Set(adjacent) };
+  const adjacent = edges.filter((e) => e.source === selectedId || e.target === selectedId);
+  const nodes = new Set<string>([selectedId]);
+  for (const e of adjacent) {
+    nodes.add(e.source);
+    nodes.add(e.target);
+  }
+  return { nodes, edges: new Set(adjacent.map((e) => e.id)) };
 }

@@ -16,9 +16,9 @@ describe('highlightSets', () => {
     expect(h.edges.size).toBe(0);
   });
 
-  it('selecting a node highlights it and its adjacent edges', () => {
+  it('selecting a node highlights it, its adjacent edges, and the connected nodes', () => {
     const h = highlightSets('a', edges);
-    expect([...h.nodes]).toEqual(['a']);
+    expect([...h.nodes].sort()).toEqual(['a', 'b', 'c']); // a + neighbors b, c
     expect([...h.edges].sort()).toEqual(['e1', 'e3']);
   });
 
