@@ -58,7 +58,7 @@ describe('routes', () => {
   it('DELETE /nodes/:id cascades its connections', async () => {
     const a = await createNode({ name: 'A', type: 'Component' });
     const b = await createNode({ name: 'B', type: 'Component' });
-    await post('/connections', { from: a.id, to: b.id, relationCategory: 'Dependency' });
+    await post('/connections', { from: a.id, to: b.id, type: 'Dependency' });
     expect((await app.request(`/nodes/${a.id}`, { method: 'DELETE' })).status).toBe(200);
     const model = await (await app.request('/model')).json();
     expect(model.nodes.map((n: { id: string }) => n.id)).toEqual([b.id]);
@@ -67,7 +67,7 @@ describe('routes', () => {
 
   it('POST /connections rejects a dangling endpoint with 422', async () => {
     const a = await createNode({ name: 'A', type: 'Component' });
-    const res = await post('/connections', { from: a.id, to: 'ghost', relationCategory: 'Dependency' });
+    const res = await post('/connections', { from: a.id, to: 'ghost', type: 'Dependency' });
     expect(res.status).toBe(422);
     expect((await res.json()).issues[0]).toMatchObject({ kind: 'dangling-endpoint' });
   });
@@ -75,17 +75,17 @@ describe('routes', () => {
   it('PATCH /connections/:id updates a connection', async () => {
     const a = await createNode({ name: 'A', type: 'Component' });
     const b = await createNode({ name: 'B', type: 'Component' });
-    const conn = (await (await post('/connections', { from: a.id, to: b.id, relationCategory: 'Dependency' })).json()).connection;
+    const conn = (await (await post('/connections', { from: a.id, to: b.id, type: 'Dependency' })).json()).connection;
     const res = await app.request(`/connections/${conn.id}`, {
-      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ transport: 'Sync' }),
+      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ fields: { transport: 'Sync' } }),
     });
     expect(res.status).toBe(200);
-    expect((await res.json()).connection.transport).toBe('Sync');
+    expect((await res.json()).connection.fields.transport).toBe('Sync');
   });
 
   it('PATCH /connections/:id returns 404 for a missing id', async () => {
     const res = await app.request('/connections/nope', {
-      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ transport: 'Sync' }),
+      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ fields: { transport: 'Sync' } }),
     });
     expect(res.status).toBe(404);
   });

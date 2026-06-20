@@ -44,7 +44,7 @@ describe('ModelStore', () => {
     const store = new ModelStore(file);
     const a = store.addNode({ name: 'A', type: 'Component' });
     const b = store.addNode({ name: 'B', type: 'Component' });
-    store.addConnection({ from: a.id, to: b.id, relationCategory: 'Dependency' });
+    store.addConnection({ from: a.id, to: b.id, type: 'Dependency' });
     store.deleteNode(a.id);
     expect(store.get().nodes.map((n) => n.id)).toEqual([b.id]);
     expect(store.get().connections).toEqual([]);
@@ -65,14 +65,14 @@ describe('ModelStore', () => {
     const store = new ModelStore(file);
     const a = store.addNode({ name: 'A', type: 'Component' });
     const b = store.addNode({ name: 'B', type: 'Component' });
-    const conn = store.addConnection({ from: a.id, to: b.id, relationCategory: 'Dependency' });
-    const updated = store.updateConnection(conn.id, { transport: 'Sync', description: 'calls' });
-    expect(updated).toMatchObject({ id: conn.id, transport: 'Sync', description: 'calls' });
-    expect(store.get().connections[0].transport).toBe('Sync');
+    const conn = store.addConnection({ from: a.id, to: b.id, type: 'Dependency' });
+    const updated = store.updateConnection(conn.id, { fields: { transport: 'Sync' }, description: 'calls' });
+    expect(updated).toMatchObject({ id: conn.id, fields: { transport: 'Sync' }, description: 'calls' });
+    expect(store.get().connections[0].fields.transport).toBe('Sync');
   });
 
   it('updateConnection throws NotFoundError for a missing id', () => {
-    expect(() => new ModelStore(file).updateConnection('nope', { transport: 'Sync' })).toThrow(NotFoundError);
+    expect(() => new ModelStore(file).updateConnection('nope', { fields: { transport: 'Sync' } })).toThrow(NotFoundError);
   });
 
   it('stores a node position in the layer view', () => {

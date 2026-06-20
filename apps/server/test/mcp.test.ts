@@ -5,12 +5,11 @@ import { emptyModel, type HyphaeModel } from '@hyphae/schema';
 function model(): HyphaeModel {
   const m = emptyModel();
   m.nodes.push({
-    id: 'api', name: 'API', type: 'Container', description: 'edge', responsibilities: [],
-    invariants: [], assumptions: [], failureModes: [], tags: [], status: 'Active',
+    id: 'api', name: 'API', type: 'Container', description: 'edge', fields: {},
     parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
   });
   m.connections.push({
-    id: 'c1', from: 'api', to: 'api', relationCategory: 'Dependency', transport: 'Sync',
+    id: 'c1', from: 'api', to: 'api', type: 'Dependency', fields: { transport: 'Sync' },
     description: 'self', direction: 'Unidirectional', realizes: [], codeRefs: [],
   });
   return m;
@@ -22,8 +21,8 @@ function fakeApi(over: Partial<HyphaeApi> = {}): HyphaeApi {
     createNode: async (input) => ({ node: { id: 'new', ...(input as object) }, version: 1 }),
     updateNode: async (id, patch) => ({ node: { id, ...(patch as object) }, version: 1 }),
     deleteNode: async () => ({ version: 1 }),
-    createConnection: async (input) => ({ connection: { id: 'c2', ...(input as object) }, version: 1 }),
-    updateConnection: async (id, patch) => ({ connection: { id, ...(patch as object) }, version: 1 }),
+    createConnection: async (input) => ({ connection: { id: 'c2', type: 'Dependency', ...(input as object) }, version: 1 }),
+    updateConnection: async (id, patch) => ({ connection: { id, type: 'Dependency', ...(patch as object) }, version: 1 }),
     deleteConnection: async () => ({ version: 1 }),
     ...over,
   };
@@ -56,17 +55,29 @@ describe('MCP tool handlers', () => {
     expect(r).toMatchObject({ node: { id: 'api', name: 'Renamed' } });
   });
   it('update_connection splits id from the patch', async () => {
-    const r = await buildTools(fakeApi()).update_connection({ id: 'c1', relationCategory: 'Realization' });
-    expect(r).toMatchObject({ connection: { id: 'c1', relationCategory: 'Realization' } });
+    const r = await buildTools(fakeApi()).update_connection({ id: 'c1', type: 'Realization' });
+    expect(r).toMatchObject({ connection: { id: 'c1', type: 'Realization' } });
+  });
+
+  it('describe_profile returns kinds and documented fields', async () => {
+    const r = (await buildTools(fakeApi()).describe_profile({})) as {
+      nodeKinds: Array<{ id: string }>; connectionKinds: Array<{ id: string }>;
+      commonNodeFields: Array<{ key: string }>;
+    };
+    expect(r.nodeKinds.map((k) => k.id)).toContain('Container');
+    expect(r.connectionKinds.map((k) => k.id)).toContain('Dependency');
+    expect(r.commonNodeFields.map((f) => f.key)).toContain('responsibilities');
+  });
+
+  it('create_node forwards a fields bag', async () => {
+    const r = await buildTools(fakeApi()).create_node({ name: 'X', type: 'Component', fields: { technology: 'Go' } });
+    expect(r).toMatchObject({ node: { name: 'X', fields: { technology: 'Go' } } });
   });
 });
 
 function graphModel(): HyphaeModel {
   const m = emptyModel();
-  const base = {
-    responsibilities: [], invariants: [], assumptions: [], failureModes: [], tags: [],
-    status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
-  };
+  const base = { fields: {}, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' };
   m.nodes.push(
     { id: 'sys', name: 'Sys', type: 'System', description: '', parentId: null, ...base },
     { id: 'ca', name: 'Alpha', type: 'Container', description: '', parentId: 'sys', ...base },
@@ -76,13 +87,13 @@ function graphModel(): HyphaeModel {
     { id: 'n3', name: 'Widget', type: 'Component', description: 'beta widget', parentId: 'cb', ...base },
     { id: 'n4', name: 'Sink', type: 'Component', description: '', parentId: 'cb', ...base },
   );
-  const e = { description: '', direction: 'Unidirectional' as const, realizes: [], codeRefs: [] };
+  const e = { description: '', direction: 'Unidirectional' as const, realizes: [], codeRefs: [], fields: {} };
   m.connections.push(
-    { id: 'e1', from: 'n1', to: 'n2', relationCategory: 'Dependency', transport: 'InProcess', ...e },
-    { id: 'e2', from: 'n1', to: 'n3', relationCategory: 'Dependency', transport: 'Sync', ...e },
-    { id: 'e3', from: 'n2', to: 'n1', relationCategory: 'Realization', transport: 'InProcess', ...e },
-    { id: 'e4', from: 'n4', to: 'n1', relationCategory: 'Dependency', transport: 'Sync', ...e },
-    { id: 'e5', from: 'n3', to: 'n4', relationCategory: 'Dependency', transport: 'Sync', ...e },
+    { id: 'e1', from: 'n1', to: 'n2', type: 'Dependency', ...e },
+    { id: 'e2', from: 'n1', to: 'n3', type: 'Dependency', ...e },
+    { id: 'e3', from: 'n2', to: 'n1', type: 'Realization', ...e },
+    { id: 'e4', from: 'n4', to: 'n1', type: 'Dependency', ...e },
+    { id: 'e5', from: 'n3', to: 'n4', type: 'Dependency', ...e },
   );
   return m;
 }
@@ -123,8 +134,8 @@ describe('MCP query tools', () => {
     expect(both.nodes.map((n) => n.id).sort()).toEqual(['n1', 'n2', 'n3', 'n4']);
   });
 
-  it('get_subgraph filters by relationCategory', async () => {
-    const r = (await buildTools(api()).get_subgraph({ nodeId: 'n1', depth: 1, relationCategory: 'Realization' })) as { nodes: Array<{ id: string }>; connections: unknown[] };
+  it('get_subgraph filters by connection type', async () => {
+    const r = (await buildTools(api()).get_subgraph({ nodeId: 'n1', depth: 1, type: 'Realization' })) as { nodes: Array<{ id: string }>; connections: unknown[] };
     expect(r.nodes.map((n) => n.id).sort()).toEqual(['n1', 'n2']);
     expect(r.connections).toHaveLength(1);
   });
@@ -164,10 +175,7 @@ describe('MCP query tools', () => {
 
 function connModel(): HyphaeModel {
   const m = emptyModel();
-  const base = {
-    description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
-    tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
-  };
+  const base = { description: '', fields: {}, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' };
   m.nodes.push(
     { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
     { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
@@ -179,10 +187,10 @@ function connModel(): HyphaeModel {
   );
   const e = { description: '', direction: 'Unidirectional' as const, realizes: [], codeRefs: [] };
   m.connections.push(
-    { id: 'x1', from: 'a1', to: 'b1', relationCategory: 'Dependency', transport: 'Sync', ...e },
-    { id: 'x2', from: 'a1', to: 'ext', relationCategory: 'DataFlow', transport: 'Async', ...e },
-    { id: 'x3', from: 'b1', to: 'ext', relationCategory: 'Dependency', transport: 'Sync', ...e },
-    { id: 'x4', from: 'a1', to: 'a2', relationCategory: 'Dependency', transport: 'InProcess', ...e },
+    { id: 'x1', from: 'a1', to: 'b1', type: 'Dependency', fields: { transport: 'Sync' }, ...e },
+    { id: 'x2', from: 'a1', to: 'ext', type: 'DataFlow', fields: { transport: 'Async' }, ...e },
+    { id: 'x3', from: 'b1', to: 'ext', type: 'Dependency', fields: { transport: 'Sync' }, ...e },
+    { id: 'x4', from: 'a1', to: 'a2', type: 'Dependency', fields: { transport: 'InProcess' }, ...e },
   );
   return m;
 }
@@ -195,8 +203,8 @@ describe('list_connections', () => {
     expect(ids(await buildTools(api()).list_connections({}))).toEqual(['x1', 'x2', 'x3', 'x4']);
   });
 
-  it('filters by relationCategory and transport', async () => {
-    expect(ids(await buildTools(api()).list_connections({ relationCategory: 'Dependency' }))).toEqual(['x1', 'x3', 'x4']);
+  it('filters by type and transport', async () => {
+    expect(ids(await buildTools(api()).list_connections({ type: 'Dependency' }))).toEqual(['x1', 'x3', 'x4']);
     expect(ids(await buildTools(api()).list_connections({ transport: 'Sync' }))).toEqual(['x1', 'x3']);
   });
 
@@ -222,10 +230,10 @@ describe('list_connections', () => {
   });
 
   it('rollup:Container returns derived container edges with realizedBy expanded', async () => {
-    const r = (await buildTools(api()).list_connections({ rollup: 'Container' })) as Array<{ from: string; to: string; realizedBy: Array<{ id: string; relationCategory: string }> }>;
+    const r = (await buildTools(api()).list_connections({ rollup: 'Container' })) as Array<{ from: string; to: string; realizedBy: Array<{ id: string; type: string }> }>;
     expect(r.map((e) => `${e.from}->${e.to}`).sort()).toEqual(['ca->cb', 'ca->ext', 'cb->ext']);
     const caCb = r.find((e) => e.from === 'ca' && e.to === 'cb')!;
-    expect(caCb.realizedBy).toEqual([{ id: 'x1', fromName: 'A1', toName: 'B1', relationCategory: 'Dependency', transport: 'Sync', intent: undefined, description: '' }]);
+    expect(caCb.realizedBy).toEqual([{ id: 'x1', fromName: 'A1', toName: 'B1', type: 'Dependency', transport: 'Sync', intent: undefined, description: '' }]);
   });
 
   it('rollup:Context collapses internal edges to the System, keeping external edges', async () => {

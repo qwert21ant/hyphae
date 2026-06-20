@@ -9,11 +9,7 @@ import { ValidationError, NotFoundError } from './errors';
 const DEBOUNCE_MS = 500;
 
 export type NodeInput = Partial<Node> & { name: string; type: string };
-export type ConnectionInput = Partial<Connection> & {
-  from: string;
-  to: string;
-  relationCategory: Connection['relationCategory'];
-};
+export type ConnectionInput = Partial<Connection> & { from: string; to: string; type: string };
 
 export class ModelStore {
   private model: HyphaeModel;
