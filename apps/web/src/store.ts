@@ -5,7 +5,7 @@ import {
 } from '@hyphae/schema';
 import * as api from './api';
 
-export type ConnFilter = { relationCategories: string[]; transports: string[] };
+export type ConnFilter = { kinds: string[]; fields: Record<string, string[]> };
 
 type State = {
   model: HyphaeModel;
@@ -18,7 +18,8 @@ type State = {
   syncFromServer: () => Promise<void>;
   setLayer: (layer: string) => void;
   select: (id: string | null) => void;
-  toggleConnFilter: (kind: keyof ConnFilter, value: string) => void;
+  toggleConnKind: (value: string) => void;
+  toggleConnField: (key: string, value: string) => void;
   clearConnFilter: () => void;
   addNode: (type: string) => Promise<void>;
   updateNode: (id: string, patch: Partial<Node>) => Promise<void>;
@@ -48,7 +49,7 @@ export const useStore = create<State>((set, get) => {
     selectedId: null,
     ownVersion: 0,
     error: null,
-    connFilter: { relationCategories: [], transports: [] },
+    connFilter: { kinds: [], fields: {} },
 
     setModel: (model, version = 0) => set({ model, ownVersion: version }),
     syncFromServer: async () => {
@@ -58,13 +59,18 @@ export const useStore = create<State>((set, get) => {
     setLayer: (layer) => set({ layer, selectedId: null }),
     select: (selectedId) => set({ selectedId }),
 
-    toggleConnFilter: (kind, value) =>
+    toggleConnKind: (value) =>
       set((s) => {
-        const cur = s.connFilter[kind];
-        const next = cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value];
-        return { connFilter: { ...s.connFilter, [kind]: next } };
+        const kinds = s.connFilter.kinds.includes(value) ? s.connFilter.kinds.filter((v) => v !== value) : [...s.connFilter.kinds, value];
+        return { connFilter: { ...s.connFilter, kinds } };
       }),
-    clearConnFilter: () => set({ connFilter: { relationCategories: [], transports: [] } }),
+    toggleConnField: (key, value) =>
+      set((s) => {
+        const cur = s.connFilter.fields[key] ?? [];
+        const next = cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value];
+        return { connFilter: { ...s.connFilter, fields: { ...s.connFilter.fields, [key]: next } } };
+      }),
+    clearConnFilter: () => set({ connFilter: { kinds: [], fields: {} } }),
 
     addNode: async (type) => {
       try {
@@ -101,7 +107,7 @@ export const useStore = create<State>((set, get) => {
 
     addConnection: async (from, to) => {
       try {
-        const { connection, version } = await api.createConnection({ id: newId(), from, to, relationCategory: 'Dependency' });
+        const { connection, version } = await api.createConnection({ id: newId(), from, to, type: 'Dependency' });
         set((s) => ({ model: { ...s.model, connections: [...s.model.connections, connection] }, ownVersion: version, error: null }));
       } catch (e) { await recover(e); }
     },

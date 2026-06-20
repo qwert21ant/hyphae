@@ -85,13 +85,7 @@ export function regionChildIds(model: HyphaeModel, layer: string, parentId: stri
 }
 
 function realEdge(c: Connection): FlowEdge {
-  return {
-    id: c.id,
-    type: 'floating',
-    source: c.from,
-    target: c.to,
-    label: c.transport && c.transport !== 'None' ? `${c.relationCategory} / ${c.transport}` : c.relationCategory,
-  };
+  return { id: c.id, type: 'floating', source: c.from, target: c.to, label: c.type };
 }
 
 /** A rolled-up higher-level edge: dashed + tinted, non-interactive, labelled with how many
@@ -113,11 +107,13 @@ function derivedEdge(e: RollupConnection): FlowEdge {
   };
 }
 
-export type ConnFilter = { relationCategories: string[]; transports: string[] };
+export type ConnFilter = { kinds: string[]; fields: Record<string, string[]> };
 
 function matchesFilter(c: Connection, f: ConnFilter): boolean {
-  if (f.relationCategories.length && !f.relationCategories.includes(c.relationCategory)) return false;
-  if (f.transports.length && !f.transports.includes(c.transport ?? 'None')) return false;
+  if (f.kinds.length && !f.kinds.includes(c.type)) return false;
+  for (const [key, vals] of Object.entries(f.fields)) {
+    if (vals.length && !vals.includes(String(c.fields[key] ?? ''))) return false;
+  }
   return true;
 }
 

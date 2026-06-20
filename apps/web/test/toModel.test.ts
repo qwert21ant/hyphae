@@ -6,10 +6,7 @@ import { emptyModel, layerOfType, c4Backend } from '@hyphae/schema';
 describe('drillTarget', () => {
   function model() {
     const m = emptyModel();
-    const base = {
-      description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
-      tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
-    };
+    const base = { description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
     m.nodes.push(
       { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
       { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
@@ -62,14 +59,12 @@ describe('toModel mapping', () => {
   it('keeps only nodes whose type belongs to the active layer', () => {
     const m = emptyModel();
     m.nodes.push({
-      id: 'sys', name: 'Shop', type: 'System', description: '', responsibilities: [],
-      invariants: [], assumptions: [], failureModes: [], tags: [], status: 'Active',
-      parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+      id: 'sys', name: 'Shop', type: 'System', description: '',
+      parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {},
     });
     m.nodes.push({
-      id: 'c', name: 'Comp', type: 'Component', description: '', responsibilities: [],
-      invariants: [], assumptions: [], failureModes: [], tags: [], status: 'Active',
-      parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+      id: 'c', name: 'Comp', type: 'Component', description: '',
+      parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {},
     });
     const flow = toFlowNodes(m, 'Component');
     expect(flow.map((n) => n.id)).toEqual(['c']);
@@ -79,13 +74,12 @@ describe('toModel mapping', () => {
   it('keeps only edges whose both endpoints are visible', () => {
     const m = emptyModel();
     m.nodes.push({
-      id: 'a', name: 'A', type: 'Component', description: '', responsibilities: [],
-      invariants: [], assumptions: [], failureModes: [], tags: [], status: 'Active',
-      parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+      id: 'a', name: 'A', type: 'Component', description: '',
+      parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {},
     });
     m.connections.push({
-      id: 'c1', from: 'a', to: 'ghost', relationCategory: 'Dependency', transport: 'None',
-      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [],
+      id: 'c1', from: 'a', to: 'ghost', type: 'Dependency',
+      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: {},
     });
     expect(toFlowEdges(m, 'Component')).toHaveLength(0);
   });
@@ -93,38 +87,33 @@ describe('toModel mapping', () => {
   it('labels edges with their relation info', () => {
     const m = emptyModel();
     m.nodes.push({
-      id: 'a', name: 'A', type: 'Component', description: '', responsibilities: [],
-      invariants: [], assumptions: [], failureModes: [], tags: [], status: 'Active',
-      parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+      id: 'a', name: 'A', type: 'Component', description: '',
+      parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {},
     });
     m.nodes.push({
-      id: 'b', name: 'B', type: 'Component', description: '', responsibilities: [],
-      invariants: [], assumptions: [], failureModes: [], tags: [], status: 'Active',
-      parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+      id: 'b', name: 'B', type: 'Component', description: '',
+      parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {},
     });
     m.connections.push({
-      id: 'c1', from: 'a', to: 'b', relationCategory: 'Dependency', transport: 'Sync',
-      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [],
+      id: 'c1', from: 'a', to: 'b', type: 'Dependency',
+      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: { transport: 'Sync' },
     });
-    expect(toFlowEdges(m, 'Component')[0].label).toBe('Dependency / Sync');
+    expect(toFlowEdges(m, 'Component')[0].label).toBe('Dependency');
   });
 
   it('wraps children in a computed region sized to contain them', () => {
     const m = emptyModel();
     m.nodes.push({
-      id: 'cont', name: 'API', type: 'Container', description: '', responsibilities: [],
-      invariants: [], assumptions: [], failureModes: [], tags: [], status: 'Active',
-      parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+      id: 'cont', name: 'API', type: 'Container', description: '',
+      parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {},
     });
     m.nodes.push({
-      id: 'a', name: 'A', type: 'Component', description: '', responsibilities: [],
-      invariants: [], assumptions: [], failureModes: [], tags: [], status: 'Active',
-      parentId: 'cont', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+      id: 'a', name: 'A', type: 'Component', description: '',
+      parentId: 'cont', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {},
     });
     m.nodes.push({
-      id: 'b', name: 'B', type: 'Component', description: '', responsibilities: [],
-      invariants: [], assumptions: [], failureModes: [], tags: [], status: 'Active',
-      parentId: 'cont', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+      id: 'b', name: 'B', type: 'Component', description: '',
+      parentId: 'cont', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {},
     });
     const flow = toFlowNodes(m, 'Component');
     const region = flow.find((n) => n.id === 'cont');
@@ -143,12 +132,9 @@ describe('toModel mapping', () => {
     expect(regionChildIds(m, 'Component', 'cont')).toEqual(new Set(['a', 'b']));
   });
 
-  it('filters connections by relationCategory and transport', () => {
+  it('filters connections by kind and by transport field', () => {
     const m = emptyModel();
-    const base = {
-      description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
-      tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
-    };
+    const base = { description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
     m.nodes.push(
       { id: 'a', name: 'A', type: 'Component', parentId: null, ...base },
       { id: 'b', name: 'B', type: 'Component', parentId: null, ...base },
@@ -156,25 +142,20 @@ describe('toModel mapping', () => {
     );
     const e = { description: '', direction: 'Unidirectional' as const, realizes: [], codeRefs: [] };
     m.connections.push(
-      { id: 'e1', from: 'a', to: 'b', relationCategory: 'Dependency', transport: 'Sync', ...e },
-      { id: 'e2', from: 'a', to: 'c', relationCategory: 'DataFlow', transport: 'Async', ...e },
-      { id: 'e3', from: 'b', to: 'c', relationCategory: 'Dependency', transport: 'InProcess', ...e },
+      { id: 'e1', from: 'a', to: 'b', type: 'Dependency', ...e, fields: { transport: 'Sync' } },
+      { id: 'e2', from: 'a', to: 'c', type: 'DataFlow', ...e, fields: { transport: 'Async' } },
+      { id: 'e3', from: 'b', to: 'c', type: 'Dependency', ...e, fields: { transport: 'InProcess' } },
     );
-    const ids = (f: { relationCategories: string[]; transports: string[] }) =>
-      toFlowEdges(m, 'Component', f).map((x) => x.id).sort();
-
-    expect(ids({ relationCategories: [], transports: [] })).toEqual(['e1', 'e2', 'e3']); // no filter
-    expect(ids({ relationCategories: ['Dependency'], transports: [] })).toEqual(['e1', 'e3']);
-    expect(ids({ relationCategories: [], transports: ['Sync'] })).toEqual(['e1']);
-    expect(ids({ relationCategories: ['Dependency'], transports: ['Async'] })).toEqual([]); // AND
+    const ids = (f: { kinds: string[]; fields: Record<string, string[]> }) => toFlowEdges(m, 'Component', f).map((x) => x.id).sort();
+    expect(ids({ kinds: [], fields: {} })).toEqual(['e1', 'e2', 'e3']);
+    expect(ids({ kinds: ['Dependency'], fields: {} })).toEqual(['e1', 'e3']);
+    expect(ids({ kinds: [], fields: { transport: ['Sync'] } })).toEqual(['e1']);
+    expect(ids({ kinds: ['Dependency'], fields: { transport: ['Async'] } })).toEqual([]);
   });
 
   it('applies the connection filter through the rollup at the Container layer', () => {
     const m = emptyModel();
-    const base = {
-      description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
-      tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
-    };
+    const base = { description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
     m.nodes.push(
       { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
       { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
@@ -184,21 +165,18 @@ describe('toModel mapping', () => {
     );
     const e = { description: '', direction: 'Unidirectional' as const, realizes: [], codeRefs: [] };
     m.connections.push(
-      { id: 'x1', from: 'a1', to: 'b1', relationCategory: 'Dependency', transport: 'Sync', ...e },
-      { id: 'x2', from: 'a1', to: 'b1', relationCategory: 'DataFlow', transport: 'Async', ...e },
+      { id: 'x1', from: 'a1', to: 'b1', type: 'Dependency', ...e, fields: { transport: 'Sync' } },
+      { id: 'x2', from: 'a1', to: 'b1', type: 'DataFlow', ...e, fields: { transport: 'Async' } },
     );
     // Filtering to DataFlow leaves only x2 behind the ca->cb rollup edge.
-    const edges = toFlowEdges(m, 'Container', { relationCategories: ['DataFlow'], transports: [] });
+    const edges = toFlowEdges(m, 'Container', { kinds: ['DataFlow'], fields: {} });
     expect(edges).toHaveLength(1);
     expect((edges[0].data as { realizedBy: string[] }).realizedBy).toEqual(['x2']);
   });
 
   it('shows a derived rollup edge between containers, visually distinct', () => {
     const m = emptyModel();
-    const base = {
-      description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
-      tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
-    };
+    const base = { description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
     m.nodes.push(
       { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
       { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
@@ -209,9 +187,9 @@ describe('toModel mapping', () => {
     );
     const e = { description: '', direction: 'Unidirectional' as const, realizes: [], codeRefs: [] };
     m.connections.push(
-      { id: 'x1', from: 'a1', to: 'b1', relationCategory: 'Dependency', transport: 'Sync', ...e },
-      { id: 'x2', from: 'a2', to: 'b1', relationCategory: 'DataFlow', transport: 'Async', ...e },
-      { id: 'x3', from: 'a1', to: 'a2', relationCategory: 'Dependency', transport: 'InProcess', ...e }, // intra ca
+      { id: 'x1', from: 'a1', to: 'b1', type: 'Dependency', ...e, fields: { transport: 'Sync' } },
+      { id: 'x2', from: 'a2', to: 'b1', type: 'DataFlow', ...e, fields: { transport: 'Async' } },
+      { id: 'x3', from: 'a1', to: 'a2', type: 'Dependency', ...e, fields: { transport: 'InProcess' } }, // intra ca
     );
     const edges = toFlowEdges(m, 'Container');
     expect(edges).toHaveLength(1); // intra-container x3 dropped
@@ -228,40 +206,34 @@ describe('toModel mapping', () => {
 
   it('renders an authored same-layer edge as a normal (non-derived) edge', () => {
     const m = emptyModel();
-    const base = {
-      description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
-      tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
-    };
+    const base = { description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
     m.nodes.push(
       { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
       { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
       { id: 'cb', name: 'Beta', type: 'Container', parentId: 'sys', ...base },
     );
     m.connections.push({
-      id: 'auth', from: 'ca', to: 'cb', relationCategory: 'Dependency', transport: 'Sync',
-      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [],
+      id: 'auth', from: 'ca', to: 'cb', type: 'Dependency',
+      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: { transport: 'Sync' },
     });
     const edges = toFlowEdges(m, 'Container');
     expect(edges).toHaveLength(1);
     expect(edges[0].id).toBe('auth');
     expect((edges[0].data as { derived?: boolean } | undefined)?.derived).toBeFalsy();
-    expect(edges[0].label).toBe('Dependency / Sync');
+    expect(edges[0].label).toBe('Dependency');
   });
 
   it('drops an external system in as a ghost node on the Component layer too', () => {
     const m = emptyModel();
-    const base = {
-      description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
-      tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
-    };
+    const base = { description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
     m.nodes.push(
       { id: 'ca', name: 'Alpha', type: 'Container', parentId: null, ...base },
       { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
       { id: 'ext', name: 'Ext', type: 'ExternalSystem', parentId: null, ...base },
     );
     m.connections.push({
-      id: 'x', from: 'a1', to: 'ext', relationCategory: 'Dependency', transport: 'Sync',
-      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [],
+      id: 'x', from: 'a1', to: 'ext', type: 'Dependency',
+      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: { transport: 'Sync' },
     });
 
     // Raw component→external edge is kept (normal edge, not derived) and the external is a ghost.
@@ -278,10 +250,7 @@ describe('toModel mapping', () => {
 
   it('drops an external system in as a ghost node on the Container layer and shows the edge', () => {
     const m = emptyModel();
-    const base = {
-      description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
-      tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
-    };
+    const base = { description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
     m.nodes.push(
       { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
       { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
@@ -289,8 +258,8 @@ describe('toModel mapping', () => {
       { id: 'ext', name: 'Ext', type: 'ExternalSystem', parentId: null, ...base },
     );
     m.connections.push({
-      id: 'x', from: 'a1', to: 'ext', relationCategory: 'Dependency', transport: 'Sync',
-      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [],
+      id: 'x', from: 'a1', to: 'ext', type: 'Dependency',
+      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: { transport: 'Sync' },
     });
 
     // Edge ca->ext is kept (one native endpoint) even though ext isn't a Container.
@@ -308,10 +277,7 @@ describe('toModel mapping', () => {
 
   it('does not drop in a ghost when the connecting edge is filtered out', () => {
     const m = emptyModel();
-    const base = {
-      description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
-      tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
-    };
+    const base = { description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
     m.nodes.push(
       { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
       { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
@@ -319,20 +285,17 @@ describe('toModel mapping', () => {
       { id: 'ext', name: 'Ext', type: 'ExternalSystem', parentId: null, ...base },
     );
     m.connections.push({
-      id: 'x', from: 'a1', to: 'ext', relationCategory: 'Dependency', transport: 'Sync',
-      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [],
+      id: 'x', from: 'a1', to: 'ext', type: 'Dependency',
+      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: { transport: 'Sync' },
     });
-    const filter = { relationCategories: ['DataFlow'], transports: [] }; // excludes the only edge
+    const filter = { kinds: ['DataFlow'], fields: {} }; // excludes the only edge
     expect(toFlowEdges(m, 'Container', filter)).toHaveLength(0);
     expect(toFlowNodes(m, 'Container', filter).find((n) => n.id === 'ext')).toBeUndefined();
   });
 
   it('rolls component→external up to System→External at the Context layer', () => {
     const m = emptyModel();
-    const base = {
-      description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
-      tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
-    };
+    const base = { description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
     m.nodes.push(
       { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
       { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
@@ -340,8 +303,8 @@ describe('toModel mapping', () => {
       { id: 'ext', name: 'Ext', type: 'ExternalSystem', parentId: null, ...base },
     );
     m.connections.push({
-      id: 'x', from: 'a1', to: 'ext', relationCategory: 'Dependency', transport: 'Sync',
-      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [],
+      id: 'x', from: 'a1', to: 'ext', type: 'Dependency',
+      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: { transport: 'Sync' },
     });
     const edges = toFlowEdges(m, 'Context');
     expect(edges).toHaveLength(1);
@@ -353,9 +316,8 @@ describe('toModel mapping', () => {
   it('keeps unparented nodes at the top level', () => {
     const m = emptyModel();
     m.nodes.push({
-      id: 'c', name: 'C', type: 'Component', description: '', responsibilities: [],
-      invariants: [], assumptions: [], failureModes: [], tags: [], status: 'Active',
-      parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+      id: 'c', name: 'C', type: 'Component', description: '',
+      parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {},
     });
     const c = toFlowNodes(m, 'Component').find((n) => n.id === 'c');
     expect(c?.parentId).toBeUndefined();

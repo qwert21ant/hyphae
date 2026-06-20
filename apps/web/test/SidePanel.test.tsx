@@ -4,9 +4,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 vi.mock('../src/api', () => {
   let v = 0;
   const base = (over: Record<string, unknown>) => ({
-    id: 'x', name: 'X', type: 'Component', description: '', responsibilities: [], invariants: [],
-    assumptions: [], failureModes: [], tags: [], status: 'Active', parentId: null, codeRefs: [],
-    docRefs: [], createdAt: 't', updatedAt: 't', ...over,
+    id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+    docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
   });
   const blank = () => ({
     schemaVersion: 1, metadata: { name: 'Untitled', description: '', createdAt: 't', updatedAt: 't' },
@@ -21,7 +20,7 @@ vi.mock('../src/api', () => {
     updateNode: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ node: base({ id, ...patch }), version: ++v })),
     deleteNode: vi.fn(async () => ({ version: ++v })),
     createConnection: vi.fn(async () => ({ connection: {}, version: ++v })),
-    updateConnection: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ connection: { id, from: 'a', to: 'b', relationCategory: 'Dependency', transport: 'None', description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], ...patch }, version: ++v })),
+    updateConnection: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ connection: { id, from: 'a', to: 'b', type: 'Dependency', description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: {}, ...patch }, version: ++v })),
     deleteConnection: vi.fn(async () => ({ version: ++v })),
     setNodePosition: vi.fn(async () => ({ version: ++v })),
   };
@@ -50,14 +49,13 @@ describe('SidePanel', () => {
     await useStore.getState().addNode('Component');
     render(<SidePanel />);
     fireEvent.change(screen.getByLabelText('invariants') as HTMLTextAreaElement, { target: { value: 'a\nb' } });
-    await waitFor(() => expect(useStore.getState().model.nodes[0].invariants).toEqual(['a', 'b']));
+    await waitFor(() => expect(useStore.getState().model.nodes[0].fields.invariants).toEqual(['a', 'b']));
   });
 
   it('reparents the selected node via the parent dropdown', async () => {
     const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', responsibilities: [], invariants: [],
-      assumptions: [], failureModes: [], tags: [], status: 'Active', parentId: null, codeRefs: [],
-      docRefs: [], createdAt: 't', updatedAt: 't', ...over,
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+      docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     useStore.setState((s) => ({
       model: {
@@ -78,13 +76,13 @@ describe('SidePanel', () => {
     useStore.setState((s) => ({
       model: {
         ...s.model,
-        connections: [{ id: 'conn1', from: a, to: b, relationCategory: 'Dependency', transport: 'None', description: '', direction: 'Unidirectional', realizes: [], codeRefs: [] }],
+        connections: [{ id: 'conn1', from: a, to: b, type: 'Dependency', description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: {} }],
       },
       selectedId: 'conn1',
     }));
     render(<SidePanel />);
     expect(screen.getByRole('heading', { name: /connection/i })).toBeTruthy();
     fireEvent.change(screen.getByLabelText('transport'), { target: { value: 'Sync' } });
-    await waitFor(() => expect(useStore.getState().model.connections[0].transport).toBe('Sync'));
+    await waitFor(() => expect(useStore.getState().model.connections[0].fields.transport).toBe('Sync'));
   });
 });

@@ -4,9 +4,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 vi.mock('../src/api', () => {
   let v = 0;
   const base = (over: Record<string, unknown>) => ({
-    id: 'x', name: 'X', type: 'Component', description: '', responsibilities: [], invariants: [],
-    assumptions: [], failureModes: [], tags: [], status: 'Active', parentId: null, codeRefs: [],
-    docRefs: [], createdAt: 't', updatedAt: 't', ...over,
+    id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+    docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
   });
   const blank = () => ({
     schemaVersion: 1, metadata: { name: 'Untitled', description: '', createdAt: 't', updatedAt: 't' },
