@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import {
   ReactFlow, Background, Controls, Panel, useNodesState, ConnectionMode,
-  type Connection as RFConnection, type Node as FlowNode, type ReactFlowInstance,
+  type Connection as RFConnection, type Node as FlowNode, type ReactFlowInstance, type Viewport,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useStore } from './store';
@@ -37,6 +37,15 @@ export function Canvas() {
   const rf = useRef<ReactFlowInstance | null>(null);
   const pendingFocus = useRef<string | null>(null);
 
+  // Each layer keeps its own pan/zoom. Persisted to localStorage per model (best-effort).
+  const viewports = useRef<Record<string, Viewport>>({});
+  const prevLayer = useRef(layer);
+  const vpKey = `hyphae:viewports:${model.metadata.name}`;
+  useEffect(() => {
+    try { viewports.current = JSON.parse(localStorage.getItem(vpKey) ?? '{}'); }
+    catch { viewports.current = {}; }
+  }, [vpKey]);
+
   // Highlight the selection + its neighbors (a region highlights its children), and dim the rest.
   const childIds = useMemo(() => (selectedId ? regionChildIds(model, layer, selectedId) : new Set<string>()), [selectedId, model, layer]);
   const hi = useMemo(() => highlightSets(selectedId, edges, childIds), [selectedId, edges, childIds]);
@@ -70,6 +79,16 @@ export function Canvas() {
   useEffect(() => {
     setNodes(toFlowNodes(model, layer, connFilter));
   }, [model, layer, connFilter, setNodes]);
+
+  // On layer switch, restore that layer's own viewport (or fit, first time). Drill focus wins.
+  useEffect(() => {
+    if (prevLayer.current === layer) return;
+    prevLayer.current = layer;
+    if (!rf.current || pendingFocus.current) return;
+    const vp = viewports.current[layer];
+    if (vp) void rf.current.setViewport(vp, { duration: 300 });
+    else { const inst = rf.current; requestAnimationFrame(() => void inst.fitView({ duration: 300 })); }
+  }, [layer]);
 
   // After a drill changed the layer and re-seeded nodes, pan/zoom to the focused region.
   useEffect(() => {
@@ -136,6 +155,10 @@ export function Canvas() {
         connectionMode={ConnectionMode.Loose}
         connectionLineComponent={FloatingConnectionLine}
         onInit={(inst) => { rf.current = inst; }}
+        onMoveEnd={(_, vp) => {
+          viewports.current[layer] = vp;
+          try { localStorage.setItem(vpKey, JSON.stringify(viewports.current)); } catch { /* ignore */ }
+        }}
         onNodesChange={onNodesChange}
         onNodeDragStart={onNodeDragStart}
         onNodeDrag={onNodeDrag}
