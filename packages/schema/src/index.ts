@@ -7,4 +7,5 @@ export * from './profiles/c4-backend';
 export * from './model';
 export * from './validate';
 export * from './context';
+export * from './rollup';
 export * from './json-schema';

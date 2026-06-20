@@ -220,4 +220,18 @@ describe('list_connections', () => {
     const x1 = r.find((c) => c.id === 'x1')!;
     expect(x1).toMatchObject({ fromName: 'A1', toName: 'B1', fromContainer: 'Alpha', toContainer: 'Beta' });
   });
+
+  it('rollup:Container returns derived container edges with realizedBy expanded', async () => {
+    const r = (await buildTools(api()).list_connections({ rollup: 'Container' })) as Array<{ from: string; to: string; realizedBy: Array<{ id: string; relationCategory: string }> }>;
+    expect(r.map((e) => `${e.from}->${e.to}`).sort()).toEqual(['ca->cb', 'ca->ext', 'cb->ext']);
+    const caCb = r.find((e) => e.from === 'ca' && e.to === 'cb')!;
+    expect(caCb.realizedBy).toEqual([{ id: 'x1', fromName: 'A1', toName: 'B1', relationCategory: 'Dependency', transport: 'Sync', intent: undefined, description: '' }]);
+  });
+
+  it('rollup:Context collapses internal edges to the System, keeping external edges', async () => {
+    const r = (await buildTools(api()).list_connections({ rollup: 'Context' })) as Array<{ from: string; to: string; realizedBy: Array<{ id: string }> }>;
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ from: 'sys', to: 'ext' });
+    expect(r[0].realizedBy.map((u) => u.id).sort()).toEqual(['x2', 'x3']);
+  });
 });

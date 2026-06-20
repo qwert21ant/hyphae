@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { getContext, HyphaeModelSchema, type HyphaeModel } from '@hyphae/schema';
+import { getContext, rollupConnections, HyphaeModelSchema, type HyphaeModel } from '@hyphae/schema';
 
 export interface HyphaeApi {
   getModel(): Promise<HyphaeModel>;
@@ -49,9 +49,24 @@ export function buildTools(api: HyphaeApi) {
     },
     find_connections: async ({ nodeId }: { nodeId: string }) =>
       (await api.getModel()).connections.filter((c) => c.from === nodeId || c.to === nodeId),
-    list_connections: async ({ relationCategory, transport, containerId, crossingBoundary, involvingExternal, limit, offset }: { relationCategory?: string; transport?: string; containerId?: string; crossingBoundary?: boolean; involvingExternal?: boolean; limit?: number; offset?: number } = {}) => {
+    list_connections: async ({ relationCategory, transport, containerId, crossingBoundary, involvingExternal, rollup, limit, offset }: { relationCategory?: string; transport?: string; containerId?: string; crossingBoundary?: boolean; involvingExternal?: boolean; rollup?: 'Container' | 'Context'; limit?: number; offset?: number } = {}) => {
       const model = await api.getModel();
       const byId = new Map(model.nodes.map((n) => [n.id, n]));
+      if (rollup) {
+        const connById = new Map(model.connections.map((c) => [c.id, c]));
+        let rolled = rollupConnections(model, rollup);
+        const start = offset ?? 0;
+        rolled = limit !== undefined ? rolled.slice(start, start + limit) : rolled.slice(start);
+        return rolled.map((e) => ({
+          from: e.from, to: e.to,
+          fromName: byId.get(e.from)?.name ?? e.from, toName: byId.get(e.to)?.name ?? e.to,
+          realizedBy: e.realizedBy.map((id) => {
+            const c = connById.get(id);
+            if (!c) return { id };
+            return { id: c.id, fromName: byId.get(c.from)?.name ?? c.from, toName: byId.get(c.to)?.name ?? c.to, relationCategory: c.relationCategory, transport: c.transport, intent: c.intent, description: c.description };
+          }),
+        }));
+      }
       const containerCache = new Map<string, string | null>();
       const containerOf = (id: string): string | null => {
         const cached = containerCache.get(id);
@@ -246,13 +261,14 @@ async function main() {
   server.registerTool(
     'list_connections',
     {
-      description: 'Query connections across the model. Filters (all optional, AND-combined): relationCategory, transport, containerId (edges touching that container or any of its descendants), crossingBoundary (true = endpoints in different owning containers — i.e. inter-container / external edges; false = intra-container only), involvingExternal (an endpoint is an ExternalSystem). Supports offset/limit. Each result is enriched with fromName/toName and fromContainer/toContainer, so you can read cross-container dependencies without extra lookups.',
+      description: 'Query connections across the model. Filters (all optional, AND-combined): relationCategory, transport, containerId (edges touching that container or any of its descendants), crossingBoundary (true = endpoints in different owning containers — i.e. inter-container / external edges; false = intra-container only), involvingExternal (an endpoint is an ExternalSystem). Supports offset/limit. Each raw result is enriched with fromName/toName and fromContainer/toContainer. Pass `rollup` to instead get DERIVED higher-level edges: connections lifted to that layer (component edges aggregated into Container↔Container or Context-level edges), with each rollup edge expanding its underlying connections inline as `realizedBy` (the other filters do not apply in rollup mode).',
       inputSchema: {
         relationCategory: z.enum(['Dependency', 'DataFlow', 'Realization', 'Trace']).optional().describe('Only connections of this category.'),
         transport: z.enum(['Sync', 'Async', 'InProcess', 'None']).optional().describe('Only connections with this transport.'),
         containerId: z.string().optional().describe('A container node id; keep only edges touching it or one of its descendants.'),
         crossingBoundary: z.boolean().optional().describe('true = only edges whose endpoints belong to different containers (inter-container/external); false = only intra-container edges.'),
         involvingExternal: z.boolean().optional().describe('true = only edges with an ExternalSystem endpoint; false = only edges between in-system nodes.'),
+        rollup: z.enum(['Container', 'Context']).optional().describe('Return DERIVED higher-level edges at this layer instead of raw connections: component edges are lifted and aggregated (intra-node edges dropped), and each result lists its underlying edges as realizedBy. Other filters are ignored in this mode.'),
         limit: z.number().optional(),
         offset: z.number().optional(),
       },

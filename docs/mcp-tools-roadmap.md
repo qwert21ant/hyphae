@@ -29,7 +29,7 @@ Status legend: ✅ done · 🚧 in progress · ⬜ planned.
 | Status | Tool | What it does | LLM impact | Complexity |
 |:------:|------|--------------|-----------|------------|
 | ✅ | `list_connections({relationCategory?, transport?, containerId?, crossingBoundary?, involvingExternal?, limit?, offset?})` | Query edges, incl. boundary-crossing; results enriched with endpoint names + owning containers | High — dependency analysis + feeds roll-up | Low–Med — filter; `crossingBoundary` needs parent lookup |
-| ⬜ | `get_rollup_connections(layer)` | Derives Component↔Component-across-containers ⇒ Container↔Container (and →External at context) | High — makes higher layers meaningful (B6) | Med — aggregation; shared with the UI roll-up feature |
+| ✅ | rollup connections — folded into `list_connections({rollup:'Container'\|'Context'})` | Derives Component↔Component-across-containers ⇒ Container↔Container (and →External at context). Pure `rollupConnections(model, layer)` in `@hyphae/schema`. Minimal edge `{from,to,realizedBy:id[]}`; the MCP tool expands `realizedBy` into the underlying edges for the LLM. | High — makes higher layers meaningful (B6) | Med — aggregation; shared with the UI roll-up feature |
 | ⬜ | `model_stats()` | Counts per type/layer/container, edge-category histogram, orphan count | Medium — cheap orientation before drilling | Low — reductions over the model |
 
 ## Tier 3 — useful, lower priority
@@ -44,4 +44,13 @@ Status legend: ✅ done · 🚧 in progress · ⬜ planned.
 ## Notes
 - These assume the MCP keeps fetching the full model per call (fine locally). To scale to a much
   bigger model, filtering could move server-side behind query endpoints — a later optimization.
-- `get_rollup_connections` aggregation should be written once and reused by the UI cross-layer view.
+- The rollup aggregation (`rollupConnections` in `@hyphae/schema`) is written once and reused by the
+  UI cross-layer view.
+
+## Future
+- **Rollup-edge summaries (skill pipeline step).** Add a step to the building-architecture-models
+  pipeline that, for each derived higher-level connection, writes an LLM-generated summary/description
+  from its underlying `realizedBy` edges (e.g. "Media Gateway → Layout Manager: pulls layout config
+  and pushes camera addresses"). Because rollup edges are derived (not stored), this needs a home for
+  the text — either materialize the rollup edge as a real Connection with `realizes` set, or keep a
+  side-store keyed by (layer, from, to). Decide when implementing.
