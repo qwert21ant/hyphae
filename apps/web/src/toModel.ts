@@ -1,4 +1,4 @@
-import { c4Backend, layerOfType, type HyphaeModel } from '@hyphae/schema';
+import { c4Backend, layerOfType, rollupConnections, type HyphaeModel, type Connection, type RollupConnection } from '@hyphae/schema';
 import type { Node as FlowNode, Edge as FlowEdge } from '@xyflow/react';
 
 const NODE_W = 160;
@@ -63,16 +63,51 @@ export function regionChildIds(model: HyphaeModel, layer: string, parentId: stri
   );
 }
 
+function realEdge(c: Connection): FlowEdge {
+  return {
+    id: c.id,
+    source: c.from,
+    target: c.to,
+    label: c.transport && c.transport !== 'None' ? `${c.relationCategory} / ${c.transport}` : c.relationCategory,
+  };
+}
+
+/** A rolled-up higher-level edge: dashed + tinted, non-interactive, labelled with how many
+ *  underlying connections it aggregates. Carries `derived` + `realizedBy` in `data`. */
+function derivedEdge(e: RollupConnection): FlowEdge {
+  return {
+    id: `rollup:${e.from}:${e.to}`,
+    source: e.from,
+    target: e.to,
+    label: String(e.realizedBy.length),
+    data: { derived: true, realizedBy: e.realizedBy },
+    selectable: false,
+    deletable: false,
+    focusable: false,
+    style: { stroke: '#7c3aed', strokeDasharray: '6 4', strokeWidth: 2 },
+    labelStyle: { fill: '#7c3aed', fontWeight: 600 },
+    labelBgStyle: { fill: '#ede9fe' },
+  };
+}
+
 export function toFlowEdges(model: HyphaeModel, layer: string): FlowEdge[] {
   const visible = new Set(
     model.nodes.filter((n) => layerOfType(c4Backend, n.type) === layer).map((n) => n.id),
   );
-  return model.connections
-    .filter((c) => visible.has(c.from) && visible.has(c.to))
-    .map((c) => ({
-      id: c.id,
-      source: c.from,
-      target: c.to,
-      label: c.transport && c.transport !== 'None' ? `${c.relationCategory} / ${c.transport}` : c.relationCategory,
-    }));
+  // Component (and any non-aggregated) layer: the raw connections between visible nodes.
+  if (layer !== 'Container' && layer !== 'Context') {
+    return model.connections.filter((c) => visible.has(c.from) && visible.has(c.to)).map(realEdge);
+  }
+  // Container / Context: show DERIVED rollup edges (component edges lifted to this layer). An
+  // authored edge that already connects these two nodes directly is shown as a normal edge.
+  const connById = new Map(model.connections.map((c) => [c.id, c]));
+  return rollupConnections(model, layer)
+    .filter((e) => visible.has(e.from) && visible.has(e.to))
+    .map((e) => {
+      if (e.realizedBy.length === 1) {
+        const c = connById.get(e.realizedBy[0]);
+        if (c && c.from === e.from && c.to === e.to) return realEdge(c);
+      }
+      return derivedEdge(e);
+    });
 }

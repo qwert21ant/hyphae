@@ -83,7 +83,7 @@ export function Canvas() {
         onNodeDragStop={onNodeDragStop}
         onConnect={onConnect}
         onNodeClick={(_, n) => select(n.id)}
-        onEdgeClick={(_, e) => select(e.id)}
+        onEdgeClick={(_, e) => { if (!(e.data as { derived?: boolean } | undefined)?.derived) select(e.id); }}
         onEdgesDelete={(es) => es.forEach((e) => deleteConnection(e.id))}
         onPaneClick={() => select(null)}
         fitView

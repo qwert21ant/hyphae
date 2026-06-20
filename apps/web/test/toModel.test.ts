@@ -87,6 +87,84 @@ describe('toModel mapping', () => {
     expect(regionChildIds(m, 'Component', 'cont')).toEqual(new Set(['a', 'b']));
   });
 
+  it('shows a derived rollup edge between containers, visually distinct', () => {
+    const m = emptyModel();
+    const base = {
+      description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
+      tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+    };
+    m.nodes.push(
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
+      { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
+      { id: 'cb', name: 'Beta', type: 'Container', parentId: 'sys', ...base },
+      { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
+      { id: 'a2', name: 'A2', type: 'Component', parentId: 'ca', ...base },
+      { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
+    );
+    const e = { description: '', direction: 'Unidirectional' as const, realizes: [], codeRefs: [] };
+    m.connections.push(
+      { id: 'x1', from: 'a1', to: 'b1', relationCategory: 'Dependency', transport: 'Sync', ...e },
+      { id: 'x2', from: 'a2', to: 'b1', relationCategory: 'DataFlow', transport: 'Async', ...e },
+      { id: 'x3', from: 'a1', to: 'a2', relationCategory: 'Dependency', transport: 'InProcess', ...e }, // intra ca
+    );
+    const edges = toFlowEdges(m, 'Container');
+    expect(edges).toHaveLength(1); // intra-container x3 dropped
+    const edge = edges[0];
+    expect(edge.source).toBe('ca');
+    expect(edge.target).toBe('cb');
+    expect(edge.id.startsWith('rollup:')).toBe(true);
+    expect((edge.data as { derived?: boolean }).derived).toBe(true);
+    expect(((edge.data as { realizedBy: string[] }).realizedBy).sort()).toEqual(['x1', 'x2']);
+    expect(edge.label).toBe('2');
+    expect(edge.style?.strokeDasharray).toBeTruthy();
+    expect(edge.selectable).toBe(false);
+  });
+
+  it('renders an authored same-layer edge as a normal (non-derived) edge', () => {
+    const m = emptyModel();
+    const base = {
+      description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
+      tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+    };
+    m.nodes.push(
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
+      { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
+      { id: 'cb', name: 'Beta', type: 'Container', parentId: 'sys', ...base },
+    );
+    m.connections.push({
+      id: 'auth', from: 'ca', to: 'cb', relationCategory: 'Dependency', transport: 'Sync',
+      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [],
+    });
+    const edges = toFlowEdges(m, 'Container');
+    expect(edges).toHaveLength(1);
+    expect(edges[0].id).toBe('auth');
+    expect((edges[0].data as { derived?: boolean } | undefined)?.derived).toBeFalsy();
+    expect(edges[0].label).toBe('Dependency / Sync');
+  });
+
+  it('rolls component→external up to System→External at the Context layer', () => {
+    const m = emptyModel();
+    const base = {
+      description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
+      tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+    };
+    m.nodes.push(
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
+      { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
+      { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
+      { id: 'ext', name: 'Ext', type: 'ExternalSystem', parentId: null, ...base },
+    );
+    m.connections.push({
+      id: 'x', from: 'a1', to: 'ext', relationCategory: 'Dependency', transport: 'Sync',
+      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [],
+    });
+    const edges = toFlowEdges(m, 'Context');
+    expect(edges).toHaveLength(1);
+    expect(edges[0].source).toBe('sys');
+    expect(edges[0].target).toBe('ext');
+    expect((edges[0].data as { derived?: boolean }).derived).toBe(true);
+  });
+
   it('keeps unparented nodes at the top level', () => {
     const m = emptyModel();
     m.nodes.push({
