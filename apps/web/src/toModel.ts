@@ -51,23 +51,24 @@ export function toFlowNodes(model: HyphaeModel, layer: string, filter?: ConnFilt
     data: { label: `${n.name}\n(${n.type})` },
   }));
 
-  // Ghost nodes: higher-layer endpoints (e.g. external systems) of cross-layer edges, dropped in
-  // on this layer so their connections are visible. Rendered distinctly (the `ghost` node type).
+  // Ghost nodes: endpoints from a higher layer (e.g. external systems) of cross-layer edges,
+  // dropped in on this layer so their connections are visible. Applies on every layer — including
+  // Component (a component→external edge shows the external here too). Rendered as the `ghost` type.
   const ghosts: FlowNode[] = [];
-  if (isRollupLayer(layer)) {
-    const byId = new Map(model.nodes.map((n) => [n.id, n]));
-    let i = 0;
-    for (const id of crossLayerEdges(model, layer, filter).foreign) {
-      const n = byId.get(id);
-      if (!n) continue;
-      ghosts.push({
-        id,
-        type: 'ghost',
-        position: pos[id] ?? { x: 80 + (i % 5) * 200, y: -140 },
-        data: { label: `${n.name}\n(${n.type})` },
-      });
-      i++;
-    }
+  const existing = new Set<string>([...parentIds, ...visible.map((n) => n.id)]);
+  const byId = new Map(model.nodes.map((n) => [n.id, n]));
+  let gi = 0;
+  for (const id of crossLayerEdges(model, layer, filter).foreign) {
+    if (existing.has(id)) continue;
+    const n = byId.get(id);
+    if (!n) continue;
+    ghosts.push({
+      id,
+      type: 'ghost',
+      position: pos[id] ?? { x: 80 + (gi % 5) * 200, y: -140 },
+      data: { label: `${n.name}\n(${n.type})` },
+    });
+    gi++;
   }
 
   // Regions first so they paint behind their children; ghosts last so they sit on top.
@@ -133,28 +134,40 @@ const isRollupLayer = (layer: string) => layer === 'Container' || layer === 'Con
  */
 export function crossLayerEdges(model: HyphaeModel, layer: string, filter?: ConnFilter): { edges: FlowEdge[]; foreign: Set<string> } {
   const native = nativeIds(model, layer);
+  const exists = new Set(model.nodes.map((n) => n.id));
   const connections = filter ? model.connections.filter((c) => matchesFilter(c, filter)) : model.connections;
-  const connById = new Map(connections.map((c) => [c.id, c]));
   const foreign = new Set<string>();
-  const edges = rollupConnections({ ...model, connections }, layer)
-    .filter((e) => native.has(e.from) || native.has(e.to))
-    .map((e) => {
-      if (!native.has(e.from)) foreign.add(e.from);
-      if (!native.has(e.to)) foreign.add(e.to);
-      // An authored edge that already connects these two nodes directly renders as a normal edge.
-      if (e.realizedBy.length === 1) {
-        const c = connById.get(e.realizedBy[0]);
-        if (c && c.from === e.from && c.to === e.to) return realEdge(c);
-      }
-      return derivedEdge(e);
-    });
+  // Keep an edge if it touches the layer (>=1 native endpoint) and both endpoints are real nodes
+  // (drops dangling refs). Record any non-native endpoint so it can be dropped in as a ghost.
+  const keep = (from: string, to: string) => (native.has(from) || native.has(to)) && exists.has(from) && exists.has(to);
+  const note = (from: string, to: string) => {
+    if (!native.has(from)) foreign.add(from);
+    if (!native.has(to)) foreign.add(to);
+  };
+
+  let edges: FlowEdge[];
+  if (isRollupLayer(layer)) {
+    const connById = new Map(connections.map((c) => [c.id, c]));
+    edges = rollupConnections({ ...model, connections }, layer)
+      .filter((e) => keep(e.from, e.to))
+      .map((e) => {
+        note(e.from, e.to);
+        // An authored edge that already connects these two nodes directly renders as a normal edge.
+        if (e.realizedBy.length === 1) {
+          const c = connById.get(e.realizedBy[0]);
+          if (c && c.from === e.from && c.to === e.to) return realEdge(c);
+        }
+        return derivedEdge(e);
+      });
+  } else {
+    // Component (and any non-aggregated) layer: raw connections, no lifting.
+    edges = connections
+      .filter((c) => keep(c.from, c.to))
+      .map((c) => { note(c.from, c.to); return realEdge(c); });
+  }
   return { edges, foreign };
 }
 
 export function toFlowEdges(model: HyphaeModel, layer: string, filter?: ConnFilter): FlowEdge[] {
-  if (isRollupLayer(layer)) return crossLayerEdges(model, layer, filter).edges;
-  // Component (and any non-aggregated) layer: the raw connections between visible nodes.
-  const native = nativeIds(model, layer);
-  const connections = filter ? model.connections.filter((c) => matchesFilter(c, filter)) : model.connections;
-  return connections.filter((c) => native.has(c.from) && native.has(c.to)).map(realEdge);
+  return crossLayerEdges(model, layer, filter).edges;
 }

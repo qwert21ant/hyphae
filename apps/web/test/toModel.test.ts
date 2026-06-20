@@ -192,6 +192,34 @@ describe('toModel mapping', () => {
     expect(edges[0].label).toBe('Dependency / Sync');
   });
 
+  it('drops an external system in as a ghost node on the Component layer too', () => {
+    const m = emptyModel();
+    const base = {
+      description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
+      tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+    };
+    m.nodes.push(
+      { id: 'ca', name: 'Alpha', type: 'Container', parentId: null, ...base },
+      { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
+      { id: 'ext', name: 'Ext', type: 'ExternalSystem', parentId: null, ...base },
+    );
+    m.connections.push({
+      id: 'x', from: 'a1', to: 'ext', relationCategory: 'Dependency', transport: 'Sync',
+      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [],
+    });
+
+    // Raw component→external edge is kept (normal edge, not derived) and the external is a ghost.
+    const edges = toFlowEdges(m, 'Component');
+    expect(edges).toHaveLength(1);
+    expect(edges[0].source).toBe('a1');
+    expect(edges[0].target).toBe('ext');
+    expect((edges[0].data as { derived?: boolean } | undefined)?.derived).toBeFalsy();
+
+    const nodes = toFlowNodes(m, 'Component');
+    expect(nodes.find((n) => n.id === 'ext')?.type).toBe('ghost');
+    expect(nodes.find((n) => n.id === 'a1')?.type).toBe('node');
+  });
+
   it('drops an external system in as a ghost node on the Container layer and shows the edge', () => {
     const m = emptyModel();
     const base = {
