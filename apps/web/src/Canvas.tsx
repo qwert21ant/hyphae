@@ -8,6 +8,7 @@ import { useStore } from './store';
 import { toFlowNodes, toFlowEdges, regionChildIds } from './toModel';
 import { GroupNode } from './GroupNode';
 import { NodeBox } from './NodeBox';
+import { GhostNode } from './GhostNode';
 import { FloatingEdge } from './FloatingEdge';
 import { FloatingConnectionLine } from './FloatingConnectionLine';
 import { FilterPanel } from './FilterPanel';
@@ -15,7 +16,7 @@ import { FilterPanel } from './FilterPanel';
 type XY = { x: number; y: number };
 type RegionDrag = { id: string; last: XY; start: XY; childStart: Map<string, XY> };
 
-const nodeTypes = { region: GroupNode, node: NodeBox };
+const nodeTypes = { region: GroupNode, node: NodeBox, ghost: GhostNode };
 const edgeTypes = { floating: FloatingEdge };
 
 export function Canvas() {
@@ -37,8 +38,8 @@ export function Canvas() {
   // Re-seed from the model whenever it or the layer changes (incl. external SSE updates).
   // The model only changes on drag-stop (we persist then), so mid-drag state isn't clobbered.
   useEffect(() => {
-    setNodes(toFlowNodes(model, layer));
-  }, [model, layer, setNodes]);
+    setNodes(toFlowNodes(model, layer, connFilter));
+  }, [model, layer, connFilter, setNodes]);
 
   const onConnect = (c: RFConnection) => {
     if (c.source && c.target) addConnection(c.source, c.target);

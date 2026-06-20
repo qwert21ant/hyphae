@@ -6,7 +6,7 @@ const NODE_H = 44;
 const PAD = 24;
 const LABEL_H = 22;
 
-export function toFlowNodes(model: HyphaeModel, layer: string): FlowNode[] {
+export function toFlowNodes(model: HyphaeModel, layer: string, filter?: ConnFilter): FlowNode[] {
   const pos = model.views.find((v) => v.layer === layer)?.nodePositions ?? {};
   const nameById = new Map(model.nodes.map((n) => [n.id, n.name]));
   const visible = model.nodes.filter((n) => layerOfType(c4Backend, n.type) === layer);
@@ -51,8 +51,27 @@ export function toFlowNodes(model: HyphaeModel, layer: string): FlowNode[] {
     data: { label: `${n.name}\n(${n.type})` },
   }));
 
-  // Regions first so they paint behind their children.
-  return [...regions, ...nodes];
+  // Ghost nodes: higher-layer endpoints (e.g. external systems) of cross-layer edges, dropped in
+  // on this layer so their connections are visible. Rendered distinctly (the `ghost` node type).
+  const ghosts: FlowNode[] = [];
+  if (isRollupLayer(layer)) {
+    const byId = new Map(model.nodes.map((n) => [n.id, n]));
+    let i = 0;
+    for (const id of crossLayerEdges(model, layer, filter).foreign) {
+      const n = byId.get(id);
+      if (!n) continue;
+      ghosts.push({
+        id,
+        type: 'ghost',
+        position: pos[id] ?? { x: 80 + (i % 5) * 200, y: -140 },
+        data: { label: `${n.name}\n(${n.type})` },
+      });
+      i++;
+    }
+  }
+
+  // Regions first so they paint behind their children; ghosts last so they sit on top.
+  return [...regions, ...nodes, ...ghosts];
 }
 
 /** Ids of the visible nodes that belong to a given parent region on a layer. */
@@ -101,26 +120,41 @@ function matchesFilter(c: Connection, f: ConnFilter): boolean {
   return true;
 }
 
-export function toFlowEdges(model: HyphaeModel, layer: string, filter?: ConnFilter): FlowEdge[] {
-  const visible = new Set(
-    model.nodes.filter((n) => layerOfType(c4Backend, n.type) === layer).map((n) => n.id),
-  );
-  // Filter the underlying connections first — so both raw edges and rollup edges respect it.
+function nativeIds(model: HyphaeModel, layer: string): Set<string> {
+  return new Set(model.nodes.filter((n) => layerOfType(c4Backend, n.type) === layer).map((n) => n.id));
+}
+
+const isRollupLayer = (layer: string) => layer === 'Container' || layer === 'Context';
+
+/**
+ * Rollup edges for a Container/Context layer, keeping any edge with at least one endpoint native
+ * to the layer. Endpoints that live on a higher layer (e.g. an ExternalSystem on the Container
+ * layer) are collected in `foreign` so the caller can drop them in as ghost nodes.
+ */
+export function crossLayerEdges(model: HyphaeModel, layer: string, filter?: ConnFilter): { edges: FlowEdge[]; foreign: Set<string> } {
+  const native = nativeIds(model, layer);
   const connections = filter ? model.connections.filter((c) => matchesFilter(c, filter)) : model.connections;
-  // Component (and any non-aggregated) layer: the raw connections between visible nodes.
-  if (layer !== 'Container' && layer !== 'Context') {
-    return connections.filter((c) => visible.has(c.from) && visible.has(c.to)).map(realEdge);
-  }
-  // Container / Context: show DERIVED rollup edges (component edges lifted to this layer). An
-  // authored edge that already connects these two nodes directly is shown as a normal edge.
   const connById = new Map(connections.map((c) => [c.id, c]));
-  return rollupConnections({ ...model, connections }, layer)
-    .filter((e) => visible.has(e.from) && visible.has(e.to))
+  const foreign = new Set<string>();
+  const edges = rollupConnections({ ...model, connections }, layer)
+    .filter((e) => native.has(e.from) || native.has(e.to))
     .map((e) => {
+      if (!native.has(e.from)) foreign.add(e.from);
+      if (!native.has(e.to)) foreign.add(e.to);
+      // An authored edge that already connects these two nodes directly renders as a normal edge.
       if (e.realizedBy.length === 1) {
         const c = connById.get(e.realizedBy[0]);
         if (c && c.from === e.from && c.to === e.to) return realEdge(c);
       }
       return derivedEdge(e);
     });
+  return { edges, foreign };
+}
+
+export function toFlowEdges(model: HyphaeModel, layer: string, filter?: ConnFilter): FlowEdge[] {
+  if (isRollupLayer(layer)) return crossLayerEdges(model, layer, filter).edges;
+  // Component (and any non-aggregated) layer: the raw connections between visible nodes.
+  const native = nativeIds(model, layer);
+  const connections = filter ? model.connections.filter((c) => matchesFilter(c, filter)) : model.connections;
+  return connections.filter((c) => native.has(c.from) && native.has(c.to)).map(realEdge);
 }

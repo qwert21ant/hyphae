@@ -192,6 +192,57 @@ describe('toModel mapping', () => {
     expect(edges[0].label).toBe('Dependency / Sync');
   });
 
+  it('drops an external system in as a ghost node on the Container layer and shows the edge', () => {
+    const m = emptyModel();
+    const base = {
+      description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
+      tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+    };
+    m.nodes.push(
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
+      { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
+      { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
+      { id: 'ext', name: 'Ext', type: 'ExternalSystem', parentId: null, ...base },
+    );
+    m.connections.push({
+      id: 'x', from: 'a1', to: 'ext', relationCategory: 'Dependency', transport: 'Sync',
+      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [],
+    });
+
+    // Edge ca->ext is kept (one native endpoint) even though ext isn't a Container.
+    const edges = toFlowEdges(m, 'Container');
+    expect(edges).toHaveLength(1);
+    expect(edges[0].source).toBe('ca');
+    expect(edges[0].target).toBe('ext');
+
+    // ext is dropped in as a ghost node; the container ca is a normal node.
+    const nodes = toFlowNodes(m, 'Container');
+    const ghost = nodes.find((n) => n.id === 'ext');
+    expect(ghost?.type).toBe('ghost');
+    expect(nodes.find((n) => n.id === 'ca')?.type).toBe('node');
+  });
+
+  it('does not drop in a ghost when the connecting edge is filtered out', () => {
+    const m = emptyModel();
+    const base = {
+      description: '', responsibilities: [], invariants: [], assumptions: [], failureModes: [],
+      tags: [], status: 'Active' as const, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+    };
+    m.nodes.push(
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
+      { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
+      { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
+      { id: 'ext', name: 'Ext', type: 'ExternalSystem', parentId: null, ...base },
+    );
+    m.connections.push({
+      id: 'x', from: 'a1', to: 'ext', relationCategory: 'Dependency', transport: 'Sync',
+      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [],
+    });
+    const filter = { relationCategories: ['DataFlow'], transports: [] }; // excludes the only edge
+    expect(toFlowEdges(m, 'Container', filter)).toHaveLength(0);
+    expect(toFlowNodes(m, 'Container', filter).find((n) => n.id === 'ext')).toBeUndefined();
+  });
+
   it('rolls component→external up to System→External at the Context layer', () => {
     const m = emptyModel();
     const base = {
