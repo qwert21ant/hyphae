@@ -1,5 +1,11 @@
 # Prompt: analyze this repo and build its C4 model via the Hyphae MCP server
 
+> **Legacy / quick one-shot.** For anything beyond a small repo prefer the `building-architecture-models`
+> skill. Also note the schema is now profile-driven: a connection's kind is `type` (not
+> `relationCategory`), and domain values (`transport`, `intent`, a node's `technology`/`responsibilities`/
+> `invariants`) go in a `fields` bag. Call `describe_profile` first to see the available kinds and
+> fields. The endpoint-ordering guidance below still applies.
+
 **Prerequisites:** the Hyphae HTTP server is running (`pnpm --filter @hyphae/server dev`, :5173)
 and the `hyphae` MCP server is connected in Claude Code (see `.mcp.json`). Optionally open the
 web editor (`pnpm --filter @hyphae/web dev`, http://localhost:3000) to watch it build live.
@@ -35,10 +41,10 @@ is a Container).
    Fill `responsibilities`/`invariants`/`assumptions` where you know them.
 
 5. Wire the dependencies with `create_connection` (both endpoints must exist first):
-   - web store → server routes: `relationCategory: "Dependency"`, `transport: "Sync"` (HTTP).
-   - server routes → ModelStore: `relationCategory: "Dependency"`, `transport: "InProcess"`.
-   - mcp tools → server routes: `relationCategory: "Dependency"`, `transport: "Sync"` (HTTP).
-   - server / web / mcp → schema: `relationCategory: "Dependency"`, `transport: "InProcess"`.
+   - web store → server routes: `type: "Dependency"` (with `transport` in `fields`), `transport: "Sync"` (HTTP).
+   - server routes → ModelStore: `type: "Dependency"` (with `transport` in `fields`), `transport: "InProcess"`.
+   - mcp tools → server routes: `type: "Dependency"` (with `transport` in `fields`), `transport: "Sync"` (HTTP).
+   - server / web / mcp → schema: `type: "Dependency"` (with `transport` in `fields`), `transport: "InProcess"`.
 
 If any write is rejected, the tool result contains the specific `issues` — read them and correct
 the input (usually a missing/wrong `parentId` or an endpoint id that doesn't exist yet) before

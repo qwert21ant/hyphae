@@ -11,15 +11,18 @@ registration. **Write** tools go through the existing routes → `ModelStore` �
 Status legend: ✅ done · 🚧 in progress · ⬜ planned.
 
 ## Existing tools
-`get_text_context`, `get_node`, `list_nodes`, `search_nodes`, `find_connections`, `list_connections`, `get_subgraph` (read);
+`describe_profile`, `get_text_context`, `get_node`, `list_nodes`, `search_nodes`, `find_connections`, `list_connections`, `get_subgraph` (read);
 `create_node`, `update_node`, `delete_node`, `create_connection`, `update_connection`, `delete_connection` (write).
+Since the profile-driven-schema change: connections use `type` (a ConnectionKind id) not
+`relationCategory`; domain values go in a `fields` bag; the write tools' input schemas + `type` enum
+are generated from the active profile, and `describe_profile` returns kinds/fields/enum descriptions.
 
 ## Tier 1 — highest impact, low cost
 
 | Status | Tool | What it does | LLM impact | Complexity |
 |:------:|------|--------------|-----------|------------|
 | ✅ | `search_nodes(query, {type?, parentId?, fields?, limit})` | Text match across name/description/responsibilities/etc. | Very high — the missing entry point; locate a node without dumping everything | Low — pure filter over `getModel()`, no route change |
-| ✅ | `get_subgraph(nodeId, {depth, direction?, relationCategory?, containment?})` | BFS neighborhood to N hops over connections AND containment (default descends into children, so a Container returns its Components); returns local nodes + edges | Very high — core "explore around X" primitive | Low–Med — BFS over `connections` + parentId, client-side |
+| ✅ | `get_subgraph(nodeId, {depth, direction?, type?, containment?})` | BFS neighborhood to N hops over connections AND containment (default descends into children, so a Container returns its Components); returns local nodes + edges | Very high — core "explore around X" primitive | Low–Med — BFS over `connections` + parentId, client-side |
 | ✅ | `list_nodes` + filters/pagination (`{parentId?, type?, limit, offset}`) | Scoped enumeration ("components of container X") | High — avoids the full node dump | Trivial–Low — extend existing handler |
 | ✅ | `get_text_context` summary/scope mode (`{mode:'summary'\|'full', layer?, root?:nodeId, fields?}`) | Compact render and/or subtree scope; default summary, full when `root` set | Very high — fixes the >100 KB problem | Low–Med — extend `getContext()` in `context.ts` |
 | ✅ | `update_connection(id, patch)` | Edit an edge's category/transport/intent/description/direction | Medium — today you must delete+recreate | Trivial — store + `PATCH /connections/:id` already exist; only the MCP wrapper is missing |
@@ -28,7 +31,7 @@ Status legend: ✅ done · 🚧 in progress · ⬜ planned.
 
 | Status | Tool | What it does | LLM impact | Complexity |
 |:------:|------|--------------|-----------|------------|
-| ✅ | `list_connections({relationCategory?, transport?, containerId?, crossingBoundary?, involvingExternal?, limit?, offset?})` | Query edges, incl. boundary-crossing; results enriched with endpoint names + owning containers | High — dependency analysis + feeds roll-up | Low–Med — filter; `crossingBoundary` needs parent lookup |
+| ✅ | `list_connections({type?, transport?, containerId?, crossingBoundary?, involvingExternal?, rollup?, limit?, offset?})` | Query edges, incl. boundary-crossing; results enriched with endpoint names + owning containers | High — dependency analysis + feeds roll-up | Low–Med — filter; `crossingBoundary` needs parent lookup |
 | ✅ | rollup connections — folded into `list_connections({rollup:'Container'\|'Context'})` | Derives Component↔Component-across-containers ⇒ Container↔Container (and →External at context). Pure `rollupConnections(model, layer)` in `@hyphae/schema`. Minimal edge `{from,to,realizedBy:id[]}`; the MCP tool expands `realizedBy` into the underlying edges for the LLM. | High — makes higher layers meaningful (B6) | Med — aggregation; shared with the UI roll-up feature |
 | ⬜ | `model_stats()` | Counts per type/layer/container, edge-category histogram, orphan count | Medium — cheap orientation before drilling | Low — reductions over the model |
 

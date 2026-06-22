@@ -15,11 +15,16 @@ refreshes live. Set `HYPHAE_FILE=/abs/path/hyphae.json` to choose the model file
 
 ## Editor
 
-- Layer is a dropdown filter (Context / Container / Component), not zoom drill-down.
-- Nodes and connections: create / edit / delete / drag. The side panel edits all node fields
-  (including the LLM semantics — `responsibilities`, `invariants`, `assumptions`, `failureModes`)
-  and, for a selected edge, the connection's `relationCategory` / `transport` / `direction` /
-  `intent` / `description`.
+- Layer is a dropdown filter (Context / Container / Component). Double-click a node to drill into
+  the layer of its children; each layer keeps its own pan/zoom (persisted).
+- Nodes and connections: create / edit / delete / drag. The side panel renders the core fields plus
+  the **profile-defined fields** for that node/connection kind generically (a node's
+  `responsibilities`/`invariants`/`technology`, an edge's `transport`/`intent`, …). A connection's
+  kind is its `type` (`Dependency` / `DataFlow` / `Realization` / `Trace`).
+- Edges attach to the nearest point on each node (floating edges). Selecting a node/edge highlights
+  it and its neighbors. The connection filter panel (kind + transport) is generated from the profile.
+- Higher layers show **derived cross-layer edges** (rolled up from component connections, drawn
+  dashed) and drop in higher-layer endpoints (e.g. an external system) as ghost nodes.
 - Containment (`parentId`) is drawn as labeled regions; drag a region's title bar to move its
   contents together, or set a node's parent from the side panel.
 
@@ -43,8 +48,12 @@ The MCP server is an HTTP client of the running Hyphae server, so the server mus
     pnpm --filter @hyphae/server dev          # terminal A — owns hyphae.json on :5173
     HYPHAE_SERVER=http://localhost:5173 pnpm --filter @hyphae/server mcp   # terminal B
 
-Read tools: `get_text_context`, `get_node`, `list_nodes`, `search_nodes`, `find_connections`, `list_connections`, `get_subgraph`.
+Read tools: `describe_profile` (the active profile's node/connection kinds and their documented
+fields — call it first), `get_text_context`, `get_node`, `list_nodes`, `search_nodes`,
+`find_connections`, `list_connections` (incl. `rollup`), `get_subgraph`.
 Write tools: `create_node`, `update_node`, `delete_node`, `create_connection`, `update_connection`, `delete_connection`.
+Domain values go in a `fields` bag validated against the profile; the write tools' params are built
+from the active profile.
 
 For Claude Code, `.mcp.json` registers this server (project scope) — approve it on session start,
 then check `/mcp`. A ready-made "analyze this repo and build its model" prompt lives in

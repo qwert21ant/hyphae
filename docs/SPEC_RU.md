@@ -86,68 +86,47 @@ MVP активирует один профиль — `c4-backend`:
 
 Фиксированный словарь (а не свободная декларация слоёв) сохраняется ради LLM-friendliness — но теперь это свойство профиля, а не движка. Будущие профили (frontend / cli / desktop) задают свои уровни и типы, не трогая ядро.
 
+> **Обновлено (profile-driven schema).** Ядро Node/Connection теперь лёгкое; всё доменно-специфичное
+> переехало в мешок `fields`, который объявляется и валидируется профилем. Полная актуальная схема —
+> в `docs/HANDOFF.md` и `packages/schema/src`.
+
 ### 6.2 Узлы (Nodes)
 
-Каждый узел имеет:
+**Ядро (одинаково для всех профилей):**
+- `id` — stable UUID/slug.
+- `name` — человекочитаемое имя (не уникально).
+- `type` — вид узла из активного профиля (в `c4-backend`: System | Container | Component | Actor | ExternalSystem).
+- `description` — основное описание (свободный текст).
+- `parentId` — родитель по правилам containment профиля. **Единственный** носитель «из чего состоит».
+- `codeRefs` / `docRefs` — ссылки на код / документы (plain strings).
+- `createdAt` / `updatedAt`.
+- `fields` — мешок доменных значений (см. ниже).
+- `layer` / `category` — **не хранятся**, выводятся из `type` по профилю.
 
-**Идентичность:**
-- `id` — stable UUID или slug, не меняется при переименовании.
-- `name` — человекочитаемое имя.
-- `type` — тип из активного профиля (в `c4-backend`: System | Container | Component | Actor | ExternalSystem | Code).
-- `layer` / `category` — выводятся из профиля по типу.
-
-**Семантика:**
-- `description` — свободный текст, основное описание.
-- `responsibilities` — массив строк. Локальный список обязанностей. Может ссылаться на узлы Requirement (ось Интент), когда обязанность адресуема глобально.
-- `purpose` — короткое summary (tooltip, LLM-контекст).
-- `technology` — стек.
-- `tags` — массив тегов.
-
-**Семантика для LLM:**
-- `invariants` — массив локальных инвариантов (что всегда выполняется для этого узла). Cross-cutting инварианты живут как отдельные Requirement-узлы.
-- `assumptions` — предположения о среде, входах, поведении внешних систем.
-- `failureModes` — известные режимы отказа.
-
-**Метаданные:**
-- `owner` — опционально.
-- `status` — Planned | Active | Deprecated.
-- `createdAt`, `updatedAt`.
-
-**Линки:**
-- `codeRefs` — ссылки на код (file path + symbol). В MVP — plain strings, парсятся в фазе 5.
-- `docRefs` — ссылки на внешние документы / ADR.
-
-**Иерархия:**
-- `parentId` — ссылка на родителя по правилам containment профиля. **Единственный** носитель «из чего состоит» (никакой Composition-связи, см. 6.3).
+**`fields` (доменные поля профиля):** ключи и типы объявляет профиль (`commonNodeFields` + поля вида
+узла). В `c4-backend`: `responsibilities` (list), `invariants` (list) — у всех; `technology` (text) —
+у Container/Component. Каждое поле и каждое enum-значение описаны (для LLM/редактора). Значения строго
+валидируются против профиля.
 
 ### 6.3 Связи (Connections / Edges)
 
 Связь — first-class сущность, не просто стрелка.
 
-**Идентичность:**
+**Ядро:**
 - `id`, `from` (node id), `to` (node id).
+- `type` — **вид связи (ConnectionKind) из профиля** (в `c4-backend`: Dependency | DataFlow | Realization | Trace). Заменил прежний `relationCategory`.
+- `description` — что связь делает.
+- `direction` — Unidirectional | Bidirectional.
+- `realizes` — массив id связей нижнего уровня (cross-layer realization).
+- `codeRefs` — где реализуется.
+- `fields` — мешок доменных полей профиля.
 
-**Тип — три ортогональных поля** (вместо одного перегруженного enum; устраняет category error прежней версии):
-- `relationCategory` — Dependency | DataFlow | Realization | Trace. Чем связь является по природе.
-- `transport` — Sync | Async | InProcess | None. Механизм (для runtime-связей).
-- `intent` — Read | Write | Trigger | Notify | Use (опционально). Намерение.
+**`fields` связи (поля профиля):** в `c4-backend` — `transport` (Sync | Async | InProcess | None) и
+`intent` (Read | Write | Trigger | Notify | Use, опц.); конкретный вид связи может добавить свои поля.
+Прежние «три ортогональных оси» сохранены концептуально, но теперь это `type` + поля профиля, а не
+зашитый enum.
 
 > `Composition` удалён — containment выражается только `parentId`. Никакого дубля «состоит из».
-
-**Семантика:**
-- `description` — что связь делает.
-- `protocol` — HTTP, gRPC, AMQP, in-process.
-- `dataTypeRef` — опц. ссылка на узел DataType (ось Данные), которым связь оперирует. Заменяет прежний inline `dataSchema: string`.
-- `direction` — Unidirectional | Bidirectional.
-
-**Атрибуты:**
-- `frequency` — Rare | Occasional | Frequent | Continuous.
-- `latencyBudgetMs` — опционально.
-- `security` — { authRequired, encryption }.
-
-**Линки:**
-- `codeRefs` — где реализуется (фаза 5).
-- `realizes` — массив id связей нижнего уровня, реализующих эту связь (cross-layer realization).
 
 ### 6.4 Flows
 
@@ -181,7 +160,7 @@ Flow — упорядоченная последовательность шаг�
 
 - `dataTypes` — **ось Данные.** Узлы-типы домена (Entity | Value | Event | DTO) с полями. ERD = проекция связей produces/consumes/persists.
 - `stateMachines` — **ось Поведение.** Машина состояний, привязанная к узлу (lifecycle, протокол, UI-режимы): states + transitions {from, to, trigger, guard, effect}.
-- `requirements` — **ось Интент.** Узлы требований (Functional | Quality | Constraint). Трассируются от узлов/flows через связи `relationCategory: Trace`.
+- `requirements` — **ось Интент.** Узлы требований (Functional | Quality | Constraint). Трассируются от узлов/flows через связи `type: Trace`.
 - `decisions` — **ось Интент.** ADR-узлы (context / choice / consequences / status), линкуются к затронутым узлам.
 
 ### 6.7 Views

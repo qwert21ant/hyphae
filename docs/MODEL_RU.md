@@ -25,7 +25,7 @@ C4 описывает 2 вещи: статическую структуру (ч�
 | Ось | Вопрос | Носители в модели | Проекции (диаграммы) |
 |-----|--------|-------------------|----------------------|
 | **Структура** | из чего состоит | `parentId` узлов | C4 containment, UI-tree, module-tree |
-| **Зависимости** | кто кого знает/использует | связи `relationCategory: Dependency` | граф зависимостей |
+| **Зависимости** | кто кого знает/использует | связи `type: Dependency` | граф зависимостей |
 | **Поведение** | что происходит во времени | `flows`, `stateMachines` | sequence, state chart, activity |
 | **Данные** | какими сущностями оперирует | `dataTypes` + связи DataFlow | ERD, data-flow |
 | **Интент** | зачем, какие требования/решения | `requirements`, `decisions` + связи `Trace` | traceability matrix, decision map |
@@ -40,17 +40,22 @@ C4 описывает 2 вещи: статическую структуру (ч�
 Не зависят от профиля. Всегда одинаковые.
 
 ### 3.1 Node (узел)
-Любая адресуемая сущность модели. Идентичность (`id`/`name`/`type`), семантика (`description`/`responsibilities`/`purpose`), LLM-поля (`invariants`/`assumptions`/`failureModes`), метаданные, `parentId` (структура), `codeRefs`/`docRefs` (линки). Конкретные **типы** узла берутся из профиля.
+Любая адресуемая сущность модели. **Ядро узла лёгкое и не зависит от профиля:**
+`id`/`name`/`type`/`description`/`parentId` (структура)/`codeRefs`/`docRefs`/`createdAt`/`updatedAt` и
+мешок `fields` (доменные значения). Всё доменно-специфичное (`responsibilities`, `invariants`,
+`technology`, …) — это **поля профиля**, лежащие в `fields` и валидируемые против активного профиля.
+Конкретные **типы** узла берутся из профиля; `layer`/`category` выводятся из `type`.
 
 ### 3.2 Connection (связь)
-First-class ребро. Тип расщеплён на **три ортогональных поля** (не один enum):
-- `relationCategory` — **природа** связи: `Dependency` | `DataFlow` | `Realization` | `Trace`.
-- `transport` — **механизм**: `Sync` | `Async` | `InProcess` | `None`.
-- `intent` — **намерение** (опц.): `Read` | `Write` | `Trigger` | `Notify` | `Use`.
+First-class ребро. Ядро: `id`/`from`/`to`/`type`/`description`/`direction`/`realizes` (cross-layer)/`codeRefs`
+и мешок `fields`. **`type` — это вид связи (ConnectionKind) из профиля** (`Dependency` | `DataFlow` |
+`Realization` | `Trace` в `c4-backend`); он заменил прежний `relationCategory`.
 
-Почему расщеплено: прежний единый `kind` (Sync/Async/DataRead/DataWrite/Composition/Trigger) смешивал три разные вещи и врал. `Composition` вообще был структурой, не связью — удалён, структура живёт только в `parentId`.
+Прежние ортогональные оси связи стали **полями профиля** в `fields` (с описанием каждого значения для
+LLM): `transport` (`Sync`/`Async`/`InProcess`/`None`) и `intent` (`Read`/`Write`/`Trigger`/`Notify`/`Use`).
+Профиль может задать и другие поля на конкретном виде связи (напр. `dataTypeRef` на `DataFlow`).
 
-Доп. поля: `protocol`, `dataTypeRef` (→ узел DataType), `direction`, `frequency`, `latencyBudgetMs`, `security`, `realizes` (cross-layer), `codeRefs`.
+> `Composition` когда-то был отдельным видом — удалён; структура живёт только в `parentId`.
 
 ### 3.3 Flow (поток)
 Упорядоченный сценарий поверх узлов и связей. Overlay, не отдельная диаграмма. Шаги с `control` (alt/opt/loop/par) для ветвления. Ось Поведение, «горизонтальное» время.
@@ -80,9 +85,10 @@ First-class ребро. Тип расщеплён на **три ортогона
 | **Decision (ADR)** | Интент | решение затрагивает многие узлы |
 | **View** | Презентация | именованный сохранённый вид |
 
-**Что НЕ first-class (поля, не сущности):**
-- `responsibilities`, локальные `invariants`, `assumptions`, `failureModes` — принадлежат одному узлу. Inline. (Cross-cutting инвариант → становится Requirement.)
-- `tags`, `status`, `owner` — атрибуты.
+**Что НЕ first-class (поля профиля, не сущности):**
+- `responsibilities`, локальные `invariants`, `technology`, `transport`, `intent` и т.п. — **поля
+  профиля** в `fields`-мешке узла/связи, а не отдельные сущности. (Cross-cutting инвариант →
+  становится Requirement.)
 - containment — `parentId`, не сущность-связь.
 - позиции нод — внутри View.
 
@@ -94,22 +100,40 @@ First-class ребро. Тип расщеплён на **три ортогона
 
 Профиль — декларативный словарь типов узлов и правил для конкретного класса проектов. Меняет vocab, не механизмы.
 
+Профиль теперь — это **мета-схема**: он объявляет виды узлов, виды связей и их **поля** (с описанием
+каждого поля и каждого enum-значения — в основном для LLM и тултипов редактора).
+
 ```
 Profile {
   id
+  layers: [...]                         // упорядоченные уровни профиля
   nodeKinds: [
     { id, category: Structure|Behavior|Data|Intent|Actor,
-      layer,                 // уровень узла этого типа
-      allowedParents: [...], // containment-правила
-      allowedChildren: [...],
-      containerOnly?: bool }
+      layer, allowedParents:[...], allowedChildren:[...],
+      fields: [FieldDef] }              // доменные поля этого вида узла
   ]
-  layers: [...]              // упорядоченные уровни профиля
-  defaultConnectionKinds?    // подсказки для UI
+  connectionKinds: [
+    { id, description, allowedFrom?:[...], allowedTo?:[...], fields:[FieldDef] }
+  ]
+  commonNodeFields:       [FieldDef]    // применяются ко всем видам узлов
+  commonConnectionFields: [FieldDef]    // применяются ко всем видам связей
+}
+
+FieldDef {
+  key, label?,
+  type: text|number|boolean|list|enum|ref,
+  description,                          // обязательно — для LLM/редактора
+  required?,
+  values?: [{ value, description }],    // для enum: каждое значение описано
+  refKind?                              // для ref: на какой вид узла ссылается
 }
 ```
 
-`layer` и `category` узла **выводятся** из профиля по его `type` — это не глобальный хардкод-enum. Containment-правила (кто чей родитель) описаны в профиле, а движок их просто применяет.
+Эффективные поля вида = `common*Fields`, затем собственные `fields`; **общие выигрывают** при
+совпадении ключа (`effectiveFields(profile, kindId, scope)`). `layer`/`category` узла **выводятся**
+из `type`. Значения полей хранятся в `fields`-мешке узла/связи и **строго валидируются** против
+профиля (неизвестный ключ, неверный тип, недопустимое enum-значение, отсутствие required, висячий
+ref — всё это отвергается).
 
 ### Примеры профилей
 
