@@ -19,7 +19,7 @@ import {
 } from '@hyphae/schema';
 
 const CORE_NODE = new Set(['id', 'name', 'type', 'parentId', 'description', 'codeRefs', 'docRefs', 'createdAt', 'updatedAt', 'fields']);
-const CORE_CONN = new Set(['id', 'from', 'to', 'type', 'description', 'direction', 'realizes', 'codeRefs', 'fields']);
+const CORE_CONN = new Set(['id', 'from', 'to', 'type', 'description', 'direction', 'realizedBy', 'codeRefs', 'fields']);
 
 type Drop = { entity: string; id: string; key: string };
 
@@ -71,7 +71,7 @@ function migrate(model: Record<string, unknown>, profile: Profile, drops: Drop[]
       id: c.id, from: c.from, to: c.to, type,
       description: c.description ?? '',
       direction: c.direction ?? 'Unidirectional',
-      realizes: c.realizes ?? [],
+      realizedBy: c.realizedBy ?? c.realizes ?? [],
       codeRefs: c.codeRefs ?? [],
       fields: migrateFields(rest, CORE_CONN, allowed, 'connection', String(c.id), drops),
     };
