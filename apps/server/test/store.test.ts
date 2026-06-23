@@ -75,6 +75,15 @@ describe('ModelStore', () => {
     expect(() => new ModelStore(file).updateConnection('nope', { fields: { transport: 'Sync' } })).toThrow(NotFoundError);
   });
 
+  it('persists realizedBy on a connection', () => {
+    const store = new ModelStore(file);
+    const a = store.addNode({ name: 'A', type: 'Component' });
+    const b = store.addNode({ name: 'B', type: 'Component' });
+    const conn = store.addConnection({ from: a.id, to: b.id, type: 'Dependency', realizedBy: ['x1'] });
+    expect(conn.realizedBy).toEqual(['x1']);
+    expect(store.get().connections.at(-1)!.realizedBy).toEqual(['x1']);
+  });
+
   it('stores a node position in the layer view', () => {
     const store = new ModelStore(file);
     const n = store.addNode({ name: 'A', type: 'Component' });

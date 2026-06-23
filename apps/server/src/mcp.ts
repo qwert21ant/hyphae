@@ -320,10 +320,12 @@ async function main() {
   const coreConnFields = {
     description: z.string().optional(),
     direction: z.enum(['Unidirectional', 'Bidirectional']).optional(),
+    realizedBy: z.array(z.string()).optional()
+      .describe('Ids of lower-layer connections this edge aggregates/describes (e.g. a Component↔Component edge realizedBy the Code↔Code edges that explain it). Bound edges are excluded from rollup.'),
     fields: z.object(fieldsShape('connection')).partial().optional(),
   };
   server.registerTool('create_connection', {
-    description: 'Connect two existing nodes by id. `type` is one of the active profile connection kinds (see describe_profile). Domain values (transport, intent, …) go in `fields`. Returns the created connection or {issues}.',
+    description: 'Connect two existing nodes by id. `type` is one of the active profile connection kinds (see describe_profile). Domain values (transport, intent, …) go in `fields`. Returns the created connection or {issues}. Use realizedBy to bind the lower-layer edges this connection aggregates.',
     inputSchema: { from: z.string(), to: z.string(), type: z.enum(connectionKindIds(c4Backend) as [string, ...string[]]), ...coreConnFields },
   }, async (a) => text(await tools.create_connection(a)));
   server.registerTool('update_connection', {

@@ -59,6 +59,11 @@ describe('MCP tool handlers', () => {
     expect(r).toMatchObject({ connection: { id: 'c1', type: 'Realization' } });
   });
 
+  it('create_connection forwards realizedBy', async () => {
+    const r = await buildTools(fakeApi()).create_connection({ from: 'a', to: 'b', type: 'Dependency', realizedBy: ['c1'] });
+    expect(r).toMatchObject({ connection: { realizedBy: ['c1'] } });
+  });
+
   it('describe_profile returns kinds and documented fields', async () => {
     const r = (await buildTools(fakeApi()).describe_profile({})) as {
       nodeKinds: Array<{ id: string }>; connectionKinds: Array<{ id: string }>;
