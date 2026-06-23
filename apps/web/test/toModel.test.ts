@@ -79,7 +79,7 @@ describe('toModel mapping', () => {
     });
     m.connections.push({
       id: 'c1', from: 'a', to: 'ghost', type: 'Dependency',
-      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: {},
+      description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {},
     });
     expect(toFlowEdges(m, 'Component')).toHaveLength(0);
   });
@@ -96,7 +96,7 @@ describe('toModel mapping', () => {
     });
     m.connections.push({
       id: 'c1', from: 'a', to: 'b', type: 'Dependency',
-      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: { transport: 'Sync' },
+      description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: { transport: 'Sync' },
     });
     expect(toFlowEdges(m, 'Component')[0].label).toBe('Dependency');
   });
@@ -140,7 +140,7 @@ describe('toModel mapping', () => {
       { id: 'b', name: 'B', type: 'Component', parentId: null, ...base },
       { id: 'c', name: 'C', type: 'Component', parentId: null, ...base },
     );
-    const e = { description: '', direction: 'Unidirectional' as const, realizes: [], codeRefs: [] };
+    const e = { description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [] };
     m.connections.push(
       { id: 'e1', from: 'a', to: 'b', type: 'Dependency', ...e, fields: { transport: 'Sync' } },
       { id: 'e2', from: 'a', to: 'c', type: 'DataFlow', ...e, fields: { transport: 'Async' } },
@@ -163,7 +163,7 @@ describe('toModel mapping', () => {
       { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
       { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
     );
-    const e = { description: '', direction: 'Unidirectional' as const, realizes: [], codeRefs: [] };
+    const e = { description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [] };
     m.connections.push(
       { id: 'x1', from: 'a1', to: 'b1', type: 'Dependency', ...e, fields: { transport: 'Sync' } },
       { id: 'x2', from: 'a1', to: 'b1', type: 'DataFlow', ...e, fields: { transport: 'Async' } },
@@ -185,7 +185,7 @@ describe('toModel mapping', () => {
       { id: 'a2', name: 'A2', type: 'Component', parentId: 'ca', ...base },
       { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
     );
-    const e = { description: '', direction: 'Unidirectional' as const, realizes: [], codeRefs: [] };
+    const e = { description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [] };
     m.connections.push(
       { id: 'x1', from: 'a1', to: 'b1', type: 'Dependency', ...e, fields: { transport: 'Sync' } },
       { id: 'x2', from: 'a2', to: 'b1', type: 'DataFlow', ...e, fields: { transport: 'Async' } },
@@ -214,7 +214,7 @@ describe('toModel mapping', () => {
     );
     m.connections.push({
       id: 'auth', from: 'ca', to: 'cb', type: 'Dependency',
-      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: { transport: 'Sync' },
+      description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: { transport: 'Sync' },
     });
     const edges = toFlowEdges(m, 'Container');
     expect(edges).toHaveLength(1);
@@ -233,7 +233,7 @@ describe('toModel mapping', () => {
     );
     m.connections.push({
       id: 'x', from: 'a1', to: 'ext', type: 'Dependency',
-      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: { transport: 'Sync' },
+      description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: { transport: 'Sync' },
     });
 
     // Raw component→external edge is kept (normal edge, not derived) and the external is a ghost.
@@ -259,7 +259,7 @@ describe('toModel mapping', () => {
     );
     m.connections.push({
       id: 'x', from: 'a1', to: 'ext', type: 'Dependency',
-      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: { transport: 'Sync' },
+      description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: { transport: 'Sync' },
     });
 
     // Edge ca->ext is kept (one native endpoint) even though ext isn't a Container.
@@ -286,7 +286,7 @@ describe('toModel mapping', () => {
     );
     m.connections.push({
       id: 'x', from: 'a1', to: 'ext', type: 'Dependency',
-      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: { transport: 'Sync' },
+      description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: { transport: 'Sync' },
     });
     const filter = { kinds: ['DataFlow'], fields: {} }; // excludes the only edge
     expect(toFlowEdges(m, 'Container', filter)).toHaveLength(0);
@@ -304,7 +304,7 @@ describe('toModel mapping', () => {
     );
     m.connections.push({
       id: 'x', from: 'a1', to: 'ext', type: 'Dependency',
-      description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: { transport: 'Sync' },
+      description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: { transport: 'Sync' },
     });
     const edges = toFlowEdges(m, 'Context');
     expect(edges).toHaveLength(1);

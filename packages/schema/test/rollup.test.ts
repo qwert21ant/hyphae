@@ -17,7 +17,7 @@ function model(): HyphaeModel {
     { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
     { id: 'ext', name: 'Ext', type: 'ExternalSystem', parentId: null, ...base },
   );
-  const e = { description: '', direction: 'Unidirectional' as const, realizes: [], codeRefs: [], fields: {} };
+  const e = { description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
   m.connections.push(
     { id: 'x1', from: 'a1', to: 'b1', type: 'Dependency', ...e }, // ca->cb
     { id: 'x2', from: 'a2', to: 'b1', type: 'DataFlow', ...e }, // ca->cb (same pair)

@@ -9,7 +9,7 @@ function shop(): HyphaeModel {
     { id: 'sys', name: 'Shop', type: 'System', parentId: null, description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} },
     { id: 'api', name: 'API', type: 'Container', parentId: 'sys', description: 'HTTP edge', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { technology: 'Hono', responsibilities: ['routing'], invariants: ['always authenticates'] } },
   );
-  m.connections.push({ id: 'c1', from: 'api', to: 'sys', type: 'Dependency', description: 'calls', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: { transport: 'Sync' } });
+  m.connections.push({ id: 'c1', from: 'api', to: 'sys', type: 'Dependency', description: 'calls', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: { transport: 'Sync' } });
   return m;
 }
 

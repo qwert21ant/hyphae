@@ -20,7 +20,7 @@ vi.mock('../src/api', () => {
     updateNode: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ node: base({ id, ...patch }), version: ++v })),
     deleteNode: vi.fn(async () => ({ version: ++v })),
     createConnection: vi.fn(async () => ({ connection: {}, version: ++v })),
-    updateConnection: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ connection: { id, from: 'a', to: 'b', type: 'Dependency', description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: {}, ...patch }, version: ++v })),
+    updateConnection: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ connection: { id, from: 'a', to: 'b', type: 'Dependency', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {}, ...patch }, version: ++v })),
     deleteConnection: vi.fn(async () => ({ version: ++v })),
     setNodePosition: vi.fn(async () => ({ version: ++v })),
   };
@@ -76,7 +76,7 @@ describe('SidePanel', () => {
     useStore.setState((s) => ({
       model: {
         ...s.model,
-        connections: [{ id: 'conn1', from: a, to: b, type: 'Dependency', description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: {} }],
+        connections: [{ id: 'conn1', from: a, to: b, type: 'Dependency', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }],
       },
       selectedId: 'conn1',
     }));

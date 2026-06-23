@@ -11,7 +11,7 @@ const node = (over: Record<string, unknown>): Node => ({
 } as Node);
 const conn = (over: Record<string, unknown>): Connection => ({
   id: 'e', from: 'a', to: 'b', type: 'Dependency', description: '',
-  direction: 'Unidirectional', realizes: [], codeRefs: [], fields: {}, ...over,
+  direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {}, ...over,
 } as Connection);
 function model(over: Partial<HyphaeModel> = {}): HyphaeModel {
   return { ...emptyModel(), ...over };

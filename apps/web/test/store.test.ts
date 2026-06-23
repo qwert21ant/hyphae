@@ -21,8 +21,8 @@ vi.mock('../src/api', () => {
     createNode: vi.fn(async (input: { id: string; name: string; type: string }) => ({ node: base({ id: input.id, name: input.name, type: input.type }), version: ++v })),
     updateNode: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ node: base({ id, ...patch }), version: ++v })),
     deleteNode: vi.fn(async () => ({ version: ++v })),
-    createConnection: vi.fn(async (input: { id: string; from: string; to: string; type: string }) => ({ connection: { id: input.id, from: input.from, to: input.to, type: input.type, description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: {} }, version: ++v })),
-    updateConnection: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ connection: { id, from: 'a', to: 'b', type: 'Dependency', description: '', direction: 'Unidirectional', realizes: [], codeRefs: [], fields: {}, ...patch }, version: ++v })),
+    createConnection: vi.fn(async (input: { id: string; from: string; to: string; type: string }) => ({ connection: { id: input.id, from: input.from, to: input.to, type: input.type, description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }, version: ++v })),
+    updateConnection: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ connection: { id, from: 'a', to: 'b', type: 'Dependency', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {}, ...patch }, version: ++v })),
     deleteConnection: vi.fn(async () => ({ version: ++v })),
     setNodePosition: vi.fn(async () => ({ version: ++v })),
   };

@@ -10,7 +10,7 @@ function model(): HyphaeModel {
   });
   m.connections.push({
     id: 'c1', from: 'api', to: 'api', type: 'Dependency', fields: { transport: 'Sync' },
-    description: 'self', direction: 'Unidirectional', realizes: [], codeRefs: [],
+    description: 'self', direction: 'Unidirectional', realizedBy: [], codeRefs: [],
   });
   return m;
 }
@@ -87,7 +87,7 @@ function graphModel(): HyphaeModel {
     { id: 'n3', name: 'Widget', type: 'Component', description: 'beta widget', parentId: 'cb', ...base },
     { id: 'n4', name: 'Sink', type: 'Component', description: '', parentId: 'cb', ...base },
   );
-  const e = { description: '', direction: 'Unidirectional' as const, realizes: [], codeRefs: [], fields: {} };
+  const e = { description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
   m.connections.push(
     { id: 'e1', from: 'n1', to: 'n2', type: 'Dependency', ...e },
     { id: 'e2', from: 'n1', to: 'n3', type: 'Dependency', ...e },
@@ -185,7 +185,7 @@ function connModel(): HyphaeModel {
     { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
     { id: 'ext', name: 'Ext', type: 'ExternalSystem', parentId: null, ...base },
   );
-  const e = { description: '', direction: 'Unidirectional' as const, realizes: [], codeRefs: [] };
+  const e = { description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [] };
   m.connections.push(
     { id: 'x1', from: 'a1', to: 'b1', type: 'Dependency', fields: { transport: 'Sync' }, ...e },
     { id: 'x2', from: 'a1', to: 'ext', type: 'DataFlow', fields: { transport: 'Async' }, ...e },
