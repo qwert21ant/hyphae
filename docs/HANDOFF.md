@@ -7,7 +7,7 @@ file is the practical "where things are now."
 ## What Hyphae is
 
 A local, single-process web app + MCP server for editing one JSON model of a software architecture
-(C4-style: System → Container → Component, plus Actors/ExternalSystems). The model is readable and
+(C4-style: System → Container → Component → Code, plus Actors/ExternalSystems). The model is readable and
 **writable** by LLM agents over MCP and by a human in a React Flow editor. The running server is the
 single source of truth; every write is validated; changes broadcast over SSE.
 
@@ -22,7 +22,7 @@ apps/server       @hyphae/server  — Hono HTTP API + atomic versioned ModelStor
 apps/web          @hyphae/web     — Vite + React + Zustand + React Flow editor.
 ```
 Run: `pnpm install`; server `pnpm --filter @hyphae/server dev` (:5173, owns the model file);
-web `pnpm --filter @hyphae/web dev` (:3000). Tests: `pnpm -r test` (schema 28, server 51, web 35).
+web `pnpm --filter @hyphae/web dev` (:3000). Tests: `pnpm -r test` (schema 36, server 53, web 35).
 Typecheck a package: `npx tsc -p <pkg> --noEmit`. Web build: `pnpm --filter @hyphae/web build`.
 
 ## The model & schema (CURRENT — profile-driven)
