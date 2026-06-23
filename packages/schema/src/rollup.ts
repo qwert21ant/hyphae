@@ -31,8 +31,12 @@ export function rollupConnections(model: HyphaeModel, layer: string): RollupConn
     return result;
   };
 
+  const claimed = new Set<string>();
+  for (const c of model.connections) for (const id of c.realizedBy) claimed.add(id);
+
   const groups = new Map<string, RollupConnection>();
   for (const conn of model.connections) {
+    if (claimed.has(conn.id)) continue; // already represented by an authored higher edge
     const from = lift(conn.from);
     const to = lift(conn.to);
     if (from === to) continue; // internal to one node at this layer

@@ -53,4 +53,16 @@ describe('rollupConnections', () => {
     expect(r).toHaveLength(1);
     expect(r[0]).toMatchObject({ from: 'sys', to: 'ext', realizedBy: ['x3'] });
   });
+
+  it('excludes edges claimed by another edge realizedBy (no double counting)', () => {
+    const m = model();
+    // authored parent edge that binds x1; it must replace x1 in the ca->cb rollup
+    m.connections.push({
+      id: 'p1', from: 'a1', to: 'b1', type: 'Dependency',
+      description: '', direction: 'Unidirectional', realizedBy: ['x1'], codeRefs: [], fields: {},
+    });
+    const r = rollupConnections(m, 'Container');
+    const caCb = r.find((e) => e.from === 'ca' && e.to === 'cb')!;
+    expect(caCb.realizedBy.sort()).toEqual(['p1', 'x2']); // x1 is claimed -> excluded
+  });
 });
