@@ -241,7 +241,7 @@ async function main() {
         mode: z.enum(['summary', 'full']).optional()
           .describe('summary = headline + one-line description + parent per node; full = description plus every documented `fields` entry for that node\'s kind (see describe_profile). Default: summary, unless `root` is set (then full).'),
         layer: z.string().optional()
-          .describe('Restrict to one layer: Context, Container, or Component.'),
+          .describe('Restrict to one layer: Context, Container, Component, or Code.'),
         root: z.string().optional()
           .describe('A node id; render only that node and its descendants — e.g. one container plus its components.'),
         fields: z.array(z.string()).optional()
@@ -308,7 +308,7 @@ async function main() {
     fields: z.object(fieldsShape('node')).partial().optional(),
   };
   server.registerTool('create_node', {
-    description: "Add a node. Call describe_profile (or get_text_context) first. `type` is one of the active profile's node kinds. Containment: a Component's parent is a Container, a Container's parent a System. Domain values go in `fields` (see describe_profile for each kind's fields). Returns the created node or {issues}.",
+    description: "Add a node. Call describe_profile (or get_text_context) first. `type` is one of the active profile's node kinds. Containment: a Component's parent is a Container, a Container's parent a System, and a Code node's (Class/Interface/Function/Module/UIComponent) parent is a Component. Domain values go in `fields` (see describe_profile for each kind's fields). Returns the created node or {issues}.",
     inputSchema: { name: z.string(), type: z.enum(c4Backend.nodeKinds.map((k) => k.id) as [string, ...string[]]), ...coreNodeFields },
   }, async (a) => text(await tools.create_node(a)));
   server.registerTool('update_node', {

@@ -7,7 +7,7 @@ description: Use when building or deepening a Hyphae C4 architecture model of a 
 
 ## Overview
 
-Build a Hyphae model of an arbitrarily large repo **top-down, breadth-first, and resumably**. The running Hyphae server is the single source of truth; mutate it only through the `hyphae` MCP tools, never by editing `hyphae.json`.
+Build a Hyphae model of an arbitrarily large repo **top-down, breadth-first, and resumably**. The running Hyphae server is the single source of truth; mutate it only through the `hyphae` MCP tools, never by editing the model file on disk.
 
 Core rules:
 - **Docs are a hypothesis, not truth.** Verify every structural claim against the filesystem/manifests; record drift.
@@ -23,11 +23,11 @@ gitnexus MAY be used in any phase when its index is current — see `references/
 
 ## When to use
 
-- Modeling a repo too large for the one-shot `docs/prompts/analyze-and-model.md` prompt.
+- Modeling a repo too large to capture in a single analyze-and-model prompt.
 - Deepening or re-running an existing model without creating duplicates.
 - Any repo with multiple packages / services / apps.
 
-Not for: trivial single-package repos (the one-shot prompt is fine), or hand-editing a model (use the web editor).
+Not for: trivial single-package repos (a single analyze-and-model pass is fine), or hand-editing a model (use the web editor).
 
 ## The flow
 
@@ -40,7 +40,7 @@ Follow the phases in order. Do not skip the gates.
 
 ### Phase 1 — Map + GATE 1
 1. Call `get_text_context` (idempotent read).
-2. Create-or-skip the **System** node, then one **Container** per verified package (with `technology`, `responsibilities`, `invariants`).
+2. Create-or-skip the **System** node, then one **Container** per verified package. Domain values (`responsibilities`, `invariants`, and `technology` for Containers) go in the node's **`fields` bag** — call `describe_profile` to see each kind's fields.
 3. Write the plan artifact to `docs/hyphae/model-plan.md` in the target repo. REQUIRED REFERENCE: `references/plan-artifact-template.md`.
 4. **GATE 1: stop and show the user the container map + drift notes + per-container drill/skip list. Wait for approval/edits before continuing.**
 
@@ -73,8 +73,9 @@ unwieldy count is a signal the Component is too coarse (surface it, don't trunca
    reads existing nodes (create-or-skip), finds the important code elements in its Components, and writes
    `Code` nodes (`type` = Class/Interface/Function/Module/UIComponent, `parentId` = the Component id),
    each with a 1–3 sentence purpose-focused `description`, `responsibilities`/`invariants` where known,
-   and `codeRefs` as `path#SymbolName`. It writes **intra-component** connections (both endpoints its own
-   Code nodes) and reports **cross-component** code edges upward.
+   and `codeRefs` as `path#SymbolName`. It writes **intra-component** connections (both endpoints are
+   Code nodes under the *same* Component) and reports **cross-component** code edges (endpoints in
+   different Components — whether in this container or another) upward.
 2. **GATE 3 (mirrors Phase 3).** The orchestrator aggregates reports, resolves each cross-component code
    edge endpoint by (container, component, name), dedupes, and surfaces conflicts (never last-write-wins).
    Wait for approval.
@@ -87,14 +88,14 @@ unwieldy count is a signal the Component is too coarse (surface it, don't trunca
 
 ### Phase 5 — Verify (optional, re-runnable)
 A standalone consistency pass over an existing model. Run it right after Phase 3, or any time later — it is independent of Phase 4. Read-mostly: gaps are filled by the owning subagent, never by the orchestrator inventing edges.
-1. **Coverage sweep.** With `list_nodes` + `find_connections`, flag: Components with **zero connections** (orphans); and "hub" Components whose `description`/`invariants` claim broad dependence ("all others depend on it", "implements", "used by") but have few or no inbound edges. A Component a subagent listed under `standaloneComponents` is expected — not a flag.
+1. **Coverage sweep.** Call `list_connections` once (optionally per container via `containerId`) to get every edge with endpoint/container names, plus `list_nodes`, and flag: Components with **zero connections** (orphans); and "hub" Components whose `description`/`invariants` claim broad dependence ("all others depend on it", "implements", "used by") but have few or no inbound edges. A Component a subagent listed under `standaloneComponents` is expected — not a flag.
    - **Unbound code edges.** Flag any cross-component code edge whose id is NOT in any Component↔Component
      edge's `realizedBy`. Fix by binding it (orchestrator) or by having the owning subagent confirm it.
 2. **VERIFY CHECKPOINT: show the user the flagged gaps**, separating likely-real gaps from legitimately standalone nodes. Wait for confirmation of which to fix.
 3. For confirmed gaps, **re-dispatch the owning container's subagent** (same `references/subagent-prompt.md`) to add the missing intra-container edges. The orchestrator must not write intra-container edges itself.
 4. Idempotent (create-or-skip), so Verify can be re-run until clean.
 
-> Cost note: this is one `find_connections` per Component — fine at current scale; cheaper once a `list_connections`/summary read tool exists.
+> `list_connections` returns the whole edge set (with names and owning containers) in one call, so the sweep stays cheap even on large models. Use `find_connections` only to inspect a single node's edges.
 
 ## Idempotency contract (every run, every agent)
 

@@ -13,7 +13,7 @@ Steps:
 0. Call `describe_profile` first to learn the current node kinds, connection kinds, fields, and enum values.
 1. Call `get_text_context` and `list_nodes` first. Note which Components already exist under your container (match by name + parentId) — reuse them, never duplicate.
 2. Analyze {{PACKAGE_PATH}} to full depth using the analysis loop for a {{ARCHETYPE}}: find its key modules/components, their responsibilities, and their dependencies.
-3. Write your Components with `create_node`, each `parentId` = {{CONTAINER_ID}}, create-or-skip by name. Fill `description`, `responsibilities`, and `invariants`/`assumptions` where known.
+3. Write your Components with `create_node`, each `parentId` = {{CONTAINER_ID}}, create-or-skip by name. Fill `description`, and put domain values (`responsibilities`, `invariants`, `technology`) in the `fields` bag where known — `describe_profile` (step 0) lists the valid keys.
 4. Write intra-container connections with `create_connection` ONLY when BOTH endpoints are your own Components. Set the connection `type` (a profile connection kind id) and put `transport`/`intent` in the `fields` bag.
 5. On any `422`, read the returned `issues` and fix the input; never blind-retry.
 6. Before returning, **self-review**: re-read each component you wrote. If its `description` / `responsibilities` / `invariants` assert a relationship to another of YOUR components — phrases like "implements", "depends on", "used by", "built on", "all others depend on it" — make sure a matching `create_connection` exists, and add any that are missing. Then check for any of your components left with **zero connections**: either wire it, or list it under `standaloneComponents` with a reason.
@@ -59,8 +59,9 @@ Container: {{CONTAINER_NAME}}  (id: {{CONTAINER_ID}})
 2. `create_node` each as type Class/Interface/Function/Module/UIComponent with parentId = the Component
    id, a 1–3 sentence purpose `description`, `responsibilities`/`invariants` where known, and `codeRefs`
    as ["path/to/file.ext#SymbolName", ...].
-3. `create_connection` ONLY intra-component code edges (both endpoints your own Code nodes); set `type`
-   and `fields.transport`. Report cross-component code edges upward — do NOT create them.
+3. `create_connection` ONLY intra-component code edges (both endpoints are Code nodes under the *same*
+   Component); set `type` and put `transport` in `fields`. Report cross-component code edges (endpoints
+   in different Components) upward — do NOT create them.
 4. On any 422, read `issues` and fix the input.
 
 Return ONLY this JSON:
