@@ -144,6 +144,8 @@ export function crossLayerEdges(model: HyphaeModel, layer: string, filter?: Conn
   let edges: FlowEdge[];
   if (isRollupLayer(layer)) {
     const connById = new Map(connections.map((c) => [c.id, c]));
+    // rollup computes its realizedBy-exclusion over the connections we pass in (the post-filter
+    // set), so a filtered-out parent edge won't suppress a still-visible child it claimed.
     edges = rollupConnections({ ...model, connections }, layer)
       .filter((e) => keep(e.from, e.to))
       .map((e) => {

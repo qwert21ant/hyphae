@@ -55,5 +55,5 @@ are generated from the active profile, and `describe_profile` returns kinds/fiel
   pipeline that, for each derived higher-level connection, writes an LLM-generated summary/description
   from its underlying `realizedBy` edges (e.g. "Media Gateway → Layout Manager: pulls layout config
   and pushes camera addresses"). Because rollup edges are derived (not stored), this needs a home for
-  the text — either materialize the rollup edge as a real Connection with `realizes` set, or keep a
+  the text — either materialize the rollup edge as a real Connection with `realizedBy` set, or keep a
   side-store keyed by (layer, from, to). Decide when implementing.

@@ -117,7 +117,7 @@ MVP активирует один профиль — `c4-backend`:
 - `type` — **вид связи (ConnectionKind) из профиля** (в `c4-backend`: Dependency | DataFlow | Realization | Trace). Заменил прежний `relationCategory`.
 - `description` — что связь делает.
 - `direction` — Unidirectional | Bidirectional.
-- `realizes` — массив id связей нижнего уровня (cross-layer realization).
+- `realizedBy` — массив id связей нижнего уровня (cross-layer realization); rollup исключает связи, на которые ссылается чужой `realizedBy`.
 - `codeRefs` — где реализуется.
 - `fields` — мешок доменных полей профиля.
 
@@ -152,7 +152,7 @@ Flow — упорядоченная последовательность шаг�
 
 **Containment (`parentId` у узла):** Component → Container → Context system. Reverse-навигация: у Container получить все Component'ы.
 
-**Realization (`realizes` у связи):** связь Container-уровня A→B реализуется множеством связей Component-уровня внутри A и B. Опционально; если заполнено — проверяется консистентность.
+**Realization (`realizedBy` у связи):** связь верхнего уровня A→B реализуется множеством связей нижнего уровня внутри A и B; верхняя связь перечисляет их id. Опционально; если заполнено — проверяется консистентность.
 
 ### 6.6 Зарезервированные оси (схема с дня 1, редактор позже)
 
@@ -208,7 +208,7 @@ project-root/
 - **JSON Schema как контракт.** Zod-схемы — источник истины. Из них: TS-типы эдитора, JSON Schema для валидации, OpenAPI для API, инструменты MCP.
 - **Stable IDs у всего.** LLM ссылается на конкретный узел между сообщениями.
 - **Свободный текст + структурированные поля.** `description` — семантика, `responsibilities` / `invariants` / `assumptions` — адресуемая структура.
-- **Traceability как граф.** Requirement ↔ Node ↔ Code через связи `Trace`/`realizes`/`codeRefs`. LLM ходит «требование → компонент → код» — проверить реализацию, найти пробелы. Главная ценность многоосевой модели для AI.
+- **Traceability как граф.** Requirement ↔ Node ↔ Code через связи `Trace`/`realizedBy`/`codeRefs`. LLM ходит «требование → компонент → код» — проверить реализацию, найти пробелы. Главная ценность многоосевой модели для AI.
 - **Текстовый экспорт.** `getContext(scope)` рендерит граф в компактный plain text для prompt — читается LLM лучше JSON.
 - **MCP-сервер (фаза 4).** Read-only на старте: `get_node`, `list_nodes`, `find_connections`, `describe_flow`, `get_text_context`. Write-tools — фаза 6.
 - **Inline-описания, не отдельные файлы.** LLM работает с одним документом лучше, чем с россыпью.

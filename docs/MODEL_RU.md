@@ -47,7 +47,7 @@ C4 описывает 2 вещи: статическую структуру (ч�
 Конкретные **типы** узла берутся из профиля; `layer`/`category` выводятся из `type`.
 
 ### 3.2 Connection (связь)
-First-class ребро. Ядро: `id`/`from`/`to`/`type`/`description`/`direction`/`realizes` (cross-layer)/`codeRefs`
+First-class ребро. Ядро: `id`/`from`/`to`/`type`/`description`/`direction`/`realizedBy` (cross-layer)/`codeRefs`
 и мешок `fields`. **`type` — это вид связи (ConnectionKind) из профиля** (`Dependency` | `DataFlow` |
 `Realization` | `Trace` в `c4-backend`); он заменил прежний `relationCategory`.
 
@@ -158,7 +158,7 @@ LLM-friendliness сохраняется: словарь типов всё ещё
 Requirement ──Trace──> Node ──codeRefs──> код
 Decision    ──Trace──> Node                (почему так)
 Flow.steps  ──via────> Connection          (сценарий → связи)
-Connection  ──realizes──> Connection       (верхний слой → нижний)
+Connection  ──realizedBy──> Connection     (верхний слой → нижний)
 Node        ──parentId──> Node             (структура)
 Connection  ──dataTypeRef──> DataType      (что передаётся)
 StateMachine ──привязка──> Node            (жизненный цикл)
@@ -168,7 +168,7 @@ StateMachine ──привязка──> Node            (жизненный �
 - «Какие требования реализует компонент X и где это в коде» — обход `Trace` → `codeRefs`.
 - «Требование Y объявлено, но ни один узел его не реализует» — пробел в покрытии.
 - «Почему компонент устроен так» — связанные Decision-узлы.
-- «Что сломается при изменении связи A→B» — `realizes` вниз + flows, использующие её.
+- «Что сломается при изменении связи A→B» — `realizedBy` вниз + flows, использующие её.
 
 Это и есть смысл многоосевой модели: не нарисовать красивее, а сделать архитектуру **запрашиваемой и проверяемой**.
 
