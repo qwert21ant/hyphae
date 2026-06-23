@@ -19,6 +19,8 @@ Core rules:
 
 The Hyphae server must be running and the `hyphae` MCP connected. Confirm by calling `get_text_context` — it returns the current model (possibly empty). If it errors, stop and ask the user to start the server (`pnpm --filter @hyphae/server dev`).
 
+gitnexus MAY be used in any phase when its index is current — see `references/analysis-loop.md`. It is always optional.
+
 ## When to use
 
 - Modeling a repo too large for the one-shot `docs/prompts/analyze-and-model.md` prompt.
@@ -54,12 +56,40 @@ Dispatch one subagent per container marked "drill", in parallel. Build each suba
 3. Apply the approved bundle in order: `update_node` amendments → `create_node` ExternalSystems (parent = System) → `create_connection` for all cross-package/external edges last.
 4. Tick the plan artifact's progress markers. Call `get_text_context` and summarize the model.
 
-### Phase 4 — Deepen (optional, later passes)
-Each is an independent re-runnable pass: code-level nodes via gitnexus (only if connected and indexed), Flows for key scenarios, Data/Intent axes when the editor supports them.
+### Phase 4 — Code layer (re-runnable; runs after Phase 3)
+
+Build the code-level layer below Components: the *important* classes/interfaces/functions/modules/UI
+components that realize each Component. Selective — NOT every file.
+
+**Selectivity.** Include an element if ANY holds: it realizes a stated responsibility/invariant of the
+parent Component; it is a public entrypoint / API surface; it carries core domain logic; it has high
+fan-in (other elements depend on it — confirm with gitnexus `impact`/`context`); or it participates in
+a documented flow. Exclude by default: generic utils/helpers/constants/config, migrations, generated
+code, scaffolding, tests/fixtures, trivial DTOs, framework boilerplate. No cap — model what matters; an
+unwieldy count is a signal the Component is too coarse (surface it, don't truncate).
+
+1. Dispatch one **per-container** subagent per container that has Components (parallel). Each owns ONLY
+   its container's subtree. Using `references/subagent-prompt.md` (Code-layer section), each subagent:
+   reads existing nodes (create-or-skip), finds the important code elements in its Components, and writes
+   `Code` nodes (`type` = Class/Interface/Function/Module/UIComponent, `parentId` = the Component id),
+   each with a 1–3 sentence purpose-focused `description`, `responsibilities`/`invariants` where known,
+   and `codeRefs` as `path#SymbolName`. It writes **intra-component** connections (both endpoints its own
+   Code nodes) and reports **cross-component** code edges upward.
+2. **GATE 3 (mirrors Phase 3).** The orchestrator aggregates reports, resolves each cross-component code
+   edge endpoint by (container, component, name), dedupes, and surfaces conflicts (never last-write-wins).
+   Wait for approval.
+3. **Binding rule (orchestrator only).** Apply approved cross-component code edges, then bind each one:
+   if a Component↔Component edge between the two owning Components exists, add the code edge id to that
+   edge's `realizedBy` (via `update_connection`); if none exists, `create_connection` a Component↔Component
+   edge (description = what these child edges collectively represent) and set its `realizedBy`. Intra-
+   component code edges need no binding. Bound edges are automatically excluded from rollup.
+4. Tick the plan artifact's Code-layer markers; call `get_text_context` and summarize.
 
 ### Phase 5 — Verify (optional, re-runnable)
 A standalone consistency pass over an existing model. Run it right after Phase 3, or any time later — it is independent of Phase 4. Read-mostly: gaps are filled by the owning subagent, never by the orchestrator inventing edges.
 1. **Coverage sweep.** With `list_nodes` + `find_connections`, flag: Components with **zero connections** (orphans); and "hub" Components whose `description`/`invariants` claim broad dependence ("all others depend on it", "implements", "used by") but have few or no inbound edges. A Component a subagent listed under `standaloneComponents` is expected — not a flag.
+   - **Unbound code edges.** Flag any cross-component code edge whose id is NOT in any Component↔Component
+     edge's `realizedBy`. Fix by binding it (orchestrator) or by having the owning subagent confirm it.
 2. **VERIFY CHECKPOINT: show the user the flagged gaps**, separating likely-real gaps from legitimately standalone nodes. Wait for confirmation of which to fix.
 3. For confirmed gaps, **re-dispatch the owning container's subagent** (same `references/subagent-prompt.md`) to add the missing intra-container edges. The orchestrator must not write intra-container edges itself.
 4. Idempotent (create-or-skip), so Verify can be re-run until clean.

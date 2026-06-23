@@ -20,6 +20,16 @@ No per-language cheatsheets. For any unit of code run the same loop and let the 
 
 Phase 0 runs steps 1–3 only (cheap). Phase 2 subagents run all four to full depth.
 
-## Optional code depth (Phase 4 only)
+## gitnexus (cross-cutting accelerator — any phase)
 
-If the `gitnexus` MCP is connected and the repo is indexed, use it to go below component level: `group_list` (packages), `route_map` (entrypoints), `query`/`cypher` (dependency edges), `impact` (blast radius). Never required for phases 0–3 — package- and container-level work must succeed without gitnexus.
+If the `gitnexus` MCP is connected AND its index is current for this repo, you MAY use it in ANY
+phase to go faster and deeper — it is never required (every phase must also succeed by reading the
+filesystem):
+
+- **Freshness first.** Confirm the index matches the working tree (re-index if the repo changed
+  since indexing). Stale graph data is worse than none — fall back to reading files if unsure.
+- **Discovery:** `query` (concept → execution flows), `context` (360° of one symbol), `cypher`
+  (structural queries), `route_map`/`group_list` (entrypoints/packages).
+- **Edges & importance:** `impact` (blast radius / fan-in — high fan-in marks an important element),
+  graph relations `CALLS`/`IMPORTS`/`IMPLEMENTS`/`EXTENDS` → hyphae connection kinds.
+- **codeRefs:** every symbol carries a `filePath`; record `path#SymbolName` as the node's `codeRefs`.
