@@ -65,3 +65,27 @@ describe('validateModel', () => {
     expect(validateModel(m, c4Backend)).toEqual([]);
   });
 });
+
+describe('Code layer containment', () => {
+  const base = { description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
+  function withParent(parentType: string) {
+    const m = emptyModel();
+    m.nodes.push(
+      { id: 'sys', name: 'S', type: 'System', parentId: null, ...base },
+      { id: 'ct', name: 'C', type: 'Container', parentId: 'sys', ...base },
+      { id: 'cmp', name: 'Cmp', type: 'Component', parentId: 'ct', ...base },
+    );
+    const parentId = parentType === 'System' ? 'sys' : parentType === 'Container' ? 'ct' : 'cmp';
+    m.nodes.push({ id: 'code', name: 'Svc', type: 'Class', parentId, ...base });
+    return m;
+  }
+
+  it('allows a Class under a Component', () => {
+    expect(validateModel(withParent('Component'), c4Backend)).toEqual([]);
+  });
+
+  it('rejects a Class under a Container', () => {
+    const issues = validateModel(withParent('Container'), c4Backend);
+    expect(issues).toEqual([expect.objectContaining({ kind: 'bad-parent', ref: 'code' })]);
+  });
+});

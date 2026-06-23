@@ -4,7 +4,7 @@ const technology: FieldDef = { key: 'technology', type: 'text', description: 'Im
 
 export const c4Backend: Profile = {
   id: 'c4-backend',
-  layers: ['Context', 'Container', 'Component'],
+  layers: ['Context', 'Container', 'Component', 'Code'],
   commonNodeFields: [
     { key: 'responsibilities', type: 'list', description: 'What this node is responsible for (one item per line).' },
     { key: 'invariants', type: 'list', description: 'Conditions that always hold true for this node.' },
@@ -35,7 +35,12 @@ export const c4Backend: Profile = {
     { id: 'Actor', category: 'Actor', layer: 'Context', allowedParents: [], allowedChildren: [], fields: [] },
     { id: 'ExternalSystem', category: 'Structure', layer: 'Context', allowedParents: [], allowedChildren: [], fields: [] },
     { id: 'Container', category: 'Structure', layer: 'Container', allowedParents: ['System'], allowedChildren: ['Component'], fields: [technology] },
-    { id: 'Component', category: 'Structure', layer: 'Component', allowedParents: ['Container'], allowedChildren: [], fields: [technology] },
+    { id: 'Component', category: 'Structure', layer: 'Component', allowedParents: ['Container'], allowedChildren: ['Class', 'Interface', 'Function', 'Module', 'UIComponent'], fields: [technology] },
+    { id: 'Class', category: 'Structure', layer: 'Code', allowedParents: ['Component'], allowedChildren: [], fields: [] },
+    { id: 'Interface', category: 'Structure', layer: 'Code', allowedParents: ['Component'], allowedChildren: [], fields: [] },
+    { id: 'Module', category: 'Structure', layer: 'Code', allowedParents: ['Component'], allowedChildren: [], fields: [] },
+    { id: 'UIComponent', category: 'Structure', layer: 'Code', allowedParents: ['Component'], allowedChildren: [], fields: [] },
+    { id: 'Function', category: 'Behavior', layer: 'Code', allowedParents: ['Component'], allowedChildren: [], fields: [] },
   ],
   connectionKinds: [
     { id: 'Dependency', description: 'A depends on / uses B.', fields: [] },

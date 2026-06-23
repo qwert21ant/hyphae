@@ -16,6 +16,24 @@ describe('c4-backend profile', () => {
     expect(allowedParentTypes(c4Backend, 'Component')).toContain('Container');
     expect(allowedParentTypes(c4Backend, 'Container')).toContain('System');
   });
+
+  it('defines the Code layer below Component', () => {
+    expect(c4Backend.layers).toEqual(['Context', 'Container', 'Component', 'Code']);
+  });
+
+  it('maps the code kinds to the Code layer', () => {
+    for (const k of ['Class', 'Interface', 'Function', 'Module', 'UIComponent']) {
+      expect(layerOfType(c4Backend, k)).toBe('Code');
+    }
+  });
+
+  it('code kinds are children of Component', () => {
+    expect(allowedParentTypes(c4Backend, 'Class')).toEqual(['Component']);
+    const component = c4Backend.nodeKinds.find((k) => k.id === 'Component')!;
+    expect(component.allowedChildren).toEqual(
+      expect.arrayContaining(['Class', 'Interface', 'Function', 'Module', 'UIComponent']),
+    );
+  });
 });
 
 describe('profile meta-schema', () => {
