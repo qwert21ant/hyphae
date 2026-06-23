@@ -31,8 +31,13 @@ The **Profile is the meta-schema.** Core Node/Connection are lean; everything do
 in a `fields: Record<string, unknown>` bag validated against the active profile.
 
 - **Node (core):** `id, name, type, parentId, description, codeRefs, docRefs, createdAt, updatedAt, fields`.
-- **Connection (core):** `id, from, to, type, description, direction, realizes, codeRefs, fields`.
+  - `codeRefs` convention for Code nodes: `path/to/file.ext#SymbolName` (still `string[]`, not
+    schema-enforced).
+- **Connection (core):** `id, from, to, type, description, direction, realizedBy, codeRefs, fields`.
   - `type` is a **ConnectionKind id** (it replaced the old `relationCategory`).
+  - `realizedBy: string[]` is top-down: a higher-layer Component↔Component edge lists the ids of the
+    lower-layer (Code↔Code) edges it aggregates. `rollupConnections` excludes any edge claimed by some
+    edge's `realizedBy` from the derived rollup, so it isn't double-counted.
 - **Profile** (`packages/schema/src/profile.ts`): `{ id, layers[], nodeKinds[], connectionKinds[],
   commonNodeFields[], commonConnectionFields[] }`.
   - `NodeKind = { id, category, layer, allowedParents[], allowedChildren[], fields: FieldDef[] }`.
@@ -43,7 +48,10 @@ in a `fields: Record<string, unknown>` bag validated against the active profile.
   - **Effective fields** of a kind = `common*Fields` then its own `fields`; **common wins on key
     collision**. Helper `effectiveFields(profile, kindId, 'node'|'connection')`.
 - **The only profile** is `c4-backend` (`packages/schema/src/profiles/c4-backend.ts`):
-  - layers Context → Container → Component; node kinds System/Actor/ExternalSystem/Container/Component.
+  - layers Context → Container → Component → **Code**; node kinds System/Actor/ExternalSystem/
+    Container/Component/**Class/Interface/Function/Module/UIComponent** (the Code kinds are all
+    children of Component; they add no extra fields — they reuse core + the common
+    `responsibilities`/`invariants`).
   - `commonNodeFields`: `responsibilities` (list), `invariants` (list). Container/Component add
     `technology` (text).
   - connection kinds `Dependency`/`DataFlow`/`Realization`/`Trace`; `commonConnectionFields`:
@@ -69,7 +77,9 @@ The MCP server is a thin HTTP client of the running server. `buildTools(api)` ho
   `get_subgraph` (BFS over connections **and** containment; `containment` down/up/both/none).
 - Write: `create_node`/`update_node`/`create_connection`/`update_connection`/`delete_*`. Domain
   values go in a `fields` object; the `type` param is a dynamic enum of the profile's kind ids, and
-  the `fields` params are generated from the profile's FieldDefs.
+  the `fields` params are generated from the profile's FieldDefs. `create_connection`/
+  `update_connection` expose `realizedBy` directly (binding lower-layer Code edges to the
+  higher-layer Component edge they realize).
 
 ## Web editor (`apps/web/src`)
 
@@ -93,11 +103,14 @@ The MCP server is a thin HTTP client of the running server. `buildTools(api)` ho
   `/plugin install hyphae-modeling@hyphae`.
 - The skill is a resumable top-down flow: discover/verify packages → write System+Containers + a
   `docs/hyphae/model-plan.md` (GATE 1) → parallel per-container subagents write Components
-  (subagents own only their subtree) → reconcile cross-package edges + amendments (GATE 2) → optional
-  Verify pass. Spec/plan under `docs/superpowers/`.
-- **Note:** the skill's `subagent-prompt.md`/SKILL.md predate the profile-driven schema — its
-  examples still mention `relationCategory`. Update the skill to use connection `type` + the `fields`
-  bag (and to call `describe_profile` first) before the next big run.
+  (subagents own only their subtree) → reconcile cross-package edges + amendments (GATE 2) →
+  **Phase 4: the Code-layer pass** — per-container subagents add Class/Interface/Function/Module/
+  UIComponent nodes under their Components and bind lower-layer edges to the Component-level edges
+  they realize via `realizedBy` (GATE 3) → optional Verify pass. Spec/plan under `docs/superpowers/`.
+- gitnexus (when available) is usable in **any** phase, not just Code, as long as its index of the
+  target repo is current — use it to ground discovery/components/Code nodes in real symbols.
+- The old `relationCategory` drift is fixed: the skill's prompts now use connection `type` + the
+  `fields` bag (and call `describe_profile` first), matching the profile-driven schema.
 
 ## Migrating model files to the current schema
 
@@ -117,7 +130,8 @@ of those exist for the cctv model.
 - Strict validation everywhere; rejected writes return `{issues}` with `422`.
 - No migration framework — stay on `schemaVersion: 1`, rewrite/migrate files instead.
 - Names are NOT unique; reference nodes by `id`. Component names repeat across containers.
-- Rollup edges are **derived, not stored**; `realizes` is the authored cross-layer counterpart.
+- Rollup edges are **derived, not stored**; `realizedBy` is the authored cross-layer counterpart
+  (top-down: higher edge → lower edge ids), and bound lower edges are excluded from rollup.
 - The server owns one model file (`HYPHAE_FILE` to choose it). Don't edit the file while the server
   runs — go through the API/MCP.
 - Reserved-axis arrays accept anything (`z.unknown()`); don't rely on them.
@@ -128,9 +142,10 @@ of those exist for the cctv model.
   the whole web UX set (floating edges, rollup + ghosts, filter panel, selection highlight, drill-down,
   per-layer viewport), and the **profile-driven schema refactor** (committed, monorepo green).
 - Open / next candidates (see `docs/mcp-tools-roadmap.md`): `model_stats` MCP tool; a skill step to
-  LLM-summarize rollup edges; SidePanel pruning stale `fields` on type change; exposing `realizes`
-  on the MCP connection tools; updating the building-architecture-models skill for the new schema;
-  optionally re-introducing `technology`/`assumptions` as profile fields if you want them preserved.
+  LLM-summarize rollup edges; SidePanel pruning stale `fields` on type change; done: exposing
+  `realizedBy` on the MCP connection tools; done: updating the building-architecture-models skill for
+  the new schema (Code layer Phase 4); optionally re-introducing `technology`/`assumptions` as
+  profile fields if you want them preserved.
 - Findings from the first large-repo run live in `docs/feedback/2026-06-15-large-model-findings.md`.
 
 ## Doc map
