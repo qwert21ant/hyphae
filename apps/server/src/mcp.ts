@@ -16,6 +16,36 @@ export interface HyphaeApi {
   deleteConnection(id: string): Promise<unknown>;
 }
 
+type ApiResult = { node?: { id: string }; connection?: { id: string }; issues?: unknown; error?: unknown };
+
+async function runCreate(
+  items: Record<string, unknown>[],
+  fn: (i: Record<string, unknown>) => Promise<unknown>,
+  key: 'node' | 'connection',
+) {
+  const results: Array<{ id: string } | { issues: unknown } | { error: unknown }> = [];
+  let ok = true;
+  for (const it of items) {
+    const r = (await fn(it)) as ApiResult;
+    const created = r?.[key];
+    if (created?.id) results.push({ id: created.id });
+    else { ok = false; results.push('issues' in (r ?? {}) ? { issues: r.issues } : { error: r?.error ?? 'failed' }); }
+  }
+  return ok ? { ids: results.map((x) => (x as { id: string }).id) } : { results };
+}
+
+async function runVoid(calls: Array<() => Promise<unknown>>) {
+  const results: Array<{ ok: true } | { issues: unknown } | { error: unknown }> = [];
+  let ok = true;
+  for (const call of calls) {
+    const r = (await call()) as ApiResult;
+    if (r && 'issues' in r) { ok = false; results.push({ issues: r.issues }); }
+    else if (r && 'error' in r) { ok = false; results.push({ error: r.error }); }
+    else results.push({ ok: true });
+  }
+  return ok ? { ok: true } : { results };
+}
+
 /** Pure tool handlers over an injected API client (re-reads the model per call). */
 export function buildTools(api: HyphaeApi) {
   return {
@@ -162,12 +192,14 @@ export function buildTools(api: HyphaeApi) {
         connections: edges.filter((c) => reached.has(c.from) && reached.has(c.to)),
       };
     },
-    create_node: async (input: Record<string, unknown>) => api.createNode(input),
-    update_node: async ({ id, ...patch }: { id: string } & Record<string, unknown>) => api.updateNode(id, patch),
-    delete_node: async ({ id }: { id: string }) => api.deleteNode(id),
-    create_connection: async (input: Record<string, unknown>) => api.createConnection(input),
-    update_connection: async ({ id, ...patch }: { id: string } & Record<string, unknown>) => api.updateConnection(id, patch),
-    delete_connection: async ({ id }: { id: string }) => api.deleteConnection(id),
+    create_nodes: async ({ nodes }: { nodes: Record<string, unknown>[] }) => runCreate(nodes, api.createNode, 'node'),
+    create_connections: async ({ connections }: { connections: Record<string, unknown>[] }) => runCreate(connections, api.createConnection, 'connection'),
+    update_nodes: async ({ updates }: { updates: Array<{ id: string } & Record<string, unknown>> }) =>
+      runVoid(updates.map((u) => () => { const { id, ...patch } = u; return api.updateNode(id, patch); })),
+    update_connections: async ({ updates }: { updates: Array<{ id: string } & Record<string, unknown>> }) =>
+      runVoid(updates.map((u) => () => { const { id, ...patch } = u; return api.updateConnection(id, patch); })),
+    delete_nodes: async ({ ids }: { ids: string[] }) => runVoid(ids.map((id) => () => api.deleteNode(id))),
+    delete_connections: async ({ ids }: { ids: string[] }) => runVoid(ids.map((id) => () => api.deleteConnection(id))),
     describe_profile: async (_: Record<string, never>) => c4Backend,
   };
 }
@@ -307,15 +339,11 @@ async function main() {
     docRefs: z.array(z.string()).optional(),
     fields: z.object(fieldsShape('node')).partial().optional(),
   };
-  server.registerTool('create_node', {
-    description: "Add a node. Call describe_profile (or get_text_context) first. `type` is one of the active profile's node kinds. Containment: a Component's parent is a Container, a Container's parent a System, and a Code node's (Class/Interface/Function/Module/UIComponent) parent is a Component. Domain values go in `fields` (see describe_profile for each kind's fields). Returns the created node or {issues}.",
-    inputSchema: { name: z.string(), type: z.enum(c4Backend.nodeKinds.map((k) => k.id) as [string, ...string[]]), ...coreNodeFields },
-  }, async (a) => text(await tools.create_node(a)));
-  server.registerTool('update_node', {
-    description: 'Update fields of a node by id. Only provided fields change. Domain values go in `fields`. Returns the updated node or {issues}.',
-    inputSchema: { id: z.string(), name: z.string().optional(), type: z.string().optional(), ...coreNodeFields },
-  }, async (a) => text(await tools.update_node(a)));
-  server.registerTool('delete_node', { description: 'Delete a node by id. Its connections are removed too.', inputSchema: { id: z.string() } }, async (a) => text(await tools.delete_node(a)));
+  const nodeItem = z.object({ name: z.string(), type: z.enum(c4Backend.nodeKinds.map((k) => k.id) as [string, ...string[]]), ...coreNodeFields });
+  server.registerTool('create_nodes', {
+    description: "Create one OR MANY nodes in a single call. Pass an array (a single write is a one-element array). Call describe_profile first. Each item: name, type (a profile node kind), parentId, and domain values in `fields`. Containment: Component→Container, Container→System, Code (Class/Interface/Function/Module/UIComponent)→Component. Best-effort: returns {ids:[...]} if all succeed, else {results:[{id}|{issues}]} aligned to input order.",
+    inputSchema: { nodes: z.array(nodeItem) },
+  }, async (a) => text(await tools.create_nodes(a)));
 
   const coreConnFields = {
     description: z.string().optional(),
@@ -324,15 +352,33 @@ async function main() {
       .describe('Ids of lower-layer connections this edge aggregates/describes (e.g. a Component↔Component edge realizedBy the Code↔Code edges that explain it). Bound edges are excluded from rollup.'),
     fields: z.object(fieldsShape('connection')).partial().optional(),
   };
-  server.registerTool('create_connection', {
-    description: 'Connect two existing nodes by id. `type` is one of the active profile connection kinds (see describe_profile). Domain values (transport, intent, …) go in `fields`. Returns the created connection or {issues}. Use realizedBy to bind the lower-layer edges this connection aggregates.',
-    inputSchema: { from: z.string(), to: z.string(), type: z.enum(connectionKindIds(c4Backend) as [string, ...string[]]), ...coreConnFields },
-  }, async (a) => text(await tools.create_connection(a)));
-  server.registerTool('update_connection', {
-    description: 'Update fields of a connection by id. Only provided fields change. Domain values go in `fields`. Returns the updated connection or {issues}.',
-    inputSchema: { id: z.string(), from: z.string().optional(), to: z.string().optional(), type: z.string().optional(), ...coreConnFields },
-  }, async (a) => text(await tools.update_connection(a)));
-  server.registerTool('delete_connection', { description: 'Delete a connection by id.', inputSchema: { id: z.string() } }, async (a) => text(await tools.delete_connection(a)));
+  const connItem = z.object({ from: z.string(), to: z.string(), type: z.enum(connectionKindIds(c4Backend) as [string, ...string[]]), ...coreConnFields });
+  server.registerTool('create_connections', {
+    description: "Create one OR MANY connections in a single call (single write = one-element array). Each item: from, to (existing node ids), type (a profile connection kind), domain values in `fields`, and optional realizedBy to bind lower-layer edges. Best-effort: {ids:[...]} on full success, else {results:[{id}|{issues}]}.",
+    inputSchema: { connections: z.array(connItem) },
+  }, async (a) => text(await tools.create_connections(a)));
+
+  const nodeUpdate = z.object({ id: z.string(), name: z.string().optional(), type: z.string().optional(), ...coreNodeFields });
+  server.registerTool('update_nodes', {
+    description: 'Update one OR MANY nodes by id (single update = one-element array). Each item: id + the fields to change; domain values go in `fields`. Best-effort: {ok:true} on full success, else {results:[{ok}|{issues}]}.',
+    inputSchema: { updates: z.array(nodeUpdate) },
+  }, async (a) => text(await tools.update_nodes(a)));
+
+  const connUpdate = z.object({ id: z.string(), from: z.string().optional(), to: z.string().optional(), type: z.string().optional(), ...coreConnFields });
+  server.registerTool('update_connections', {
+    description: 'Update one OR MANY connections by id (single update = one-element array). Each item: id + fields to change (e.g. realizedBy to bind lower-layer edges); domain values in `fields`. Best-effort: {ok:true} on full success, else {results:[{ok}|{issues}]}.',
+    inputSchema: { updates: z.array(connUpdate) },
+  }, async (a) => text(await tools.update_connections(a)));
+
+  server.registerTool('delete_nodes', {
+    description: 'Delete one OR MANY nodes by id (single delete = one-element array). Their connections are removed too. Best-effort: {ok:true} on full success, else {results:[{ok}|{error}]}.',
+    inputSchema: { ids: z.array(z.string()) },
+  }, async (a) => text(await tools.delete_nodes(a)));
+
+  server.registerTool('delete_connections', {
+    description: 'Delete one OR MANY connections by id (single delete = one-element array). Best-effort: {ok:true} on full success, else {results:[{ok}|{error}]}.',
+    inputSchema: { ids: z.array(z.string()) },
+  }, async (a) => text(await tools.delete_connections(a)));
 
   server.registerTool('describe_profile', {
     description: 'The active profile: its layers, node kinds, connection kinds, and the documented custom fields (with enum values and descriptions) valid for each. Call this to learn what `type` values and `fields` are available before creating nodes/connections.',

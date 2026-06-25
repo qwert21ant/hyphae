@@ -41,27 +41,59 @@ describe('MCP tool handlers', () => {
   it('find_connections filters by node id', async () => {
     expect(await buildTools(fakeApi()).find_connections({ nodeId: 'api' })).toHaveLength(1);
   });
-  it('create_node forwards input and returns the created node', async () => {
-    const r = await buildTools(fakeApi()).create_node({ name: 'X', type: 'Component' });
-    expect(r).toMatchObject({ node: { name: 'X', type: 'Component' } });
-  });
-  it('create_node surfaces issues when the server rejects the write', async () => {
-    const api = fakeApi({ createNode: async () => ({ issues: [{ kind: 'bad-parent', ref: 'x', message: 'no' }] }) });
-    const r = await buildTools(api).create_node({ name: 'X', type: 'Component', parentId: 'y' });
-    expect(r).toMatchObject({ issues: [{ kind: 'bad-parent' }] });
-  });
-  it('update_node splits id from the patch', async () => {
-    const r = await buildTools(fakeApi()).update_node({ id: 'api', name: 'Renamed' });
-    expect(r).toMatchObject({ node: { id: 'api', name: 'Renamed' } });
-  });
-  it('update_connection splits id from the patch', async () => {
-    const r = await buildTools(fakeApi()).update_connection({ id: 'c1', type: 'Realization' });
-    expect(r).toMatchObject({ connection: { id: 'c1', type: 'Realization' } });
+  it('create_nodes returns ids on full success', async () => {
+    const r = await buildTools(fakeApi()).create_nodes({ nodes: [{ name: 'X', type: 'Component' }] });
+    expect(r).toEqual({ ids: ['new'] });
   });
 
-  it('create_connection forwards realizedBy', async () => {
-    const r = await buildTools(fakeApi()).create_connection({ from: 'a', to: 'b', type: 'Dependency', realizedBy: ['c1'] });
-    expect(r).toMatchObject({ connection: { realizedBy: ['c1'] } });
+  it('create_nodes is best-effort: returns per-item results when one fails', async () => {
+    let call = 0;
+    const api = fakeApi({ createNode: async (input) => (call++ === 0
+      ? { node: { id: 'a', ...(input as object) }, version: 1 }
+      : { issues: [{ kind: 'bad-parent', ref: 'b', message: 'no' }] }) });
+    const r = await buildTools(api).create_nodes({ nodes: [{ name: 'A', type: 'Component' }, { name: 'B', type: 'Component', parentId: 'z' }] });
+    expect(r).toEqual({ results: [{ id: 'a' }, { issues: [{ kind: 'bad-parent', ref: 'b', message: 'no' }] }] });
+  });
+
+  it('create_connections returns ids on full success', async () => {
+    const r = await buildTools(fakeApi()).create_connections({ connections: [{ from: 'a', to: 'b', type: 'Dependency' }] });
+    expect(r).toEqual({ ids: ['c2'] });
+  });
+
+  it('update_nodes returns ok on full success and splits id from patch', async () => {
+    const seen: Array<[string, unknown]> = [];
+    const api = fakeApi({ updateNode: async (id, patch) => { seen.push([id, patch]); return { node: { id }, version: 1 }; } });
+    const r = await buildTools(api).update_nodes({ updates: [{ id: 'n1', name: 'Renamed' }] });
+    expect(r).toEqual({ ok: true });
+    expect(seen).toEqual([['n1', { name: 'Renamed' }]]);
+  });
+
+  it('update_connections reports per-item issues on partial failure', async () => {
+    const api = fakeApi({ updateConnection: async () => ({ issues: [{ kind: 'bad-endpoint', ref: 'c', message: 'no' }] }) });
+    const r = await buildTools(api).update_connections({ updates: [{ id: 'c1', type: 'Realization' }] });
+    expect(r).toEqual({ results: [{ issues: [{ kind: 'bad-endpoint', ref: 'c', message: 'no' }] }] });
+  });
+
+  it('delete_nodes returns ok and forwards ids', async () => {
+    const seen: string[] = [];
+    const api = fakeApi({ deleteNode: async (id) => { seen.push(id); return { version: 1 }; } });
+    const r = await buildTools(api).delete_nodes({ ids: ['a', 'b'] });
+    expect(r).toEqual({ ok: true });
+    expect(seen).toEqual(['a', 'b']);
+  });
+
+  it('delete_connections surfaces not-found error per item', async () => {
+    const api = fakeApi({ deleteConnection: async () => ({ error: 'connection x not found' }) });
+    const r = await buildTools(api).delete_connections({ ids: ['x'] });
+    expect(r).toEqual({ results: [{ error: 'connection x not found' }] });
+  });
+
+  it('create_connections forwards realizedBy', async () => {
+    let seen: Record<string, unknown> | undefined;
+    const api = fakeApi({ createConnection: async (input) => { seen = input as Record<string, unknown>; return { connection: { id: 'c2', type: 'Dependency', ...(input as object) }, version: 1 }; } });
+    const r = await buildTools(api).create_connections({ connections: [{ from: 'a', to: 'b', type: 'Dependency', realizedBy: ['c1'] }] });
+    expect(r).toEqual({ ids: ['c2'] });
+    expect(seen).toMatchObject({ realizedBy: ['c1'] });
   });
 
   it('describe_profile returns kinds and documented fields', async () => {
@@ -74,10 +106,6 @@ describe('MCP tool handlers', () => {
     expect(r.commonNodeFields.map((f) => f.key)).toContain('responsibilities');
   });
 
-  it('create_node forwards a fields bag', async () => {
-    const r = await buildTools(fakeApi()).create_node({ name: 'X', type: 'Component', fields: { technology: 'Go' } });
-    expect(r).toMatchObject({ node: { name: 'X', fields: { technology: 'Go' } } });
-  });
 });
 
 function graphModel(): HyphaeModel {
