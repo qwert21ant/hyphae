@@ -29,8 +29,10 @@ function fakeApi(over: Partial<HyphaeApi> = {}): HyphaeApi {
 }
 
 describe('MCP tool handlers', () => {
-  it('get_text_context returns plain text', async () => {
-    expect(await buildTools(fakeApi()).get_text_context({})).toContain('API (Container)');
+  it('model_overview returns counts and the container map', async () => {
+    const out = await buildTools(fakeApi()).model_overview({});
+    expect(out).toContain('API [Container]'); // the container is listed with its name
+    expect(out).toContain('Connections:');    // counts header present
   });
   it('get_node returns one node by id', async () => {
     expect(await buildTools(fakeApi()).get_node({ id: 'api' })).toMatchObject({ name: 'API' });

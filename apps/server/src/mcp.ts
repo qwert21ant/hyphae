@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import {
-  getContext, rollupConnections, HyphaeModelSchema, c4Backend, effectiveFields, connectionKindIds,
+  modelOverview, rollupConnections, HyphaeModelSchema, c4Backend, effectiveFields, connectionKindIds,
   type HyphaeModel, type FieldDef,
 } from '@hyphae/schema';
 
@@ -49,8 +49,7 @@ async function runVoid(calls: Array<() => Promise<unknown>>) {
 /** Pure tool handlers over an injected API client (re-reads the model per call). */
 export function buildTools(api: HyphaeApi) {
   return {
-    get_text_context: async (scope: { mode?: 'summary' | 'full'; layer?: string; root?: string; fields?: string[] } = {}) =>
-      getContext(await api.getModel(), scope),
+    model_overview: async (_: Record<string, never>) => modelOverview(await api.getModel()),
     get_node: async ({ id }: { id: string }) =>
       (await api.getModel()).nodes.find((n) => n.id === id) ?? null,
     list_nodes: async ({ parentId, type, limit, offset }: { parentId?: string; type?: string; limit?: number; offset?: number } = {}) => {
@@ -266,27 +265,18 @@ async function main() {
   const server = new McpServer({ name: 'hyphae', version: '0.1.0' });
 
   server.registerTool(
-    'get_text_context',
+    'model_overview',
     {
-      description: 'Plain-text view of the architecture model — call this FIRST to orient. By default returns a COMPACT SUMMARY of the whole model (one line per node) so it stays small even on large models. Use mode:"full" or a narrower scope when you need detail. Recommended flow on a big model: call with no args for the summary, then drill in with a root-scoped full call, get_node, get_subgraph, or search_nodes.',
-      inputSchema: {
-        mode: z.enum(['summary', 'full']).optional()
-          .describe('summary = headline + one-line description + parent per node; full = description plus every documented `fields` entry for that node\'s kind (see describe_profile). Default: summary, unless `root` is set (then full).'),
-        layer: z.string().optional()
-          .describe('Restrict to one layer: Context, Container, Component, or Code.'),
-        root: z.string().optional()
-          .describe('A node id; render only that node and its descendants — e.g. one container plus its components.'),
-        fields: z.array(z.string()).optional()
-          .describe('Explicit node fields to include, e.g. ["responsibilities","invariants"]; overrides mode.'),
-      },
+      description: 'Orientation read — call this FIRST. Returns a small, size-independent overview: model name, node counts per layer and per kind, total connections, and the System + Container nodes (id, name, one-line description). It never dumps Components or Code. Drill deeper with list_nodes (by parentId), get_subgraph, list_connections, search_nodes, get_node.',
+      inputSchema: {},
     },
-    async (a) => text(await tools.get_text_context(a)),
+    async () => text(await tools.model_overview({})),
   );
   server.registerTool('get_node', { description: 'Get one node by id.', inputSchema: { id: z.string() } }, async (a) => text(await tools.get_node(a)));
   server.registerTool(
     'list_nodes',
     {
-      description: 'List node summaries (id, name, type, parentId). Optional filters: `parentId` (e.g. the components of one container), `type`; plus `offset`/`limit` for pagination. Prefer this (or search_nodes / get_subgraph) over get_text_context on a large model.',
+      description: 'List node summaries (id, name, type, parentId). Optional filters: `parentId` (e.g. the components of one container), `type`; plus `offset`/`limit` for pagination. Prefer this (or search_nodes / get_subgraph) over model_overview on a large model.',
       inputSchema: { parentId: z.string().optional(), type: z.string().optional(), limit: z.number().optional(), offset: z.number().optional() },
     },
     async (a) => text(await tools.list_nodes(a)),
