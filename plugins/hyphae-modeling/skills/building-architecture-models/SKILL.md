@@ -54,7 +54,7 @@ Cost ≈ turns × context size. To avoid carrying a huge context across many tur
 4. **GATE 1: stop and show the user the container map + drift notes + per-container drill/skip list. Wait for approval/edits before continuing.**
 
 ### Phase 2 — Parallel components
-Dispatch one subagent per container marked "drill", in parallel. Build each subagent's prompt from `references/subagent-prompt.md` (REQUIRED REFERENCE). Each subagent deeply analyzes its package, writes its own Components and intra-container connections, and returns a structured report. Subagents never touch other packages or shared nodes.
+Dispatch one subagent per container marked "drill", in parallel. Build each subagent's prompt from `references/subagent-prompt.md` (REQUIRED REFERENCE). Each subagent deeply analyzes its package, writes its own Components and intra-container connections, and **writes a structured report to its assigned `.hyphae/reports/` file (returning only a short status)**. Subagents never touch other packages or shared nodes.
 
 ### Phase 3 — Reconcile + connections + GATE 2
 1. Aggregate all reports into one review bundle:
