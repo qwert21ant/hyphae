@@ -17,7 +17,9 @@ Core rules:
 
 ## Prerequisites
 
-The Hyphae server must be running and the `hyphae` MCP connected. Confirm by calling `get_text_context` — it returns the current model (possibly empty). If it errors, stop and ask the user to start the server (`pnpm --filter @hyphae/server dev`).
+The Hyphae server must be running and the `hyphae` MCP connected. Confirm by calling `model_overview` — it returns a small overview of the current model (possibly empty). If it errors, stop and ask the user to start the server (`pnpm --filter @hyphae/server dev`).
+
+The hyphae MCP tools are invoked with the `mcp__hyphae__` prefix (e.g. `mcp__hyphae__model_overview`, `mcp__hyphae__create_nodes`). Subagents must use the prefixed names.
 
 gitnexus MAY be used in any phase when its index is current — see `references/analysis-loop.md`. It is always optional.
 
@@ -33,15 +35,22 @@ Not for: trivial single-package repos (a single analyze-and-model pass is fine),
 
 Follow the phases in order. Do not skip the gates.
 
+## Keep the orchestrator cheap
+
+Cost ≈ turns × context size. To avoid carrying a huge context across many turns:
+- **Reset/compact context between phases.** The skill is resumable — the server is the source of truth — so after each phase you can clear context and re-orient with `model_overview` + scoped `list_nodes`/`get_subgraph`. Nothing is lost.
+- **Batch every multi-write step** (`create_nodes`/`create_connections`/`update_*`) instead of one call per node/edge.
+- **Read subagent reports from their files** (see Phase 2/4), not from chat history — they survive a context reset.
+
 ### Phase 0 — Discover & verify
 1. Read README / docs / ADRs → form a hypothesis of the structure.
 2. Verify it against reality: workspace globs (pnpm/yarn/npm), monorepo tools (turbo/nx/lerna/go/cargo), or top-level source dirs. **Record drift** (doc says X, repo shows Y).
 3. For each package run analysis-loop steps 1–3 only (manifest → entrypoint → archetype). REQUIRED REFERENCE: read `references/analysis-loop.md`.
 
 ### Phase 1 — Map + GATE 1
-1. Call `get_text_context` (idempotent read).
-2. Create-or-skip the **System** node, then one **Container** per verified package. Domain values (`responsibilities`, `invariants`, and `technology` for Containers) go in the node's **`fields` bag** — call `describe_profile` to see each kind's fields.
-3. Write the plan artifact to `docs/hyphae/model-plan.md` in the target repo. REQUIRED REFERENCE: `references/plan-artifact-template.md`.
+1. Call `model_overview` (idempotent read).
+2. Create the System node and all Containers in one `create_nodes` call (a single write is a one-element array). Domain values (`responsibilities`, `invariants`, `technology` for Containers) go in each item's `fields` bag — call `describe_profile` to see each kind's fields.
+3. Write the plan artifact to `.hyphae/model-plan.md` in the target repo. REQUIRED REFERENCE: `references/plan-artifact-template.md`.
 4. **GATE 1: stop and show the user the container map + drift notes + per-container drill/skip list. Wait for approval/edits before continuing.**
 
 ### Phase 2 — Parallel components
@@ -50,11 +59,11 @@ Dispatch one subagent per container marked "drill", in parallel. Build each suba
 ### Phase 3 — Reconcile + connections + GATE 2
 1. Aggregate all reports into one review bundle:
    - cross-package connections — resolve each endpoint to an id by **(container, name)**, not by bare name (component names repeat across containers); dedupe,
-   - proposed amendments to System / Containers (`update_node`),
+   - proposed amendments to System / Containers (`update_nodes`),
    - new ExternalSystem nodes + edges to them.
 2. **GATE 2: show the bundle. Conflicting amendments from different subagents are surfaced for the user to resolve — never last-write-wins. Wait for approval/trim.**
-3. Apply the approved bundle in order: `update_node` amendments → `create_node` ExternalSystems (parent = System) → `create_connection` for all cross-package/external edges last.
-4. Tick the plan artifact's progress markers. Call `get_text_context` and summarize the model.
+3. Apply the approved bundle: one `update_nodes` for amendments → one `create_nodes` for ExternalSystems → one `create_connections` for all cross-package/external edges.
+4. Tick the plan artifact's progress markers. Call `model_overview` and summarize the model.
 
 ### Phase 4 — Code layer (re-runnable; runs after Phase 3)
 
@@ -79,12 +88,12 @@ unwieldy count is a signal the Component is too coarse (surface it, don't trunca
 2. **GATE 3 (mirrors Phase 3).** The orchestrator aggregates reports, resolves each cross-component code
    edge endpoint by (container, component, name), dedupes, and surfaces conflicts (never last-write-wins).
    Wait for approval.
-3. **Binding rule (orchestrator only).** Apply approved cross-component code edges, then bind each one:
-   if a Component↔Component edge between the two owning Components exists, add the code edge id to that
-   edge's `realizedBy` (via `update_connection`); if none exists, `create_connection` a Component↔Component
-   edge (description = what these child edges collectively represent) and set its `realizedBy`. Intra-
+3. **Binding rule (orchestrator only).** Apply approved cross-component code edges, then bind: a single
+   `update_connections` call sets `realizedBy` on each existing Component↔Component edge between the two
+   owning Components; create any missing Component↔Component parent edges with `create_connections`
+   (description = what these child edges collectively represent) and set their `realizedBy`. Intra-
    component code edges need no binding. Bound edges are automatically excluded from rollup.
-4. Tick the plan artifact's Code-layer markers; call `get_text_context` and summarize.
+4. Tick the plan artifact's Code-layer markers; call `model_overview` and summarize.
 
 ### Phase 5 — Verify (optional, re-runnable)
 A standalone consistency pass over an existing model. Run it right after Phase 3, or any time later — it is independent of Phase 4. Read-mostly: gaps are filled by the owning subagent, never by the orchestrator inventing edges.
@@ -99,13 +108,13 @@ A standalone consistency pass over an existing model. Run it right after Phase 3
 
 ## Idempotency contract (every run, every agent)
 
-- **Read first** (`get_text_context` / `list_nodes`). Never assume empty.
+- **Read first** (`model_overview`, then `list_nodes`/`get_subgraph` for the scope you're about to touch). Never assume empty.
 - **Create-or-skip by (`name` + `parentId`).** If a node with that identity exists, reuse its id — do not create a second one.
 - **On `422`, read the returned `issues` and fix the input** (almost always a missing parent/endpoint or a containment violation). Never blind-retry.
 
 ## Red flags — STOP
 
-- About to `create_node` without having read the current model this run → read first.
+- About to `create_nodes` without having read the current model this run → read first.
 - A subagent creating a Container, an ExternalSystem, or a cross-package edge → not allowed; report it upward, that is the orchestrator's job.
 - "The docs say the layout is X" treated as fact without checking the filesystem → verify.
 - Writing a connection before both endpoints exist → reorder.

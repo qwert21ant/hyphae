@@ -7,7 +7,7 @@ model of a large repository through the `hyphae` MCP tools.
 What the skill does (summary — the skill body is authoritative):
 
 - **Phase 0** — discover packages, verify docs against the real filesystem, record drift.
-- **Phase 1** — write the System + one Container per package, emit `docs/hyphae/model-plan.md`, **GATE 1**.
+- **Phase 1** — write the System + one Container per package, emit `.hyphae/model-plan.md`, **GATE 1**.
 - **Phase 2** — one subagent per container writes its own Components + intra-container edges, in parallel.
 - **Phase 3** — reconcile cross-package connections + upward findings into one bundle, **GATE 2**, then apply.
 - **Phase 4** — optional deepening passes (code-level via gitnexus, Flows, …).
@@ -15,7 +15,7 @@ What the skill does (summary — the skill body is authoritative):
 ## Requirements
 
 - A running Hyphae server with the `hyphae` MCP connected (read + write tools). The skill checks
-  this by calling `get_text_context`. See the Hyphae repo README for how to start the server.
+  this by calling `model_overview`. See the Hyphae repo README for how to start the server.
 
 ## Install (Claude Code plugin marketplace)
 

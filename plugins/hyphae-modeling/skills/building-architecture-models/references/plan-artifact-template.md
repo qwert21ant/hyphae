@@ -1,6 +1,6 @@
 # Plan artifact template
 
-Write this to `docs/hyphae/model-plan.md` in the TARGET repo during Phase 1. It is the GATE 1 approval surface and the cross-run resume checkpoint. Committing it to the target repo is the user's choice.
+Write this to `.hyphae/model-plan.md` in the TARGET repo during Phase 1. It is the GATE 1 approval surface and the cross-run resume checkpoint. Committing it to the target repo is the user's choice.
 
 ```markdown
 # Hyphae model plan — {{REPO_NAME}}
