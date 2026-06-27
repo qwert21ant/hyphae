@@ -3,6 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "server": "pnpm --filter @hyphae/server dev",
+    "web": "pnpm --filter @hyphae/web dev",
     "dev": "pnpm --parallel -r --filter \"./apps/*\" dev",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
