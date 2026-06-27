@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildFocusView, breadcrumbPath } from '../src/focusView';
+import { buildFocusView, breadcrumbPath, representative } from '../src/focusView';
 import { emptyModel } from '@hyphae/schema';
 
 const base = { description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
@@ -55,7 +55,7 @@ describe('buildFocusView', () => {
     expect(v.externals.map((n) => n.id)).toEqual(['cb']);
     const a1cb = v.edges.find((x) => x.from === 'a1' && x.to === 'cb');
     const a2cb = v.edges.find((x) => x.from === 'a2' && x.to === 'cb');
-    expect(a1cb).toMatchObject({ derived: true, count: 1 });
+    expect(a1cb).toMatchObject({ kind: null, derived: true, count: 1 });
     expect(a2cb).toMatchObject({ derived: true, count: 1 });
   });
 
@@ -91,6 +91,22 @@ describe('buildFocusView', () => {
     );
     const v = buildFocusView(m, 'ca', { kinds: ['Dependency'], fields: {} });
     expect(v.edges.map((x) => x.id)).toEqual(['i1']);
+  });
+});
+
+describe('representative', () => {
+  it('returns the endpoint itself when it is already on the focus layer', () => {
+    expect(representative(model(), 'cb', 'Container')).toBe('cb');
+  });
+
+  it('returns the endpoint itself when it is above the focus layer', () => {
+    expect(representative(model(), 'ext', 'Component')).toBe('ext'); // ExternalSystem is Context
+    expect(representative(model(), 'sys', 'Component')).toBe('sys'); // System is Context
+  });
+
+  it('climbs to the ancestor on the focus layer when the endpoint is below it', () => {
+    expect(representative(model(), 'k1', 'Container')).toBe('ca'); // k1 (Class) under a1 under ca
+    expect(representative(model(), 'k1', 'Component')).toBe('a1'); // k1 (Class) under a1
   });
 });
 
