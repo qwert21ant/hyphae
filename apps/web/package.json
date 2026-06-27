@@ -9,6 +9,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@dagrejs/dagre": "^3.0.0",
     "@hyphae/schema": "workspace:*",
     "@xyflow/react": "^12.3.0",
     "react": "^18.3.1",
