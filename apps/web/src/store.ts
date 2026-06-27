@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import {
-  emptyModel, newId, c4Backend, typesForLayer,
-  type HyphaeModel, type Node, type Connection, type Position,
+  emptyModel, newId,
+  type HyphaeModel, type Node, type Connection,
 } from '@hyphae/schema';
 import * as api from './api';
 
@@ -9,14 +9,14 @@ export type ConnFilter = { kinds: string[]; fields: Record<string, string[]> };
 
 type State = {
   model: HyphaeModel;
-  layer: string;
+  focusId: string | null;
   selectedId: string | null;
   ownVersion: number;
   error: string | null;
   connFilter: ConnFilter;
   setModel: (m: HyphaeModel, version?: number) => void;
   syncFromServer: () => Promise<void>;
-  setLayer: (layer: string) => void;
+  setFocus: (id: string | null) => void;
   select: (id: string | null) => void;
   toggleConnKind: (value: string) => void;
   toggleConnField: (key: string, value: string) => void;
@@ -28,7 +28,6 @@ type State = {
   addConnection: (from: string, to: string) => Promise<void>;
   updateConnection: (id: string, patch: Partial<Connection>) => Promise<void>;
   deleteConnection: (id: string) => Promise<void>;
-  setNodePosition: (id: string, pos: Position) => Promise<void>;
 };
 
 export const useStore = create<State>((set, get) => {
@@ -45,7 +44,7 @@ export const useStore = create<State>((set, get) => {
 
   return {
     model: emptyModel(),
-    layer: 'Component',
+    focusId: null,
     selectedId: null,
     ownVersion: 0,
     error: null,
@@ -56,7 +55,7 @@ export const useStore = create<State>((set, get) => {
       const { model, version } = await api.loadModel();
       set({ model, ownVersion: version });
     },
-    setLayer: (layer) => set({ layer, selectedId: null }),
+    setFocus: (focusId) => set({ focusId, selectedId: null }),
     select: (selectedId) => set({ selectedId }),
 
     toggleConnKind: (value) =>
@@ -74,7 +73,8 @@ export const useStore = create<State>((set, get) => {
 
     addNode: async (type) => {
       try {
-        const { node, version } = await api.createNode({ id: newId(), name: type, type });
+        const parentId = get().focusId;
+        const { node, version } = await api.createNode({ id: newId(), name: type, type, parentId });
         set((s) => ({ model: { ...s.model, nodes: [...s.model.nodes, node] }, selectedId: node.id, ownVersion: version, error: null }));
       } catch (e) { await recover(e); }
     },
@@ -126,28 +126,5 @@ export const useStore = create<State>((set, get) => {
       } catch (e) { await recover(e); }
     },
 
-    setNodePosition: async (id, pos) => {
-      const layer = get().layer;
-      // Optimistic: positions are always valid, and applying immediately lets multiple
-      // moves (e.g. a region drag persisting every child) batch into one re-render —
-      // avoids the partial-state flicker from awaiting the server between each child.
-      set((s) => {
-        const views = s.model.views.map((v) => ({ ...v, nodePositions: { ...v.nodePositions } }));
-        let view = views.find((v) => v.layer === layer);
-        if (!view) {
-          view = { id: newId(), name: layer, layer, nodePositions: {} };
-          views.push(view);
-        }
-        view.nodePositions[id] = pos;
-        return { model: { ...s.model, views } };
-      });
-      try {
-        const { version } = await api.setNodePosition(layer, id, pos);
-        set({ ownVersion: version });
-      } catch (e) { await recover(e); }
-    },
   };
 });
-
-export const layerTypes = (layer: string) => typesForLayer(c4Backend, layer);
-export const layers = c4Backend.layers;

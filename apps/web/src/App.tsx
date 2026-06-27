@@ -1,16 +1,18 @@
 import { useEffect } from 'react';
-import { useStore, layers, layerTypes } from './store';
+import { useStore } from './store';
 import { loadModel } from './api';
+import { breadcrumbPath } from './focusView';
+import { c4Backend, allowedChildTypes, topLevelTypes } from '@hyphae/schema';
 import { Canvas } from './Canvas';
 import { SidePanel } from './SidePanel';
 import './styles.css';
 
 export function App() {
-  const layer = useStore((s) => s.layer);
-  const setLayer = useStore((s) => s.setLayer);
+  const model = useStore((s) => s.model);
+  const focusId = useStore((s) => s.focusId);
+  const setFocus = useStore((s) => s.setFocus);
   const setModel = useStore((s) => s.setModel);
   const addNode = useStore((s) => s.addNode);
-  const types = layerTypes(layer);
 
   useEffect(() => {
     loadModel()
@@ -24,17 +26,23 @@ export function App() {
     return () => es.close();
   }, [setModel]);
 
+  const crumbs = breadcrumbPath(model, focusId);
+  const focusNode = focusId ? model.nodes.find((n) => n.id === focusId) : null;
+  const addable = focusNode ? allowedChildTypes(c4Backend, focusNode.type) : topLevelTypes(c4Backend);
+
   return (
     <div className="app">
       <header className="toolbar">
         <strong>Hyphae</strong>
-        <label>
-          layer{' '}
-          <select aria-label="layer" value={layer} onChange={(e) => setLayer(e.target.value)}>
-            {layers.map((l) => <option key={l} value={l}>{l}</option>)}
-          </select>
-        </label>
-        {types.map((t) => (
+        <nav className="breadcrumbs" aria-label="breadcrumbs">
+          {crumbs.map((c, i) => (
+            <span key={c.id ?? '__root__'}>
+              {i > 0 && <span className="crumb-sep"> › </span>}
+              <button className="crumb" onClick={() => setFocus(c.id)}>{c.name}</button>
+            </span>
+          ))}
+        </nav>
+        {addable.map((t) => (
           <button key={t} onClick={() => addNode(t)}>add {t}</button>
         ))}
       </header>
