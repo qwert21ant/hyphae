@@ -16,12 +16,11 @@ vi.mock('../src/api', () => {
   return {
     ApiError,
     loadModel: vi.fn(async () => ({ model: blank(), version: v })),
-    createNode: vi.fn(async (input: { id: string; name: string; type: string }) => ({ node: base({ id: input.id, name: input.name, type: input.type }), version: ++v })),
+    createNode: vi.fn(async (input: { id: string; name: string; type: string; parentId?: string | null }) => ({ node: base({ id: input.id, name: input.name, type: input.type, parentId: input.parentId ?? null }), version: ++v })),
     updateNode: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ node: base({ id, ...patch }), version: ++v })),
     deleteNode: vi.fn(async () => ({ version: ++v })),
     createConnection: vi.fn(async () => ({ connection: {}, version: ++v })),
     deleteConnection: vi.fn(async () => ({ version: ++v })),
-    setNodePosition: vi.fn(async () => ({ version: ++v })),
   };
 });
 
@@ -36,19 +35,16 @@ beforeEach(() => {
 });
 
 describe('App', () => {
-  it('switches the active layer via the dropdown', () => {
+  it('shows the Root breadcrumb at the top level', () => {
     render(<App />);
-    fireEvent.change(screen.getByLabelText('layer'), { target: { value: 'Container' } });
-    expect(useStore.getState().layer).toBe('Container');
+    expect(screen.getByRole('button', { name: 'Root' })).toBeTruthy();
   });
 
-  it('adds a node of the first type for the active layer', async () => {
+  it('adds a top-level node at the root and parents it to null', async () => {
     render(<App />);
-    // Let the initial loadModel() in App's effect settle first, so its setModel
-    // can't clobber the node we add below (setTimeout(0) flushes all microtasks).
-    await new Promise((r) => setTimeout(r, 0));
-    fireEvent.change(screen.getByLabelText('layer'), { target: { value: 'Component' } });
-    fireEvent.click(screen.getByRole('button', { name: /add component/i }));
-    await waitFor(() => expect(useStore.getState().model.nodes.map((n) => n.type)).toEqual(['Component']));
+    await new Promise((r) => setTimeout(r, 0)); // let initial loadModel settle
+    fireEvent.click(screen.getByRole('button', { name: /add system/i }));
+    await waitFor(() => expect(useStore.getState().model.nodes.map((n) => n.type)).toEqual(['System']));
+    expect(useStore.getState().model.nodes[0].parentId).toBeNull();
   });
 });
