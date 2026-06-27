@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, fireEvent } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { Canvas } from '../src/Canvas';
 import { useStore } from '../src/store';
 import { emptyModel } from '@hyphae/schema';

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import {
-  emptyModel, newId, c4Backend,
+  emptyModel, newId,
   type HyphaeModel, type Node, type Connection,
 } from '@hyphae/schema';
 import * as api from './api';
