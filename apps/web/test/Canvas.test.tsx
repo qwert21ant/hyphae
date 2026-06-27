@@ -71,6 +71,19 @@ describe('Canvas navigation (real React Flow)', () => {
     expect(useStore.getState().focusId).toBe('cb');
   });
 
+  it('renders both container children when focusing the System (edge endpoints exist)', () => {
+    // a1 (in ca) → b1 (in cb) is a Component-level connection; focusing the System rolls it up to a
+    // ca → cb edge, so both containers must render as nodes (regression: the System view used to
+    // collapse such connections onto itself and show no inter-container structure). Edge geometry
+    // itself needs element measurement that jsdom lacks, so it is asserted in focusView.test.ts.
+    const m = model();
+    m.connections.push({ id: 'y', from: 'a1', to: 'b1', type: 'Dependency', ...e });
+    useStore.setState({ model: m, focusId: 'sys', selectedId: null });
+    const { container } = render(<Canvas />);
+    expect(node(container, 'ca')).toBeTruthy();
+    expect(node(container, 'cb')).toBeTruthy();
+  });
+
   it('single click selects without drilling', () => {
     useStore.setState({ model: model(), focusId: 'sys', selectedId: null });
     const { container } = render(<Canvas />);

@@ -59,6 +59,38 @@ export function representative(model: HyphaeModel, endpointId: string, focusLaye
   return representativeWith(nodes, endpointId, focusLayer);
 }
 
+/**
+ * The direct child of `focusId` that contains `endpointId` (itself, if it is already a direct child),
+ * or null when the endpoint is not inside the focus subtree. This is how connections authored deep
+ * below the focus (e.g. Component↔Component connections under a focused System) roll up to the
+ * children actually shown (the Containers), instead of collapsing onto the focus.
+ */
+function childOfFocus(nodes: Map<string, Node>, endpointId: string, focusId: string): string | null {
+  let cur = nodes.get(endpointId);
+  const seen = new Set<string>();
+  while (cur && !seen.has(cur.id)) {
+    seen.add(cur.id);
+    if (cur.parentId === focusId) return cur.id;
+    if (!cur.parentId) return null;
+    cur = nodes.get(cur.parentId);
+  }
+  return null;
+}
+
+/** The top-level ancestor of `endpointId` (the root of its containment tree). */
+function rootAncestor(nodes: Map<string, Node>, endpointId: string): string {
+  let cur = nodes.get(endpointId);
+  let result = endpointId;
+  const seen = new Set<string>();
+  while (cur && !seen.has(cur.id)) {
+    seen.add(cur.id);
+    result = cur.id;
+    if (!cur.parentId || !nodes.has(cur.parentId)) break;
+    cur = nodes.get(cur.parentId);
+  }
+  return result;
+}
+
 export function buildFocusView(model: HyphaeModel, focusId: string | null, filter?: ConnFilter): FocusView {
   const nodes = new Map(model.nodes.map((n) => [n.id, n]));
   const allIds = new Set(model.nodes.map((n) => n.id));
@@ -75,43 +107,59 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
   const inside = new Set<string>(children.map((n) => n.id));
   if (focusId) inside.add(focusId);
 
+  // Map a connection endpoint to the node that represents it in this view:
+  // - root view: its top-level ancestor (a shown root);
+  // - the focus itself: the focus;
+  // - inside the focus subtree: the direct child of the focus that contains it (the children level);
+  // - outside: a peer at the focus's own layer (an aggregated external box), or itself if at/above it.
+  const mapEndpoint = (id: string): string => {
+    if (!focusId) return rootAncestor(nodes, id);
+    if (id === focusId) return focusId;
+    const child = childOfFocus(nodes, id, focusId);
+    if (child) return child;
+    return representativeWith(nodes, id, focusLayer);
+  };
+
   const conns = filter ? model.connections.filter((c) => matchesFilter(c, filter)) : model.connections;
 
-  const innerEdges: FocusEdge[] = [];
-  const agg = new Map<string, FocusEdge>(); // key `${from}->${to}`
+  // Aggregate every kept connection per mapped ordered pair, so an authored edge and the
+  // lower-level connections that realize it collapse into a single edge (no duplicates).
+  type Pair = { from: string; to: string; count: number; fIn: boolean; tIn: boolean; direct?: { id: string; kind: string } };
+  const pairs = new Map<string, Pair>(); // key `${from}->${to}`
   const externalIds = new Set<string>();
 
   for (const c of conns) {
     if (!allIds.has(c.from) || !allIds.has(c.to)) continue; // drop dangling
-    const from = inside.has(c.from) ? c.from : representativeWith(nodes, c.from, focusLayer);
-    const to = inside.has(c.to) ? c.to : representativeWith(nodes, c.to, focusLayer);
+    const from = mapEndpoint(c.from);
+    const to = mapEndpoint(c.to);
     const fIn = inside.has(from);
     const tIn = inside.has(to);
     if (!fIn && !tIn) continue;   // unrelated to this view
     if (from === to) continue;    // collapsed onto itself (e.g. an edge to its own descendant)
 
-    if (fIn && tIn) {
-      if (from === c.from && to === c.to) {
-        innerEdges.push({ id: c.id, from, to, kind: c.type, count: 1, derived: false });
-      } else {
-        const key = `${from}->${to}`;
-        const ex = agg.get(key);
-        if (ex) ex.count++;
-        else agg.set(key, { id: `agg:${key}`, from, to, kind: null, count: 1, derived: true });
-      }
-      continue;
-    }
-
+    const key = `${from}->${to}`;
+    let p = pairs.get(key);
+    if (!p) { p = { from, to, count: 0, fIn, tIn }; pairs.set(key, p); }
+    p.count++;
+    // An authored connection drawn directly between two shown nodes (not rolled up).
+    if (from === c.from && to === c.to) p.direct = { id: c.id, kind: c.type };
     if (!fIn) externalIds.add(from);
     if (!tIn) externalIds.add(to);
-    const key = `${from}->${to}`;
-    const ex = agg.get(key);
-    if (ex) ex.count++;
-    else agg.set(key, { id: `ext:${key}`, from, to, kind: null, count: 1, derived: true });
+  }
+
+  // A solid "real" edge only when a single authored connection joins two shown inside nodes;
+  // everything else (rolled-up or external) is a dashed derived edge labelled with its count.
+  const edges: FocusEdge[] = [];
+  for (const p of pairs.values()) {
+    if (p.fIn && p.tIn && p.count === 1 && p.direct) {
+      edges.push({ id: p.direct.id, from: p.from, to: p.to, kind: p.direct.kind, count: 1, derived: false });
+    } else {
+      edges.push({ id: `agg:${p.from}->${p.to}`, from: p.from, to: p.to, kind: null, count: p.count, derived: true });
+    }
   }
 
   const externals = [...externalIds].map((id) => nodes.get(id)).filter((n): n is Node => !!n);
-  return { focusId, focusNode, children, externals, edges: [...innerEdges, ...agg.values()] };
+  return { focusId, focusNode, children, externals, edges };
 }
 
 export function breadcrumbPath(model: HyphaeModel, focusId: string | null): Crumb[] {

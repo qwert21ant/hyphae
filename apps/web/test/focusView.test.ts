@@ -94,6 +94,41 @@ describe('buildFocusView', () => {
   });
 });
 
+describe('buildFocusView — rolling connections up to the children level', () => {
+  it('rolls a connection authored below the children up to the shown children (System focus)', () => {
+    // a1 (in ca) → b1 (in cb): Component-level connection under a focused System whose children
+    // are Containers. It must surface as a ca → cb edge, not collapse onto the System.
+    const m = model();
+    m.connections.push({ id: 'x', from: 'a1', to: 'b1', type: 'Dependency', ...e });
+    const v = buildFocusView(m, 'sys');
+    expect(v.edges).toHaveLength(1);
+    expect(v.edges[0]).toMatchObject({ from: 'ca', to: 'cb', derived: true, count: 1 });
+  });
+
+  it('rolls a connection several levels below the children up to the children (System focus)', () => {
+    // k1 (Class under a1 under ca) → b1 (Component in cb) still rolls up to ca → cb.
+    const m = model();
+    m.connections.push({ id: 'x', from: 'k1', to: 'b1', type: 'Dependency', ...e });
+    const v = buildFocusView(m, 'sys');
+    expect(v.edges).toHaveLength(1);
+    expect(v.edges[0]).toMatchObject({ from: 'ca', to: 'cb', derived: true, count: 1 });
+  });
+
+  it('merges an authored edge and its lower-level realizations into one counted edge', () => {
+    // An authored Container→Container edge plus a Component→Component edge that realizes it must
+    // collapse to a single ca → cb edge (count 2), not two parallel edges.
+    const m = model();
+    m.connections.push(
+      { id: 'authored', from: 'ca', to: 'cb', type: 'Dependency', ...e },
+      { id: 'realize', from: 'a1', to: 'b1', type: 'Dependency', ...e },
+    );
+    const v = buildFocusView(m, 'sys');
+    const caCb = v.edges.filter((x) => x.from === 'ca' && x.to === 'cb');
+    expect(caCb).toHaveLength(1);
+    expect(caCb[0]).toMatchObject({ derived: true, count: 2 });
+  });
+});
+
 describe('representative', () => {
   it('returns the endpoint itself when it is already on the focus layer', () => {
     expect(representative(model(), 'cb', 'Container')).toBe('cb');
