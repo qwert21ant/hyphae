@@ -1,4 +1,4 @@
-import { HyphaeModelSchema, type HyphaeModel, type Node, type Connection, type Position } from '@hyphae/schema';
+import { HyphaeModelSchema, type HyphaeModel, type Node, type Connection } from '@hyphae/schema';
 
 /** Non-2xx response carrying the parsed error body (e.g. {issues}). */
 export class ApiError extends Error {
@@ -27,7 +27,7 @@ async function mutate(method: string, path: string, body?: unknown): Promise<{ [
   return json;
 }
 
-export function createNode(input: { id: string; name: string; type: string }): Promise<{ node: Node; version: number }> {
+export function createNode(input: { id: string; name: string; type: string; parentId?: string | null }): Promise<{ node: Node; version: number }> {
   return mutate('POST', '/nodes', input) as Promise<{ node: Node; version: number }>;
 }
 export function updateNode(id: string, patch: Partial<Node>): Promise<{ node: Node; version: number }> {
@@ -44,7 +44,4 @@ export function updateConnection(id: string, patch: Partial<Connection>): Promis
 }
 export function deleteConnection(id: string): Promise<{ version: number }> {
   return mutate('DELETE', `/connections/${id}`) as Promise<{ version: number }>;
-}
-export function setNodePosition(layer: string, nodeId: string, pos: Position): Promise<{ version: number }> {
-  return mutate('PUT', `/views/${encodeURIComponent(layer)}/positions/${nodeId}`, pos) as Promise<{ version: number }>;
 }

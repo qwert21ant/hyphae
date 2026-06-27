@@ -18,13 +18,12 @@ vi.mock('../src/api', () => {
   return {
     ApiError,
     loadModel: vi.fn(async () => ({ model: blank(), version: v })),
-    createNode: vi.fn(async (input: { id: string; name: string; type: string }) => ({ node: base({ id: input.id, name: input.name, type: input.type }), version: ++v })),
+    createNode: vi.fn(async (input: { id: string; name: string; type: string; parentId?: string | null }) => ({ node: base({ id: input.id, name: input.name, type: input.type, parentId: input.parentId ?? null }), version: ++v })),
     updateNode: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ node: base({ id, ...patch }), version: ++v })),
     deleteNode: vi.fn(async () => ({ version: ++v })),
     createConnection: vi.fn(async (input: { id: string; from: string; to: string; type: string }) => ({ connection: { id: input.id, from: input.from, to: input.to, type: input.type, description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }, version: ++v })),
     updateConnection: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ connection: { id, from: 'a', to: 'b', type: 'Dependency', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {}, ...patch }, version: ++v })),
     deleteConnection: vi.fn(async () => ({ version: ++v })),
-    setNodePosition: vi.fn(async () => ({ version: ++v })),
   };
 });
 
@@ -76,13 +75,11 @@ describe('editor store', () => {
     expect(useStore.getState().model.nodes[0].parentId).toBe('cont');
   });
 
-  it('stores a node position in the layer view', async () => {
-    useStore.getState().setLayer('Component');
+  it('adds a node as a child of the current focus', async () => {
+    useStore.getState().setFocus('ca');
     await useStore.getState().addNode('Component');
-    const id = useStore.getState().model.nodes[0].id;
-    await useStore.getState().setNodePosition(id, { x: 10, y: 20 });
-    const view = useStore.getState().model.views.find((v) => v.layer === 'Component');
-    expect(view?.nodePositions[id]).toEqual({ x: 10, y: 20 });
+    expect(useStore.getState().model.nodes[0].parentId).toBe('ca');
+    expect(useStore.getState().focusId).toBe('ca');
   });
 
   it('refetches and surfaces the issue when a write is rejected (422)', async () => {
