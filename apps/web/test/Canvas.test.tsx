@@ -1,51 +1,81 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, fireEvent } from '@testing-library/react';
 import { Canvas } from '../src/Canvas';
 import { useStore } from '../src/store';
 import { emptyModel } from '@hyphae/schema';
 
-// React Flow needs layout/resize APIs jsdom lacks; stub the heavy parts and capture handlers.
-let captured: any = {};
-vi.mock('@xyflow/react', () => ({
-  ReactFlow: (props: any) => { captured = props; return null; },
-  Background: () => null,
-  Controls: () => null,
-  Panel: ({ children }: any) => children,
-  Handle: () => null,
-  useNodesState: (init: any) => [init, () => {}, () => {}],
-  ConnectionMode: { Loose: 'loose' },
-  Position: { Top: 'top', Right: 'right', Bottom: 'bottom', Left: 'left' },
-}));
+// These tests drive the REAL React Flow (not a mock) so they exercise its actual
+// event wiring — a mock that called our handlers directly previously hid a bug where
+// nodesDraggable={false} suppresses React Flow's onNodeDoubleClick.
 
 const base = { description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
+const e = { description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
 
-beforeEach(() => {
+function model() {
   const m = emptyModel();
   m.nodes.push(
-    { id: 'ca', name: 'Alpha', type: 'Container', parentId: null, ...base },
+    { id: 'sys', name: 'Hyphae', type: 'System', parentId: null, ...base },
+    { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
+    { id: 'cb', name: 'Beta', type: 'Container', parentId: 'sys', ...base },
     { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
+    { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
     { id: 'k1', name: 'K1', type: 'Class', parentId: 'a1', ...base },
   );
-  useStore.setState({ model: m, focusId: 'ca', selectedId: null });
+  m.connections.push({ id: 'x', from: 'a1', to: 'b1', type: 'Dependency', ...e });
+  return m;
+}
+
+beforeEach(() => {
+  vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 });
 
-describe('Canvas navigation', () => {
-  it('double-clicking a child that has children focuses it', () => {
-    render(<Canvas />);
-    captured.onNodeDoubleClick(null, { id: 'a1', type: 'node' });
-    expect(useStore.getState().focusId).toBe('a1');
+const node = (container: HTMLElement, id: string) =>
+  container.querySelector(`.react-flow__node[data-id="${id}"]`) as HTMLElement | null;
+
+/** Simulate a user double-click: the browser fires two click events (then dblclick). */
+function dblclick(container: HTMLElement, id: string) {
+  fireEvent.click(node(container, id)!);
+  fireEvent.click(node(container, id)!);
+}
+
+describe('Canvas navigation (real React Flow)', () => {
+  it('double-clicking the System at the root drills into it (the reported bug)', () => {
+    useStore.setState({ model: model(), focusId: null, selectedId: null });
+    const { container } = render(<Canvas />);
+    expect(node(container, 'sys')).toBeTruthy();
+    dblclick(container, 'sys');
+    expect(useStore.getState().focusId).toBe('sys');
+  });
+
+  it('double-clicking a child that has children drills into it', () => {
+    useStore.setState({ model: model(), focusId: 'sys', selectedId: null });
+    const { container } = render(<Canvas />);
+    dblclick(container, 'ca');
+    expect(useStore.getState().focusId).toBe('ca');
   });
 
   it('double-clicking a leaf only selects (focus unchanged)', () => {
-    useStore.setState({ focusId: 'a1' });
-    render(<Canvas />);
-    captured.onNodeDoubleClick(null, { id: 'k1', type: 'node' });
+    useStore.setState({ model: model(), focusId: 'a1', selectedId: null });
+    const { container } = render(<Canvas />);
+    dblclick(container, 'k1');
     expect(useStore.getState().focusId).toBe('a1');
+    expect(useStore.getState().selectedId).toBe('k1');
   });
 
-  it('double-clicking an external ghost focuses it', () => {
-    render(<Canvas />);
-    captured.onNodeDoubleClick(null, { id: 'somewhere', type: 'ghost' });
-    expect(useStore.getState().focusId).toBe('somewhere');
+  it('double-clicking an external ghost drills into it', () => {
+    // Focus ca → a1's edge to b1 surfaces cb (Beta) as an aggregated external ghost.
+    useStore.setState({ model: model(), focusId: 'ca', selectedId: null });
+    const { container } = render(<Canvas />);
+    expect(node(container, 'cb')).toBeTruthy();
+    dblclick(container, 'cb');
+    expect(useStore.getState().focusId).toBe('cb');
+  });
+
+  it('single click selects without drilling', () => {
+    useStore.setState({ model: model(), focusId: 'sys', selectedId: null });
+    const { container } = render(<Canvas />);
+    fireEvent.click(node(container, 'ca')!);
+    expect(useStore.getState().selectedId).toBe('ca');
+    expect(useStore.getState().focusId).toBe('sys');
   });
 });

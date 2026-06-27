@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import {
   ReactFlow, Background, Controls, Panel, ConnectionMode,
   type Node as FlowNode,
@@ -52,11 +52,26 @@ export function Canvas() {
     [nodes, hi, selectedId],
   );
 
-  // Double-click drills in: a node with children, or any external ghost, becomes the new focus.
-  const onNodeDoubleClick = (_: unknown, node: FlowNode) => {
+  // Drill in: an external ghost, or a node with children, becomes the new focus.
+  const drill = (node: FlowNode) => {
     if (node.type === 'ghost') { setFocus(node.id); return; }
-    const hasChildren = model.nodes.some((n) => n.parentId === node.id);
-    if (hasChildren) setFocus(node.id);
+    if (model.nodes.some((n) => n.parentId === node.id)) setFocus(node.id);
+  };
+
+  // React Flow suppresses onNodeDoubleClick while nodesDraggable={false} (double-click rides on
+  // the node drag machinery), so we detect the double-click from the onNodeClick stream instead:
+  // first click selects, a second click on the same node within the threshold drills in.
+  const lastClick = useRef<{ id: string; t: number }>({ id: '', t: 0 });
+  const DOUBLE_CLICK_MS = 350;
+  const onNodeClick = (_: unknown, node: FlowNode) => {
+    const now = Date.now();
+    if (lastClick.current.id === node.id && now - lastClick.current.t < DOUBLE_CLICK_MS) {
+      lastClick.current = { id: '', t: 0 };
+      drill(node);
+    } else {
+      lastClick.current = { id: node.id, t: now };
+      select(node.id);
+    }
   };
 
   return (
@@ -71,8 +86,7 @@ export function Canvas() {
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable
-        onNodeClick={(_, n) => select(n.id)}
-        onNodeDoubleClick={onNodeDoubleClick}
+        onNodeClick={onNodeClick}
         onEdgeClick={(_, e) => { if (!(e.data as { derived?: boolean } | undefined)?.derived) select(e.id); }}
         onPaneClick={() => select(null)}
         fitView
