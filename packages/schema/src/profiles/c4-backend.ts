@@ -50,4 +50,4 @@ export const c4Backend: Profile = {
   ],
 };
 
-export { layerOfType, allowedParentTypes, typesForLayer } from '../profile';
+export { layerOfType, allowedParentTypes, allowedChildTypes, topLevelTypes, typesForLayer } from '../profile';

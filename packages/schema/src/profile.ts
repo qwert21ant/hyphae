@@ -58,6 +58,12 @@ export const layerOfType = (profile: Profile, type: string): string | undefined 
 export const allowedParentTypes = (profile: Profile, type: string): string[] =>
   profile.nodeKinds.find((k) => k.id === type)?.allowedParents ?? [];
 
+export const allowedChildTypes = (profile: Profile, type: string): string[] =>
+  profile.nodeKinds.find((k) => k.id === type)?.allowedChildren ?? [];
+
+export const topLevelTypes = (profile: Profile): string[] =>
+  profile.nodeKinds.filter((k) => (k.allowedParents ?? []).length === 0).map((k) => k.id);
+
 export const typesForLayer = (profile: Profile, layer: string): string[] =>
   profile.nodeKinds.filter((k) => k.layer === layer).map((k) => k.id);
 
