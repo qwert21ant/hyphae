@@ -48,6 +48,33 @@ describe('focusViewToFlow', () => {
     const { nodes } = focusViewToFlow(root, { sys: { x: 0, y: 0 } });
     expect(nodes.every((n) => n.type !== 'region')).toBe(true);
   });
+
+  it('renders focus node as plain node (not region) when it has no children, anchoring external edges', () => {
+    const childless: FocusView = {
+      focusId: 'ext',
+      focusNode: node('ext', 'ExternalSystem'),
+      children: [],
+      externals: [node('cb', 'Container')],
+      edges: [{ id: 'ext:ext->cb', from: 'ext', to: 'cb', kind: null, count: 1, derived: true }],
+    };
+    const childlessPos = { ext: { x: 0, y: 0 }, cb: { x: 300, y: 50 } };
+    const { nodes, edges } = focusViewToFlow(childless, childlessPos);
+
+    // Focus node must be rendered as a plain 'node', not a 'region'
+    const focusNode = nodes.find((n) => n.id === 'ext');
+    expect(focusNode).toBeDefined();
+    expect(focusNode?.type).toBe('node');
+
+    // External neighbor rendered as ghost
+    expect(nodes.find((n) => n.id === 'cb')?.type).toBe('ghost');
+
+    // No dangling edges: both endpoints exist in the rendered nodes
+    const nodeIds = new Set(nodes.map((n) => n.id));
+    for (const e of edges) {
+      expect(nodeIds.has(e.source)).toBe(true);
+      expect(nodeIds.has(e.target)).toBe(true);
+    }
+  });
 });
 
 describe('highlightSets', () => {

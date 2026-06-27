@@ -37,4 +37,21 @@ describe('layoutFocusView', () => {
     // cb is an outgoing target → to the right of the cluster (or clearly left if incoming)
     expect(pos.cb.x >= childMaxX || pos.cb.x + NODE_W <= childMinX).toBe(true);
   });
+
+  it('assigns a position to the focus node when it has no children, and still places externals', () => {
+    const childless: FocusView = {
+      focusId: 'ext',
+      focusNode: node('ext', 'ExternalSystem'),
+      children: [],
+      externals: [node('cb', 'Container')],
+      edges: [{ id: 'ext:ext->cb', from: 'ext', to: 'cb', kind: null, count: 1, derived: true }],
+    };
+    const pos = layoutFocusView(childless);
+    expect(pos['ext']).toBeDefined();
+    expect(typeof pos['ext'].x).toBe('number');
+    expect(typeof pos['ext'].y).toBe('number');
+    expect(pos['cb']).toBeDefined();
+    expect(typeof pos['cb'].x).toBe('number');
+    expect(typeof pos['cb'].y).toBe('number');
+  });
 });

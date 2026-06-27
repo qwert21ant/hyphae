@@ -45,6 +45,15 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nod
       draggable: false,
       selectable: false,
     });
+  } else if (view.focusNode) {
+    // No children: render the focus as a plain node so external edges have a valid anchor.
+    nodes.push({
+      id: view.focusNode.id,
+      type: 'node',
+      position: pos[view.focusNode.id] ?? { x: 0, y: 0 },
+      data: { label: `${view.focusNode.name}\n(${view.focusNode.type})` },
+      draggable: false,
+    });
   }
 
   for (const n of view.children) {

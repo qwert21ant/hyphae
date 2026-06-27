@@ -37,8 +37,7 @@ function matchesFilter(c: Connection, f: ConnFilter): boolean {
  * - at or above the focus layer → the endpoint itself (e.g. an ExternalSystem stays itself);
  * - below the focus layer → its ancestor on the focus layer (its peer of the focus node).
  */
-export function representative(model: HyphaeModel, endpointId: string, focusLayer: string): string {
-  const nodes = new Map(model.nodes.map((n) => [n.id, n]));
+function representativeWith(nodes: Map<string, Node>, endpointId: string, focusLayer: string): string {
   const fi = indexOfLayer(focusLayer);
   let cur = nodes.get(endpointId);
   if (!cur) return endpointId;
@@ -53,6 +52,11 @@ export function representative(model: HyphaeModel, endpointId: string, focusLaye
     cur = p;
   }
   return endpointId;
+}
+
+export function representative(model: HyphaeModel, endpointId: string, focusLayer: string): string {
+  const nodes = new Map(model.nodes.map((n) => [n.id, n]));
+  return representativeWith(nodes, endpointId, focusLayer);
 }
 
 export function buildFocusView(model: HyphaeModel, focusId: string | null, filter?: ConnFilter): FocusView {
@@ -79,8 +83,8 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
 
   for (const c of conns) {
     if (!allIds.has(c.from) || !allIds.has(c.to)) continue; // drop dangling
-    const from = inside.has(c.from) ? c.from : representative(model, c.from, focusLayer);
-    const to = inside.has(c.to) ? c.to : representative(model, c.to, focusLayer);
+    const from = inside.has(c.from) ? c.from : representativeWith(nodes, c.from, focusLayer);
+    const to = inside.has(c.to) ? c.to : representativeWith(nodes, c.to, focusLayer);
     const fIn = inside.has(from);
     const tIn = inside.has(to);
     if (!fIn && !tIn) continue;   // unrelated to this view

@@ -28,6 +28,11 @@ export function layoutFocusView(view: FocusView): Record<string, XY> {
     pos[n.id] = d ? { x: d.x - NODE_W / 2, y: d.y - NODE_H / 2 } : { x: 0, y: 0 };
   }
 
+  // When the focus node has no children, give it a slot at the origin so edges can anchor on it.
+  if (view.focusNode && view.children.length === 0) {
+    pos[view.focusNode.id] = { x: 0, y: 0 };
+  }
+
   // Children bounding box (fall back to origin when there are no children).
   const xs = view.children.map((n) => pos[n.id].x);
   const ys = view.children.map((n) => pos[n.id].y);
