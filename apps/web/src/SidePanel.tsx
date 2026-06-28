@@ -1,4 +1,6 @@
+import { useMemo } from 'react';
 import { useStore } from './store';
+import { buildFocusView } from './focusView';
 import {
   DirectionSchema, allowedParentTypes, connectionKindIds, effectiveFields, c4Backend,
   type Node, type Connection, type FieldDef,
@@ -47,6 +49,17 @@ export function SidePanel() {
   const deleteNode = useStore((s) => s.deleteNode);
   const updateConnection = useStore((s) => s.updateConnection);
   const deleteConnection = useStore((s) => s.deleteConnection);
+  const model = useStore((s) => s.model);
+  const selectedId = useStore((s) => s.selectedId);
+  const focusId = useStore((s) => s.focusId);
+  const connFilter = useStore((s) => s.connFilter);
+  const setFocus = useStore((s) => s.setFocus);
+  const rollup = useMemo(() => {
+    // Only derived (rollup) edges use the `agg:` id; skip the view recompute for any other selection.
+    if (!selectedId?.startsWith('agg:')) return null;
+    const v = buildFocusView(model, focusId, connFilter);
+    return v.edges.find((edge) => edge.derived && edge.id === selectedId) ?? null;
+  }, [model, focusId, connFilter, selectedId]);
 
   if (node) {
     const parentTypes = allowedParentTypes(c4Backend, node.type);
@@ -96,6 +109,37 @@ export function SidePanel() {
           <FieldInput key={def.key} def={def} value={conn.fields[def.key]} nodes={nodes} onChange={(v) => setField(def.key, v)} />
         ))}
         <button onClick={() => deleteConnection(conn.id)}>Delete connection</button>
+      </aside>
+    );
+  }
+
+  if (rollup) {
+    const nameOf = (id: string) => nodes.find((n) => n.id === id)?.name ?? id;
+    const parentNameOf = (id: string) => {
+      const n = nodes.find((x) => x.id === id);
+      const p = n?.parentId ? nodes.find((x) => x.id === n.parentId) : null;
+      return p?.name;
+    };
+    const conns = rollup.realizedBy
+      .map((id) => model.connections.find((c) => c.id === id))
+      .filter((c): c is Connection => !!c);
+    return (
+      <aside className="panel">
+        <h2>Rolled-up connection</h2>
+        <p className="field"><strong>{nameOf(rollup.from)} → {nameOf(rollup.to)}</strong></p>
+        <p className="field">{conns.length} connection{conns.length === 1 ? '' : 's'}</p>
+        <ul className="rollup-list">
+          {conns.map((c) => (
+            <li key={c.id}>
+              <button onClick={() => setFocus(c.from)}>{nameOf(c.from)}</button>
+              {parentNameOf(c.from) && <small> ({parentNameOf(c.from)})</small>}
+              {' → '}
+              <button onClick={() => setFocus(c.to)}>{nameOf(c.to)}</button>
+              {parentNameOf(c.to) && <small> ({parentNameOf(c.to)})</small>}
+              <small> · {c.type}{c.fields.transport ? ` · ${String(c.fields.transport)}` : ''}</small>
+            </li>
+          ))}
+        </ul>
       </aside>
     );
   }

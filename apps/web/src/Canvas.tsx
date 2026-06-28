@@ -87,7 +87,7 @@ export function Canvas() {
         nodesConnectable={false}
         elementsSelectable
         onNodeClick={onNodeClick}
-        onEdgeClick={(_, e) => { if (!(e.data as { derived?: boolean } | undefined)?.derived) select(e.id); }}
+        onEdgeClick={(_, e) => select(e.id)}
         onPaneClick={() => select(null)}
         fitView
       >

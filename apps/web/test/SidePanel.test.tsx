@@ -85,4 +85,33 @@ describe('SidePanel', () => {
     fireEvent.change(screen.getByLabelText('transport'), { target: { value: 'Sync' } });
     await waitFor(() => expect(useStore.getState().model.connections[0].fields.transport).toBe('Sync'));
   });
+
+  it('shows a rolled-up connection with its underlying connections and drills on click', () => {
+    const mk = (over: Partial<Node>): Node => ({
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+      docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
+    });
+    useStore.setState((s) => ({
+      model: {
+        ...s.model,
+        nodes: [
+          mk({ id: 'sys', name: 'Sys', type: 'System' }),
+          mk({ id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys' }),
+          mk({ id: 'cb', name: 'Beta', type: 'Container', parentId: 'sys' }),
+          mk({ id: 'a1', name: 'A1', type: 'Component', parentId: 'ca' }),
+          mk({ id: 'b1', name: 'B1', type: 'Component', parentId: 'cb' }),
+        ],
+        connections: [{ id: 'x1', from: 'a1', to: 'b1', type: 'Dependency', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: { transport: 'Sync' } }],
+      },
+      focusId: 'sys',
+      selectedId: 'agg:ca->cb',
+    }));
+    render(<SidePanel />);
+    expect(screen.getByRole('heading', { name: /rolled-up connection/i })).toBeTruthy();
+    expect(screen.getByText('Alpha → Beta')).toBeTruthy();
+    expect(screen.getByText(/1 connection/i)).toBeTruthy();
+    expect(screen.getByText(/Dependency/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'A1' }));
+    expect(useStore.getState().focusId).toBe('a1');
+  });
 });

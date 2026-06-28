@@ -12,8 +12,8 @@ const view: FocusView = {
   children: [node('a1'), node('a2')],
   externals: [node('cb', 'Container')],
   edges: [
-    { id: 'i', from: 'a1', to: 'a2', kind: 'Dependency', count: 1, derived: false },
-    { id: 'ext:a1->cb', from: 'a1', to: 'cb', kind: null, count: 3, derived: true },
+    { id: 'i', from: 'a1', to: 'a2', kind: 'Dependency', count: 1, derived: false, realizedBy: ['i'] },
+    { id: 'ext:a1->cb', from: 'a1', to: 'cb', kind: null, count: 3, derived: true, realizedBy: ['e1', 'e2', 'e3'] },
   ],
 };
 const pos = { a1: { x: 0, y: 0 }, a2: { x: 0, y: 100 }, cb: { x: 300, y: 50 } };
@@ -40,7 +40,9 @@ describe('focusViewToFlow', () => {
     expect(derived.label).toBe('3');
     expect((derived.data as { derived?: boolean }).derived).toBe(true);
     expect(derived.style?.strokeDasharray).toBeTruthy();
-    expect(derived.selectable).toBe(false);
+    expect(derived.selectable).toBe(true);
+    expect(derived.deletable).toBe(false);
+    expect((derived.data as { realizedBy: string[] }).realizedBy).toEqual(['e1', 'e2', 'e3']);
   });
 
   it('omits the region at the root view (no focus node)', () => {
@@ -55,7 +57,7 @@ describe('focusViewToFlow', () => {
       focusNode: node('ext', 'ExternalSystem'),
       children: [],
       externals: [node('cb', 'Container')],
-      edges: [{ id: 'ext:ext->cb', from: 'ext', to: 'cb', kind: null, count: 1, derived: true }],
+      edges: [{ id: 'ext:ext->cb', from: 'ext', to: 'cb', kind: null, count: 1, derived: true, realizedBy: ['z'] }],
     };
     const childlessPos = { ext: { x: 0, y: 0 }, cb: { x: 300, y: 50 } };
     const { nodes, edges } = focusViewToFlow(childless, childlessPos);
