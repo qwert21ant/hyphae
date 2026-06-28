@@ -55,6 +55,8 @@ export function SidePanel() {
   const connFilter = useStore((s) => s.connFilter);
   const setFocus = useStore((s) => s.setFocus);
   const rollup = useMemo(() => {
+    // Only derived (rollup) edges use the `agg:` id; skip the view recompute for any other selection.
+    if (!selectedId?.startsWith('agg:')) return null;
     const v = buildFocusView(model, focusId, connFilter);
     return v.edges.find((edge) => edge.derived && edge.id === selectedId) ?? null;
   }, [model, focusId, connFilter, selectedId]);
@@ -125,7 +127,7 @@ export function SidePanel() {
       <aside className="panel">
         <h2>Rolled-up connection</h2>
         <p className="field"><strong>{nameOf(rollup.from)} → {nameOf(rollup.to)}</strong></p>
-        <p className="field">{rollup.count} connection{rollup.count === 1 ? '' : 's'}</p>
+        <p className="field">{conns.length} connection{conns.length === 1 ? '' : 's'}</p>
         <ul className="rollup-list">
           {conns.map((c) => (
             <li key={c.id}>
