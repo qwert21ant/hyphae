@@ -40,7 +40,9 @@ describe('focusViewToFlow', () => {
     expect(derived.label).toBe('3');
     expect((derived.data as { derived?: boolean }).derived).toBe(true);
     expect(derived.style?.strokeDasharray).toBeTruthy();
-    expect(derived.selectable).toBe(false);
+    expect(derived.selectable).toBe(true);
+    expect(derived.deletable).toBe(false);
+    expect((derived.data as { realizedBy: string[] }).realizedBy).toEqual(['e1', 'e2', 'e3']);
   });
 
   it('omits the region at the root view (no focus node)', () => {
