@@ -127,6 +127,29 @@ describe('buildFocusView — rolling connections up to the children level', () =
     expect(caCb).toHaveLength(1);
     expect(caCb[0]).toMatchObject({ derived: true, count: 2 });
   });
+
+  it('a real edge carries realizedBy with its single connection id', () => {
+    const m = model();
+    m.connections.push({ id: 'r', from: 'a1', to: 'a2', type: 'Dependency', ...e });
+    const v = buildFocusView(m, 'ca');
+    const edge = v.edges.find((x) => x.id === 'r')!;
+    expect(edge.derived).toBe(false);
+    expect(edge.realizedBy).toEqual(['r']);
+    expect(edge.count).toBe(edge.realizedBy.length);
+  });
+
+  it('a derived edge carries realizedBy with every aggregated connection id', () => {
+    const m = model();
+    m.connections.push(
+      { id: 'authored', from: 'ca', to: 'cb', type: 'Dependency', ...e },
+      { id: 'realize', from: 'a1', to: 'b1', type: 'Dependency', ...e },
+    );
+    const v = buildFocusView(m, 'sys');
+    const caCb = v.edges.find((x) => x.from === 'ca' && x.to === 'cb')!;
+    expect(caCb.derived).toBe(true);
+    expect([...caCb.realizedBy].sort()).toEqual(['authored', 'realize']);
+    expect(caCb.count).toBe(caCb.realizedBy.length);
+  });
 });
 
 describe('representative', () => {

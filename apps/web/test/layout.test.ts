@@ -11,8 +11,8 @@ const view: FocusView = {
   children: [node('a1'), node('a2')],
   externals: [node('cb', 'Container')],
   edges: [
-    { id: 'i', from: 'a1', to: 'a2', kind: 'Dependency', count: 1, derived: false },
-    { id: 'ext:a1->cb', from: 'a1', to: 'cb', kind: null, count: 1, derived: true },
+    { id: 'i', from: 'a1', to: 'a2', kind: 'Dependency', count: 1, derived: false, realizedBy: ['i'] },
+    { id: 'ext:a1->cb', from: 'a1', to: 'cb', kind: null, count: 1, derived: true, realizedBy: ['x'] },
   ],
 };
 
@@ -44,7 +44,7 @@ describe('layoutFocusView', () => {
       focusNode: node('ext', 'ExternalSystem'),
       children: [],
       externals: [node('cb', 'Container')],
-      edges: [{ id: 'ext:ext->cb', from: 'ext', to: 'cb', kind: null, count: 1, derived: true }],
+      edges: [{ id: 'ext:ext->cb', from: 'ext', to: 'cb', kind: null, count: 1, derived: true, realizedBy: ['z'] }],
     };
     const pos = layoutFocusView(childless);
     expect(pos['ext']).toBeDefined();
