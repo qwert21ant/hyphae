@@ -28,7 +28,7 @@ vi.mock('../src/api', () => {
 
 import { SidePanel } from '../src/SidePanel';
 import { useStore } from '../src/store';
-import { emptyModel, type Node } from '@hyphae/schema';
+import { emptyModel, type Node, type Connection } from '@hyphae/schema';
 
 beforeEach(() => useStore.getState().setModel(emptyModel(), 0));
 
@@ -113,5 +113,33 @@ describe('SidePanel', () => {
     expect(screen.getByText(/Dependency/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'A1' }));
     expect(useStore.getState().focusId).toBe('a1');
+  });
+
+  it('lists a connection\'s realizedBy children and selects a child on row click', () => {
+    const mk = (over: Partial<Node>): Node => ({
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+      docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
+    });
+    const conn = (over: Partial<Connection>): Connection => ({
+      id: 'c', from: 'a1', to: 'b1', type: 'Dependency', description: '', direction: 'Unidirectional',
+      realizedBy: [], codeRefs: [], fields: {}, ...over,
+    });
+    useStore.setState((s) => ({
+      model: {
+        ...s.model,
+        nodes: [mk({ id: 'ca', name: 'Alpha', type: 'Container' }), mk({ id: 'a1', name: 'A1', parentId: 'ca' }), mk({ id: 'b1', name: 'B1', parentId: 'ca' })],
+        connections: [
+          conn({ id: 'parent', realizedBy: ['child1', 'missing'] }),
+          conn({ id: 'child1', type: 'DataFlow', fields: { transport: 'Async' } }),
+        ],
+      },
+      selectedId: 'parent',
+    }));
+    render(<SidePanel />);
+    // missing child id is skipped → count is 1, not 2
+    expect(screen.getByText(/realized by \(1\)/i)).toBeTruthy();
+    const list = document.querySelector('.rollup-list')!;
+    fireEvent.click(list.querySelector('li')!);
+    expect(useStore.getState().selectedId).toBe('child1');
   });
 });
