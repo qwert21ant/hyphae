@@ -45,6 +45,29 @@ describe('focusViewToFlow', () => {
     expect((derived.data as { realizedBy: string[] }).realizedBy).toEqual(['e1', 'e2', 'e3']);
   });
 
+  it('adds a target arrow to every edge and a source arrow only for bidirectional', () => {
+    const v: FocusView = {
+      focusId: 'ca', focusNode: node('ca', 'Container'),
+      children: [node('a1'), node('a2'), node('a3')], externals: [],
+      edges: [
+        { id: 'u', from: 'a1', to: 'a2', kind: 'Dependency', count: 1, derived: false, realizedBy: ['u'], direction: 'Unidirectional' },
+        { id: 'b', from: 'a1', to: 'a3', kind: 'Dependency', count: 1, derived: false, realizedBy: ['b'], direction: 'Bidirectional' },
+      ],
+    };
+    const { edges } = focusViewToFlow(v, { a1: { x: 0, y: 0 }, a2: { x: 0, y: 100 }, a3: { x: 0, y: 200 } });
+    const u = edges.find((e) => e.id === 'u')!;
+    const b = edges.find((e) => e.id === 'b')!;
+    expect(u.markerEnd).toBeTruthy();
+    expect(u.markerStart).toBeFalsy();
+    expect(b.markerEnd).toBeTruthy();
+    expect(b.markerStart).toBeTruthy();
+  });
+
+  it('gives derived (rollup) edges a target arrow too', () => {
+    const { edges } = focusViewToFlow(view, pos);
+    expect(edges.find((e) => e.id === 'ext:a1->cb')!.markerEnd).toBeTruthy();
+  });
+
   it('omits the region at the root view (no focus node)', () => {
     const root: FocusView = { focusId: null, focusNode: null, children: [node('sys', 'System')], externals: [], edges: [] };
     const { nodes } = focusViewToFlow(root, { sys: { x: 0, y: 0 } });

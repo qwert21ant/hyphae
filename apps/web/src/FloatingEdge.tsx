@@ -2,7 +2,7 @@ import { BaseEdge, EdgeLabelRenderer, getBezierPath, useInternalNode, type EdgeP
 import { getEdgeParams, boxOf } from './floating';
 
 /** Edge whose endpoints attach to the nearest point on each node's border (recomputed live). */
-export function FloatingEdge({ id, source, target, style, markerEnd, label, labelStyle, labelBgStyle }: EdgeProps) {
+export function FloatingEdge({ id, source, target, style, markerEnd, markerStart, label, labelStyle, labelBgStyle }: EdgeProps) {
   const sourceNode = useInternalNode(source);
   const targetNode = useInternalNode(target);
   if (!sourceNode || !targetNode) return null;
@@ -15,7 +15,7 @@ export function FloatingEdge({ id, source, target, style, markerEnd, label, labe
 
   return (
     <>
-      <BaseEdge id={id} path={path} markerEnd={markerEnd} style={style} />
+      <BaseEdge id={id} path={path} markerEnd={markerEnd} markerStart={markerStart} style={style} />
       {label != null && label !== '' && (
         <EdgeLabelRenderer>
           <div

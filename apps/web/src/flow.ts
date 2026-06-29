@@ -1,12 +1,18 @@
-import type { Node as FlowNode, Edge as FlowEdge } from '@xyflow/react';
+import { MarkerType, type Node as FlowNode, type Edge as FlowEdge } from '@xyflow/react';
 import type { FocusView, FocusEdge } from './focusView';
 import { NODE_W, NODE_H, type XY } from './layout';
 
 const PAD = 24;
 const LABEL_H = 22;
 
+/** Arrowheads showing direction: always at the target; also at the source when bidirectional. */
+function markers(direction: string | undefined, color?: string): Pick<FlowEdge, 'markerEnd' | 'markerStart'> {
+  const arrow = { type: MarkerType.ArrowClosed, ...(color ? { color } : {}) };
+  return { markerEnd: arrow, ...(direction === 'Bidirectional' ? { markerStart: arrow } : {}) };
+}
+
 function realEdge(e: FocusEdge): FlowEdge {
-  return { id: e.id, type: 'floating', source: e.from, target: e.to, label: e.kind ?? '' };
+  return { id: e.id, type: 'floating', source: e.from, target: e.to, label: e.kind ?? '', ...markers(e.direction) };
 }
 
 function derivedEdge(e: FocusEdge): FlowEdge {
@@ -23,6 +29,7 @@ function derivedEdge(e: FocusEdge): FlowEdge {
     style: { stroke: '#7c3aed', strokeDasharray: '6 4', strokeWidth: 2 },
     labelStyle: { color: '#6d28d9', fontWeight: 600 },
     labelBgStyle: { background: '#ede9fe' },
+    ...markers(e.direction, '#7c3aed'),
   };
 }
 

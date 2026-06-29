@@ -10,6 +10,7 @@ export type FocusEdge = {
   count: number;       // underlying connections represented
   derived: boolean;    // aggregated/collapsed (dashed) edge
   realizedBy: string[]; // ids of the model connections this edge represents (length === count)
+  direction?: string;  // the connection's direction for a real edge (e.g. 'Bidirectional')
 };
 
 export type FocusView = {
@@ -130,7 +131,7 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
 
   // Aggregate every kept connection per mapped ordered pair, so an authored edge and the
   // lower-level connections that realize it collapse into a single edge (no duplicates).
-  type Pair = { from: string; to: string; count: number; connIds: string[]; direct?: { id: string; kind: string } };
+  type Pair = { from: string; to: string; count: number; connIds: string[]; direct?: { id: string; kind: string; direction: string } };
   const pairs = new Map<string, Pair>(); // key `${from}->${to}`
   const externalIds = new Set<string>();
 
@@ -150,7 +151,7 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
     p.count++;
     p.connIds.push(c.id);
     // An authored connection drawn directly between two shown nodes (not rolled up).
-    if (from === c.from && to === c.to) p.direct = { id: c.id, kind: c.type };
+    if (from === c.from && to === c.to) p.direct = { id: c.id, kind: c.type, direction: c.direction };
     if (!fIn) externalIds.add(from);
     if (!tIn) externalIds.add(to);
   }
@@ -161,7 +162,7 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
   const edges: FocusEdge[] = [];
   for (const p of pairs.values()) {
     if (p.count === 1 && p.direct) {
-      edges.push({ id: p.direct.id, from: p.from, to: p.to, kind: p.direct.kind, count: 1, derived: false, realizedBy: p.connIds });
+      edges.push({ id: p.direct.id, from: p.from, to: p.to, kind: p.direct.kind, count: 1, derived: false, realizedBy: p.connIds, direction: p.direct.direction });
     } else {
       edges.push({ id: `agg:${p.from}->${p.to}`, from: p.from, to: p.to, kind: null, count: p.count, derived: true, realizedBy: p.connIds });
     }
