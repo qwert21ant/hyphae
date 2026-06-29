@@ -160,6 +160,32 @@ describe('buildFocusView — rolling connections up to the children level', () =
     expect(a1a2[0]).toMatchObject({ id: 'parent', kind: 'Dependency', derived: false, count: 1 });
   });
 
+  it('at a Component focus shows code-child↔external edges, not the rolled-up group-node edge', () => {
+    // Parent y→x (Component level) is realized by m1→k1 (Class level), where k1 is a code child of the
+    // focus x. Focusing x, the child must surface as an edge to the code child (y → k1), and the
+    // coarse parent must NOT also appear as a group-node edge (y → x). A connection authored directly
+    // on the focus (x → ext, no realizedBy) is preserved as a group-node edge.
+    const m = emptyModel();
+    m.nodes.push(
+      { id: 'cont', name: 'Cont', type: 'Container', parentId: null, ...base },
+      { id: 'x', name: 'X', type: 'Component', parentId: 'cont', ...base },
+      { id: 'k1', name: 'K1', type: 'Class', parentId: 'x', ...base },
+      { id: 'y', name: 'Y', type: 'Component', parentId: 'cont', ...base },
+      { id: 'm1', name: 'M1', type: 'Class', parentId: 'y', ...base },
+      { id: 'ext', name: 'Ext', type: 'ExternalSystem', parentId: null, ...base },
+    );
+    m.connections.push(
+      { id: 'pc', from: 'y', to: 'x', type: 'Dependency', ...e, realizedBy: ['cc'] },
+      { id: 'cc', from: 'm1', to: 'k1', type: 'Dependency', ...e },
+      { id: 'q', from: 'x', to: 'ext', type: 'DataFlow', ...e },
+    );
+    const v = buildFocusView(m, 'x');
+    expect(v.edges.find((edge) => edge.from === 'y' && edge.to === 'k1')).toBeTruthy(); // child-anchored
+    expect(v.edges.find((edge) => edge.to === 'x')).toBeUndefined();                     // no group-node rollup edge
+    expect(v.edges.find((edge) => edge.from === 'x' && edge.to === 'ext')).toMatchObject({ kind: 'DataFlow', derived: false });
+    expect(v.externals.map((n) => n.id).sort()).toEqual(['ext', 'y']);
+  });
+
   it('a real edge carries realizedBy with its single connection id', () => {
     const m = model();
     m.connections.push({ id: 'r', from: 'a1', to: 'a2', type: 'Dependency', ...e });

@@ -124,27 +124,50 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
 
   const conns = filter ? model.connections.filter((c) => matchesFilter(c, filter)) : model.connections;
 
-  // A connection referenced by another's `realizedBy` is already represented by that authored parent
-  // edge — exclude it so it does not also appear (or inflate the parent's count) on its own.
-  const claimed = new Set<string>();
-  for (const c of conns) for (const id of c.realizedBy) claimed.add(id);
+  // Map each kept connection's endpoints into this view (or skip it: dangling, unrelated, or a
+  // self-loop after mapping). `mapped` holds the shown connections and their mapped endpoints.
+  const mapped = new Map<string, { from: string; to: string }>();
+  for (const c of conns) {
+    if (!allIds.has(c.from) || !allIds.has(c.to)) continue;
+    const from = mapEndpoint(c.from);
+    const to = mapEndpoint(c.to);
+    if ((!inside.has(from) && !inside.has(to)) || from === to) continue;
+    mapped.set(c.id, { from, to });
+  }
+  const pairKey = (id: string) => { const mp = mapped.get(id); return mp ? `${mp.from}->${mp.to}` : null; };
 
-  // Aggregate every kept connection per mapped ordered pair, so an authored edge and the
-  // lower-level connections that realize it collapse into a single edge (no duplicates).
+  // Reconcile realizedBy by granularity:
+  // - a parent is "expanded" (shown via its children, not itself) when a child would appear at a
+  //   finer, different pair — e.g. at a Component focus a class→external child attaches to the code
+  //   child, not to the component (group node);
+  // - a child is "absorbed" (hidden, represented by its parent) when its parent is kept and the child
+  //   maps to the same pair — e.g. at a Container focus a class connection that rolls up to the same
+  //   Component↔Component pair as its authored parent.
+  const expanded = new Set<string>();
+  for (const c of conns) {
+    const pk = pairKey(c.id);
+    for (const childId of c.realizedBy) {
+      const cpk = pairKey(childId);
+      if (cpk != null && cpk !== pk) { expanded.add(c.id); break; }
+    }
+  }
+  const absorbed = new Set<string>();
+  for (const c of conns) {
+    if (expanded.has(c.id)) continue; // an expanded parent does not hide its finer children
+    for (const childId of c.realizedBy) absorbed.add(childId);
+  }
+
+  // Aggregate the surviving connections per mapped ordered pair.
   type Pair = { from: string; to: string; count: number; connIds: string[]; direct?: { id: string; kind: string; direction: string } };
   const pairs = new Map<string, Pair>(); // key `${from}->${to}`
   const externalIds = new Set<string>();
 
   for (const c of conns) {
-    if (claimed.has(c.id)) continue; // represented by the authored edge that realizedBy-claims it
-    if (!allIds.has(c.from) || !allIds.has(c.to)) continue; // drop dangling
-    const from = mapEndpoint(c.from);
-    const to = mapEndpoint(c.to);
+    const mp = mapped.get(c.id);
+    if (!mp || expanded.has(c.id) || absorbed.has(c.id)) continue;
+    const { from, to } = mp;
     const fIn = inside.has(from);
     const tIn = inside.has(to);
-    if (!fIn && !tIn) continue;   // unrelated to this view
-    if (from === to) continue;    // collapsed onto itself (e.g. an edge to its own descendant)
-
     const key = `${from}->${to}`;
     let p = pairs.get(key);
     if (!p) { p = { from, to, count: 0, connIds: [] }; pairs.set(key, p); }
