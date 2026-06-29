@@ -115,6 +115,30 @@ describe('SidePanel', () => {
     expect(useStore.getState().focusId).toBe('a1');
   });
 
+  it('lists connections touching a selected node (and its descendants)', () => {
+    const mk = (over: Partial<Node>): Node => ({
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+      docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
+    });
+    const conn = (over: Partial<Connection>): Connection => ({
+      id: 'c', from: 'a1', to: 'b1', type: 'Dependency', description: '', direction: 'Unidirectional',
+      realizedBy: [], codeRefs: [], fields: {}, ...over,
+    });
+    useStore.setState((s) => ({
+      model: {
+        ...s.model,
+        nodes: [mk({ id: 'ca', name: 'Alpha', type: 'Container' }), mk({ id: 'a1', name: 'A1', parentId: 'ca' }), mk({ id: 'b1', name: 'B1' })],
+        connections: [conn({ id: 'c1', from: 'a1', to: 'b1' })],
+      },
+      selectedId: 'ca', // a Container; its child a1 has a connection to b1
+    }));
+    render(<SidePanel />);
+    expect(screen.getByText(/connections \(1\)/i)).toBeTruthy();
+    const list = document.querySelector('.rollup-list')!;
+    fireEvent.click(list.querySelector('li')!);
+    expect(useStore.getState().selectedId).toBe('c1');
+  });
+
   it('lists a connection\'s realizedBy children and selects a child on row click', () => {
     const mk = (over: Partial<Node>): Node => ({
       id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],

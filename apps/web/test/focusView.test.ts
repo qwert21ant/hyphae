@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildFocusView, breadcrumbPath, representative } from '../src/focusView';
+import { buildFocusView, breadcrumbPath, representative, subtreeConnections } from '../src/focusView';
 import { emptyModel } from '@hyphae/schema';
 
 const base = { description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
@@ -197,6 +197,18 @@ describe('representative', () => {
   it('climbs to the ancestor on the focus layer when the endpoint is below it', () => {
     expect(representative(model(), 'k1', 'Container')).toBe('ca'); // k1 (Class) under a1 under ca
     expect(representative(model(), 'k1', 'Component')).toBe('a1'); // k1 (Class) under a1
+  });
+});
+
+describe('subtreeConnections', () => {
+  it('returns connections touching the node or any descendant', () => {
+    const m = model(); // sys › ca › (a1, a2); a1 › k1; cb › b1; ext
+    m.connections.push(
+      { id: 'c1', from: 'a1', to: 'b1', type: 'Dependency', ...e },  // a1 is in ca's subtree
+      { id: 'c2', from: 'k1', to: 'ext', type: 'Dependency', ...e },  // k1 (under a1) is in ca's subtree
+      { id: 'c3', from: 'b1', to: 'ext', type: 'Dependency', ...e },  // neither endpoint under ca
+    );
+    expect(subtreeConnections(m, 'ca').map((c) => c.id).sort()).toEqual(['c1', 'c2']);
   });
 });
 
