@@ -138,6 +138,28 @@ describe('buildFocusView — rolling connections up to the children level', () =
     expect(caCb[0]).toMatchObject({ derived: true, count: 2 });
   });
 
+  it('does not double-count realizedBy children: a direct edge with realized children stays one real edge', () => {
+    // Parent a1→a2 (Component level, both shown children) is realized by child k1→k2 (Class level),
+    // which rolls up to the same a1→a2 pair. The child must not inflate the pair to a [d2] rollup —
+    // it is represented by its parent (reachable via the parent's realizedBy in the panel).
+    const m = emptyModel();
+    m.nodes.push(
+      { id: 'ca', name: 'Alpha', type: 'Container', parentId: null, ...base },
+      { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
+      { id: 'a2', name: 'A2', type: 'Component', parentId: 'ca', ...base },
+      { id: 'k1', name: 'K1', type: 'Class', parentId: 'a1', ...base },
+      { id: 'k2', name: 'K2', type: 'Class', parentId: 'a2', ...base },
+    );
+    m.connections.push(
+      { id: 'parent', from: 'a1', to: 'a2', type: 'Dependency', ...e, realizedBy: ['child'] },
+      { id: 'child', from: 'k1', to: 'k2', type: 'DataFlow', ...e },
+    );
+    const v = buildFocusView(m, 'ca');
+    const a1a2 = v.edges.filter((x) => x.from === 'a1' && x.to === 'a2');
+    expect(a1a2).toHaveLength(1);
+    expect(a1a2[0]).toMatchObject({ id: 'parent', kind: 'Dependency', derived: false, count: 1 });
+  });
+
   it('a real edge carries realizedBy with its single connection id', () => {
     const m = model();
     m.connections.push({ id: 'r', from: 'a1', to: 'a2', type: 'Dependency', ...e });

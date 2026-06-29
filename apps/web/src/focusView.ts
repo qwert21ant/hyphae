@@ -123,6 +123,11 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
 
   const conns = filter ? model.connections.filter((c) => matchesFilter(c, filter)) : model.connections;
 
+  // A connection referenced by another's `realizedBy` is already represented by that authored parent
+  // edge — exclude it so it does not also appear (or inflate the parent's count) on its own.
+  const claimed = new Set<string>();
+  for (const c of conns) for (const id of c.realizedBy) claimed.add(id);
+
   // Aggregate every kept connection per mapped ordered pair, so an authored edge and the
   // lower-level connections that realize it collapse into a single edge (no duplicates).
   type Pair = { from: string; to: string; count: number; connIds: string[]; direct?: { id: string; kind: string } };
@@ -130,6 +135,7 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
   const externalIds = new Set<string>();
 
   for (const c of conns) {
+    if (claimed.has(c.id)) continue; // represented by the authored edge that realizedBy-claims it
     if (!allIds.has(c.from) || !allIds.has(c.to)) continue; // drop dangling
     const from = mapEndpoint(c.from);
     const to = mapEndpoint(c.to);
