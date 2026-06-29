@@ -84,6 +84,15 @@ describe('Canvas navigation (real React Flow)', () => {
     expect(node(container, 'cb')).toBeTruthy();
   });
 
+  it('renders connection handles on the focus region so its own edges can attach', () => {
+    // The focused node is drawn as a region; React Flow drops edges that cannot resolve a handle on
+    // an endpoint, so the region must expose handles or the focus node's own connections vanish.
+    useStore.setState({ model: model(), focusId: 'ca', selectedId: null });
+    const { container } = render(<Canvas />);
+    const region = container.querySelector('.react-flow__node[data-id="ca"]')!;
+    expect(region.querySelectorAll('.react-flow__handle').length).toBeGreaterThan(0);
+  });
+
   it('single click selects without drilling', () => {
     useStore.setState({ model: model(), focusId: 'sys', selectedId: null });
     const { container } = render(<Canvas />);
