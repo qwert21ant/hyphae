@@ -64,7 +64,17 @@ describe('buildFocusView', () => {
     m.connections.push({ id: 'x', from: 'a1', to: 'ext', type: 'Dependency', ...e });
     const v = buildFocusView(m, 'ca');
     expect(v.externals.map((n) => n.id)).toEqual(['ext']);
-    expect(v.edges.find((x) => x.to === 'ext')).toMatchObject({ from: 'a1', to: 'ext', derived: true });
+    expect(v.edges.find((x) => x.to === 'ext')).toMatchObject({ from: 'a1', to: 'ext' });
+  });
+
+  it('renders a single direct connection to an external node as a real (solid) edge', () => {
+    // a1 (a shown child) → ext (a shown external box) is one authored connection between two nodes
+    // visible in this view — it must be a real edge, not a dashed rollup.
+    const m = model();
+    m.connections.push({ id: 'x', from: 'a1', to: 'ext', type: 'Dependency', ...e });
+    const v = buildFocusView(m, 'ca');
+    const edge = v.edges.find((x) => x.to === 'ext')!;
+    expect(edge).toMatchObject({ id: 'x', from: 'a1', to: 'ext', kind: 'Dependency', derived: false, count: 1 });
   });
 
   it('rolls cross-subtree edges up to root↔root at the root view', () => {
