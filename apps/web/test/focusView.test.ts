@@ -274,6 +274,15 @@ describe('externalConnections', () => {
     );
     expect(externalConnections(m, 'ca').map((c) => c.id)).toEqual(['out']);
   });
+
+  it('excludes connections that are realized children of another connection', () => {
+    const m = model();
+    m.connections.push(
+      { id: 'p', from: 'a1', to: 'ext', type: 'Dependency', ...e, realizedBy: ['x'] },
+      { id: 'x', from: 'k1', to: 'ext', type: 'Dependency', ...e },  // realized under p → hidden
+    );
+    expect(externalConnections(m, 'ca').map((c) => c.id)).toEqual(['p']);
+  });
 });
 
 describe('breadcrumbPath', () => {
