@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildFocusView, breadcrumbPath, representative, subtreeConnections } from '../src/focusView';
+import { buildFocusView, breadcrumbPath, representative, externalConnections } from '../src/focusView';
 import { emptyModel } from '@hyphae/schema';
 
 const base = { description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
@@ -254,15 +254,25 @@ describe('representative', () => {
   });
 });
 
-describe('subtreeConnections', () => {
-  it('returns connections touching the node or any descendant', () => {
+describe('externalConnections', () => {
+  it('returns only connections that cross the subtree boundary (exactly one endpoint inside)', () => {
     const m = model(); // sys › ca › (a1, a2); a1 › k1; cb › b1; ext
     m.connections.push(
-      { id: 'c1', from: 'a1', to: 'b1', type: 'Dependency', ...e },  // a1 is in ca's subtree
-      { id: 'c2', from: 'k1', to: 'ext', type: 'Dependency', ...e },  // k1 (under a1) is in ca's subtree
-      { id: 'c3', from: 'b1', to: 'ext', type: 'Dependency', ...e },  // neither endpoint under ca
+      { id: 'c1', from: 'a1', to: 'b1', type: 'Dependency', ...e },   // a1 in, b1 out → crosses
+      { id: 'c2', from: 'k1', to: 'ext', type: 'Dependency', ...e },  // k1 (under a1) in, ext out → crosses
+      { id: 'c3', from: 'b1', to: 'ext', type: 'Dependency', ...e },  // both outside ca
     );
-    expect(subtreeConnections(m, 'ca').map((c) => c.id).sort()).toEqual(['c1', 'c2']);
+    expect(externalConnections(m, 'ca').map((c) => c.id).sort()).toEqual(['c1', 'c2']);
+  });
+
+  it('excludes inner connections (both endpoints inside the subtree)', () => {
+    const m = model();
+    m.connections.push(
+      { id: 'kid', from: 'a1', to: 'a2', type: 'Dependency', ...e },  // child ↔ child
+      { id: 'desc', from: 'a1', to: 'k1', type: 'Dependency', ...e }, // node ↔ descendant
+      { id: 'out', from: 'a1', to: 'ext', type: 'Dependency', ...e }, // crosses → kept
+    );
+    expect(externalConnections(m, 'ca').map((c) => c.id)).toEqual(['out']);
   });
 });
 

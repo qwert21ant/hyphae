@@ -213,9 +213,10 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
   return { focusId, focusNode, children, externals, edges };
 }
 
-/** Every connection with at least one endpoint in the subtree rooted at `nodeId` (the node itself
- *  or any descendant) — i.e. all connections that involve this node or its children. */
-export function subtreeConnections(model: HyphaeModel, nodeId: string): Connection[] {
+/** Connections that cross the boundary of the subtree rooted at `nodeId`: exactly one endpoint is
+ *  the node or a descendant, the other is outside. Connections internal to the subtree — both
+ *  endpoints inside, e.g. edges between the node's children — are excluded. */
+export function externalConnections(model: HyphaeModel, nodeId: string): Connection[] {
   const kids = new Map<string, string[]>();
   for (const n of model.nodes) {
     if (n.parentId) (kids.get(n.parentId) ?? kids.set(n.parentId, []).get(n.parentId)!).push(n.id);
@@ -228,7 +229,7 @@ export function subtreeConnections(model: HyphaeModel, nodeId: string): Connecti
     inSubtree.add(id);
     for (const k of kids.get(id) ?? []) stack.push(k);
   }
-  return model.connections.filter((c) => inSubtree.has(c.from) || inSubtree.has(c.to));
+  return model.connections.filter((c) => inSubtree.has(c.from) !== inSubtree.has(c.to));
 }
 
 export function breadcrumbPath(model: HyphaeModel, focusId: string | null): Crumb[] {

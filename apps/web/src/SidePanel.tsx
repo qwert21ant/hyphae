@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useStore } from './store';
-import { buildFocusView, subtreeConnections } from './focusView';
+import { buildFocusView, externalConnections } from './focusView';
 import { ConnectionList } from './ConnectionList';
 import {
   DirectionSchema, allowedParentTypes, connectionKindIds, effectiveFields, c4Backend,
@@ -65,7 +65,7 @@ export function SidePanel() {
     const parentTypes = allowedParentTypes(c4Backend, node.type);
     const parentOptions = nodes.filter((p) => parentTypes.includes(p.type) && p.id !== node.id);
     const setField = (key: string, v: unknown) => updateNode(node.id, { fields: { ...node.fields, [key]: v } });
-    const nodeConns = subtreeConnections(model, node.id);
+    const nodeConns = externalConnections(model, node.id);
     return (
       <aside className="panel">
         <h2>{node.type}</h2>
