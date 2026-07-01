@@ -5,8 +5,10 @@ import { NODE_W, NODE_H, type XY } from './layout';
 const PAD = 24;
 const LABEL_H = 22;
 
-/** Arrowheads showing direction: always at the target; also at the source when bidirectional. */
+/** Arrowheads showing direction: at the target; also at the source when bidirectional; none
+ *  when 'None' (an aggregated pair whose underlying connections point both ways). */
 function markers(direction: string | undefined, color?: string): Pick<FlowEdge, 'markerEnd' | 'markerStart'> {
+  if (direction === 'None') return {};
   const arrow = { type: MarkerType.ArrowClosed, ...(color ? { color } : {}) };
   return { markerEnd: arrow, ...(direction === 'Bidirectional' ? { markerStart: arrow } : {}) };
 }

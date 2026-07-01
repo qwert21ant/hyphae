@@ -59,6 +59,34 @@ describe('buildFocusView', () => {
     expect(a2cb).toMatchObject({ derived: true, count: 1 });
   });
 
+  it('merges opposite-direction rollups between the same pair into one undirected edge', () => {
+    // k1 (Class under a1) ↔ b1 (Component under cb) in both directions: both roll up to a1↔cb.
+    // They must collapse to a single edge (count 2) with no direction, not two overlapping arrows.
+    const m = model();
+    m.connections.push(
+      { id: 'f', from: 'k1', to: 'b1', type: 'Dependency', ...e },
+      { id: 'b', from: 'b1', to: 'k1', type: 'Dependency', ...e },
+    );
+    const v = buildFocusView(m, 'ca');
+    const between = v.edges.filter(
+      (x) => (x.from === 'a1' && x.to === 'cb') || (x.from === 'cb' && x.to === 'a1'),
+    );
+    expect(between).toHaveLength(1);
+    expect(between[0]).toMatchObject({ derived: true, count: 2, direction: 'None' });
+    expect([...between[0].realizedBy].sort()).toEqual(['b', 'f']);
+  });
+
+  it('keeps the arrow direction when all rollups between a pair point the same way', () => {
+    const m = model();
+    m.connections.push(
+      { id: 'f1', from: 'k1', to: 'b1', type: 'Dependency', ...e },
+      { id: 'f2', from: 'a1', to: 'b1', type: 'Dependency', ...e },
+    );
+    const v = buildFocusView(m, 'ca');
+    const edge = v.edges.find((x) => x.from === 'a1' && x.to === 'cb')!;
+    expect(edge).toMatchObject({ derived: true, count: 2, direction: 'Unidirectional' });
+  });
+
   it('shows a higher-layer neighbor (external system) as itself', () => {
     const m = model();
     m.connections.push({ id: 'x', from: 'a1', to: 'ext', type: 'Dependency', ...e });

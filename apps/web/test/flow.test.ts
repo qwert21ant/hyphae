@@ -68,6 +68,18 @@ describe('focusViewToFlow', () => {
     expect(edges.find((e) => e.id === 'ext:a1->cb')!.markerEnd).toBeTruthy();
   });
 
+  it('renders no arrowheads for an undirected (direction "None") edge', () => {
+    const v: FocusView = {
+      focusId: 'ca', focusNode: node('ca', 'Container'),
+      children: [node('a1'), node('a2')], externals: [],
+      edges: [{ id: 'agg:a1->a2', from: 'a1', to: 'a2', kind: null, count: 2, derived: true, realizedBy: ['x', 'y'], direction: 'None' }],
+    };
+    const { edges } = focusViewToFlow(v, { a1: { x: 0, y: 0 }, a2: { x: 0, y: 100 } });
+    const edge = edges[0];
+    expect(edge.markerEnd).toBeFalsy();
+    expect(edge.markerStart).toBeFalsy();
+  });
+
   it('omits the region at the root view (no focus node)', () => {
     const root: FocusView = { focusId: null, focusNode: null, children: [node('sys', 'System')], externals: [], edges: [] };
     const { nodes } = focusViewToFlow(root, { sys: { x: 0, y: 0 } });

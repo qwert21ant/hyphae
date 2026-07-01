@@ -157,38 +157,56 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
     for (const childId of c.realizedBy) absorbed.add(childId);
   }
 
-  // Aggregate the surviving connections per mapped ordered pair.
-  type Pair = { from: string; to: string; count: number; connIds: string[]; direct?: { id: string; kind: string; direction: string } };
-  const pairs = new Map<string, Pair>(); // key `${from}->${to}`
+  // Aggregate the surviving connections per *unordered* mapped pair, so a connection and its
+  // reverse between the same two shown nodes collapse into one edge instead of two overlapping
+  // arrows. `a`/`b` are the canonical (id-sorted) endpoints; `ab`/`ba` record which orientations
+  // actually occur, which is what decides the merged edge's arrow direction.
+  type Pair = {
+    a: string; b: string; count: number; connIds: string[];
+    ab: boolean; ba: boolean; bidir: boolean;
+    direct?: { id: string; kind: string; from: string; to: string; direction: string };
+  };
+  const pairs = new Map<string, Pair>(); // key `${a}|${b}` with a <= b
   const externalIds = new Set<string>();
 
   for (const c of conns) {
     const mp = mapped.get(c.id);
     if (!mp || expanded.has(c.id) || absorbed.has(c.id)) continue;
     const { from, to } = mp;
-    const fIn = inside.has(from);
-    const tIn = inside.has(to);
-    const key = `${from}->${to}`;
+    const [a, b] = from <= to ? [from, to] : [to, from];
+    const key = `${a}|${b}`;
     let p = pairs.get(key);
-    if (!p) { p = { from, to, count: 0, connIds: [] }; pairs.set(key, p); }
+    if (!p) { p = { a, b, count: 0, connIds: [], ab: false, ba: false, bidir: false }; pairs.set(key, p); }
     p.count++;
     p.connIds.push(c.id);
+    if (from === a) p.ab = true; else p.ba = true;
+    if (c.direction === 'Bidirectional') p.bidir = true;
     // An authored connection drawn directly between two shown nodes (not rolled up).
-    if (from === c.from && to === c.to) p.direct = { id: c.id, kind: c.type, direction: c.direction };
-    if (!fIn) externalIds.add(from);
-    if (!tIn) externalIds.add(to);
+    if (from === c.from && to === c.to) p.direct = { id: c.id, kind: c.type, from, to, direction: c.direction };
+    if (!inside.has(from)) externalIds.add(from);
+    if (!inside.has(to)) externalIds.add(to);
   }
 
   // A solid "real" edge when a single authored connection joins two nodes shown in this view
   // directly (neither endpoint rolled up — `direct` means both map to themselves). Everything else
   // (rolled-up, or several connections collapsed onto one pair) is a dashed derived edge with a count.
+  // The merged edge keeps its arrow only when every underlying connection points the same way;
+  // conflicting directions render as undirected ('None'), and any Bidirectional makes it bidirectional.
   const edges: FocusEdge[] = [];
   for (const p of pairs.values()) {
     if (p.count === 1 && p.direct) {
-      edges.push({ id: p.direct.id, from: p.from, to: p.to, kind: p.direct.kind, count: 1, derived: false, realizedBy: p.connIds, direction: p.direct.direction });
-    } else {
-      edges.push({ id: `agg:${p.from}->${p.to}`, from: p.from, to: p.to, kind: null, count: p.count, derived: true, realizedBy: p.connIds });
+      edges.push({ id: p.direct.id, from: p.direct.from, to: p.direct.to, kind: p.direct.kind, count: 1, derived: false, realizedBy: p.connIds, direction: p.direct.direction });
+      continue;
     }
+    let from: string, to: string, direction: string;
+    if (p.bidir || (p.ab && p.ba)) {
+      from = p.a; to = p.b; direction = p.bidir ? 'Bidirectional' : 'None';
+    } else if (p.ba) {
+      from = p.b; to = p.a; direction = 'Unidirectional';
+    } else {
+      from = p.a; to = p.b; direction = 'Unidirectional';
+    }
+    edges.push({ id: `agg:${p.a}->${p.b}`, from, to, kind: null, count: p.count, derived: true, realizedBy: p.connIds, direction });
   }
 
   const externals = [...externalIds].map((id) => nodes.get(id)).filter((n): n is Node => !!n);
