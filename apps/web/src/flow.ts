@@ -51,6 +51,9 @@ function derivedEdge(e: FocusEdge): FlowEdge {
 export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nodes: FlowNode[]; edges: FlowEdge[] } {
   const nodes: FlowNode[] = [];
 
+  // initialWidth/initialHeight are unmeasured-size hints: they don't constrain the real DOM node
+  // (React Flow still measures it), but they give the MiniMap node dimensions to draw — otherwise
+  // it renders nothing, since we never feed measured sizes back via onNodesChange.
   if (view.focusNode && view.children.length) {
     const xs = view.children.map((n) => pos[n.id]?.x ?? 0);
     const ys = view.children.map((n) => pos[n.id]?.y ?? 0);
@@ -58,12 +61,16 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nod
     const minY = Math.min(...ys);
     const maxX = Math.max(...xs.map((x) => x + NODE_W));
     const maxY = Math.max(...ys.map((y) => y + NODE_H));
+    const width = maxX - minX + 2 * PAD;
+    const height = maxY - minY + LABEL_H + 2 * PAD;
     nodes.push({
       id: view.focusNode.id,
       type: 'region',
       position: { x: minX - PAD, y: minY - LABEL_H - PAD },
       data: { label: view.focusNode.name },
-      style: { width: maxX - minX + 2 * PAD, height: maxY - minY + LABEL_H + 2 * PAD, pointerEvents: 'none' as const },
+      style: { width, height, pointerEvents: 'none' as const },
+      initialWidth: width,
+      initialHeight: height,
       draggable: false,
       selectable: false,
     });
@@ -74,15 +81,17 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nod
       type: 'node',
       position: pos[view.focusNode.id] ?? { x: 0, y: 0 },
       data: { label: `${view.focusNode.name}\n(${view.focusNode.type})`, color: layerColorOf(view.focusNode.type) },
+      initialWidth: NODE_W,
+      initialHeight: NODE_H,
       draggable: false,
     });
   }
 
   for (const n of view.children) {
-    nodes.push({ id: n.id, type: 'node', position: pos[n.id] ?? { x: 0, y: 0 }, data: { label: `${n.name}\n(${n.type})`, color: layerColorOf(n.type) }, draggable: false });
+    nodes.push({ id: n.id, type: 'node', position: pos[n.id] ?? { x: 0, y: 0 }, data: { label: `${n.name}\n(${n.type})`, color: layerColorOf(n.type) }, initialWidth: NODE_W, initialHeight: NODE_H, draggable: false });
   }
   for (const n of view.externals) {
-    nodes.push({ id: n.id, type: 'ghost', position: pos[n.id] ?? { x: 0, y: 0 }, data: { label: `${n.name}\n(${n.type})`, color: layerColorOf(n.type) }, draggable: false });
+    nodes.push({ id: n.id, type: 'ghost', position: pos[n.id] ?? { x: 0, y: 0 }, data: { label: `${n.name}\n(${n.type})`, color: layerColorOf(n.type) }, initialWidth: NODE_W, initialHeight: NODE_H, draggable: false });
   }
 
   const edges = view.edges.map((e) => (e.derived ? derivedEdge(e) : realEdge(e)));

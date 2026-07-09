@@ -133,6 +133,16 @@ describe('layerColorOf', () => {
     expect(ghost.type).toBe('ghost');
     expect((ghost.data as { color?: unknown }).color).toEqual(LAYER_COLOR.Container);
   });
+
+  it('gives every node dimension hints so the minimap can size its rects', () => {
+    // The MiniMap renders nothing for nodes without dimensions; we never feed measured sizes back,
+    // so the nodes must carry initialWidth/initialHeight.
+    const { nodes } = focusViewToFlow(view, pos);
+    for (const n of nodes) {
+      expect(n.initialWidth).toBeGreaterThan(0);
+      expect(n.initialHeight).toBeGreaterThan(0);
+    }
+  });
 });
 
 describe('highlightSets', () => {

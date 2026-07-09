@@ -139,7 +139,7 @@ export function Canvas() {
         fitView
       >
         <Panel position="top-left"><FilterPanel /></Panel>
-        <Panel position="bottom-left"><Legend /></Panel>
+        <Panel position="top-right"><Legend /></Panel>
         <Background />
         <Controls />
         <MiniMap nodeColor={miniMapColor} pannable zoomable />
