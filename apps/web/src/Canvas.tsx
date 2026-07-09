@@ -18,6 +18,10 @@ import { Legend } from './Legend';
 const nodeTypes = { region: GroupNode, node: NodeBox, ghost: GhostNode };
 const edgeTypes = { floating: FloatingEdge };
 
+// Animate highlight/dim changes so hover and selection fade in and out instead of snapping.
+const NODE_TRANS = 'opacity 0.15s ease, box-shadow 0.15s ease, outline 0.15s ease';
+const EDGE_TRANS = 'opacity 0.15s ease, stroke-width 0.15s ease';
+
 // Colour minimap dots by layer (ghosts and regions muted) so the overview reads like the canvas.
 const miniMapColor = (n: FlowNode): string => {
   if (n.type === 'ghost') return '#cbd5e1';
@@ -44,9 +48,14 @@ export function Canvas() {
   const positions = useMemo(() => layoutFocusView(view), [view]);
   const { nodes, edges } = useMemo(() => focusViewToFlow(view, positions), [view, positions]);
 
-  // Highlight the active node (hovered, else selected) + neighbors (a region highlights its
-  // children), dim the rest.
-  const activeId = hoveredId ?? selectedId;
+  // Highlight the active node + neighbors (a region highlights its children), dim the rest.
+  // Selection wins over hover: once something is selected, hovering does not change the highlight.
+  // A hover is a softer preview than a selection (less emphasis, gentler dimming).
+  const activeId = selectedId ?? hoveredId;
+  const strong = !!selectedId;
+  const accent = strong ? '#2563eb' : '#93c5fd';
+  const dimEdge = strong ? 0.12 : 0.4;
+  const dimNode = strong ? 0.4 : 0.65;
   const childIds = useMemo(
     () => (activeId === view.focusId ? new Set(view.children.map((n) => n.id)) : new Set<string>()),
     [activeId, view],
@@ -55,18 +64,23 @@ export function Canvas() {
 
   const styledEdges = useMemo(
     () => edges.map((e) => {
-      if (hi.edges.has(e.id)) return { ...e, style: { ...e.style, strokeWidth: (typeof e.style?.strokeWidth === 'number' ? e.style.strokeWidth : 1.5) + 1.5, opacity: 1 }, zIndex: 10 };
-      return activeId ? { ...e, style: { ...e.style, opacity: 0.12 } } : e;
+      const base = { ...e.style, transition: EDGE_TRANS };
+      if (hi.edges.has(e.id)) {
+        const w = (typeof e.style?.strokeWidth === 'number' ? e.style.strokeWidth : 1.5) + (strong ? 1.5 : 1);
+        return { ...e, style: { ...base, strokeWidth: w, opacity: strong ? 1 : 0.9 }, zIndex: 10 };
+      }
+      return { ...e, style: { ...base, opacity: activeId ? dimEdge : 1 } };
     }),
-    [edges, hi, activeId],
+    [edges, hi, activeId, strong, dimEdge],
   );
   const styledNodes = useMemo(
     () => nodes.map((n) => {
-      if (n.type === 'region') return n.id === selectedId ? { ...n, style: { ...n.style, outline: '2px solid #2563eb', outlineOffset: 2 } } : n;
-      if (hi.nodes.has(n.id)) return { ...n, style: { ...n.style, boxShadow: '0 0 0 2px #2563eb', borderRadius: 4 }, zIndex: 5 };
-      return activeId ? { ...n, style: { ...n.style, opacity: 0.4 } } : n;
+      const base = { ...n.style, transition: NODE_TRANS };
+      if (n.type === 'region') return n.id === selectedId ? { ...n, style: { ...base, outline: `2px solid ${accent}`, outlineOffset: 2 } } : { ...n, style: base };
+      if (hi.nodes.has(n.id)) return { ...n, style: { ...base, boxShadow: `0 0 0 2px ${accent}`, borderRadius: 4 }, zIndex: 5 };
+      return { ...n, style: { ...base, opacity: activeId ? dimNode : 1 } };
     }),
-    [nodes, hi, activeId, selectedId],
+    [nodes, hi, activeId, strong, accent, dimNode, selectedId],
   );
 
   // Drill in: an external ghost, or a node with children, becomes the new focus.

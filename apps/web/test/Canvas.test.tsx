@@ -101,20 +101,35 @@ describe('Canvas navigation (real React Flow)', () => {
     expect(useStore.getState().focusId).toBe('sys');
   });
 
-  it('hovering a node dims unrelated nodes without changing the selection', () => {
-    // sys → ca, cb with no connection between them: hovering ca highlights only ca and dims cb.
+  // sys → ca, cb with no connection between them.
+  const twoContainers = () => {
     const m = emptyModel();
     m.nodes.push(
       { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
       { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
       { id: 'cb', name: 'Beta', type: 'Container', parentId: 'sys', ...base },
     );
-    useStore.setState({ model: m, focusId: 'sys', selectedId: null });
+    return m;
+  };
+
+  it('hovering a node dims unrelated nodes (softly) without changing the selection', () => {
+    useStore.setState({ model: twoContainers(), focusId: 'sys', selectedId: null });
     const { container } = render(<Canvas />);
     fireEvent.mouseEnter(node(container, 'ca')!);
-    expect(node(container, 'cb')!.style.opacity).toBe('0.4');
+    expect(node(container, 'cb')!.style.opacity).toBe('0.65'); // softer than a selection dim (0.4)
     expect(useStore.getState().selectedId).toBeNull();
     fireEvent.mouseLeave(node(container, 'ca')!);
-    expect(node(container, 'cb')!.style.opacity).toBe('');
+    expect(node(container, 'cb')!.style.opacity).toBe('1');
+  });
+
+  it('once a node is selected, hovering another node does not change the highlight', () => {
+    useStore.setState({ model: twoContainers(), focusId: 'sys', selectedId: 'ca' });
+    const { container } = render(<Canvas />);
+    // ca selected → cb dimmed with the stronger selection dim (0.4).
+    expect(node(container, 'cb')!.style.opacity).toBe('0.4');
+    // Hovering cb must NOT promote it or soften the dim — selection wins.
+    fireEvent.mouseEnter(node(container, 'cb')!);
+    expect(node(container, 'cb')!.style.opacity).toBe('0.4');
+    expect(node(container, 'cb')!.style.boxShadow ?? '').not.toContain('2px');
   });
 });
