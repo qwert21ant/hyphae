@@ -1,7 +1,8 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 
-// Four small side handles. With ConnectionMode.Loose any of them can be a source OR a target,
-// so a connection can start/end on any side, while the node body stays draggable.
+// Invisible, non-interactive side handles kept only so floating edges can anchor to the node
+// (React Flow drops edges whose endpoint exposes no handle). Connection-by-dragging is disabled,
+// so the dots are hidden.
 const sides: Array<{ id: string; position: Position }> = [
   { id: 't', position: Position.Top },
   { id: 'r', position: Position.Right },
@@ -29,7 +30,7 @@ export function NodeBox({ data }: NodeProps) {
       }}
     >
       {sides.map((s) => (
-        <Handle key={s.id} id={s.id} type="source" position={s.position} style={{ width: 7, height: 7, background: '#7c93b8' }} />
+        <Handle key={s.id} id={s.id} type="source" position={s.position} style={{ opacity: 0, pointerEvents: 'none' }} />
       ))}
       {label}
     </div>

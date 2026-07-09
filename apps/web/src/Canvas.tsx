@@ -18,9 +18,8 @@ import { Legend } from './Legend';
 const nodeTypes = { region: GroupNode, node: NodeBox, ghost: GhostNode };
 const edgeTypes = { floating: FloatingEdge };
 
-// Colour minimap dots by layer (ghosts and regions muted) so the overview reads like the canvas.
+// Colour minimap dots by layer (regions muted) so the overview reads like the canvas.
 const miniMapColor = (n: FlowNode): string => {
-  if (n.type === 'ghost') return '#cbd5e1';
   if (n.type === 'region') return '#e2e8f0';
   const c = (n.data as { color?: { border: string } }).color;
   return c?.border ?? '#94a3b8';

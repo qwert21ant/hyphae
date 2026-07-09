@@ -127,6 +127,12 @@ describe('layerColorOf', () => {
     const { nodes } = focusViewToFlow(view, pos);
     expect((nodes.find((n) => n.id === 'a1')!.data as { color?: unknown }).color).toEqual(LAYER_COLOR.Component);
   });
+  it('tints external (ghost) nodes by their own layer too', () => {
+    const { nodes } = focusViewToFlow(view, pos); // cb is an external Container
+    const ghost = nodes.find((n) => n.id === 'cb')!;
+    expect(ghost.type).toBe('ghost');
+    expect((ghost.data as { color?: unknown }).color).toEqual(LAYER_COLOR.Container);
+  });
 });
 
 describe('highlightSets', () => {
