@@ -97,6 +97,7 @@ unwieldy count is a signal the Component is too coarse (surface it, don't trunca
 
 ### Phase 5 — Verify (optional, re-runnable)
 A standalone consistency pass over an existing model. Run it right after Phase 3, or any time later — it is independent of Phase 4. Read-mostly: gaps are filled by the owning subagent, never by the orchestrator inventing edges.
+0. **Structural check.** Call `validate_model` first — it returns any structural/field issues (bad containment, dangling/bad endpoints, unknown or missing-required fields, bad enum values, bad refs) in one read. Fix those before the semantic sweep. An empty result means the model is structurally clean (it does not check for orphans/unbound edges — that is the sweep below).
 1. **Coverage sweep.** Call `list_connections` once (optionally per container via `containerId`) to get every edge with endpoint/container names, plus `list_nodes`, and flag: Components with **zero connections** (orphans); and "hub" Components whose `description`/`invariants` claim broad dependence ("all others depend on it", "implements", "used by") but have few or no inbound edges. A Component a subagent listed under `standaloneComponents` is expected — not a flag.
    - **Unbound code edges.** Flag any cross-component code edge whose id is NOT in any Component↔Component
      edge's `realizedBy`. Fix by binding it (orchestrator) or by having the owning subagent confirm it.
@@ -104,7 +105,7 @@ A standalone consistency pass over an existing model. Run it right after Phase 3
 3. For confirmed gaps, **re-dispatch the owning container's subagent** (same `references/subagent-prompt.md`) to add the missing intra-container edges. The orchestrator must not write intra-container edges itself.
 4. Idempotent (create-or-skip), so Verify can be re-run until clean.
 
-> `list_connections` returns the whole edge set (with names and owning containers) in one call, so the sweep stays cheap even on large models. Use `find_connections` only to inspect a single node's edges.
+> `list_connections` returns the whole edge set (with names and owning containers) in one call, so the sweep stays cheap even on large models. To inspect a single node's edges, pass `list_connections({nodeId})`.
 
 ## Idempotency contract (every run, every agent)
 

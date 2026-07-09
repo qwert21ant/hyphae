@@ -100,4 +100,21 @@ describe('Canvas navigation (real React Flow)', () => {
     expect(useStore.getState().selectedId).toBe('ca');
     expect(useStore.getState().focusId).toBe('sys');
   });
+
+  it('hovering a node dims unrelated nodes without changing the selection', () => {
+    // sys → ca, cb with no connection between them: hovering ca highlights only ca and dims cb.
+    const m = emptyModel();
+    m.nodes.push(
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
+      { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
+      { id: 'cb', name: 'Beta', type: 'Container', parentId: 'sys', ...base },
+    );
+    useStore.setState({ model: m, focusId: 'sys', selectedId: null });
+    const { container } = render(<Canvas />);
+    fireEvent.mouseEnter(node(container, 'ca')!);
+    expect(node(container, 'cb')!.style.opacity).toBe('0.4');
+    expect(useStore.getState().selectedId).toBeNull();
+    fireEvent.mouseLeave(node(container, 'ca')!);
+    expect(node(container, 'cb')!.style.opacity).toBe('');
+  });
 });

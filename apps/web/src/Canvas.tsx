@@ -1,6 +1,6 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ReactFlow, Background, Controls, Panel, ConnectionMode,
+  ReactFlow, Background, Controls, MiniMap, Panel, ConnectionMode,
   type Node as FlowNode,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -13,9 +13,18 @@ import { NodeBox } from './NodeBox';
 import { GhostNode } from './GhostNode';
 import { FloatingEdge } from './FloatingEdge';
 import { FilterPanel } from './FilterPanel';
+import { Legend } from './Legend';
 
 const nodeTypes = { region: GroupNode, node: NodeBox, ghost: GhostNode };
 const edgeTypes = { floating: FloatingEdge };
+
+// Colour minimap dots by layer (ghosts and regions muted) so the overview reads like the canvas.
+const miniMapColor = (n: FlowNode): string => {
+  if (n.type === 'ghost') return '#cbd5e1';
+  if (n.type === 'region') return '#e2e8f0';
+  const c = (n.data as { color?: { border: string } }).color;
+  return c?.border ?? '#94a3b8';
+};
 
 export function Canvas() {
   const model = useStore((s) => s.model);
@@ -25,31 +34,39 @@ export function Canvas() {
   const select = useStore((s) => s.select);
   const setFocus = useStore((s) => s.setFocus);
 
+  // Transient hover, so a user can trace a node's neighborhood without committing a selection.
+  // Hover takes precedence; selection is the fallback (so the highlight persists after the mouse leaves).
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  // Drilling changes focus (and remounts the graph); reset hover so the new view opens neutral.
+  useEffect(() => setHoveredId(null), [focusId]);
+
   const view = useMemo(() => buildFocusView(model, focusId, connFilter), [model, focusId, connFilter]);
   const positions = useMemo(() => layoutFocusView(view), [view]);
   const { nodes, edges } = useMemo(() => focusViewToFlow(view, positions), [view, positions]);
 
-  // Highlight the selection + neighbors (a region highlights its children), dim the rest.
+  // Highlight the active node (hovered, else selected) + neighbors (a region highlights its
+  // children), dim the rest.
+  const activeId = hoveredId ?? selectedId;
   const childIds = useMemo(
-    () => (selectedId === view.focusId ? new Set(view.children.map((n) => n.id)) : new Set<string>()),
-    [selectedId, view],
+    () => (activeId === view.focusId ? new Set(view.children.map((n) => n.id)) : new Set<string>()),
+    [activeId, view],
   );
-  const hi = useMemo(() => highlightSets(selectedId, edges, childIds), [selectedId, edges, childIds]);
+  const hi = useMemo(() => highlightSets(activeId, edges, childIds), [activeId, edges, childIds]);
 
   const styledEdges = useMemo(
     () => edges.map((e) => {
       if (hi.edges.has(e.id)) return { ...e, style: { ...e.style, strokeWidth: (typeof e.style?.strokeWidth === 'number' ? e.style.strokeWidth : 1.5) + 1.5, opacity: 1 }, zIndex: 10 };
-      return selectedId ? { ...e, style: { ...e.style, opacity: 0.12 } } : e;
+      return activeId ? { ...e, style: { ...e.style, opacity: 0.12 } } : e;
     }),
-    [edges, hi, selectedId],
+    [edges, hi, activeId],
   );
   const styledNodes = useMemo(
     () => nodes.map((n) => {
       if (n.type === 'region') return n.id === selectedId ? { ...n, style: { ...n.style, outline: '2px solid #2563eb', outlineOffset: 2 } } : n;
       if (hi.nodes.has(n.id)) return { ...n, style: { ...n.style, boxShadow: '0 0 0 2px #2563eb', borderRadius: 4 }, zIndex: 5 };
-      return selectedId ? { ...n, style: { ...n.style, opacity: 0.4 } } : n;
+      return activeId ? { ...n, style: { ...n.style, opacity: 0.4 } } : n;
     }),
-    [nodes, hi, selectedId],
+    [nodes, hi, activeId, selectedId],
   );
 
   // Drill in: an external ghost, or a node with children, becomes the new focus.
@@ -87,13 +104,19 @@ export function Canvas() {
         nodesConnectable={false}
         elementsSelectable
         onNodeClick={onNodeClick}
+        onNodeMouseEnter={(_, node) => setHoveredId(node.id)}
+        onNodeMouseLeave={() => setHoveredId(null)}
+        onEdgeMouseEnter={(_, e) => setHoveredId(e.id)}
+        onEdgeMouseLeave={() => setHoveredId(null)}
         onEdgeClick={(_, e) => select(e.id)}
         onPaneClick={() => select(null)}
         fitView
       >
         <Panel position="top-left"><FilterPanel /></Panel>
+        <Panel position="bottom-left"><Legend /></Panel>
         <Background />
         <Controls />
+        <MiniMap nodeColor={miniMapColor} pannable zoomable />
       </ReactFlow>
     </div>
   );

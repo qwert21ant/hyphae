@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { focusViewToFlow, highlightSets } from '../src/flow';
+import { focusViewToFlow, highlightSets, layerColorOf, LAYER_COLOR } from '../src/flow';
 import type { FocusView } from '../src/focusView';
 import type { Edge as FlowEdge } from '@xyflow/react';
 
@@ -111,6 +111,21 @@ describe('focusViewToFlow', () => {
       expect(nodeIds.has(e.source)).toBe(true);
       expect(nodeIds.has(e.target)).toBe(true);
     }
+  });
+});
+
+describe('layerColorOf', () => {
+  it('maps a node type to its C4 layer colour', () => {
+    expect(layerColorOf('Component')).toEqual(LAYER_COLOR.Component);
+    expect(layerColorOf('Container')).toEqual(LAYER_COLOR.Container);
+    expect(layerColorOf('System')).toEqual(LAYER_COLOR.Context);
+  });
+  it('falls back to a neutral colour for an unknown type', () => {
+    expect(layerColorOf('Nonsense')).toEqual({ bg: '#fff', border: '#b1b1b7' });
+  });
+  it('tints child nodes by layer in the flow output', () => {
+    const { nodes } = focusViewToFlow(view, pos);
+    expect((nodes.find((n) => n.id === 'a1')!.data as { color?: unknown }).color).toEqual(LAYER_COLOR.Component);
   });
 });
 

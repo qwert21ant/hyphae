@@ -37,11 +37,23 @@ describe('MCP tool handlers', () => {
   it('get_node returns one node by id', async () => {
     expect(await buildTools(fakeApi()).get_node({ id: 'api' })).toMatchObject({ name: 'API' });
   });
+  it('get_node returns an error for a missing id', async () => {
+    expect(await buildTools(fakeApi()).get_node({ id: 'nope' })).toMatchObject({ error: expect.stringContaining('not found') });
+  });
   it('list_nodes lists summaries', async () => {
     expect(await buildTools(fakeApi()).list_nodes({})).toEqual([{ id: 'api', name: 'API', type: 'Container', parentId: null }]);
   });
-  it('find_connections filters by node id', async () => {
-    expect(await buildTools(fakeApi()).find_connections({ nodeId: 'api' })).toHaveLength(1);
+  it('validate_model returns issues against the active profile', async () => {
+    // a clean single-container model has no structural issues
+    expect(await buildTools(fakeApi()).validate_model({})).toEqual([]);
+    // a dangling connection endpoint surfaces an issue
+    const api = fakeApi({ getModel: async () => {
+      const m = model();
+      m.connections.push({ id: 'c2', from: 'api', to: 'ghost', type: 'Dependency', fields: { transport: 'Sync' }, description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [] });
+      return m;
+    } });
+    const issues = (await buildTools(api).validate_model({})) as Array<{ kind: string; ref: string }>;
+    expect(issues).toContainEqual(expect.objectContaining({ kind: 'dangling-endpoint', ref: 'c2' }));
   });
   it('create_nodes returns ids on full success', async () => {
     const r = await buildTools(fakeApi()).create_nodes({ nodes: [{ name: 'X', type: 'Component' }] });
@@ -136,15 +148,27 @@ function graphModel(): HyphaeModel {
 describe('MCP query tools', () => {
   const api = () => fakeApi({ getModel: async () => graphModel() });
 
-  it('search_nodes matches name and description, with parentId for disambiguation', async () => {
-    const r = (await buildTools(api()).search_nodes({ query: 'widget' })) as Array<{ id: string; parentId: string | null }>;
+  it('list_nodes with query matches name and description, enriching rows with parent name', async () => {
+    const r = (await buildTools(api()).list_nodes({ query: 'widget' })) as unknown as Array<{ id: string; parentId: string | null; parent: string | null; description: string }>;
     expect(r.map((n) => n.id).sort()).toEqual(['n1', 'n3']);
-    expect(r.every((n) => 'parentId' in n)).toBe(true);
+    expect(r.find((n) => n.id === 'n1')).toMatchObject({ parent: 'Alpha', description: 'handles widgets' });
   });
 
-  it('search_nodes respects type + parentId filters', async () => {
-    const r = (await buildTools(api()).search_nodes({ query: 'widget', type: 'Component', parentId: 'ca' })) as Array<{ id: string }>;
+  it('list_nodes query respects type + parentId filters', async () => {
+    const r = (await buildTools(api()).list_nodes({ query: 'widget', type: 'Component', parentId: 'ca' })) as Array<{ id: string }>;
     expect(r.map((n) => n.id)).toEqual(['n1']);
+  });
+
+  it('list_nodes query caps at 25 rows by default; explicit limit overrides and plain enumeration is uncapped', async () => {
+    const big = () => {
+      const m = emptyModel();
+      for (let i = 0; i < 30; i++) m.nodes.push({ id: `w${i}`, name: `Widget ${i}`, type: 'Component', description: '', parentId: null, fields: {}, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
+      return m;
+    };
+    const a = fakeApi({ getModel: async () => big() });
+    expect((await buildTools(a).list_nodes({ query: 'widget' })) as unknown[]).toHaveLength(25);
+    expect((await buildTools(a).list_nodes({ query: 'widget', limit: 30 })) as unknown[]).toHaveLength(30);
+    expect((await buildTools(a).list_nodes({})) as unknown[]).toHaveLength(30); // no query = uncapped
   });
 
   it('list_nodes filters by parentId', async () => {
@@ -258,21 +282,35 @@ describe('list_connections', () => {
     expect(ids(await buildTools(api()).list_connections({ containerId: 'ca' }))).toEqual(['x1', 'x2', 'x4']);
   });
 
+  it('filters by nodeId (edges touching one node)', async () => {
+    expect(ids(await buildTools(api()).list_connections({ nodeId: 'a1' }))).toEqual(['x1', 'x2', 'x4']);
+    expect(ids(await buildTools(api()).list_connections({ nodeId: 'b1' }))).toEqual(['x1', 'x3']);
+  });
+
+  it('returns an error for a missing nodeId', async () => {
+    expect(await buildTools(api()).list_connections({ nodeId: 'nope' })).toMatchObject({ error: expect.stringContaining('not found') });
+  });
+
   it('enriches results with endpoint names and owning containers', async () => {
     const r = (await buildTools(api()).list_connections({ crossingBoundary: true })) as Array<Record<string, unknown>>;
     const x1 = r.find((c) => c.id === 'x1')!;
     expect(x1).toMatchObject({ fromName: 'A1', toName: 'B1', fromContainer: 'Alpha', toContainer: 'Beta' });
   });
 
-  it('rollup:Container returns derived container edges with realizedBy expanded', async () => {
-    const r = (await buildTools(api()).list_connections({ rollup: 'Container' })) as Array<{ from: string; to: string; realizedBy: Array<{ id: string; type: string }> }>;
+});
+
+describe('rollup_connections', () => {
+  const api = () => fakeApi({ getModel: async () => connModel() });
+
+  it('layer:Container returns derived container edges with realizedBy expanded', async () => {
+    const r = (await buildTools(api()).rollup_connections({ layer: 'Container' })) as Array<{ from: string; to: string; realizedBy: Array<{ id: string; type: string }> }>;
     expect(r.map((e) => `${e.from}->${e.to}`).sort()).toEqual(['ca->cb', 'ca->ext', 'cb->ext']);
     const caCb = r.find((e) => e.from === 'ca' && e.to === 'cb')!;
     expect(caCb.realizedBy).toEqual([{ id: 'x1', fromName: 'A1', toName: 'B1', type: 'Dependency', transport: 'Sync', intent: undefined, description: '' }]);
   });
 
-  it('rollup:Context collapses internal edges to the System, keeping external edges', async () => {
-    const r = (await buildTools(api()).list_connections({ rollup: 'Context' })) as Array<{ from: string; to: string; realizedBy: Array<{ id: string }> }>;
+  it('layer:Context collapses internal edges to the System, keeping external edges', async () => {
+    const r = (await buildTools(api()).rollup_connections({ layer: 'Context' })) as Array<{ from: string; to: string; realizedBy: Array<{ id: string }> }>;
     expect(r).toHaveLength(1);
     expect(r[0]).toMatchObject({ from: 'sys', to: 'ext' });
     expect(r[0].realizedBy.map((u) => u.id).sort()).toEqual(['x2', 'x3']);

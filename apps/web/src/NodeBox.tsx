@@ -10,16 +10,18 @@ const sides: Array<{ id: string; position: Position }> = [
 ];
 
 export function NodeBox({ data }: NodeProps) {
-  const label = (data as { label?: string }).label ?? '';
+  const d = data as { label?: string; color?: { bg: string; border: string } };
+  const label = d.label ?? '';
+  const color = d.color ?? { bg: '#fff', border: '#b1b1b7' };
   return (
     <div
       style={{
         width: 160,
         padding: '8px 10px',
         boxSizing: 'border-box',
-        border: '1px solid #b1b1b7',
+        border: `1px solid ${color.border}`,
         borderRadius: 4,
-        background: '#fff',
+        background: color.bg,
         fontSize: 12,
         lineHeight: 1.3,
         textAlign: 'center',

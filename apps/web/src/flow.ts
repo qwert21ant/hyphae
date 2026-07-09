@@ -1,9 +1,22 @@
 import { MarkerType, type Node as FlowNode, type Edge as FlowEdge } from '@xyflow/react';
+import { c4Backend, layerOfType } from '@hyphae/schema';
 import type { FocusView, FocusEdge } from './focusView';
 import { NODE_W, NODE_H, type XY } from './layout';
 
 const PAD = 24;
 const LABEL_H = 22;
+
+/** Tint each node by its C4 layer so altitude is readable at a glance. Kept in sync with the legend. */
+export const LAYER_COLOR: Record<string, { bg: string; border: string }> = {
+  Context: { bg: '#eef2ff', border: '#6366f1' },
+  Container: { bg: '#ecfeff', border: '#0891b2' },
+  Component: { bg: '#f0fdf4', border: '#16a34a' },
+  Code: { bg: '#fefce8', border: '#ca8a04' },
+};
+export function layerColorOf(type: string): { bg: string; border: string } {
+  const layer = layerOfType(c4Backend, type);
+  return (layer && LAYER_COLOR[layer]) || { bg: '#fff', border: '#b1b1b7' };
+}
 
 /** Arrowheads showing direction: at the target; also at the source when bidirectional; none
  *  when 'None' (an aggregated pair whose underlying connections point both ways). */
@@ -60,13 +73,13 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nod
       id: view.focusNode.id,
       type: 'node',
       position: pos[view.focusNode.id] ?? { x: 0, y: 0 },
-      data: { label: `${view.focusNode.name}\n(${view.focusNode.type})` },
+      data: { label: `${view.focusNode.name}\n(${view.focusNode.type})`, color: layerColorOf(view.focusNode.type) },
       draggable: false,
     });
   }
 
   for (const n of view.children) {
-    nodes.push({ id: n.id, type: 'node', position: pos[n.id] ?? { x: 0, y: 0 }, data: { label: `${n.name}\n(${n.type})` }, draggable: false });
+    nodes.push({ id: n.id, type: 'node', position: pos[n.id] ?? { x: 0, y: 0 }, data: { label: `${n.name}\n(${n.type})`, color: layerColorOf(n.type) }, draggable: false });
   }
   for (const n of view.externals) {
     nodes.push({ id: n.id, type: 'ghost', position: pos[n.id] ?? { x: 0, y: 0 }, data: { label: `${n.name}\n(${n.type})` }, draggable: false });

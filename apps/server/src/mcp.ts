@@ -2,7 +2,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import {
-  modelOverview, rollupConnections, HyphaeModelSchema, c4Backend, effectiveFields, connectionKindIds,
+  modelOverview, rollupConnections, validateModel, resolveProfile, HyphaeModelSchema, c4Backend,
+  effectiveFields, connectionKindIds,
   type HyphaeModel, type FieldDef,
 } from '@hyphae/schema';
 
@@ -51,52 +52,41 @@ export function buildTools(api: HyphaeApi) {
   return {
     model_overview: async (_: Record<string, never>) => modelOverview(await api.getModel()),
     get_node: async ({ id }: { id: string }) =>
-      (await api.getModel()).nodes.find((n) => n.id === id) ?? null,
-    list_nodes: async ({ parentId, type, limit, offset }: { parentId?: string; type?: string; limit?: number; offset?: number } = {}) => {
-      let nodes = (await api.getModel()).nodes;
+      (await api.getModel()).nodes.find((n) => n.id === id) ?? { error: `node ${id} not found` },
+    list_nodes: async ({ parentId, type, query, fields, limit, offset }: { parentId?: string; type?: string; query?: string; fields?: string[]; limit?: number; offset?: number } = {}) => {
+      const model = await api.getModel();
+      let nodes = model.nodes;
       if (parentId !== undefined) nodes = nodes.filter((n) => n.parentId === parentId);
       if (type !== undefined) nodes = nodes.filter((n) => n.type === type);
+      if (query !== undefined) {
+        const q = query.toLowerCase();
+        const searchFields = fields?.length ? fields : ['name', 'description', 'technology', 'responsibilities', 'invariants'];
+        const hit = (n: typeof model.nodes[number]) =>
+          searchFields.some((f) => {
+            const v = f === 'name' ? n.name : f === 'description' ? n.description : n.fields[f];
+            if (typeof v === 'string') return v.toLowerCase().includes(q);
+            if (Array.isArray(v)) return v.some((x) => typeof x === 'string' && x.toLowerCase().includes(q));
+            return false;
+          });
+        nodes = nodes.filter(hit);
+      }
       const start = offset ?? 0;
-      nodes = limit !== undefined ? nodes.slice(start, start + limit) : nodes.slice(start);
+      // A text query defaults to a 25-row cap (as the former search_nodes did) so a broad match
+      // does not dump the whole model as the heavier enriched rows; plain enumeration is uncapped.
+      const effLimit = limit ?? (query !== undefined ? 25 : undefined);
+      nodes = effLimit !== undefined ? nodes.slice(start, start + effLimit) : nodes.slice(start);
+      // With a text query, enrich rows with the parent name + description for disambiguation
+      // (component names repeat across containers); plain enumeration stays lean.
+      if (query !== undefined) {
+        const nameById = new Map(model.nodes.map((n) => [n.id, n.name]));
+        return nodes.map((n) => ({ id: n.id, name: n.name, type: n.type, parentId: n.parentId, parent: n.parentId ? nameById.get(n.parentId) ?? null : null, description: n.description }));
+      }
       return nodes.map((n) => ({ id: n.id, name: n.name, type: n.type, parentId: n.parentId }));
     },
-    search_nodes: async ({ query, type, parentId, fields, limit }: { query: string; type?: string; parentId?: string; fields?: string[]; limit?: number }) => {
-      const q = query.toLowerCase();
-      const searchFields = fields?.length ? fields : ['name', 'description', 'technology', 'responsibilities', 'invariants'];
-      const model = await api.getModel();
-      const nameById = new Map(model.nodes.map((n) => [n.id, n.name]));
-      const hit = (n: typeof model.nodes[number]) =>
-        searchFields.some((f) => {
-          const v = f === 'name' ? n.name : f === 'description' ? n.description : n.fields[f];
-          if (typeof v === 'string') return v.toLowerCase().includes(q);
-          if (Array.isArray(v)) return v.some((x) => typeof x === 'string' && x.toLowerCase().includes(q));
-          return false;
-        });
-      return model.nodes
-        .filter((n) => (type === undefined || n.type === type) && (parentId === undefined || n.parentId === parentId) && hit(n))
-        .slice(0, limit ?? 25)
-        .map((n) => ({ id: n.id, name: n.name, type: n.type, parentId: n.parentId, parent: n.parentId ? nameById.get(n.parentId) ?? null : null, description: n.description }));
-    },
-    find_connections: async ({ nodeId }: { nodeId: string }) =>
-      (await api.getModel()).connections.filter((c) => c.from === nodeId || c.to === nodeId),
-    list_connections: async ({ type, transport, containerId, crossingBoundary, involvingExternal, rollup, limit, offset }: { type?: string; transport?: string; containerId?: string; crossingBoundary?: boolean; involvingExternal?: boolean; rollup?: 'Container' | 'Context'; limit?: number; offset?: number } = {}) => {
+    list_connections: async ({ type, transport, nodeId, containerId, crossingBoundary, involvingExternal, limit, offset }: { type?: string; transport?: string; nodeId?: string; containerId?: string; crossingBoundary?: boolean; involvingExternal?: boolean; limit?: number; offset?: number } = {}) => {
       const model = await api.getModel();
       const byId = new Map(model.nodes.map((n) => [n.id, n]));
-      if (rollup) {
-        const connById = new Map(model.connections.map((c) => [c.id, c]));
-        let rolled = rollupConnections(model, rollup);
-        const start = offset ?? 0;
-        rolled = limit !== undefined ? rolled.slice(start, start + limit) : rolled.slice(start);
-        return rolled.map((e) => ({
-          from: e.from, to: e.to,
-          fromName: byId.get(e.from)?.name ?? e.from, toName: byId.get(e.to)?.name ?? e.to,
-          realizedBy: e.realizedBy.map((id) => {
-            const c = connById.get(id);
-            if (!c) return { id };
-            return { id: c.id, fromName: byId.get(c.from)?.name ?? c.from, toName: byId.get(c.to)?.name ?? c.to, type: c.type, transport: c.fields.transport, intent: c.fields.intent, description: c.description };
-          }),
-        }));
-      }
+      if (nodeId !== undefined && !byId.has(nodeId)) return { error: `node ${nodeId} not found` };
       const containerCache = new Map<string, string | null>();
       const containerOf = (id: string): string | null => {
         const cached = containerCache.get(id);
@@ -132,6 +122,7 @@ export function buildTools(api: HyphaeApi) {
       let conns = model.connections.filter((c) => {
         if (type !== undefined && c.type !== type) return false;
         if (transport !== undefined && c.fields.transport !== transport) return false;
+        if (nodeId !== undefined && c.from !== nodeId && c.to !== nodeId) return false;
         if (subtree && !(subtree.has(c.from) || subtree.has(c.to))) return false;
         if (involvingExternal !== undefined) {
           const ext = byId.get(c.from)?.type === 'ExternalSystem' || byId.get(c.to)?.type === 'ExternalSystem';
@@ -190,6 +181,27 @@ export function buildTools(api: HyphaeApi) {
         nodes: model.nodes.filter((n) => reached.has(n.id)).map((n) => ({ id: n.id, name: n.name, type: n.type, parentId: n.parentId })),
         connections: edges.filter((c) => reached.has(c.from) && reached.has(c.to)),
       };
+    },
+    rollup_connections: async ({ layer, limit, offset }: { layer: 'Container' | 'Context'; limit?: number; offset?: number }) => {
+      const model = await api.getModel();
+      const byId = new Map(model.nodes.map((n) => [n.id, n]));
+      const connById = new Map(model.connections.map((c) => [c.id, c]));
+      let rolled = rollupConnections(model, layer);
+      const start = offset ?? 0;
+      rolled = limit !== undefined ? rolled.slice(start, start + limit) : rolled.slice(start);
+      return rolled.map((e) => ({
+        from: e.from, to: e.to,
+        fromName: byId.get(e.from)?.name ?? e.from, toName: byId.get(e.to)?.name ?? e.to,
+        realizedBy: e.realizedBy.map((id) => {
+          const c = connById.get(id);
+          if (!c) return { id };
+          return { id: c.id, fromName: byId.get(c.from)?.name ?? c.from, toName: byId.get(c.to)?.name ?? c.to, type: c.type, transport: c.fields.transport, intent: c.fields.intent, description: c.description };
+        }),
+      }));
+    },
+    validate_model: async (_: Record<string, never>) => {
+      const model = await api.getModel();
+      return validateModel(model, resolveProfile(model));
     },
     create_nodes: async ({ nodes }: { nodes: Record<string, unknown>[] }) => runCreate(nodes, api.createNode, 'node'),
     create_connections: async ({ connections }: { connections: Record<string, unknown>[] }) => runCreate(connections, api.createConnection, 'connection'),
@@ -267,45 +279,55 @@ async function main() {
   server.registerTool(
     'model_overview',
     {
-      description: 'Orientation read — call this FIRST. Returns a small, size-independent overview: model name, node counts per layer and per kind, total connections, and the System + Container nodes (id, name, one-line description). It never dumps Components or Code. Drill deeper with list_nodes (by parentId), get_subgraph, list_connections, search_nodes, get_node.',
+      description: 'Orientation read — call this FIRST. Returns a small, size-independent overview: model name, node counts per layer and per kind, total connections, and the System + Container nodes (id, name, one-line description). It never dumps Components or Code. Drill deeper with list_nodes (by parentId or text query), get_subgraph, list_connections, get_node.',
       inputSchema: {},
     },
     async () => text(await tools.model_overview({})),
   );
-  server.registerTool('get_node', { description: 'Get one node by id.', inputSchema: { id: z.string() } }, async (a) => text(await tools.get_node(a)));
+  server.registerTool('get_node', { description: 'Get one node by id — its full body and `fields` only (no edges; use list_connections({nodeId}) or get_subgraph for wiring). Returns {error} if the id does not exist.', inputSchema: { id: z.string() } }, async (a) => text(await tools.get_node(a)));
   server.registerTool(
     'list_nodes',
     {
-      description: 'List node summaries (id, name, type, parentId). Optional filters: `parentId` (e.g. the components of one container), `type`; plus `offset`/`limit` for pagination. Prefer this (or search_nodes / get_subgraph) over model_overview on a large model.',
-      inputSchema: { parentId: z.string().optional(), type: z.string().optional(), limit: z.number().optional(), offset: z.number().optional() },
+      description: 'List/find node summaries (id, name, type, parentId). Optional filters (AND-combined): `parentId` (e.g. the components of one container), `type`, and `query` — a case-insensitive substring matched across text fields (name, description, technology, responsibilities, invariants by default; narrow with `fields`). With `query`, rows also carry the parent name + description for disambiguation (component names repeat across containers) and default to a 25-row cap; plain enumeration stays lean and uncapped. `offset`/`limit` paginate (an explicit `limit` overrides the query cap). Prefer this (or get_subgraph) over model_overview on a large model.',
+      inputSchema: {
+        parentId: z.string().optional(),
+        type: z.string().optional(),
+        query: z.string().optional().describe('Case-insensitive substring; keep only nodes whose searched text fields contain it.'),
+        fields: z.array(z.string()).optional().describe('Restrict which fields `query` searches (core fields or any documented `fields` key — see describe_profile). Default: name, description, technology, responsibilities, invariants.'),
+        limit: z.number().optional(),
+        offset: z.number().optional(),
+      },
     },
     async (a) => text(await tools.list_nodes(a)),
   );
   server.registerTool(
-    'search_nodes',
-    {
-      description: 'Find nodes by case-insensitive substring across text fields (name, description, technology, responsibilities, invariants by default). Optional: `type`/`parentId` filters, `fields` to restrict which fields are searched (core fields or any documented `fields` key — see describe_profile), `limit` (default 25). Returns compact summaries with the parent name for disambiguation (component names can repeat across containers).',
-      inputSchema: { query: z.string(), type: z.string().optional(), parentId: z.string().optional(), fields: z.array(z.string()).optional(), limit: z.number().optional() },
-    },
-    async (a) => text(await tools.search_nodes(a)),
-  );
-  server.registerTool('find_connections', { description: 'List the connections touching a node id.', inputSchema: { nodeId: z.string() } }, async (a) => text(await tools.find_connections(a)));
-  server.registerTool(
     'list_connections',
     {
-      description: 'Query connections across the model. Filters (all optional, AND-combined): type, transport, containerId (edges touching that container or any of its descendants), crossingBoundary (true = endpoints in different owning containers — i.e. inter-container / external edges; false = intra-container only), involvingExternal (an endpoint is an ExternalSystem). Supports offset/limit. Each raw result is enriched with fromName/toName and fromContainer/toContainer. Pass `rollup` to instead get DERIVED higher-level edges: connections lifted to that layer (component edges aggregated into Container↔Container or Context-level edges), with each rollup edge expanding its underlying connections inline as `realizedBy` (the other filters do not apply in rollup mode).',
+      description: 'Query raw connections across the model. Filters (all optional, AND-combined): type, transport, nodeId (edges touching exactly this node — use to inspect one node\'s edges), containerId (edges touching that container or any of its descendants), crossingBoundary (true = endpoints in different owning containers — i.e. inter-container / external edges; false = intra-container only), involvingExternal (an endpoint is an ExternalSystem). Supports offset/limit. Each result is enriched with fromName/toName and fromContainer/toContainer. For DERIVED higher-level edges (component edges aggregated to Container/Context level) use rollup_connections.',
       inputSchema: {
         type: z.enum(connectionKindIds(c4Backend) as [string, ...string[]]).optional().describe('Only connections of this type (active profile connection kind).'),
         transport: z.string().optional().describe('Only connections with this `fields.transport` value.'),
+        nodeId: z.string().optional().describe('A node id; keep only edges whose from or to is exactly this node.'),
         containerId: z.string().optional().describe('A container node id; keep only edges touching it or one of its descendants.'),
         crossingBoundary: z.boolean().optional().describe('true = only edges whose endpoints belong to different containers (inter-container/external); false = only intra-container edges.'),
         involvingExternal: z.boolean().optional().describe('true = only edges with an ExternalSystem endpoint; false = only edges between in-system nodes.'),
-        rollup: z.enum(['Container', 'Context']).optional().describe('Return DERIVED higher-level edges at this layer instead of raw connections: component edges are lifted and aggregated (intra-node edges dropped), and each result lists its underlying edges as realizedBy. Other filters are ignored in this mode.'),
         limit: z.number().optional(),
         offset: z.number().optional(),
       },
     },
     async (a) => text(await tools.list_connections(a)),
+  );
+  server.registerTool(
+    'rollup_connections',
+    {
+      description: 'DERIVED higher-level edges: component connections lifted and aggregated to the given layer (intra-node edges dropped). Each result is a Container↔Container or Context-level edge enriched with fromName/toName, and lists its underlying connections inline as `realizedBy`. Supports offset/limit. Use list_connections for the raw, unaggregated edges.',
+      inputSchema: {
+        layer: z.enum(['Container', 'Context']).describe('The layer to lift connections to.'),
+        limit: z.number().optional(),
+        offset: z.number().optional(),
+      },
+    },
+    async (a) => text(await tools.rollup_connections(a)),
   );
   server.registerTool(
     'get_subgraph',
@@ -374,6 +396,11 @@ async function main() {
     description: 'The active profile: its layers, node kinds, connection kinds, and the documented custom fields (with enum values and descriptions) valid for each. Call this to learn what `type` values and `fields` are available before creating nodes/connections.',
     inputSchema: {},
   }, async () => text(await tools.describe_profile({})));
+
+  server.registerTool('validate_model', {
+    description: 'Validate the whole model against the active profile and return the structural/field issues ({kind, ref, message}): bad containment, dangling/bad endpoints, unknown or missing-required fields, bad enum values, bad refs. Empty array means structurally clean. Use in the Verify phase instead of dumping the model and re-deriving validity in-context. Note: this checks structure/fields only — it does NOT find semantic gaps like orphan components or unbound code edges.',
+    inputSchema: {},
+  }, async () => text(await tools.validate_model({})));
 
   await server.connect(new StdioServerTransport());
 }

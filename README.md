@@ -49,9 +49,10 @@ The MCP server is an HTTP client of the running Hyphae server, so the server mus
     HYPHAE_SERVER=http://localhost:5173 pnpm --filter @hyphae/server mcp   # terminal B
 
 Read tools: `describe_profile` (the active profile's node/connection kinds and their documented
-fields — call it first), `get_text_context`, `get_node`, `list_nodes`, `search_nodes`,
-`find_connections`, `list_connections` (incl. `rollup`), `get_subgraph`.
-Write tools: `create_node`, `update_node`, `delete_node`, `create_connection`, `update_connection`, `delete_connection`.
+fields — call it first), `model_overview`, `get_node`, `list_nodes` (with an optional text `query`),
+`list_connections` (incl. a `nodeId` filter for one node's edges), `rollup_connections` (derived
+higher-layer edges), `get_subgraph`, `validate_model` (structural/field issues).
+Write tools: `create_nodes`, `update_nodes`, `delete_nodes`, `create_connections`, `update_connections`, `delete_connections`.
 Domain values go in a `fields` bag validated against the profile; the write tools' params are built
 from the active profile.
 
