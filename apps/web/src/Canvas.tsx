@@ -18,10 +18,6 @@ import { Legend } from './Legend';
 const nodeTypes = { region: GroupNode, node: NodeBox, ghost: GhostNode };
 const edgeTypes = { floating: FloatingEdge };
 
-// Animate highlight/dim changes so hover and selection fade in and out instead of snapping.
-const NODE_TRANS = 'opacity 0.15s ease, box-shadow 0.15s ease, outline 0.15s ease';
-const EDGE_TRANS = 'opacity 0.15s ease, stroke-width 0.15s ease';
-
 // Colour minimap dots by layer (ghosts and regions muted) so the overview reads like the canvas.
 const miniMapColor = (n: FlowNode): string => {
   if (n.type === 'ghost') return '#cbd5e1';
@@ -39,7 +35,6 @@ export function Canvas() {
   const setFocus = useStore((s) => s.setFocus);
 
   // Transient hover, so a user can trace a node's neighborhood without committing a selection.
-  // Hover takes precedence; selection is the fallback (so the highlight persists after the mouse leaves).
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   // Drilling changes focus (and remounts the graph); reset hover so the new view opens neutral.
   useEffect(() => setHoveredId(null), [focusId]);
@@ -48,11 +43,25 @@ export function Canvas() {
   const positions = useMemo(() => layoutFocusView(view), [view]);
   const { nodes, edges } = useMemo(() => focusViewToFlow(view, positions), [view, positions]);
 
-  // Highlight the active node + neighbors (a region highlights its children), dim the rest.
+  // Highlight the active node/edge + neighbors (a region highlights its children), dim the rest.
   // Selection wins over hover: once something is selected, hovering does not change the highlight.
-  // A hover is a softer preview than a selection (less emphasis, gentler dimming).
-  const activeId = selectedId ?? hoveredId;
-  const strong = !!selectedId;
+  // A hover is a softer preview than a selection (lighter accent, gentler dimming).
+  //
+  // IMPORTANT: this is applied via an injected stylesheet keyed on React Flow's stable `data-id`s,
+  // NOT by rebuilding the node/edge objects. React Flow drops a node's measured size whenever it
+  // receives a NEW object reference for it (adoptUserNodes reuses dimensions only for the same
+  // reference), rendering that node `visibility:hidden` until a ResizeObserver re-measures it.
+  // Restyling the arrays on every mouse-move therefore made fast hovering blank the canvas. Keeping
+  // the arrays referentially stable and restyling in CSS avoids all churn.
+  const present = useMemo(
+    () => new Set<string>([...nodes.map((n) => n.id), ...edges.map((e) => e.id)]),
+    [nodes, edges],
+  );
+  const activeId =
+    (selectedId && present.has(selectedId) && selectedId) ||
+    (hoveredId && present.has(hoveredId) && hoveredId) ||
+    null;
+  const strong = !!(selectedId && present.has(selectedId));
   const accent = strong ? '#2563eb' : '#93c5fd';
   const dimEdge = strong ? 0.12 : 0.4;
   const dimNode = strong ? 0.4 : 0.65;
@@ -62,26 +71,29 @@ export function Canvas() {
   );
   const hi = useMemo(() => highlightSets(activeId, edges, childIds), [activeId, edges, childIds]);
 
-  const styledEdges = useMemo(
-    () => edges.map((e) => {
-      const base = { ...e.style, transition: EDGE_TRANS };
-      if (hi.edges.has(e.id)) {
-        const w = (typeof e.style?.strokeWidth === 'number' ? e.style.strokeWidth : 1.5) + (strong ? 1.5 : 1);
-        return { ...e, style: { ...base, strokeWidth: w, opacity: strong ? 1 : 0.9 }, zIndex: 10 };
-      }
-      return { ...e, style: { ...base, opacity: activeId ? dimEdge : 1 } };
-    }),
-    [edges, hi, activeId, strong, dimEdge],
-  );
-  const styledNodes = useMemo(
-    () => nodes.map((n) => {
-      const base = { ...n.style, transition: NODE_TRANS };
-      if (n.type === 'region') return n.id === selectedId ? { ...n, style: { ...base, outline: `2px solid ${accent}`, outlineOffset: 2 } } : { ...n, style: base };
-      if (hi.nodes.has(n.id)) return { ...n, style: { ...base, boxShadow: `0 0 0 2px ${accent}`, borderRadius: 4 }, zIndex: 5 };
-      return { ...n, style: { ...base, opacity: activeId ? dimNode : 1 } };
-    }),
-    [nodes, hi, activeId, strong, accent, dimNode, selectedId],
-  );
+  const highlightCss = useMemo(() => {
+    // Always-on transitions so both dimming and un-dimming animate.
+    const trans =
+      '.hyphae-canvas .react-flow__node{transition:opacity .15s ease,box-shadow .15s ease}'
+      + '.hyphae-canvas .react-flow__edge,.hyphae-canvas .react-flow__edge .react-flow__edge-path{transition:opacity .15s ease,stroke-width .15s ease}';
+    if (!activeId) return trans;
+    const esc = (id: string) => id.replace(/["\\]/g, '\\$&');
+    const nodeSel = [...hi.nodes].map((id) => `.hyphae-canvas .react-flow__node[data-id="${esc(id)}"]`);
+    const edgeSel = [...hi.edges].map((id) => `.hyphae-canvas .react-flow__edge[data-id="${esc(id)}"]`);
+    const rules = [
+      trans,
+      // Dim everything except the focus-region backdrop, then restore + emphasize the highlighted set.
+      `.hyphae-canvas .react-flow__node:not(.react-flow__node-region){opacity:${dimNode}}`,
+      `.hyphae-canvas .react-flow__edge{opacity:${dimEdge}}`,
+    ];
+    if (nodeSel.length) rules.push(`${nodeSel.join(',')}{opacity:1;box-shadow:0 0 0 2px ${accent};border-radius:4px}`);
+    if (edgeSel.length) {
+      rules.push(`${edgeSel.join(',')}{opacity:1}`);
+      // !important beats the derived edge's inline stroke-width.
+      rules.push(`${edgeSel.map((s) => `${s} .react-flow__edge-path`).join(',')}{stroke-width:${strong ? 3.5 : 3}px!important}`);
+    }
+    return rules.join('');
+  }, [activeId, hi, strong, accent, dimEdge, dimNode]);
 
   // Drill in: an external ghost, or a node with children, becomes the new focus.
   const drill = (node: FlowNode) => {
@@ -106,11 +118,12 @@ export function Canvas() {
   };
 
   return (
-    <div style={{ flex: 1, height: '100%' }}>
+    <div className="hyphae-canvas" style={{ flex: 1, height: '100%' }}>
+      <style data-hyphae-hl>{highlightCss}</style>
       <ReactFlow
         key={focusId ?? '__root__'}
-        nodes={styledNodes}
-        edges={styledEdges}
+        nodes={nodes}
+        edges={edges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         connectionMode={ConnectionMode.Loose}

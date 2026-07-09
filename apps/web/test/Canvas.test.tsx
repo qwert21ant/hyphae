@@ -112,24 +112,36 @@ describe('Canvas navigation (real React Flow)', () => {
     return m;
   };
 
-  it('hovering a node dims unrelated nodes (softly) without changing the selection', () => {
+  // Highlight/dim is applied via an injected stylesheet keyed on stable data-ids (so hovering never
+  // rebuilds the node objects — which is what blanked the canvas). Assert on that stylesheet.
+  const hlCss = (container: HTMLElement) => container.querySelector('style[data-hyphae-hl]')!.textContent ?? '';
+
+  it('hovering a node dims the rest softly (via CSS) and leaves the arrays/selection untouched', () => {
     useStore.setState({ model: twoContainers(), focusId: 'sys', selectedId: null });
     const { container } = render(<Canvas />);
+    // At rest: transitions only, no dim rule.
+    expect(hlCss(container)).not.toMatch(/opacity:0\.65/);
     fireEvent.mouseEnter(node(container, 'ca')!);
-    expect(node(container, 'cb')!.style.opacity).toBe('0.65'); // softer than a selection dim (0.4)
+    const css = hlCss(container);
+    expect(css).toContain('opacity:0.65');                              // soft dim (selection dim is 0.4)
+    expect(css).toContain('.react-flow__node[data-id="ca"]');          // ca is highlighted
+    expect(css).toContain('#93c5fd');                                  // soft hover accent
     expect(useStore.getState().selectedId).toBeNull();
+    // Node objects must NOT carry per-hover inline opacity (that churn is the bug we fixed).
+    expect(node(container, 'cb')!.style.opacity).toBe('');
     fireEvent.mouseLeave(node(container, 'ca')!);
-    expect(node(container, 'cb')!.style.opacity).toBe('1');
+    expect(hlCss(container)).not.toMatch(/opacity:0\.65/);             // back to neutral
   });
 
   it('once a node is selected, hovering another node does not change the highlight', () => {
     useStore.setState({ model: twoContainers(), focusId: 'sys', selectedId: 'ca' });
     const { container } = render(<Canvas />);
-    // ca selected → cb dimmed with the stronger selection dim (0.4).
-    expect(node(container, 'cb')!.style.opacity).toBe('0.4');
-    // Hovering cb must NOT promote it or soften the dim — selection wins.
+    const before = hlCss(container);
+    expect(before).toContain('opacity:0.4');                           // strong selection dim
+    expect(before).toContain('#2563eb');                               // strong selection accent
+    expect(before).toContain('.react-flow__node[data-id="ca"]');      // ca (selected) is highlighted
+    // Hovering cb must not steal the highlight — selection wins, CSS is unchanged.
     fireEvent.mouseEnter(node(container, 'cb')!);
-    expect(node(container, 'cb')!.style.opacity).toBe('0.4');
-    expect(node(container, 'cb')!.style.boxShadow ?? '').not.toContain('2px');
+    expect(hlCss(container)).toBe(before);
   });
 });
