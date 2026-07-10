@@ -3,7 +3,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import {
   modelOverview, rollupConnections, validateModel, resolveProfile, HyphaeModelSchema, c4Backend,
-  effectiveFields, connectionKindIds,
+  effectiveFields, connectionKindIds, nodeAtOrAboveLayer,
   type HyphaeModel, type FieldDef,
 } from '@hyphae/schema';
 
@@ -53,9 +53,10 @@ export function buildTools(api: HyphaeApi) {
     model_overview: async (_: Record<string, never>) => modelOverview(await api.getModel()),
     get_node: async ({ id }: { id: string }) =>
       (await api.getModel()).nodes.find((n) => n.id === id) ?? { error: `node ${id} not found` },
-    list_nodes: async ({ parentId, type, query, fields, limit, offset }: { parentId?: string; type?: string; query?: string; fields?: string[]; limit?: number; offset?: number } = {}) => {
+    list_nodes: async ({ parentId, type, query, fields, limit, offset, maxLayer = 'Component' }: { parentId?: string; type?: string; query?: string; fields?: string[]; limit?: number; offset?: number; maxLayer?: string } = {}) => {
       const model = await api.getModel();
       let nodes = model.nodes;
+      nodes = nodes.filter((n) => nodeAtOrAboveLayer(c4Backend, n.type, maxLayer));
       if (parentId !== undefined) nodes = nodes.filter((n) => n.parentId === parentId);
       if (type !== undefined) nodes = nodes.filter((n) => n.type === type);
       if (query !== undefined) {
@@ -288,7 +289,7 @@ async function main() {
   server.registerTool(
     'list_nodes',
     {
-      description: 'List/find node summaries (id, name, type, parentId). Optional filters (AND-combined): `parentId` (e.g. the components of one container), `type`, and `query` — a case-insensitive substring matched across text fields (name, description, technology, responsibilities, invariants by default; narrow with `fields`). With `query`, rows also carry the parent name + description for disambiguation (component names repeat across containers) and default to a 25-row cap; plain enumeration stays lean and uncapped. `offset`/`limit` paginate (an explicit `limit` overrides the query cap). Prefer this (or get_subgraph) over model_overview on a large model.',
+      description: 'List/find node summaries (id, name, type, parentId). Optional filters (AND-combined): `parentId` (e.g. the components of one container), `type`, and `query` — a case-insensitive substring matched across text fields (name, description, technology, responsibilities, invariants by default; narrow with `fields`). With `query`, rows also carry the parent name + description for disambiguation (component names repeat across containers) and default to a 25-row cap; plain enumeration stays lean and uncapped. `offset`/`limit` paginate (an explicit `limit` overrides the query cap). Reads default to Component-and-above; pass maxLayer:"Code" to include the Code layer. Prefer this (or get_subgraph) over model_overview on a large model.',
       inputSchema: {
         parentId: z.string().optional(),
         type: z.string().optional(),
@@ -296,6 +297,7 @@ async function main() {
         fields: z.array(z.string()).optional().describe('Restrict which fields `query` searches (core fields or any documented `fields` key — see describe_profile). Default: name, description, technology, responsibilities, invariants.'),
         limit: z.number().optional(),
         offset: z.number().optional(),
+        maxLayer: z.enum(c4Backend.layers as [string, ...string[]]).optional().describe('Deepest layer to include (default Component). Nodes below it are omitted — pass "Code" to include Code-layer nodes (Class/Interface/Function/Module/UIComponent).'),
       },
     },
     async (a) => text(await tools.list_nodes(a)),

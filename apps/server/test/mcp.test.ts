@@ -186,6 +186,19 @@ describe('MCP query tools', () => {
     expect(r).toHaveLength(2);
   });
 
+  it('list_nodes defaults to Component-and-above and opts into Code via maxLayer', async () => {
+    const withCode = () => {
+      const m = graphModel();
+      m.nodes.push({ id: 'k1', name: 'K1', type: 'Class', description: '', parentId: 'n1', fields: {}, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
+      return m;
+    };
+    const a = fakeApi({ getModel: async () => withCode() });
+    const def = (await buildTools(a).list_nodes({ parentId: 'n1' })) as Array<{ id: string }>;
+    expect(def.map((n) => n.id)).toEqual([]);                         // Code child hidden by default
+    const code = (await buildTools(a).list_nodes({ parentId: 'n1', maxLayer: 'Code' })) as Array<{ id: string }>;
+    expect(code.map((n) => n.id)).toEqual(['k1']);                    // opt in
+  });
+
   it('get_subgraph returns the directional neighborhood', async () => {
     const out = (await buildTools(api()).get_subgraph({ nodeId: 'n1', depth: 1, direction: 'out' })) as { nodes: Array<{ id: string }>; connections: unknown[] };
     expect(out.nodes.map((n) => n.id).sort()).toEqual(['n1', 'n2', 'n3']);
