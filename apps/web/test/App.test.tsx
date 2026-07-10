@@ -47,4 +47,13 @@ describe('App', () => {
     await waitFor(() => expect(useStore.getState().model.nodes.map((n) => n.type)).toEqual(['System']));
     expect(useStore.getState().model.nodes[0].parentId).toBeNull();
   });
+
+  it('toggles audience from the toolbar', async () => {
+    render(<App />);
+    await new Promise((r) => setTimeout(r, 0));
+    fireEvent.click(screen.getByRole('button', { name: /stakeholder/i }));
+    expect(useStore.getState().audience).toBe('stakeholder');
+    fireEvent.click(screen.getByRole('button', { name: /full/i }));
+    expect(useStore.getState().audience).toBe('full');
+  });
 });

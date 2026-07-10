@@ -144,4 +144,19 @@ describe('Canvas navigation (real React Flow)', () => {
     fireEvent.mouseEnter(node(container, 'cb')!);
     expect(hlCss(container)).toBe(before);
   });
+
+  it('in stakeholder mode, double-clicking a Component does not drill into its Code', () => {
+    useStore.setState({ model: model(), focusId: 'ca', selectedId: null, audience: 'stakeholder' });
+    const { container } = render(<Canvas />);
+    dblclick(container, 'a1');                        // a1 is a Component with a Class child (k1)
+    expect(useStore.getState().focusId).toBe('ca');   // stayed put
+    expect(useStore.getState().selectedId).toBe('a1');
+  });
+
+  it('in full mode, double-clicking a Component with children still drills', () => {
+    useStore.setState({ model: model(), focusId: 'ca', selectedId: null, audience: 'full' });
+    const { container } = render(<Canvas />);
+    dblclick(container, 'a1');
+    expect(useStore.getState().focusId).toBe('a1');
+  });
 });
