@@ -147,13 +147,14 @@ export function buildTools(api: HyphaeApi) {
         direction: c.direction, description: c.description,
       }));
     },
-    get_subgraph: async ({ nodeId, depth, direction, type, containment }: { nodeId: string; depth?: number; direction?: 'in' | 'out' | 'both'; type?: string; containment?: 'down' | 'up' | 'both' | 'none' }) => {
+    get_subgraph: async ({ nodeId, depth, direction, type, containment, maxLayer = 'Component' }: { nodeId: string; depth?: number; direction?: 'in' | 'out' | 'both'; type?: string; containment?: 'down' | 'up' | 'both' | 'none'; maxLayer?: string }) => {
       const model = await api.getModel();
       if (!model.nodes.some((n) => n.id === nodeId)) return { error: `node ${nodeId} not found` };
       const maxDepth = depth ?? 1;
       const dir = direction ?? 'both';
       const cont = containment ?? 'down';
       const edges = type ? model.connections.filter((c) => c.type === type) : model.connections;
+      const byId = new Map(model.nodes.map((n) => [n.id, n]));
       const childrenByParent = new Map<string, string[]>();
       const parentOf = new Map<string, string | null>();
       for (const n of model.nodes) {
@@ -165,7 +166,9 @@ export function buildTools(api: HyphaeApi) {
       }
       const reached = new Set<string>([nodeId]);
       let frontier = [nodeId];
-      const visit = (id: string, next: string[]) => { if (!reached.has(id)) { reached.add(id); next.push(id); } };
+      const withinLayer = (id: string): boolean =>
+        id === nodeId || nodeAtOrAboveLayer(c4Backend, byId.get(id)?.type ?? '', maxLayer);
+      const visit = (id: string, next: string[]) => { if (!reached.has(id) && withinLayer(id)) { reached.add(id); next.push(id); } };
       for (let d = 0; d < maxDepth && frontier.length; d++) {
         const next: string[] = [];
         for (const id of frontier) {
@@ -339,13 +342,14 @@ async function main() {
   server.registerTool(
     'get_subgraph',
     {
-      description: 'Local subgraph around a node: BFS to `depth` hops (default 1). Traverses BOTH connection edges (`direction` out/in/both, default both; optional `type` filter) AND containment (`containment` down/up/both/none, default down). So get_subgraph on a Container returns its child Components (depth 1) and their wiring (depth 2). Returns the reached node summaries and every connection among them. Use this to explore around a node instead of dumping the whole model.',
+      description: 'Local subgraph around a node: BFS to `depth` hops (default 1). Traverses BOTH connection edges (`direction` out/in/both, default both; optional `type` filter) AND containment (`containment` down/up/both/none, default down). So get_subgraph on a Container returns its child Components (depth 1) and their wiring (depth 2). Traversal stops at Component-and-above by default; pass maxLayer:"Code" to reach the Code layer. Returns the reached node summaries and every connection among them. Use this to explore around a node instead of dumping the whole model.',
       inputSchema: {
         nodeId: z.string(),
         depth: z.number().optional().describe('Max hops from the root, default 1. Containment and connection steps both count.'),
         direction: z.enum(['in', 'out', 'both']).optional().describe('Which connection edges to follow: out (from→to), in (to→from), or both (default).'),
         type: z.enum(connectionKindIds(c4Backend) as [string, ...string[]]).optional().describe('Only traverse connections of this type (active profile connection kind).'),
         containment: z.enum(['down', 'up', 'both', 'none']).optional().describe('Follow parentId links: down = into children (default), up = to parents, both, or none. Default down means a Container returns its Components.'),
+        maxLayer: z.enum(c4Backend.layers as [string, ...string[]]).optional().describe('Deepest layer to traverse/return (default Component). Nodes below it are not visited — pass "Code" to reach a Component\'s Code children.'),
       },
     },
     async (a) => text(await tools.get_subgraph(a)),

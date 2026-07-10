@@ -243,6 +243,19 @@ describe('MCP query tools', () => {
     const r = (await buildTools(api()).get_subgraph({ nodeId: 'n1', depth: 1, containment: 'up' })) as { nodes: Array<{ id: string }> };
     expect(r.nodes.map((n) => n.id)).toContain('ca');
   });
+
+  it('get_subgraph stops at Component by default and descends into Code with maxLayer:Code', async () => {
+    const withCode = () => {
+      const m = graphModel();
+      m.nodes.push({ id: 'k1', name: 'K1', type: 'Class', description: '', parentId: 'n1', fields: {}, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
+      return m;
+    };
+    const a = fakeApi({ getModel: async () => withCode() });
+    const def = (await buildTools(a).get_subgraph({ nodeId: 'n1', depth: 1 })) as { nodes: Array<{ id: string }> };
+    expect(def.nodes.map((n) => n.id)).not.toContain('k1');            // Code child not reached by default
+    const code = (await buildTools(a).get_subgraph({ nodeId: 'n1', depth: 1, maxLayer: 'Code' })) as { nodes: Array<{ id: string }> };
+    expect(code.nodes.map((n) => n.id)).toContain('k1');              // opt in
+  });
 });
 
 function connModel(): HyphaeModel {
