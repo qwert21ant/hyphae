@@ -75,5 +75,8 @@ describe('layoutFocusView', () => {
     const groupMinY = Math.min(pos.b1.y, pos.b2.y);
     const groupMaxY = Math.max(pos.b1.y, pos.b2.y) + NODE_H;
     expect(pos.solo.y >= groupMaxY || pos.solo.y + NODE_H <= groupMinY).toBe(true);
+    // group members are indented relative to a standalone external in the same column
+    // (old ungrouped layout placed b1/b2/solo all at the same x, so this distinguishes the feature)
+    expect(pos.b1.x).not.toBe(pos.solo.x);
   });
 });
