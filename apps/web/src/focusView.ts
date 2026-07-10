@@ -1,4 +1,4 @@
-import { c4Backend, layerOfType, type HyphaeModel, type Node, type Connection } from '@hyphae/schema';
+import { c4Backend, layerOfType, nodeAtOrAboveLayer, type HyphaeModel, type Node, type Connection } from '@hyphae/schema';
 
 export type ConnFilter = { kinds: string[]; fields: Record<string, string[]> };
 export type Audience = 'stakeholder' | 'full';
@@ -94,14 +94,17 @@ function rootAncestor(nodes: Map<string, Node>, endpointId: string): string {
   return result;
 }
 
-export function buildFocusView(model: HyphaeModel, focusId: string | null, filter?: ConnFilter): FocusView {
+export function buildFocusView(model: HyphaeModel, focusId: string | null, filter?: ConnFilter, audience: Audience = 'full'): FocusView {
   const nodes = new Map(model.nodes.map((n) => [n.id, n]));
   const allIds = new Set(model.nodes.map((n) => n.id));
   const focusNode = focusId ? nodes.get(focusId) ?? null : null;
 
-  const children = focusId
+  let children = focusId
     ? model.nodes.filter((n) => n.parentId === focusId)
     : model.nodes.filter((n) => !n.parentId || !allIds.has(n.parentId));
+
+  const stakeholder = audience === 'stakeholder';
+  if (stakeholder) children = children.filter((n) => nodeAtOrAboveLayer(c4Backend, n.type, 'Component'));
 
   // The layer external endpoints are rolled up to: the focus node's own layer
   // (its peers), or the top layer at the root view.
@@ -168,7 +171,6 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
     direct?: { id: string; kind: string; from: string; to: string; direction: string };
   };
   const pairs = new Map<string, Pair>(); // key `${a}|${b}` with a <= b
-  const externalIds = new Set<string>();
 
   for (const c of conns) {
     const mp = mapped.get(c.id);
@@ -184,8 +186,6 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
     if (c.direction === 'Bidirectional') p.bidir = true;
     // An authored connection drawn directly between two shown nodes (not rolled up).
     if (from === c.from && to === c.to) p.direct = { id: c.id, kind: c.type, from, to, direction: c.direction };
-    if (!inside.has(from)) externalIds.add(from);
-    if (!inside.has(to)) externalIds.add(to);
   }
 
   // A solid "real" edge when a single authored connection joins two nodes shown in this view
@@ -210,8 +210,21 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
     edges.push({ id: `agg:${p.a}->${p.b}`, from, to, kind: null, count: p.count, derived: true, realizedBy: p.connIds, direction });
   }
 
-  const externals = [...externalIds].map((id) => nodes.get(id)).filter((n): n is Node => !!n);
-  return { focusId, focusNode, children, externals, edges };
+  const atComponent = (id: string): boolean => {
+    const n = nodes.get(id);
+    return !!n && nodeAtOrAboveLayer(c4Backend, n.type, 'Component');
+  };
+  const shownEdges = stakeholder
+    ? edges.filter((ed) => !ed.derived && atComponent(ed.from) && atComponent(ed.to))
+    : edges;
+
+  const shownExternalIds = new Set<string>();
+  for (const ed of shownEdges) {
+    if (!inside.has(ed.from)) shownExternalIds.add(ed.from);
+    if (!inside.has(ed.to)) shownExternalIds.add(ed.to);
+  }
+  const externals = [...shownExternalIds].map((id) => nodes.get(id)).filter((n): n is Node => !!n);
+  return { focusId, focusNode, children, externals, edges: shownEdges };
 }
 
 /** Connections listed for a node's panel: those that cross the boundary of the subtree rooted at

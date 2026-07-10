@@ -238,6 +238,40 @@ describe('buildFocusView — rolling connections up to the children level', () =
   });
 });
 
+describe('buildFocusView — stakeholder audience', () => {
+  it('hides Code-layer children at a Component focus', () => {
+    const full = buildFocusView(model(), 'a1', undefined, 'full');
+    expect(full.children.map((n) => n.id)).toEqual(['k1']);           // Class child shown in full
+    const stake = buildFocusView(model(), 'a1', undefined, 'stakeholder');
+    expect(stake.children).toHaveLength(0);                            // Code hidden
+  });
+
+  it('drops derived edges and their orphan externals', () => {
+    const m = model();
+    m.connections.push({ id: 'x', from: 'a1', to: 'b1', type: 'Dependency', ...e }); // rolls up to ca->cb (derived) at sys focus
+    const full = buildFocusView(m, 'sys', undefined, 'full');
+    expect(full.edges.some((x) => x.derived)).toBe(true);
+    const stake = buildFocusView(m, 'sys', undefined, 'stakeholder');
+    expect(stake.edges).toHaveLength(0);                              // derived edge removed
+  });
+
+  it('keeps a solid authored edge in stakeholder mode', () => {
+    const m = model();
+    m.connections.push({ id: 'r', from: 'a1', to: 'a2', type: 'Dependency', ...e });
+    const stake = buildFocusView(m, 'ca', undefined, 'stakeholder');
+    expect(stake.edges.map((x) => x.id)).toEqual(['r']);
+    expect(stake.edges[0].derived).toBe(false);
+  });
+
+  it('keeps a solid external edge but drops a derived one', () => {
+    const m = model();
+    m.connections.push({ id: 's', from: 'a1', to: 'ext', type: 'Dependency', ...e }); // solid a1->ext
+    const stake = buildFocusView(m, 'ca', undefined, 'stakeholder');
+    expect(stake.externals.map((n) => n.id)).toEqual(['ext']);
+    expect(stake.edges.map((x) => x.id)).toEqual(['s']);
+  });
+});
+
 describe('representative', () => {
   it('returns the endpoint itself when it is already on the focus layer', () => {
     expect(representative(model(), 'cb', 'Container')).toBe('cb');
