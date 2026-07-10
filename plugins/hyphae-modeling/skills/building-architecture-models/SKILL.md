@@ -98,9 +98,10 @@ unwieldy count is a signal the Component is too coarse (surface it, don't trunca
 ### Phase 5 — Verify (optional, re-runnable)
 A standalone consistency pass over an existing model. Run it right after Phase 3, or any time later — it is independent of Phase 4. Read-mostly: gaps are filled by the owning subagent, never by the orchestrator inventing edges.
 0. **Structural check.** Call `validate_model` first — it returns any structural/field issues (bad containment, dangling/bad endpoints, unknown or missing-required fields, bad enum values, bad refs) in one read. Fix those before the semantic sweep. An empty result means the model is structurally clean (it does not check for orphans/unbound edges — that is the sweep below).
-1. **Coverage sweep.** Call `list_connections` once (optionally per container via `containerId`) to get every edge with endpoint/container names, plus `list_nodes`, and flag: Components with **zero connections** (orphans); and "hub" Components whose `description`/`invariants` claim broad dependence ("all others depend on it", "implements", "used by") but have few or no inbound edges. A Component a subagent listed under `standaloneComponents` is expected — not a flag.
+1. **Coverage sweep.** Call `list_connections({ maxLayer: 'Code' })` once (optionally per container via `containerId`) to get every edge with endpoint/container names, plus `list_nodes`, and flag: Components with **zero connections** (orphans); and "hub" Components whose `description`/`invariants` claim broad dependence ("all others depend on it", "implements", "used by") but have few or no inbound edges. A Component a subagent listed under `standaloneComponents` is expected — not a flag.
    - **Unbound code edges.** Flag any cross-component code edge whose id is NOT in any Component↔Component
      edge's `realizedBy`. Fix by binding it (orchestrator) or by having the owning subagent confirm it.
+     Reads now default to Component-and-above, so `maxLayer:'Code'` is required here to see the code edges the unbound-edge check needs.
 2. **VERIFY CHECKPOINT: show the user the flagged gaps**, separating likely-real gaps from legitimately standalone nodes. Wait for confirmation of which to fix.
 3. For confirmed gaps, **re-dispatch the owning container's subagent** (same `references/subagent-prompt.md`) to add the missing intra-container edges. The orchestrator must not write intra-container edges itself.
 4. Idempotent (create-or-skip), so Verify can be re-run until clean.
@@ -109,7 +110,7 @@ A standalone consistency pass over an existing model. Run it right after Phase 3
 
 ## Idempotency contract (every run, every agent)
 
-- **Read first** (`model_overview`, then `list_nodes`/`get_subgraph` for the scope you're about to touch). Never assume empty.
+- **Read first** (`model_overview`, then `list_nodes`/`get_subgraph` for the scope you're about to touch). Never assume empty. Reads default to Component-and-above; pass `maxLayer:'Code'` when the scope you are about to touch is the Code layer.
 - **Create-or-skip by (`name` + `parentId`).** If a node with that identity exists, reuse its id — do not create a second one.
 - **On `422`, read the returned `issues` and fix the input** (almost always a missing parent/endpoint or a containment violation). Never blind-retry.
 
