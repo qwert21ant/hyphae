@@ -310,6 +310,20 @@ describe('list_connections', () => {
     expect(x1).toMatchObject({ fromName: 'A1', toName: 'B1', fromContainer: 'Alpha', toContainer: 'Beta' });
   });
 
+  it('drops edges touching a Code node by default and includes them with maxLayer:Code', async () => {
+    const withCode = () => {
+      const m = connModel();
+      m.nodes.push({ id: 'k1', name: 'K1', type: 'Class', parentId: 'a1', description: '', fields: {}, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
+      m.connections.push({ id: 'kx', from: 'k1', to: 'b1', type: 'Dependency', fields: { transport: 'InProcess' }, description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [] });
+      return m;
+    };
+    const a = fakeApi({ getModel: async () => withCode() });
+    const def = (await buildTools(a).list_connections({})) as Array<{ id: string }>;
+    expect(def.map((c) => c.id).sort()).toEqual(['x1', 'x2', 'x3', 'x4']);      // kx (Code-touching) hidden
+    const all = (await buildTools(a).list_connections({ maxLayer: 'Code' })) as Array<{ id: string }>;
+    expect(all.map((c) => c.id).sort()).toEqual(['kx', 'x1', 'x2', 'x3', 'x4']); // opt in
+  });
+
 });
 
 describe('rollup_connections', () => {

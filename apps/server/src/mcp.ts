@@ -84,7 +84,7 @@ export function buildTools(api: HyphaeApi) {
       }
       return nodes.map((n) => ({ id: n.id, name: n.name, type: n.type, parentId: n.parentId }));
     },
-    list_connections: async ({ type, transport, nodeId, containerId, crossingBoundary, involvingExternal, limit, offset }: { type?: string; transport?: string; nodeId?: string; containerId?: string; crossingBoundary?: boolean; involvingExternal?: boolean; limit?: number; offset?: number } = {}) => {
+    list_connections: async ({ type, transport, nodeId, containerId, crossingBoundary, involvingExternal, limit, offset, maxLayer = 'Component' }: { type?: string; transport?: string; nodeId?: string; containerId?: string; crossingBoundary?: boolean; involvingExternal?: boolean; limit?: number; offset?: number; maxLayer?: string } = {}) => {
       const model = await api.getModel();
       const byId = new Map(model.nodes.map((n) => [n.id, n]));
       if (nodeId !== undefined && !byId.has(nodeId)) return { error: `node ${nodeId} not found` };
@@ -121,6 +121,10 @@ export function buildTools(api: HyphaeApi) {
         }
       }
       let conns = model.connections.filter((c) => {
+        const fromNode = byId.get(c.from);
+        const toNode = byId.get(c.to);
+        if (!fromNode || !toNode) return false;
+        if (!nodeAtOrAboveLayer(c4Backend, fromNode.type, maxLayer) || !nodeAtOrAboveLayer(c4Backend, toNode.type, maxLayer)) return false;
         if (type !== undefined && c.type !== type) return false;
         if (transport !== undefined && c.fields.transport !== transport) return false;
         if (nodeId !== undefined && c.from !== nodeId && c.to !== nodeId) return false;
@@ -305,7 +309,7 @@ async function main() {
   server.registerTool(
     'list_connections',
     {
-      description: 'Query raw connections across the model. Filters (all optional, AND-combined): type, transport, nodeId (edges touching exactly this node — use to inspect one node\'s edges), containerId (edges touching that container or any of its descendants), crossingBoundary (true = endpoints in different owning containers — i.e. inter-container / external edges; false = intra-container only), involvingExternal (an endpoint is an ExternalSystem). Supports offset/limit. Each result is enriched with fromName/toName and fromContainer/toContainer. For DERIVED higher-level edges (component edges aggregated to Container/Context level) use rollup_connections.',
+      description: 'Query raw connections across the model. Filters (all optional, AND-combined): type, transport, nodeId (edges touching exactly this node — use to inspect one node\'s edges), containerId (edges touching that container or any of its descendants), crossingBoundary (true = endpoints in different owning containers — i.e. inter-container / external edges; false = intra-container only), involvingExternal (an endpoint is an ExternalSystem). Supports offset/limit. Each result is enriched with fromName/toName and fromContainer/toContainer. By default only edges among Component-and-above nodes are returned (Code plumbing is hidden); pass maxLayer:"Code" for the full edge set. For DERIVED higher-level edges (component edges aggregated to Container/Context level) use rollup_connections.',
       inputSchema: {
         type: z.enum(connectionKindIds(c4Backend) as [string, ...string[]]).optional().describe('Only connections of this type (active profile connection kind).'),
         transport: z.string().optional().describe('Only connections with this `fields.transport` value.'),
@@ -313,6 +317,7 @@ async function main() {
         containerId: z.string().optional().describe('A container node id; keep only edges touching it or one of its descendants.'),
         crossingBoundary: z.boolean().optional().describe('true = only edges whose endpoints belong to different containers (inter-container/external); false = only intra-container edges.'),
         involvingExternal: z.boolean().optional().describe('true = only edges with an ExternalSystem endpoint; false = only edges between in-system nodes.'),
+        maxLayer: z.enum(c4Backend.layers as [string, ...string[]]).optional().describe('Deepest layer to include (default Component). An edge is dropped if either endpoint is below it — pass "Code" to include Code-layer plumbing.'),
         limit: z.number().optional(),
         offset: z.number().optional(),
       },
