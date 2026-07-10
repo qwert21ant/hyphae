@@ -60,8 +60,9 @@ Report file: {{REPORT_FILE}}
 
 All hyphae tools use the `mcp__hyphae__` prefix (e.g. `mcp__hyphae__describe_profile`).
 
-0. Call `mcp__hyphae__describe_profile`, then `mcp__hyphae__model_overview` and `mcp__hyphae__list_nodes`
-   (parentId per Component) — reuse existing Code nodes, never duplicate (match by name + parentId).
+0. Call `mcp__hyphae__describe_profile`, then `mcp__hyphae__model_overview` and
+   `mcp__hyphae__list_nodes({ parentId: <componentId>, maxLayer: 'Code' })` (Code nodes are hidden unless
+   maxLayer:'Code' is passed) — reuse existing Code nodes, never duplicate (match by name + parentId).
 1. For each Component under your container, find the IMPORTANT code elements (apply the selectivity
    rule from SKILL.md Phase 4). Use gitnexus if its index is current; otherwise read the files.
 2. create all Code nodes in one `mcp__hyphae__create_nodes` call, each as type

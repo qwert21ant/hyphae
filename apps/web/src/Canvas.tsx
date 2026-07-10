@@ -4,6 +4,7 @@ import {
   type Node as FlowNode,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { c4Backend, layerOfType } from '@hyphae/schema';
 import { useStore } from './store';
 import { buildFocusView } from './focusView';
 import { layoutFocusView } from './layout';
@@ -32,13 +33,14 @@ export function Canvas() {
   const selectedId = useStore((s) => s.selectedId);
   const select = useStore((s) => s.select);
   const setFocus = useStore((s) => s.setFocus);
+  const audience = useStore((s) => s.audience);
 
   // Transient hover, so a user can trace a node's neighborhood without committing a selection.
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   // Drilling changes focus (and remounts the graph); reset hover so the new view opens neutral.
   useEffect(() => setHoveredId(null), [focusId]);
 
-  const view = useMemo(() => buildFocusView(model, focusId, connFilter), [model, focusId, connFilter]);
+  const view = useMemo(() => buildFocusView(model, focusId, connFilter, audience), [model, focusId, connFilter, audience]);
   const positions = useMemo(() => layoutFocusView(view), [view]);
   const { nodes, edges } = useMemo(() => focusViewToFlow(view, positions), [view, positions]);
 
@@ -97,7 +99,12 @@ export function Canvas() {
   // Drill in: an external ghost, or a node with children, becomes the new focus.
   const drill = (node: FlowNode) => {
     if (node.type === 'ghost') { setFocus(node.id); return; }
-    if (model.nodes.some((n) => n.parentId === node.id)) setFocus(node.id);
+    if (!model.nodes.some((n) => n.parentId === node.id)) return;
+    if (audience === 'stakeholder') {
+      const target = model.nodes.find((n) => n.id === node.id);
+      if (target && layerOfType(c4Backend, target.type) === 'Component') return; // Components are leaves for stakeholders
+    }
+    setFocus(node.id);
   };
 
   // React Flow suppresses onNodeDoubleClick while nodesDraggable={false} (double-click rides on

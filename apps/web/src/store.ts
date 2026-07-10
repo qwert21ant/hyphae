@@ -3,6 +3,7 @@ import {
   emptyModel, newId,
   type HyphaeModel, type Node, type Connection,
 } from '@hyphae/schema';
+import type { Audience } from './focusView';
 import * as api from './api';
 
 export type ConnFilter = { kinds: string[]; fields: Record<string, string[]> };
@@ -14,10 +15,12 @@ type State = {
   ownVersion: number;
   error: string | null;
   connFilter: ConnFilter;
+  audience: Audience;
   setModel: (m: HyphaeModel, version?: number) => void;
   syncFromServer: () => Promise<void>;
   setFocus: (id: string | null) => void;
   select: (id: string | null) => void;
+  setAudience: (a: Audience) => void;
   toggleConnKind: (value: string) => void;
   toggleConnField: (key: string, value: string) => void;
   clearConnFilter: () => void;
@@ -42,6 +45,10 @@ export const useStore = create<State>((set, get) => {
     }
   }
 
+  const initialAudience: Audience =
+    (typeof localStorage !== 'undefined' && localStorage.getItem('hyphae.audience') === 'stakeholder')
+      ? 'stakeholder' : 'full';
+
   return {
     model: emptyModel(),
     focusId: null,
@@ -49,6 +56,7 @@ export const useStore = create<State>((set, get) => {
     ownVersion: 0,
     error: null,
     connFilter: { kinds: [], fields: {} },
+    audience: initialAudience,
 
     setModel: (model, version = 0) => set({ model, ownVersion: version }),
     syncFromServer: async () => {
@@ -57,6 +65,10 @@ export const useStore = create<State>((set, get) => {
     },
     setFocus: (focusId) => set({ focusId, selectedId: null }),
     select: (selectedId) => set({ selectedId }),
+    setAudience: (audience) => {
+      if (typeof localStorage !== 'undefined') localStorage.setItem('hyphae.audience', audience);
+      set({ audience });
+    },
 
     toggleConnKind: (value) =>
       set((s) => {

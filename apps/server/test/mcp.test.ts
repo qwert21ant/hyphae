@@ -186,6 +186,19 @@ describe('MCP query tools', () => {
     expect(r).toHaveLength(2);
   });
 
+  it('list_nodes defaults to Component-and-above and opts into Code via maxLayer', async () => {
+    const withCode = () => {
+      const m = graphModel();
+      m.nodes.push({ id: 'k1', name: 'K1', type: 'Class', description: '', parentId: 'n1', fields: {}, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
+      return m;
+    };
+    const a = fakeApi({ getModel: async () => withCode() });
+    const def = (await buildTools(a).list_nodes({ parentId: 'n1' })) as Array<{ id: string }>;
+    expect(def.map((n) => n.id)).toEqual([]);                         // Code child hidden by default
+    const code = (await buildTools(a).list_nodes({ parentId: 'n1', maxLayer: 'Code' })) as Array<{ id: string }>;
+    expect(code.map((n) => n.id)).toEqual(['k1']);                    // opt in
+  });
+
   it('get_subgraph returns the directional neighborhood', async () => {
     const out = (await buildTools(api()).get_subgraph({ nodeId: 'n1', depth: 1, direction: 'out' })) as { nodes: Array<{ id: string }>; connections: unknown[] };
     expect(out.nodes.map((n) => n.id).sort()).toEqual(['n1', 'n2', 'n3']);
@@ -229,6 +242,19 @@ describe('MCP query tools', () => {
   it('get_subgraph containment:up reaches the parent', async () => {
     const r = (await buildTools(api()).get_subgraph({ nodeId: 'n1', depth: 1, containment: 'up' })) as { nodes: Array<{ id: string }> };
     expect(r.nodes.map((n) => n.id)).toContain('ca');
+  });
+
+  it('get_subgraph stops at Component by default and descends into Code with maxLayer:Code', async () => {
+    const withCode = () => {
+      const m = graphModel();
+      m.nodes.push({ id: 'k1', name: 'K1', type: 'Class', description: '', parentId: 'n1', fields: {}, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
+      return m;
+    };
+    const a = fakeApi({ getModel: async () => withCode() });
+    const def = (await buildTools(a).get_subgraph({ nodeId: 'n1', depth: 1 })) as { nodes: Array<{ id: string }> };
+    expect(def.nodes.map((n) => n.id)).not.toContain('k1');            // Code child not reached by default
+    const code = (await buildTools(a).get_subgraph({ nodeId: 'n1', depth: 1, maxLayer: 'Code' })) as { nodes: Array<{ id: string }> };
+    expect(code.nodes.map((n) => n.id)).toContain('k1');              // opt in
   });
 });
 
@@ -295,6 +321,20 @@ describe('list_connections', () => {
     const r = (await buildTools(api()).list_connections({ crossingBoundary: true })) as Array<Record<string, unknown>>;
     const x1 = r.find((c) => c.id === 'x1')!;
     expect(x1).toMatchObject({ fromName: 'A1', toName: 'B1', fromContainer: 'Alpha', toContainer: 'Beta' });
+  });
+
+  it('drops edges touching a Code node by default and includes them with maxLayer:Code', async () => {
+    const withCode = () => {
+      const m = connModel();
+      m.nodes.push({ id: 'k1', name: 'K1', type: 'Class', parentId: 'a1', description: '', fields: {}, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
+      m.connections.push({ id: 'kx', from: 'k1', to: 'b1', type: 'Dependency', fields: { transport: 'InProcess' }, description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [] });
+      return m;
+    };
+    const a = fakeApi({ getModel: async () => withCode() });
+    const def = (await buildTools(a).list_connections({})) as Array<{ id: string }>;
+    expect(def.map((c) => c.id).sort()).toEqual(['x1', 'x2', 'x3', 'x4']);      // kx (Code-touching) hidden
+    const all = (await buildTools(a).list_connections({ maxLayer: 'Code' })) as Array<{ id: string }>;
+    expect(all.map((c) => c.id).sort()).toEqual(['kx', 'x1', 'x2', 'x3', 'x4']); // opt in
   });
 
 });

@@ -24,6 +24,8 @@ export function App() {
   const setFocus = useStore((s) => s.setFocus);
   const setModel = useStore((s) => s.setModel);
   const addNode = useStore((s) => s.addNode);
+  const audience = useStore((s) => s.audience);
+  const setAudience = useStore((s) => s.setAudience);
 
   useEffect(() => {
     loadModel()
@@ -86,6 +88,18 @@ export function App() {
         {addable.map((t) => (
           <button key={t} onClick={() => addNode(t)}>add {t}</button>
         ))}
+        <div className="audience-toggle" role="group" aria-label="detail level" style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+          {(['stakeholder', 'full'] as const).map((a) => (
+            <button
+              key={a}
+              onClick={() => setAudience(a)}
+              aria-pressed={audience === a}
+              style={{ fontWeight: audience === a ? 700 : 400, textTransform: 'capitalize' }}
+            >
+              {a}
+            </button>
+          ))}
+        </div>
       </header>
       <div className="body">
         <Canvas />

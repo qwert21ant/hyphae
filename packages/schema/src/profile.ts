@@ -67,6 +67,16 @@ export const topLevelTypes = (profile: Profile): string[] =>
 export const typesForLayer = (profile: Profile, layer: string): string[] =>
   profile.nodeKinds.filter((k) => k.layer === layer).map((k) => k.id);
 
+/** True when `type`'s layer is at or above (index <=) `maxLayer` in the profile's ordered
+ *  layers. An unknown `type` (no layer) or unknown `maxLayer` returns false. */
+export function nodeAtOrAboveLayer(profile: Profile, type: string, maxLayer: string): boolean {
+  const layer = layerOfType(profile, type);
+  if (layer === undefined) return false;
+  const li = profile.layers.indexOf(layer);
+  const mi = profile.layers.indexOf(maxLayer);
+  return li !== -1 && mi !== -1 && li <= mi;
+}
+
 export const connectionKindIds = (profile: Profile): string[] =>
   profile.connectionKinds.map((k) => k.id);
 

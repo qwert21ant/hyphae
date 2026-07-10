@@ -3,7 +3,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import {
   modelOverview, rollupConnections, validateModel, resolveProfile, HyphaeModelSchema, c4Backend,
-  effectiveFields, connectionKindIds,
+  effectiveFields, connectionKindIds, nodeAtOrAboveLayer,
   type HyphaeModel, type FieldDef,
 } from '@hyphae/schema';
 
@@ -53,9 +53,10 @@ export function buildTools(api: HyphaeApi) {
     model_overview: async (_: Record<string, never>) => modelOverview(await api.getModel()),
     get_node: async ({ id }: { id: string }) =>
       (await api.getModel()).nodes.find((n) => n.id === id) ?? { error: `node ${id} not found` },
-    list_nodes: async ({ parentId, type, query, fields, limit, offset }: { parentId?: string; type?: string; query?: string; fields?: string[]; limit?: number; offset?: number } = {}) => {
+    list_nodes: async ({ parentId, type, query, fields, limit, offset, maxLayer = 'Component' }: { parentId?: string; type?: string; query?: string; fields?: string[]; limit?: number; offset?: number; maxLayer?: string } = {}) => {
       const model = await api.getModel();
       let nodes = model.nodes;
+      nodes = nodes.filter((n) => nodeAtOrAboveLayer(c4Backend, n.type, maxLayer));
       if (parentId !== undefined) nodes = nodes.filter((n) => n.parentId === parentId);
       if (type !== undefined) nodes = nodes.filter((n) => n.type === type);
       if (query !== undefined) {
@@ -83,7 +84,7 @@ export function buildTools(api: HyphaeApi) {
       }
       return nodes.map((n) => ({ id: n.id, name: n.name, type: n.type, parentId: n.parentId }));
     },
-    list_connections: async ({ type, transport, nodeId, containerId, crossingBoundary, involvingExternal, limit, offset }: { type?: string; transport?: string; nodeId?: string; containerId?: string; crossingBoundary?: boolean; involvingExternal?: boolean; limit?: number; offset?: number } = {}) => {
+    list_connections: async ({ type, transport, nodeId, containerId, crossingBoundary, involvingExternal, limit, offset, maxLayer = 'Component' }: { type?: string; transport?: string; nodeId?: string; containerId?: string; crossingBoundary?: boolean; involvingExternal?: boolean; limit?: number; offset?: number; maxLayer?: string } = {}) => {
       const model = await api.getModel();
       const byId = new Map(model.nodes.map((n) => [n.id, n]));
       if (nodeId !== undefined && !byId.has(nodeId)) return { error: `node ${nodeId} not found` };
@@ -120,6 +121,10 @@ export function buildTools(api: HyphaeApi) {
         }
       }
       let conns = model.connections.filter((c) => {
+        const fromNode = byId.get(c.from);
+        const toNode = byId.get(c.to);
+        if (!fromNode || !toNode) return false;
+        if (!nodeAtOrAboveLayer(c4Backend, fromNode.type, maxLayer) || !nodeAtOrAboveLayer(c4Backend, toNode.type, maxLayer)) return false;
         if (type !== undefined && c.type !== type) return false;
         if (transport !== undefined && c.fields.transport !== transport) return false;
         if (nodeId !== undefined && c.from !== nodeId && c.to !== nodeId) return false;
@@ -142,13 +147,14 @@ export function buildTools(api: HyphaeApi) {
         direction: c.direction, description: c.description,
       }));
     },
-    get_subgraph: async ({ nodeId, depth, direction, type, containment }: { nodeId: string; depth?: number; direction?: 'in' | 'out' | 'both'; type?: string; containment?: 'down' | 'up' | 'both' | 'none' }) => {
+    get_subgraph: async ({ nodeId, depth, direction, type, containment, maxLayer = 'Component' }: { nodeId: string; depth?: number; direction?: 'in' | 'out' | 'both'; type?: string; containment?: 'down' | 'up' | 'both' | 'none'; maxLayer?: string }) => {
       const model = await api.getModel();
       if (!model.nodes.some((n) => n.id === nodeId)) return { error: `node ${nodeId} not found` };
       const maxDepth = depth ?? 1;
       const dir = direction ?? 'both';
       const cont = containment ?? 'down';
       const edges = type ? model.connections.filter((c) => c.type === type) : model.connections;
+      const byId = new Map(model.nodes.map((n) => [n.id, n]));
       const childrenByParent = new Map<string, string[]>();
       const parentOf = new Map<string, string | null>();
       for (const n of model.nodes) {
@@ -160,7 +166,9 @@ export function buildTools(api: HyphaeApi) {
       }
       const reached = new Set<string>([nodeId]);
       let frontier = [nodeId];
-      const visit = (id: string, next: string[]) => { if (!reached.has(id)) { reached.add(id); next.push(id); } };
+      const withinLayer = (id: string): boolean =>
+        id === nodeId || nodeAtOrAboveLayer(c4Backend, byId.get(id)?.type ?? '', maxLayer);
+      const visit = (id: string, next: string[]) => { if (!reached.has(id) && withinLayer(id)) { reached.add(id); next.push(id); } };
       for (let d = 0; d < maxDepth && frontier.length; d++) {
         const next: string[] = [];
         for (const id of frontier) {
@@ -288,7 +296,7 @@ async function main() {
   server.registerTool(
     'list_nodes',
     {
-      description: 'List/find node summaries (id, name, type, parentId). Optional filters (AND-combined): `parentId` (e.g. the components of one container), `type`, and `query` — a case-insensitive substring matched across text fields (name, description, technology, responsibilities, invariants by default; narrow with `fields`). With `query`, rows also carry the parent name + description for disambiguation (component names repeat across containers) and default to a 25-row cap; plain enumeration stays lean and uncapped. `offset`/`limit` paginate (an explicit `limit` overrides the query cap). Prefer this (or get_subgraph) over model_overview on a large model.',
+      description: 'List/find node summaries (id, name, type, parentId). Optional filters (AND-combined): `parentId` (e.g. the components of one container), `type`, and `query` — a case-insensitive substring matched across text fields (name, description, technology, responsibilities, invariants by default; narrow with `fields`). With `query`, rows also carry the parent name + description for disambiguation (component names repeat across containers) and default to a 25-row cap; plain enumeration stays lean and uncapped. `offset`/`limit` paginate (an explicit `limit` overrides the query cap). Reads default to Component-and-above; pass maxLayer:"Code" to include the Code layer. Prefer this (or get_subgraph) over model_overview on a large model.',
       inputSchema: {
         parentId: z.string().optional(),
         type: z.string().optional(),
@@ -296,6 +304,7 @@ async function main() {
         fields: z.array(z.string()).optional().describe('Restrict which fields `query` searches (core fields or any documented `fields` key — see describe_profile). Default: name, description, technology, responsibilities, invariants.'),
         limit: z.number().optional(),
         offset: z.number().optional(),
+        maxLayer: z.enum(c4Backend.layers as [string, ...string[]]).optional().describe('Deepest layer to include (default Component). Nodes below it are omitted — pass "Code" to include Code-layer nodes (Class/Interface/Function/Module/UIComponent).'),
       },
     },
     async (a) => text(await tools.list_nodes(a)),
@@ -303,7 +312,7 @@ async function main() {
   server.registerTool(
     'list_connections',
     {
-      description: 'Query raw connections across the model. Filters (all optional, AND-combined): type, transport, nodeId (edges touching exactly this node — use to inspect one node\'s edges), containerId (edges touching that container or any of its descendants), crossingBoundary (true = endpoints in different owning containers — i.e. inter-container / external edges; false = intra-container only), involvingExternal (an endpoint is an ExternalSystem). Supports offset/limit. Each result is enriched with fromName/toName and fromContainer/toContainer. For DERIVED higher-level edges (component edges aggregated to Container/Context level) use rollup_connections.',
+      description: 'Query raw connections across the model. Filters (all optional, AND-combined): type, transport, nodeId (edges touching exactly this node — use to inspect one node\'s edges), containerId (edges touching that container or any of its descendants), crossingBoundary (true = endpoints in different owning containers — i.e. inter-container / external edges; false = intra-container only), involvingExternal (an endpoint is an ExternalSystem). Supports offset/limit. Each result is enriched with fromName/toName and fromContainer/toContainer. By default only edges among Component-and-above nodes are returned (Code plumbing is hidden); pass maxLayer:"Code" for the full edge set. For DERIVED higher-level edges (component edges aggregated to Container/Context level) use rollup_connections.',
       inputSchema: {
         type: z.enum(connectionKindIds(c4Backend) as [string, ...string[]]).optional().describe('Only connections of this type (active profile connection kind).'),
         transport: z.string().optional().describe('Only connections with this `fields.transport` value.'),
@@ -311,6 +320,7 @@ async function main() {
         containerId: z.string().optional().describe('A container node id; keep only edges touching it or one of its descendants.'),
         crossingBoundary: z.boolean().optional().describe('true = only edges whose endpoints belong to different containers (inter-container/external); false = only intra-container edges.'),
         involvingExternal: z.boolean().optional().describe('true = only edges with an ExternalSystem endpoint; false = only edges between in-system nodes.'),
+        maxLayer: z.enum(c4Backend.layers as [string, ...string[]]).optional().describe('Deepest layer to include (default Component). An edge is dropped if either endpoint is below it — pass "Code" to include Code-layer plumbing.'),
         limit: z.number().optional(),
         offset: z.number().optional(),
       },
@@ -332,13 +342,14 @@ async function main() {
   server.registerTool(
     'get_subgraph',
     {
-      description: 'Local subgraph around a node: BFS to `depth` hops (default 1). Traverses BOTH connection edges (`direction` out/in/both, default both; optional `type` filter) AND containment (`containment` down/up/both/none, default down). So get_subgraph on a Container returns its child Components (depth 1) and their wiring (depth 2). Returns the reached node summaries and every connection among them. Use this to explore around a node instead of dumping the whole model.',
+      description: 'Local subgraph around a node: BFS to `depth` hops (default 1). Traverses BOTH connection edges (`direction` out/in/both, default both; optional `type` filter) AND containment (`containment` down/up/both/none, default down). So get_subgraph on a Container returns its child Components (depth 1) and their wiring (depth 2). Traversal stops at Component-and-above by default; pass maxLayer:"Code" to reach the Code layer. Returns the reached node summaries and every connection among them. Use this to explore around a node instead of dumping the whole model.',
       inputSchema: {
         nodeId: z.string(),
         depth: z.number().optional().describe('Max hops from the root, default 1. Containment and connection steps both count.'),
         direction: z.enum(['in', 'out', 'both']).optional().describe('Which connection edges to follow: out (from→to), in (to→from), or both (default).'),
         type: z.enum(connectionKindIds(c4Backend) as [string, ...string[]]).optional().describe('Only traverse connections of this type (active profile connection kind).'),
         containment: z.enum(['down', 'up', 'both', 'none']).optional().describe('Follow parentId links: down = into children (default), up = to parents, both, or none. Default down means a Container returns its Components.'),
+        maxLayer: z.enum(c4Backend.layers as [string, ...string[]]).optional().describe('Deepest layer to traverse/return (default Component). Nodes below it are not visited — pass "Code" to reach a Component\'s Code children.'),
       },
     },
     async (a) => text(await tools.get_subgraph(a)),
