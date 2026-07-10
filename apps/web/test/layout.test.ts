@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { layoutFocusView, NODE_W, NODE_H } from '../src/layout';
+import { layoutFocusView, NODE_W, NODE_H, ROW_GAP } from '../src/layout';
 import type { FocusView } from '../src/focusView';
 
 const node = (id: string, type = 'Component') =>
@@ -78,5 +78,20 @@ describe('layoutFocusView', () => {
     // group members are indented relative to a standalone external in the same column
     // (old ungrouped layout placed b1/b2/solo all at the same x, so this distinguishes the feature)
     expect(pos.b1.x).not.toBe(pos.solo.x);
+  });
+
+  it('keeps two ungrouped externals in a column at the original ROW_GAP pitch (no inflation)', () => {
+    const v: FocusView = {
+      focusId: 'ca', focusNode: node('ca', 'Container'),
+      children: [node('a1')],
+      externals: [node('x1', 'Container'), node('x2', 'Container')],
+      edges: [
+        { id: 'o1', from: 'a1', to: 'x1', kind: null, count: 1, derived: true, realizedBy: ['p1'] },
+        { id: 'o2', from: 'a1', to: 'x2', kind: null, count: 1, derived: true, realizedBy: ['p2'] },
+      ],
+    };
+    const pos = layoutFocusView(v);
+    expect(pos.x1.x).toBe(pos.x2.x);                          // same column
+    expect(Math.abs(pos.x1.y - pos.x2.y)).toBe(ROW_GAP);      // original pitch, not NODE_H+ROW_GAP
   });
 });

@@ -9,7 +9,7 @@ export const LABEL_H = 22;
 export type XY = { x: number; y: number };
 
 const COL_GAP = 120;  // horizontal gap between the children cluster and an external column
-const ROW_GAP = 70;   // vertical gap between stacked externals
+export const ROW_GAP = 70;   // vertical gap between stacked externals
 
 /** Children laid out by their inner edges via dagre; externals placed in incoming (left)
  *  / outgoing (right) columns beside the resulting cluster. Deterministic. */
@@ -45,6 +45,7 @@ export function layoutFocusView(view: FocusView): Record<string, XY> {
   const midY = (minY + maxY) / 2;
 
   const MEMBER_GAP = 16; // vertical gap between stacked group members
+  const ITEM_GAP = ROW_GAP - NODE_H; // gap between column items; preserves the original ROW_GAP pitch for standalone externals
 
   // A column item is either a standalone external or an expanded group (its members).
   const groups = view.externalGroups ?? [];
@@ -63,7 +64,7 @@ export function layoutFocusView(view: FocusView): Record<string, XY> {
   const outgoing = items.filter((it) => !isIncoming(it));
 
   const placeColumn = (col: Item[], x: number) => {
-    const totalH = col.reduce((h, it) => h + itemHeight(it), 0) + Math.max(0, col.length - 1) * ROW_GAP;
+    const totalH = col.reduce((h, it) => h + itemHeight(it), 0) + Math.max(0, col.length - 1) * ITEM_GAP;
     let y = midY - totalH / 2;
     for (const it of col) {
       if (it.group) {
@@ -72,7 +73,7 @@ export function layoutFocusView(view: FocusView): Record<string, XY> {
       } else {
         pos[it.ids[0]] = { x, y };
       }
-      y += itemHeight(it) + ROW_GAP;
+      y += itemHeight(it) + ITEM_GAP;
     }
   };
   placeColumn(incoming, minX - COL_GAP - NODE_W);
