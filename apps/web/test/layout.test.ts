@@ -94,4 +94,18 @@ describe('layoutFocusView', () => {
     expect(pos.x1.x).toBe(pos.x2.x);                          // same column
     expect(Math.abs(pos.x1.y - pos.x2.y)).toBe(ROW_GAP);      // original pitch, not NODE_H+ROW_GAP
   });
+
+  it('stacks ungrouped externals in a stable id order (no reordering vs pre-feature)', () => {
+    const v: FocusView = {
+      focusId: 'ca', focusNode: node('ca', 'Container'),
+      children: [node('a1')],
+      externals: [node('zed', 'Container'), node('abe', 'Container')], // deliberately out of id order
+      edges: [
+        { id: 'o1', from: 'a1', to: 'zed', kind: null, count: 1, derived: true, realizedBy: ['p1'] },
+        { id: 'o2', from: 'a1', to: 'abe', kind: null, count: 1, derived: true, realizedBy: ['p2'] },
+      ],
+    };
+    const pos = layoutFocusView(v);
+    expect(pos.abe.y).toBeLessThan(pos.zed.y); // 'abe' sorts before 'zed' → placed above
+  });
 });

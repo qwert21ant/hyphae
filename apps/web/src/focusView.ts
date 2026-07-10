@@ -239,7 +239,6 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
   const memberVisible = (childId: string): boolean => !stakeholder || atComponent(childId);
   for (const c of conns) {
     if (!mapped.has(c.id)) continue;
-    if (!allIds.has(c.from) || !allIds.has(c.to)) continue;
     for (const origId of [c.from, c.to]) {
       const rep = unexpandedRep(origId);
       if (inside.has(rep) || expandedExternals.has(rep) || expandableExternalIds.has(rep)) continue;

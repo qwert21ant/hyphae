@@ -50,11 +50,11 @@ export function layoutFocusView(view: FocusView): Record<string, XY> {
   // A column item is either a standalone external or an expanded group (its members).
   const groups = view.externalGroups ?? [];
   const memberOf = new Map<string, string>();
-  for (const g of groups) for (const cid of g.childIds) memberOf.set(cid, g.id);
+  for (const grp of groups) for (const cid of grp.childIds) memberOf.set(cid, grp.id);
   type Item = { ids: string[]; group: boolean };
   const items: Item[] = [];
   for (const ext of view.externals) if (!memberOf.has(ext.id)) items.push({ ids: [ext.id], group: false });
-  for (const g of groups) items.push({ ids: g.childIds, group: true });
+  for (const grp of groups) items.push({ ids: grp.childIds, group: true });
 
   const itemHeight = (it: Item) =>
     it.group ? it.ids.length * NODE_H + (it.ids.length - 1) * MEMBER_GAP + LABEL_H + 2 * PAD : NODE_H;
@@ -62,6 +62,12 @@ export function layoutFocusView(view: FocusView): Record<string, XY> {
 
   const incoming = items.filter(isIncoming);
   const outgoing = items.filter((it) => !isIncoming(it));
+
+  // Stable, deterministic vertical order within each column (matches the pre-item-based behavior
+  // of sorting the external ids alphabetically), keyed off each item's first id.
+  const byFirstId = (a: Item, b: Item) => (a.ids[0] < b.ids[0] ? -1 : a.ids[0] > b.ids[0] ? 1 : 0);
+  incoming.sort(byFirstId);
+  outgoing.sort(byFirstId);
 
   const placeColumn = (col: Item[], x: number) => {
     const totalH = col.reduce((h, it) => h + itemHeight(it), 0) + Math.max(0, col.length - 1) * ITEM_GAP;
