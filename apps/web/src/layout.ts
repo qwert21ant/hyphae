@@ -3,11 +3,13 @@ import type { FocusView } from './focusView';
 
 export const NODE_W = 160;
 export const NODE_H = 44;
+export const PAD = 24;
+export const LABEL_H = 22;
 
 export type XY = { x: number; y: number };
 
 const COL_GAP = 120;  // horizontal gap between the children cluster and an external column
-const ROW_GAP = 70;   // vertical gap between stacked externals
+export const ROW_GAP = 70;   // vertical gap between stacked externals
 
 /** Children laid out by their inner edges via dagre; externals placed in incoming (left)
  *  / outgoing (right) columns beside the resulting cluster. Deterministic. */
@@ -42,17 +44,43 @@ export function layoutFocusView(view: FocusView): Record<string, XY> {
   const maxY = ys.length ? Math.max(...ys) + NODE_H : NODE_H;
   const midY = (minY + maxY) / 2;
 
-  const incoming: string[] = []; // externals that are a source of some edge → left
-  const outgoing: string[] = []; // otherwise → right
-  for (const ext of view.externals) {
-    (view.edges.some((e) => e.from === ext.id) ? incoming : outgoing).push(ext.id);
-  }
-  incoming.sort();
-  outgoing.sort();
+  const MEMBER_GAP = 16; // vertical gap between stacked group members
+  const ITEM_GAP = ROW_GAP - NODE_H; // gap between column items; preserves the original ROW_GAP pitch for standalone externals
 
-  const placeColumn = (ids: string[], x: number) => {
-    const totalH = Math.max(0, ids.length - 1) * ROW_GAP;
-    ids.forEach((id, i) => { pos[id] = { x, y: midY - totalH / 2 + i * ROW_GAP - NODE_H / 2 }; });
+  // A column item is either a standalone external or an expanded group (its members).
+  const groups = view.externalGroups ?? [];
+  const memberOf = new Map<string, string>();
+  for (const grp of groups) for (const cid of grp.childIds) memberOf.set(cid, grp.id);
+  type Item = { ids: string[]; group: boolean };
+  const items: Item[] = [];
+  for (const ext of view.externals) if (!memberOf.has(ext.id)) items.push({ ids: [ext.id], group: false });
+  for (const grp of groups) items.push({ ids: grp.childIds, group: true });
+
+  const itemHeight = (it: Item) =>
+    it.group ? it.ids.length * NODE_H + (it.ids.length - 1) * MEMBER_GAP + LABEL_H + 2 * PAD : NODE_H;
+  const isIncoming = (it: Item) => view.edges.some((ed) => it.ids.includes(ed.from));
+
+  const incoming = items.filter(isIncoming);
+  const outgoing = items.filter((it) => !isIncoming(it));
+
+  // Stable, deterministic vertical order within each column (matches the pre-item-based behavior
+  // of sorting the external ids alphabetically), keyed off each item's first id.
+  const byFirstId = (a: Item, b: Item) => (a.ids[0] < b.ids[0] ? -1 : a.ids[0] > b.ids[0] ? 1 : 0);
+  incoming.sort(byFirstId);
+  outgoing.sort(byFirstId);
+
+  const placeColumn = (col: Item[], x: number) => {
+    const totalH = col.reduce((h, it) => h + itemHeight(it), 0) + Math.max(0, col.length - 1) * ITEM_GAP;
+    let y = midY - totalH / 2;
+    for (const it of col) {
+      if (it.group) {
+        // members stacked below the group's label band, indented by PAD
+        it.ids.forEach((id, i) => { pos[id] = { x: x + PAD, y: y + LABEL_H + PAD + i * (NODE_H + MEMBER_GAP) }; });
+      } else {
+        pos[it.ids[0]] = { x, y };
+      }
+      y += itemHeight(it) + ITEM_GAP;
+    }
   };
   placeColumn(incoming, minX - COL_GAP - NODE_W);
   placeColumn(outgoing, maxX + COL_GAP);

@@ -27,6 +27,10 @@ function model() {
 
 beforeEach(() => {
   vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
+  // jsdom has no DOMMatrixReadOnly; React Flow constructs one (reading the viewport's zoom from its
+  // CSS transform) whenever a mounted node's `type` changes in place — which first happens here when
+  // expanding a ghost into a ghostGroup. A constant zoom of 1 is fine: jsdom never computes real layout.
+  vi.stubGlobal('DOMMatrixReadOnly', class { m22 = 1; });
 });
 
 const node = (container: HTMLElement, id: string) =>
@@ -158,5 +162,24 @@ describe('Canvas navigation (real React Flow)', () => {
     const { container } = render(<Canvas />);
     dblclick(container, 'a1');
     expect(useStore.getState().focusId).toBe('a1');
+  });
+
+  it('clicking a ghost\'s expand caret expands it into its participating child', () => {
+    useStore.setState({ model: model(), focusId: 'ca', selectedId: null, expandedExternals: new Set() });
+    const { container } = render(<Canvas />);
+    const caret = node(container, 'cb')!.querySelector('button')!;
+    expect(caret).toBeTruthy();                         // cb is expandable → caret present
+    fireEvent.click(caret);
+    expect([...useStore.getState().expandedExternals]).toEqual(['cb']);
+    // after expansion the member child b1 renders and the collapsed cb ghost is gone
+    expect(node(container, 'b1')).toBeTruthy();
+    expect(node(container, 'cb')?.classList.contains('react-flow__node-ghost')).toBeFalsy();
+  });
+
+  it('double-clicking a ghost still drills (caret does not steal the gesture)', () => {
+    useStore.setState({ model: model(), focusId: 'ca', selectedId: null, expandedExternals: new Set() });
+    const { container } = render(<Canvas />);
+    dblclick(container, 'cb');
+    expect(useStore.getState().focusId).toBe('cb');
   });
 });

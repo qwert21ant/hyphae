@@ -12,11 +12,12 @@ import { focusViewToFlow, highlightSets } from './flow';
 import { GroupNode } from './GroupNode';
 import { NodeBox } from './NodeBox';
 import { GhostNode } from './GhostNode';
+import { GhostGroupNode } from './GhostGroupNode';
 import { FloatingEdge } from './FloatingEdge';
 import { FilterPanel } from './FilterPanel';
 import { Legend } from './Legend';
 
-const nodeTypes = { region: GroupNode, node: NodeBox, ghost: GhostNode };
+const nodeTypes = { region: GroupNode, node: NodeBox, ghost: GhostNode, ghostGroup: GhostGroupNode };
 const edgeTypes = { floating: FloatingEdge };
 
 // Colour minimap dots by layer (regions muted) so the overview reads like the canvas.
@@ -34,13 +35,17 @@ export function Canvas() {
   const select = useStore((s) => s.select);
   const setFocus = useStore((s) => s.setFocus);
   const audience = useStore((s) => s.audience);
+  const expandedExternals = useStore((s) => s.expandedExternals);
 
   // Transient hover, so a user can trace a node's neighborhood without committing a selection.
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   // Drilling changes focus (and remounts the graph); reset hover so the new view opens neutral.
   useEffect(() => setHoveredId(null), [focusId]);
 
-  const view = useMemo(() => buildFocusView(model, focusId, connFilter, audience), [model, focusId, connFilter, audience]);
+  const view = useMemo(
+    () => buildFocusView(model, focusId, connFilter, audience, expandedExternals),
+    [model, focusId, connFilter, audience, expandedExternals],
+  );
   const positions = useMemo(() => layoutFocusView(view), [view]);
   const { nodes, edges } = useMemo(() => focusViewToFlow(view, positions), [view, positions]);
 
@@ -84,7 +89,7 @@ export function Canvas() {
     const rules = [
       trans,
       // Dim everything except the focus-region backdrop, then restore + emphasize the highlighted set.
-      `.hyphae-canvas .react-flow__node:not(.react-flow__node-region){opacity:${dimNode}}`,
+      `.hyphae-canvas .react-flow__node:not(.react-flow__node-region):not(.react-flow__node-ghostGroup){opacity:${dimNode}}`,
       `.hyphae-canvas .react-flow__edge{opacity:${dimEdge}}`,
     ];
     if (nodeSel.length) rules.push(`${nodeSel.join(',')}{opacity:1;box-shadow:0 0 0 2px ${accent};border-radius:4px}`);

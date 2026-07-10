@@ -20,6 +20,8 @@ export type FocusView = {
   children: Node[];   // direct children, or all roots at the root view
   externals: Node[];  // representative peer-level external boxes
   edges: FocusEdge[];
+  externalGroups?: { id: string; name: string; childIds: string[] }[];
+  expandableExternalIds?: Set<string>;
 };
 
 export type Crumb = { id: string | null; name: string };
@@ -94,7 +96,7 @@ function rootAncestor(nodes: Map<string, Node>, endpointId: string): string {
   return result;
 }
 
-export function buildFocusView(model: HyphaeModel, focusId: string | null, filter?: ConnFilter, audience: Audience = 'full'): FocusView {
+export function buildFocusView(model: HyphaeModel, focusId: string | null, filter?: ConnFilter, audience: Audience = 'full', expandedExternals: Set<string> = new Set()): FocusView {
   const nodes = new Map(model.nodes.map((n) => [n.id, n]));
   const allIds = new Set(model.nodes.map((n) => n.id));
   const focusNode = focusId ? nodes.get(focusId) ?? null : null;
@@ -118,12 +120,17 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
   // - the focus itself: the focus;
   // - inside the focus subtree: the direct child of the focus that contains it (the children level);
   // - outside: a peer at the focus's own layer (an aggregated external box), or itself if at/above it.
-  const mapEndpoint = (id: string): string => {
+  const unexpandedRep = (id: string): string => {
     if (!focusId) return rootAncestor(nodes, id);
     if (id === focusId) return focusId;
     const child = childOfFocus(nodes, id, focusId);
     if (child) return child;
     return representativeWith(nodes, id, focusLayer);
+  };
+  const mapEndpoint = (id: string): string => {
+    const rep = unexpandedRep(id);
+    if (expandedExternals.has(rep)) return childOfFocus(nodes, id, rep) ?? rep;
+    return rep;
   };
 
   const conns = filter ? model.connections.filter((c) => matchesFilter(c, filter)) : model.connections;
@@ -224,7 +231,34 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
     if (!inside.has(ed.to)) shownExternalIds.add(ed.to);
   }
   const externals = [...shownExternalIds].map((id) => nodes.get(id)).filter((n): n is Node => !!n);
-  return { focusId, focusNode, children, externals, edges: shownEdges };
+
+  // Which shown, collapsed, focus-peer externals would reveal a finer participating child if expanded.
+  // Computed from the surviving connections (not the rendered edges), so a finer child that got
+  // absorbed into a coarse edge's realizedBy is still detected.
+  const expandableExternalIds = new Set<string>();
+  const memberVisible = (childId: string): boolean => !stakeholder || atComponent(childId);
+  for (const c of conns) {
+    if (!mapped.has(c.id)) continue;
+    for (const origId of [c.from, c.to]) {
+      const rep = unexpandedRep(origId);
+      if (inside.has(rep) || expandedExternals.has(rep) || expandableExternalIds.has(rep)) continue;
+      if (!shownExternalIds.has(rep)) continue;                          // only externals actually rendered
+      if (representativeWith(nodes, rep, focusLayer) !== rep) continue;  // focus-peer reps only (not members)
+      const child = childOfFocus(nodes, origId, rep);
+      if (child !== null && memberVisible(child)) expandableExternalIds.add(rep);
+    }
+  }
+
+  // For each currently-expanded external, the finer members that surfaced (its direct children now
+  // shown as externals). An expanded id that produced no member yields no group.
+  const externalGroups: { id: string; name: string; childIds: string[] }[] = [];
+  for (const extId of expandedExternals) {
+    const childIds = externals.filter((n) => n.parentId === extId).map((n) => n.id);
+    const parent = nodes.get(extId);
+    if (childIds.length && parent) externalGroups.push({ id: extId, name: parent.name, childIds });
+  }
+
+  return { focusId, focusNode, children, externals, edges: shownEdges, externalGroups, expandableExternalIds };
 }
 
 /** Connections listed for a node's panel: those that cross the boundary of the subtree rooted at
