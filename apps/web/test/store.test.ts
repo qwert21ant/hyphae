@@ -99,3 +99,25 @@ describe('editor store', () => {
     expect(localStorage.getItem('hyphae.audience')).toBe('full');
   });
 });
+
+// Kept as its own describe block: this is the only test in the file that needs
+// vi.resetModules() to force a fresh store module instance (the store is a
+// module-level singleton created once at import, so the localStorage-read
+// branch that seeds initial audience is otherwise never exercised). The
+// top-level `useStore` binding used by every other test above was already
+// resolved at import time and is unaffected by resetModules, and the
+// vi.mock('../src/api', ...) mock factory is reapplied automatically after
+// reset, so this does not desync any other test in the file.
+describe('audience init from localStorage', () => {
+  it('initializes audience from a previously persisted localStorage value', async () => {
+    localStorage.setItem('hyphae.audience', 'stakeholder');
+    try {
+      vi.resetModules();
+      const { useStore: freshUseStore } = await import('../src/store');
+      expect(freshUseStore.getState().audience).toBe('stakeholder');
+    } finally {
+      localStorage.removeItem('hyphae.audience');
+      vi.resetModules();
+    }
+  });
+});
