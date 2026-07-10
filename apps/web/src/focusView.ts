@@ -1,6 +1,7 @@
 import { c4Backend, layerOfType, type HyphaeModel, type Node, type Connection } from '@hyphae/schema';
 
 export type ConnFilter = { kinds: string[]; fields: Record<string, string[]> };
+export type Audience = 'stakeholder' | 'full';
 
 export type FocusEdge = {
   id: string;

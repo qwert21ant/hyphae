@@ -89,4 +89,13 @@ describe('editor store', () => {
     expect(useStore.getState().error).toContain('unknown type');
     expect(useStore.getState().model.nodes).toHaveLength(0);
   });
+
+  it('toggles audience and persists it to localStorage', () => {
+    expect(useStore.getState().audience).toBe('full');
+    useStore.getState().setAudience('stakeholder');
+    expect(useStore.getState().audience).toBe('stakeholder');
+    expect(localStorage.getItem('hyphae.audience')).toBe('stakeholder');
+    useStore.getState().setAudience('full');
+    expect(localStorage.getItem('hyphae.audience')).toBe('full');
+  });
 });
