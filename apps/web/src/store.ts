@@ -16,6 +16,7 @@ type State = {
   error: string | null;
   connFilter: ConnFilter;
   audience: Audience;
+  expandedExternals: Set<string>;
   setModel: (m: HyphaeModel, version?: number) => void;
   syncFromServer: () => Promise<void>;
   setFocus: (id: string | null) => void;
@@ -24,6 +25,7 @@ type State = {
   toggleConnKind: (value: string) => void;
   toggleConnField: (key: string, value: string) => void;
   clearConnFilter: () => void;
+  toggleExternal: (id: string) => void;
   addNode: (type: string) => Promise<void>;
   updateNode: (id: string, patch: Partial<Node>) => Promise<void>;
   reparent: (id: string, parentId: string | null) => Promise<void>;
@@ -57,13 +59,14 @@ export const useStore = create<State>((set, get) => {
     error: null,
     connFilter: { kinds: [], fields: {} },
     audience: initialAudience,
+    expandedExternals: new Set<string>(),
 
     setModel: (model, version = 0) => set({ model, ownVersion: version }),
     syncFromServer: async () => {
       const { model, version } = await api.loadModel();
       set({ model, ownVersion: version });
     },
-    setFocus: (focusId) => set({ focusId, selectedId: null }),
+    setFocus: (focusId) => set({ focusId, selectedId: null, expandedExternals: new Set<string>() }),
     select: (selectedId) => set({ selectedId }),
     setAudience: (audience) => {
       if (typeof localStorage !== 'undefined') localStorage.setItem('hyphae.audience', audience);
@@ -82,6 +85,13 @@ export const useStore = create<State>((set, get) => {
         return { connFilter: { ...s.connFilter, fields: { ...s.connFilter.fields, [key]: next } } };
       }),
     clearConnFilter: () => set({ connFilter: { kinds: [], fields: {} } }),
+
+    toggleExternal: (id) =>
+      set((s) => {
+        const next = new Set(s.expandedExternals);
+        if (next.has(id)) next.delete(id); else next.add(id);
+        return { expandedExternals: next };
+      }),
 
     addNode: async (type) => {
       try {

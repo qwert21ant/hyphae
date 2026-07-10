@@ -98,6 +98,21 @@ describe('editor store', () => {
     useStore.getState().setAudience('full');
     expect(localStorage.getItem('hyphae.audience')).toBe('full');
   });
+
+  it('toggleExternal adds then removes an id (new Set each time)', () => {
+    expect(useStore.getState().expandedExternals.size).toBe(0);
+    useStore.getState().toggleExternal('cb');
+    expect([...useStore.getState().expandedExternals]).toEqual(['cb']);
+    useStore.getState().toggleExternal('cb');
+    expect(useStore.getState().expandedExternals.size).toBe(0);
+  });
+
+  it('setFocus resets expandedExternals', () => {
+    useStore.getState().toggleExternal('cb');
+    expect(useStore.getState().expandedExternals.size).toBe(1);
+    useStore.getState().setFocus('ca');
+    expect(useStore.getState().expandedExternals.size).toBe(0);
+  });
 });
 
 // Kept as its own describe block: this is the only test in the file that needs
