@@ -12,11 +12,12 @@ import { focusViewToFlow, highlightSets } from './flow';
 import { GroupNode } from './GroupNode';
 import { NodeBox } from './NodeBox';
 import { GhostNode } from './GhostNode';
+import { GhostGroupNode } from './GhostGroupNode';
 import { FloatingEdge } from './FloatingEdge';
 import { FilterPanel } from './FilterPanel';
 import { Legend } from './Legend';
 
-const nodeTypes = { region: GroupNode, node: NodeBox, ghost: GhostNode };
+const nodeTypes = { region: GroupNode, node: NodeBox, ghost: GhostNode, ghostGroup: GhostGroupNode };
 const edgeTypes = { floating: FloatingEdge };
 
 // Colour minimap dots by layer (regions muted) so the overview reads like the canvas.

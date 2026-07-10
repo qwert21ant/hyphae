@@ -84,11 +84,33 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nod
     });
   }
 
+  for (const g of view.externalGroups ?? []) {
+    const mpos = g.childIds.map((id) => pos[id]).filter(Boolean) as XY[];
+    if (!mpos.length) continue;
+    const minX = Math.min(...mpos.map((p) => p.x));
+    const minY = Math.min(...mpos.map((p) => p.y));
+    const maxX = Math.max(...mpos.map((p) => p.x + NODE_W));
+    const maxY = Math.max(...mpos.map((p) => p.y + NODE_H));
+    const width = maxX - minX + 2 * PAD;
+    const height = maxY - minY + LABEL_H + 2 * PAD;
+    nodes.push({
+      id: g.id,
+      type: 'ghostGroup',
+      position: { x: minX - PAD, y: minY - LABEL_H - PAD },
+      data: { label: g.name },
+      style: { width, height, pointerEvents: 'none' as const },
+      initialWidth: width,
+      initialHeight: height,
+      draggable: false,
+      selectable: false,
+    });
+  }
+
   for (const n of view.children) {
     nodes.push({ id: n.id, type: 'node', position: pos[n.id] ?? { x: 0, y: 0 }, data: { label: `${n.name}\n(${n.type})`, color: layerColorOf(n.type) }, initialWidth: NODE_W, initialHeight: NODE_H, draggable: false });
   }
   for (const n of view.externals) {
-    nodes.push({ id: n.id, type: 'ghost', position: pos[n.id] ?? { x: 0, y: 0 }, data: { label: `${n.name}\n(${n.type})`, color: layerColorOf(n.type) }, initialWidth: NODE_W, initialHeight: NODE_H, draggable: false });
+    nodes.push({ id: n.id, type: 'ghost', position: pos[n.id] ?? { x: 0, y: 0 }, data: { label: `${n.name}\n(${n.type})`, color: layerColorOf(n.type), expandable: view.expandableExternalIds?.has(n.id) ?? false }, initialWidth: NODE_W, initialHeight: NODE_H, draggable: false });
   }
 
   const edges = view.edges.map((e) => (e.derived ? derivedEdge(e) : realEdge(e)));

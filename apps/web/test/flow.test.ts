@@ -86,6 +86,32 @@ describe('focusViewToFlow', () => {
     expect(nodes.every((n) => n.type !== 'region')).toBe(true);
   });
 
+  it('renders an expanded external as a ghostGroup box wrapping its member ghosts', () => {
+    const v: FocusView = {
+      focusId: 'ca', focusNode: node('ca', 'Container'),
+      children: [node('a1')],
+      externals: [node('b1'), node('solo', 'Container')],
+      edges: [
+        { id: 'g1', from: 'a1', to: 'b1', kind: null, count: 1, derived: true, realizedBy: ['x1'] },
+        { id: 's', from: 'a1', to: 'solo', kind: null, count: 1, derived: true, realizedBy: ['x2'] },
+      ],
+      externalGroups: [{ id: 'cb', name: 'Beta', childIds: ['b1'] }],
+      expandableExternalIds: new Set(['solo']),
+    };
+    const pos = { a1: { x: 0, y: 0 }, b1: { x: 300, y: 40 }, solo: { x: 300, y: 200 } };
+    const { nodes } = focusViewToFlow(v, pos);
+    const group = nodes.find((n) => n.id === 'cb');
+    expect(group?.type).toBe('ghostGroup');                        // group box emitted
+    expect(nodes.find((n) => n.id === 'b1')?.type).toBe('ghost');  // member is a ghost
+    // group box paints before its member
+    expect(nodes.findIndex((n) => n.id === 'cb')).toBeLessThan(nodes.findIndex((n) => n.id === 'b1'));
+    // group box wraps up-and-left of the member
+    expect(group!.position.x).toBeLessThan(pos.b1.x);
+    // the collapsed 'solo' ghost is flagged expandable, the member 'b1' is not
+    expect((nodes.find((n) => n.id === 'solo')!.data as { expandable?: boolean }).expandable).toBe(true);
+    expect((nodes.find((n) => n.id === 'b1')!.data as { expandable?: boolean }).expandable).toBeFalsy();
+  });
+
   it('renders focus node as plain node (not region) when it has no children, anchoring external edges', () => {
     const childless: FocusView = {
       focusId: 'ext',
