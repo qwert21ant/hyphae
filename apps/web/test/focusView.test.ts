@@ -272,6 +272,37 @@ describe('buildFocusView — stakeholder audience', () => {
   });
 });
 
+describe('buildFocusView — expandable externals', () => {
+  it('collapsed: a peer container external that aggregates a participating child is flagged expandable', () => {
+    const m = model();
+    m.connections.push({ id: 'x', from: 'a1', to: 'b1', type: 'Dependency', ...e }); // a1(in ca) -> b1(in cb)
+    const v = buildFocusView(m, 'ca'); // focus ca; cb is the external peer
+    expect(v.externals.map((n) => n.id)).toEqual(['cb']);
+    expect([...(v.expandableExternalIds ?? [])]).toEqual(['cb']); // cb aggregates b1
+    expect(v.externalGroups ?? []).toEqual([]);                    // nothing expanded yet
+  });
+
+  it('expanding a peer container remaps its edge to the specific participating child and emits a group', () => {
+    const m = model();
+    m.connections.push({ id: 'x', from: 'a1', to: 'b1', type: 'Dependency', ...e });
+    const v = buildFocusView(m, 'ca', undefined, 'full', new Set(['cb']));
+    // edge now lands on b1 (the participating child of cb), not on cb
+    expect(v.edges.find((ed) => ed.to === 'b1')).toBeTruthy();
+    expect(v.edges.find((ed) => ed.to === 'cb')).toBeUndefined();
+    expect(v.externals.map((n) => n.id)).toEqual(['b1']);          // finer member is the shown external
+    expect(v.externalGroups).toEqual([{ id: 'cb', name: 'Beta', childIds: ['b1'] }]);
+    expect([...(v.expandableExternalIds ?? [])]).toEqual([]);       // cb is expanded, no caret
+  });
+
+  it('a leaf ExternalSystem (no children) is never flagged expandable', () => {
+    const m = model();
+    m.connections.push({ id: 'x', from: 'a1', to: 'ext', type: 'Dependency', ...e });
+    const v = buildFocusView(m, 'ca');
+    expect(v.externals.map((n) => n.id)).toEqual(['ext']);
+    expect([...(v.expandableExternalIds ?? [])]).toEqual([]);
+  });
+});
+
 describe('representative', () => {
   it('returns the endpoint itself when it is already on the focus layer', () => {
     expect(representative(model(), 'cb', 'Container')).toBe('cb');
