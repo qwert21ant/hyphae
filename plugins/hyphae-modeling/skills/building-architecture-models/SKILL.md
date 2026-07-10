@@ -106,7 +106,7 @@ A standalone consistency pass over an existing model. Run it right after Phase 3
 3. For confirmed gaps, **re-dispatch the owning container's subagent** (same `references/subagent-prompt.md`) to add the missing intra-container edges. The orchestrator must not write intra-container edges itself.
 4. Idempotent (create-or-skip), so Verify can be re-run until clean.
 
-> `list_connections` returns the whole edge set (with names and owning containers) in one call, so the sweep stays cheap even on large models. To inspect a single node's edges, pass `list_connections({nodeId})`.
+> `list_connections` returns the whole edge set (with names and owning containers) in one call, so the sweep stays cheap even on large models — reads default to Component-and-above, so include code edges via `maxLayer:'Code'` (as the coverage sweep above does). To inspect a single node's edges, pass `list_connections({nodeId})`.
 
 ## Idempotency contract (every run, every agent)
 

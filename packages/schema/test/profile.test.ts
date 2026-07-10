@@ -25,4 +25,8 @@ describe('nodeAtOrAboveLayer', () => {
     expect(nodeAtOrAboveLayer(c4Backend, 'Nope', 'Component')).toBe(false);
     expect(nodeAtOrAboveLayer(c4Backend, 'Component', 'Nope')).toBe(false);
   });
+  it('returns false for an unknown node type even when the profile has an empty-string layer', () => {
+    const profileWithEmptyLayer = { ...c4Backend, layers: ['', 'Container', 'Component', 'Code'] };
+    expect(nodeAtOrAboveLayer(profileWithEmptyLayer, 'Nope', 'Component')).toBe(false);
+  });
 });
