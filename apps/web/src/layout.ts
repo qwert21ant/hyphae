@@ -3,6 +3,8 @@ import type { FocusView } from './focusView';
 
 export const NODE_W = 160;
 export const NODE_H = 44;
+export const PAD = 24;
+export const LABEL_H = 22;
 
 export type XY = { x: number; y: number };
 
@@ -42,17 +44,36 @@ export function layoutFocusView(view: FocusView): Record<string, XY> {
   const maxY = ys.length ? Math.max(...ys) + NODE_H : NODE_H;
   const midY = (minY + maxY) / 2;
 
-  const incoming: string[] = []; // externals that are a source of some edge → left
-  const outgoing: string[] = []; // otherwise → right
-  for (const ext of view.externals) {
-    (view.edges.some((e) => e.from === ext.id) ? incoming : outgoing).push(ext.id);
-  }
-  incoming.sort();
-  outgoing.sort();
+  const MEMBER_GAP = 16; // vertical gap between stacked group members
 
-  const placeColumn = (ids: string[], x: number) => {
-    const totalH = Math.max(0, ids.length - 1) * ROW_GAP;
-    ids.forEach((id, i) => { pos[id] = { x, y: midY - totalH / 2 + i * ROW_GAP - NODE_H / 2 }; });
+  // A column item is either a standalone external or an expanded group (its members).
+  const groups = view.externalGroups ?? [];
+  const memberOf = new Map<string, string>();
+  for (const g of groups) for (const cid of g.childIds) memberOf.set(cid, g.id);
+  type Item = { ids: string[]; group: boolean };
+  const items: Item[] = [];
+  for (const ext of view.externals) if (!memberOf.has(ext.id)) items.push({ ids: [ext.id], group: false });
+  for (const g of groups) items.push({ ids: g.childIds, group: true });
+
+  const itemHeight = (it: Item) =>
+    it.group ? it.ids.length * NODE_H + (it.ids.length - 1) * MEMBER_GAP + LABEL_H + 2 * PAD : NODE_H;
+  const isIncoming = (it: Item) => view.edges.some((ed) => it.ids.includes(ed.from));
+
+  const incoming = items.filter(isIncoming);
+  const outgoing = items.filter((it) => !isIncoming(it));
+
+  const placeColumn = (col: Item[], x: number) => {
+    const totalH = col.reduce((h, it) => h + itemHeight(it), 0) + Math.max(0, col.length - 1) * ROW_GAP;
+    let y = midY - totalH / 2;
+    for (const it of col) {
+      if (it.group) {
+        // members stacked below the group's label band, indented by PAD
+        it.ids.forEach((id, i) => { pos[id] = { x: x + PAD, y: y + LABEL_H + PAD + i * (NODE_H + MEMBER_GAP) }; });
+      } else {
+        pos[it.ids[0]] = { x, y };
+      }
+      y += itemHeight(it) + ROW_GAP;
+    }
   };
   placeColumn(incoming, minX - COL_GAP - NODE_W);
   placeColumn(outgoing, maxX + COL_GAP);

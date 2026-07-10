@@ -1,10 +1,7 @@
 import { MarkerType, type Node as FlowNode, type Edge as FlowEdge } from '@xyflow/react';
 import { c4Backend, layerOfType } from '@hyphae/schema';
 import type { FocusView, FocusEdge } from './focusView';
-import { NODE_W, NODE_H, type XY } from './layout';
-
-const PAD = 24;
-const LABEL_H = 22;
+import { NODE_W, NODE_H, PAD, LABEL_H, type XY } from './layout';
 
 /** Tint each node by its C4 layer so altitude is readable at a glance. Kept in sync with the legend. */
 export const LAYER_COLOR: Record<string, { bg: string; border: string }> = {
