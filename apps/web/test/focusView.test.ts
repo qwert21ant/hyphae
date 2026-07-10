@@ -315,6 +315,22 @@ describe('buildFocusView — expandable externals', () => {
     const x = buildFocusView(m, 'ca', undefined, 'full', new Set(['cb']));
     expect(x.externals.map((n) => n.id)).toEqual(['b1']);
   });
+
+  it('does not flag a peer external as expandable via a connection unrelated to the focus', () => {
+    const m = model();
+    // a second peer container cc with child c1
+    m.nodes.push(
+      { id: 'cc', name: 'Gamma', type: 'Container', parentId: 'sys', ...base },
+      { id: 'c1', name: 'C1', type: 'Component', parentId: 'cc', ...base },
+    );
+    m.connections.push(
+      { id: 'Q', from: 'a1', to: 'cb', type: 'Dependency', ...e }, // direct edge → cb is shown
+      { id: 'R', from: 'c1', to: 'b1', type: 'Dependency', ...e }, // unrelated to focus ca
+    );
+    const v = buildFocusView(m, 'ca');
+    expect(v.externals.map((n) => n.id)).toContain('cb');
+    expect([...(v.expandableExternalIds ?? [])]).toEqual([]); // cb NOT expandable via unrelated R
+  });
 });
 
 describe('representative', () => {
