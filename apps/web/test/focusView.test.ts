@@ -301,6 +301,20 @@ describe('buildFocusView — expandable externals', () => {
     expect(v.externals.map((n) => n.id)).toEqual(['ext']);
     expect([...(v.expandableExternalIds ?? [])]).toEqual([]);
   });
+
+  it('flags a peer external as expandable even when the finer child is absorbed into a coarse edge realizedBy', () => {
+    const m = model(); // sys > ca(a1,a2), cb(b1); a1 > k1; ext
+    m.connections.push(
+      { id: 'P', from: 'a1', to: 'cb', type: 'Dependency', ...e, realizedBy: ['C'] },
+      { id: 'C', from: 'a1', to: 'b1', type: 'Dependency', ...e },
+    );
+    const v = buildFocusView(m, 'ca');
+    expect(v.externals.map((n) => n.id)).toEqual(['cb']);
+    expect([...(v.expandableExternalIds ?? [])]).toEqual(['cb']); // flagged despite absorption
+    // and expanding it genuinely surfaces b1
+    const x = buildFocusView(m, 'ca', undefined, 'full', new Set(['cb']));
+    expect(x.externals.map((n) => n.id)).toEqual(['b1']);
+  });
 });
 
 describe('representative', () => {

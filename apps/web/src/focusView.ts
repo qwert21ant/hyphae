@@ -232,19 +232,20 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
   }
   const externals = [...shownExternalIds].map((id) => nodes.get(id)).filter((n): n is Node => !!n);
 
-  // Which shown, collapsed, focus-peer externals could expand: they stand in for >=1 participating
-  // descendant. A group member (below the focus layer) rolls up to its parent, so it never qualifies.
-  const connById = new Map(model.connections.map((c) => [c.id, c]));
+  // Which shown, collapsed, focus-peer externals would reveal a finer participating child if expanded.
+  // Computed from the surviving connections (not the rendered edges), so a finer child that got
+  // absorbed into a coarse edge's realizedBy is still detected.
   const expandableExternalIds = new Set<string>();
-  for (const ed of shownEdges) {
-    for (const extId of [ed.from, ed.to]) {
-      if (inside.has(extId) || expandedExternals.has(extId) || expandableExternalIds.has(extId)) continue;
-      if (representativeWith(nodes, extId, focusLayer) !== extId) continue; // only focus-peer reps
-      const aggregates = ed.realizedBy.some((cid) => {
-        const c = connById.get(cid);
-        return !!c && (childOfFocus(nodes, c.from, extId) !== null || childOfFocus(nodes, c.to, extId) !== null);
-      });
-      if (aggregates) expandableExternalIds.add(extId);
+  const memberVisible = (childId: string): boolean => !stakeholder || atComponent(childId);
+  for (const c of conns) {
+    if (!allIds.has(c.from) || !allIds.has(c.to)) continue;
+    for (const origId of [c.from, c.to]) {
+      const rep = unexpandedRep(origId);
+      if (inside.has(rep) || expandedExternals.has(rep) || expandableExternalIds.has(rep)) continue;
+      if (!shownExternalIds.has(rep)) continue;                          // only externals actually rendered
+      if (representativeWith(nodes, rep, focusLayer) !== rep) continue;  // focus-peer reps only (not members)
+      const child = childOfFocus(nodes, origId, rep);
+      if (child !== null && memberVisible(child)) expandableExternalIds.add(rep);
     }
   }
 
