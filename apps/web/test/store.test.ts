@@ -107,6 +107,36 @@ describe('editor store', () => {
     expect(useStore.getState().expandedExternals.size).toBe(0);
   });
 
+  it('revealNode focuses the parent and selects a child node', () => {
+    const mk = (over: Record<string, unknown>) => ({
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+      docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
+    });
+    useStore.setState((s) => ({ model: { ...s.model, nodes: [mk({ id: 'ca', type: 'Container' }), mk({ id: 'comp', parentId: 'ca' })] as any } }));
+    useStore.getState().toggleExternal('ghost');
+    useStore.getState().revealNode('comp');
+    expect(useStore.getState().focusId).toBe('ca');
+    expect(useStore.getState().selectedId).toBe('comp');
+    expect(useStore.getState().expandedExternals.size).toBe(0);
+  });
+
+  it('revealNode on a top-level node focuses root (null) and selects it', () => {
+    const mk = (over: Record<string, unknown>) => ({
+      id: 'x', name: 'X', type: 'System', description: '', parentId: null, codeRefs: [],
+      docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
+    });
+    useStore.setState((s) => ({ model: { ...s.model, nodes: [mk({ id: 'sys' })] as any } }));
+    useStore.getState().revealNode('sys');
+    expect(useStore.getState().focusId).toBe(null);
+    expect(useStore.getState().selectedId).toBe('sys');
+  });
+
+  it('revealNode is a no-op for an unknown id', () => {
+    useStore.getState().setFocus('keep');
+    useStore.getState().revealNode('nope');
+    expect(useStore.getState().focusId).toBe('keep');
+  });
+
   it('setFocus resets expandedExternals', () => {
     useStore.getState().toggleExternal('cb');
     expect(useStore.getState().expandedExternals.size).toBe(1);
