@@ -149,6 +149,19 @@ describe('Canvas navigation (real React Flow)', () => {
     expect(hlCss(container)).toBe(before);
   });
 
+  it('keeps the hovered/selected node fully opaque (restore beats the dim rule)', () => {
+    // The dim rule uses two :not() pseudo-classes (specificity 0,4,0), which outranks the [data-id]
+    // restore rule (0,3,0). Without !important the active node itself would stay dimmed in a real
+    // browser. jsdom does not compute :not() specificity, so we assert the generated CSS carries the
+    // !important that guarantees the highlighted node wins the cascade.
+    useStore.setState({ model: twoContainers(), focusId: 'sys', selectedId: null });
+    const { container } = render(<Canvas />);
+    fireEvent.mouseEnter(node(container, 'ca')!);
+    const css = hlCss(container);
+    expect(css).toContain('[data-id="ca"]');              // ca is the highlighted (active) node
+    expect(css).toMatch(/opacity:1\s*!important/);         // its restore rule must override the dim rule
+  });
+
   it('in stakeholder mode, double-clicking a Component does not drill into its Code', () => {
     useStore.setState({ model: model(), focusId: 'ca', selectedId: null, audience: 'stakeholder' });
     const { container } = render(<Canvas />);

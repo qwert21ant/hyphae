@@ -101,7 +101,9 @@ export function Canvas() {
       `.hyphae-canvas .react-flow__node:not(.react-flow__node-region):not(.react-flow__node-ghostGroup){opacity:${dimNode}}`,
       `.hyphae-canvas .react-flow__edge{opacity:${dimEdge}}`,
     ];
-    if (nodeSel.length) rules.push(`${nodeSel.join(',')}{opacity:1;box-shadow:0 0 0 2px ${accent};border-radius:4px}`);
+    // !important: the dim rule's two :not() pseudo-classes give it specificity (0,4,0), which
+    // outranks this [data-id] restore (0,3,0) — without !important the active node would stay dimmed.
+    if (nodeSel.length) rules.push(`${nodeSel.join(',')}{opacity:1!important;box-shadow:0 0 0 2px ${accent};border-radius:4px}`);
     if (edgeSel.length) {
       rules.push(`${edgeSel.join(',')}{opacity:1}`);
       // !important beats the derived edge's inline stroke-width.
