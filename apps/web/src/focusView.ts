@@ -261,12 +261,12 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
   return { focusId, focusNode, children, externals, edges: shownEdges, externalGroups, expandableExternalIds };
 }
 
-/** Connections listed for a node's panel: those that cross the boundary of the subtree rooted at
- *  `nodeId` (exactly one endpoint is the node or a descendant, the other outside). Excluded are
- *  connections internal to the subtree (both endpoints inside, e.g. edges between the node's
- *  children) and connections that are a realized child of another connection (represented by their
- *  parent, per realizedBy). */
-export function externalConnections(model: HyphaeModel, nodeId: string): Connection[] {
+/** Connections listed for a node's panel, split by direction relative to the subtree rooted at
+ *  `nodeId`: `outgoing` = `from` inside the subtree, `to` outside; `incoming` = `to` inside,
+ *  `from` outside. Only boundary-crossing edges appear (exactly one endpoint is the node or a
+ *  descendant); excluded are connections internal to the subtree (both endpoints inside) and
+ *  connections that are a realized child of another connection (represented by their parent). */
+export function partitionConnections(model: HyphaeModel, nodeId: string): { outgoing: Connection[]; incoming: Connection[] } {
   const kids = new Map<string, string[]>();
   for (const n of model.nodes) {
     if (n.parentId) (kids.get(n.parentId) ?? kids.set(n.parentId, []).get(n.parentId)!).push(n.id);
@@ -280,9 +280,23 @@ export function externalConnections(model: HyphaeModel, nodeId: string): Connect
     for (const k of kids.get(id) ?? []) stack.push(k);
   }
   const realizedChildren = new Set<string>(model.connections.flatMap((c) => c.realizedBy));
-  return model.connections.filter(
-    (c) => inSubtree.has(c.from) !== inSubtree.has(c.to) && !realizedChildren.has(c.id),
-  );
+  const outgoing: Connection[] = [];
+  const incoming: Connection[] = [];
+  for (const c of model.connections) {
+    if (realizedChildren.has(c.id)) continue;
+    const fromIn = inSubtree.has(c.from);
+    const toIn = inSubtree.has(c.to);
+    if (fromIn === toIn) continue; // both in or both out → not a boundary crossing
+    if (fromIn) outgoing.push(c); else incoming.push(c);
+  }
+  return { outgoing, incoming };
+}
+
+/** The union of {@link partitionConnections}'s outgoing then incoming — the flat
+ *  boundary-crossing list used where direction is not needed. */
+export function externalConnections(model: HyphaeModel, nodeId: string): Connection[] {
+  const { outgoing, incoming } = partitionConnections(model, nodeId);
+  return [...outgoing, ...incoming];
 }
 
 export function breadcrumbPath(model: HyphaeModel, focusId: string | null): Crumb[] {

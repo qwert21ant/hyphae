@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildFocusView, breadcrumbPath, representative, externalConnections } from '../src/focusView';
+import { buildFocusView, breadcrumbPath, representative, externalConnections, partitionConnections } from '../src/focusView';
 import { emptyModel } from '@hyphae/schema';
 
 const base = { description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
@@ -376,6 +376,34 @@ describe('externalConnections', () => {
       { id: 'p', from: 'a1', to: 'ext', type: 'Dependency', ...e, realizedBy: ['x'] },
       { id: 'x', from: 'k1', to: 'ext', type: 'Dependency', ...e },  // realized under p → hidden
     );
+    expect(externalConnections(m, 'ca').map((c) => c.id)).toEqual(['p']);
+  });
+});
+
+describe('partitionConnections', () => {
+  it('splits boundary connections into outgoing (from inside) and incoming (to inside)', () => {
+    const m = model(); // sys › ca › (a1,a2); a1 › k1; cb › b1; ext
+    m.connections.push(
+      { id: 'out1', from: 'a1', to: 'ext', type: 'Dependency', ...e },  // from inside ca → outgoing
+      { id: 'out2', from: 'k1', to: 'b1', type: 'Dependency', ...e },   // k1 under a1, inside → outgoing
+      { id: 'in1', from: 'ext', to: 'a1', type: 'Dependency', ...e },   // to inside ca → incoming
+    );
+    const { outgoing, incoming } = partitionConnections(m, 'ca');
+    expect(outgoing.map((c) => c.id).sort()).toEqual(['out1', 'out2']);
+    expect(incoming.map((c) => c.id)).toEqual(['in1']);
+  });
+
+  it('excludes inner and realizedBy-child connections, and externalConnections is the union', () => {
+    const m = model();
+    m.connections.push(
+      { id: 'kid', from: 'a1', to: 'a2', type: 'Dependency', ...e },    // both inside → excluded
+      { id: 'p', from: 'a1', to: 'ext', type: 'Dependency', ...e, realizedBy: ['x'] },
+      { id: 'x', from: 'k1', to: 'ext', type: 'Dependency', ...e },     // realized child → excluded
+      { id: 'in', from: 'ext', to: 'b1', type: 'Dependency', ...e },    // b1 not under ca → excluded
+    );
+    const { outgoing, incoming } = partitionConnections(m, 'ca');
+    expect(outgoing.map((c) => c.id)).toEqual(['p']);
+    expect(incoming).toEqual([]);
     expect(externalConnections(m, 'ca').map((c) => c.id)).toEqual(['p']);
   });
 });
