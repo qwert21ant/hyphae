@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useStore } from './store';
-import { buildFocusView, externalConnections } from './focusView';
+import { buildFocusView, partitionConnections } from './focusView';
 import { ConnectionList } from './ConnectionList';
 import {
   DirectionSchema, allowedParentTypes, connectionKindIds, effectiveFields, c4Backend,
@@ -65,7 +65,8 @@ export function SidePanel() {
     const parentTypes = allowedParentTypes(c4Backend, node.type);
     const parentOptions = nodes.filter((p) => parentTypes.includes(p.type) && p.id !== node.id);
     const setField = (key: string, v: unknown) => updateNode(node.id, { fields: { ...node.fields, [key]: v } });
-    const nodeConns = externalConnections(model, node.id);
+    const { outgoing, incoming } = partitionConnections(model, node.id);
+    const total = outgoing.length + incoming.length;
     return (
       <aside className="panel">
         <h2>{node.type}</h2>
@@ -84,10 +85,21 @@ export function SidePanel() {
             </select></label>
         )}
         <button onClick={() => deleteNode(node.id)}>Delete node</button>
-        {nodeConns.length > 0 && (
+        {total > 0 && (
           <>
-            <h3>Connections ({nodeConns.length})</h3>
-            <ConnectionList connections={nodeConns} />
+            <h3>Connections ({total})</h3>
+            {outgoing.length > 0 && (
+              <>
+                <h4 className="conn-dir">Outgoing ({outgoing.length})</h4>
+                <ConnectionList connections={outgoing} />
+              </>
+            )}
+            {incoming.length > 0 && (
+              <>
+                <h4 className="conn-dir">Incoming ({incoming.length})</h4>
+                <ConnectionList connections={incoming} />
+              </>
+            )}
           </>
         )}
       </aside>

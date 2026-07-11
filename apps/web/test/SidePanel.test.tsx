@@ -139,6 +139,51 @@ describe('SidePanel', () => {
     expect(useStore.getState().selectedId).toBe('c1');
   });
 
+  it('splits the selected node connections into Outgoing and Incoming sections', () => {
+    const mk = (over: Partial<Node>): Node => ({
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+      docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
+    });
+    const conn = (over: Partial<Connection>): Connection => ({
+      id: 'c', from: 'a1', to: 'ext', type: 'Dependency', description: '', direction: 'Unidirectional',
+      realizedBy: [], codeRefs: [], fields: {}, ...over,
+    });
+    useStore.setState((s) => ({
+      model: {
+        ...s.model,
+        nodes: [mk({ id: 'ca', name: 'Alpha', type: 'Container' }), mk({ id: 'a1', name: 'A1', parentId: 'ca' }), mk({ id: 'ext', name: 'Ext', type: 'System' })],
+        connections: [conn({ id: 'o1', from: 'a1', to: 'ext' }), conn({ id: 'i1', from: 'ext', to: 'a1' })],
+      },
+      selectedId: 'ca',
+    }));
+    render(<SidePanel />);
+    expect(screen.getByText(/connections \(2\)/i)).toBeTruthy();
+    expect(screen.getByText(/outgoing \(1\)/i)).toBeTruthy();
+    expect(screen.getByText(/incoming \(1\)/i)).toBeTruthy();
+  });
+
+  it('omits a direction subsection when it has no connections', () => {
+    const mk = (over: Partial<Node>): Node => ({
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+      docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
+    });
+    const conn = (over: Partial<Connection>): Connection => ({
+      id: 'c', from: 'a1', to: 'ext', type: 'Dependency', description: '', direction: 'Unidirectional',
+      realizedBy: [], codeRefs: [], fields: {}, ...over,
+    });
+    useStore.setState((s) => ({
+      model: {
+        ...s.model,
+        nodes: [mk({ id: 'ca', name: 'Alpha', type: 'Container' }), mk({ id: 'a1', name: 'A1', parentId: 'ca' }), mk({ id: 'ext', name: 'Ext', type: 'System' })],
+        connections: [conn({ id: 'o1', from: 'a1', to: 'ext' })],
+      },
+      selectedId: 'ca',
+    }));
+    render(<SidePanel />);
+    expect(screen.getByText(/outgoing \(1\)/i)).toBeTruthy();
+    expect(screen.queryByText(/incoming/i)).toBeNull();
+  });
+
   it('lists a connection\'s realizedBy children and selects a child on row click', () => {
     const mk = (over: Partial<Node>): Node => ({
       id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
