@@ -3,6 +3,7 @@ html, body, #root { height: 100%; margin: 0; font-family: system-ui, sans-serif;
 .toolbar { display: flex; gap: 12px; align-items: center; padding: 8px 12px; border-bottom: 1px solid #ddd; }
 .body { display: flex; flex: 1; min-height: 0; }
 .panel { width: 320px; border-left: 1px solid #ddd; padding: 12px; overflow-y: auto; }
+.conn-dir { margin: 8px 0 2px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; }
 .field { display: flex; flex-direction: column; margin-bottom: 8px; font-size: 12px; }
 .field input, .field textarea, .field select { font-size: 13px; padding: 4px; }
 .field textarea { min-height: 56px; }

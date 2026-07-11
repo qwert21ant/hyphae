@@ -48,6 +48,11 @@ describe('App', () => {
     expect(useStore.getState().model.nodes[0].parentId).toBeNull();
   });
 
+  it('renders the node search box in the toolbar', () => {
+    render(<App />);
+    expect(screen.getByLabelText('search nodes')).toBeTruthy();
+  });
+
   it('toggles audience from the toolbar', async () => {
     render(<App />);
     await new Promise((r) => setTimeout(r, 0));

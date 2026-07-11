@@ -6,6 +6,7 @@ import { hashToFocusId, focusIdToHash, resolveHashFocus } from './hashRoute';
 import { c4Backend, allowedChildTypes, topLevelTypes } from '@hyphae/schema';
 import { Canvas } from './Canvas';
 import { SidePanel } from './SidePanel';
+import { SearchBox } from './SearchBox';
 import './styles.css';
 
 /** Adopt the URL hash as the focus, validated against the loaded model. A hash naming an
@@ -88,6 +89,7 @@ export function App() {
         {addable.map((t) => (
           <button key={t} onClick={() => addNode(t)}>add {t}</button>
         ))}
+        <SearchBox />
         <div className="audience-toggle" role="group" aria-label="detail level" style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
           {(['stakeholder', 'full'] as const).map((a) => (
             <button

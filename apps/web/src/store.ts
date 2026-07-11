@@ -20,6 +20,7 @@ type State = {
   setModel: (m: HyphaeModel, version?: number) => void;
   syncFromServer: () => Promise<void>;
   setFocus: (id: string | null) => void;
+  revealNode: (id: string) => void;
   select: (id: string | null) => void;
   setAudience: (a: Audience) => void;
   toggleConnKind: (value: string) => void;
@@ -67,6 +68,15 @@ export const useStore = create<State>((set, get) => {
       set({ model, ownVersion: version });
     },
     setFocus: (focusId) => set({ focusId, selectedId: null, expandedExternals: new Set<string>() }),
+    // Jump to a node from search: focus its parent (root when top-level) so the node shows as a
+    // highlighted child box, and select it. Atomic so setFocus's selectedId reset can't clobber it.
+    revealNode: (id) => {
+      const nodes = get().model.nodes;
+      const n = nodes.find((x) => x.id === id);
+      if (!n) return;
+      const parentId = n.parentId && nodes.some((x) => x.id === n.parentId) ? n.parentId : null;
+      set({ focusId: parentId, selectedId: id, expandedExternals: new Set<string>() });
+    },
     select: (selectedId) => set({ selectedId }),
     setAudience: (audience) => {
       if (typeof localStorage !== 'undefined') localStorage.setItem('hyphae.audience', audience);
