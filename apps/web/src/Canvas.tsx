@@ -7,7 +7,7 @@ import '@xyflow/react/dist/style.css';
 import { c4Backend, layerOfType } from '@hyphae/schema';
 import { useStore } from './store';
 import { buildFocusView } from './focusView';
-import { layoutFocusView } from './layout';
+import { layoutFocusView, resolveViewPositions } from './layout';
 import { focusViewToFlow, highlightSets } from './flow';
 import { GroupNode } from './GroupNode';
 import { NodeBox } from './NodeBox';
@@ -42,11 +42,20 @@ export function Canvas() {
   // Drilling changes focus (and remounts the graph); reset hover so the new view opens neutral.
   useEffect(() => setHoveredId(null), [focusId]);
 
+  // Stable base layout: positions come from the full / unfiltered / full-audience / COLLAPSED view,
+  // memoized on [model, focusId] only. The connection filter, the audience toggle, and expansion
+  // therefore never reflow the graph — resolveViewPositions maps the actual view onto these slots.
+  const EMPTY_EXPANDED = useMemo(() => new Set<string>(), []);
+  const baseView = useMemo(
+    () => buildFocusView(model, focusId, undefined, 'full', EMPTY_EXPANDED),
+    [model, focusId, EMPTY_EXPANDED],
+  );
+  const basePositions = useMemo(() => layoutFocusView(baseView), [baseView]);
   const view = useMemo(
     () => buildFocusView(model, focusId, connFilter, audience, expandedExternals),
     [model, focusId, connFilter, audience, expandedExternals],
   );
-  const positions = useMemo(() => layoutFocusView(view), [view]);
+  const positions = useMemo(() => resolveViewPositions(view, basePositions), [view, basePositions]);
   const { nodes, edges } = useMemo(() => focusViewToFlow(view, positions), [view, positions]);
 
   // Highlight the active node/edge + neighbors (a region highlights its children), dim the rest.
