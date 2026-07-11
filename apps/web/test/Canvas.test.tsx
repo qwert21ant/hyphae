@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, fireEvent } from '@testing-library/react';
+import { render, fireEvent, act } from '@testing-library/react';
 import { Canvas } from '../src/Canvas';
 import { useStore } from '../src/store';
 import { emptyModel } from '@hyphae/schema';
@@ -149,6 +149,19 @@ describe('Canvas navigation (real React Flow)', () => {
     expect(hlCss(container)).toBe(before);
   });
 
+  it('keeps the hovered/selected node fully opaque (restore beats the dim rule)', () => {
+    // The dim rule uses two :not() pseudo-classes (specificity 0,4,0), which outranks the [data-id]
+    // restore rule (0,3,0). Without !important the active node itself would stay dimmed in a real
+    // browser. jsdom does not compute :not() specificity, so we assert the generated CSS carries the
+    // !important that guarantees the highlighted node wins the cascade.
+    useStore.setState({ model: twoContainers(), focusId: 'sys', selectedId: null });
+    const { container } = render(<Canvas />);
+    fireEvent.mouseEnter(node(container, 'ca')!);
+    const css = hlCss(container);
+    expect(css).toContain('[data-id="ca"]');              // ca is the highlighted (active) node
+    expect(css).toMatch(/opacity:1\s*!important/);         // its restore rule must override the dim rule
+  });
+
   it('in stakeholder mode, double-clicking a Component does not drill into its Code', () => {
     useStore.setState({ model: model(), focusId: 'ca', selectedId: null, audience: 'stakeholder' });
     const { container } = render(<Canvas />);
@@ -181,5 +194,59 @@ describe('Canvas navigation (real React Flow)', () => {
     const { container } = render(<Canvas />);
     dblclick(container, 'cb');
     expect(useStore.getState().focusId).toBe('cb');
+  });
+});
+
+// A container whose children form a chain a1 → a2 → a3, where a2 → a3 exists only as a DERIVED edge
+// (rolled up from a Code connection m1 → m2). Filtering to Dependency-only, or switching to
+// stakeholder, hides that derived edge — which under the old (unstable) pipeline re-ran dagre and
+// moved a3. The stable-base pipeline must keep a3 put.
+function chainModel() {
+  const m = emptyModel();
+  m.nodes.push(
+    { id: 'ca', name: 'Alpha', type: 'Container', parentId: null, ...base },
+    { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
+    { id: 'a2', name: 'A2', type: 'Component', parentId: 'ca', ...base },
+    { id: 'a3', name: 'A3', type: 'Component', parentId: 'ca', ...base },
+    { id: 'm1', name: 'M1', type: 'Class', parentId: 'a2', ...base },
+    { id: 'm2', name: 'M2', type: 'Class', parentId: 'a3', ...base },
+  );
+  m.connections.push(
+    { id: 'e1', from: 'a1', to: 'a2', type: 'Dependency', ...e },
+    { id: 'e2', from: 'm1', to: 'm2', type: 'DataFlow', ...e }, // rolls up to a derived a2 → a3
+  );
+  return m;
+}
+
+const xOf = (el: HTMLElement) => { const mm = /translate\(([-\d.]+)px/.exec(el.style.transform); return mm ? parseFloat(mm[1]) : NaN; };
+
+describe('Canvas layout stability', () => {
+  it('applying a connection filter does not move child node positions', () => {
+    useStore.setState({ model: chainModel(), focusId: 'ca', selectedId: null, connFilter: { kinds: [], fields: {} }, audience: 'full', expandedExternals: new Set() });
+    const { container } = render(<Canvas />);
+    const before = node(container, 'a3')!.style.transform;
+    act(() => { useStore.getState().toggleConnKind('Dependency'); }); // hides the DataFlow-derived a2→a3
+    expect(node(container, 'a3')!.style.transform).toBe(before);
+  });
+
+  it('switching audience does not move child node positions', () => {
+    useStore.setState({ model: chainModel(), focusId: 'ca', selectedId: null, connFilter: { kinds: [], fields: {} }, audience: 'full', expandedExternals: new Set() });
+    const { container } = render(<Canvas />);
+    const before = node(container, 'a3')!.style.transform;
+    act(() => { useStore.getState().setAudience('stakeholder'); }); // hides the derived a2→a3
+    expect(node(container, 'a3')!.style.transform).toBe(before);
+  });
+
+  it('expanding an external keeps children put and renders the group on the same side', () => {
+    useStore.setState({ model: model(), focusId: 'ca', selectedId: null, connFilter: { kinds: [], fields: {} }, audience: 'full', expandedExternals: new Set() });
+    const { container } = render(<Canvas />);
+    const a1Before = node(container, 'a1')!.style.transform;
+    const a1X = xOf(node(container, 'a1')!);
+    const cbSide = Math.sign(xOf(node(container, 'cb')!) - a1X); // side of the collapsed ghost
+    act(() => { useStore.getState().toggleExternal('cb'); });
+    expect(node(container, 'a1')!.style.transform).toBe(a1Before); // child unchanged
+    const b1 = node(container, 'b1');
+    expect(b1).toBeTruthy();
+    expect(Math.sign(xOf(b1!) - a1X)).toBe(cbSide);                // member on the same side as the ghost was
   });
 });

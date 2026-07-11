@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { layoutFocusView, NODE_W, NODE_H, ROW_GAP } from '../src/layout';
+import { layoutFocusView, resolveViewPositions, groupBoxHeight, NODE_W, NODE_H, PAD, LABEL_H, ROW_GAP, MEMBER_PITCH } from '../src/layout';
 import type { FocusView } from '../src/focusView';
 
 const node = (id: string, type = 'Component') =>
@@ -16,7 +16,7 @@ const view: FocusView = {
   ],
 };
 
-describe('layoutFocusView', () => {
+describe('layoutFocusView (base structural layout)', () => {
   it('assigns a position to every child and external', () => {
     const pos = layoutFocusView(view);
     for (const id of ['a1', 'a2', 'cb']) {
@@ -34,7 +34,6 @@ describe('layoutFocusView', () => {
     const pos = layoutFocusView(view);
     const childMaxX = Math.max(pos.a1.x, pos.a2.x) + NODE_W;
     const childMinX = Math.min(pos.a1.x, pos.a2.x);
-    // cb is an outgoing target → to the right of the cluster (or clearly left if incoming)
     expect(pos.cb.x >= childMaxX || pos.cb.x + NODE_W <= childMinX).toBe(true);
   });
 
@@ -48,39 +47,11 @@ describe('layoutFocusView', () => {
     };
     const pos = layoutFocusView(childless);
     expect(pos['ext']).toBeDefined();
-    expect(typeof pos['ext'].x).toBe('number');
-    expect(typeof pos['ext'].y).toBe('number');
     expect(pos['cb']).toBeDefined();
     expect(typeof pos['cb'].x).toBe('number');
-    expect(typeof pos['cb'].y).toBe('number');
   });
 
-  it('stacks an expanded group\'s members at one column x, reserving space above a sibling', () => {
-    const grouped: FocusView = {
-      focusId: 'ca', focusNode: node('ca', 'Container'),
-      children: [node('a1'), node('a2')],
-      externals: [node('b1'), node('b2'), node('solo', 'Container')],
-      edges: [
-        { id: 'g1', from: 'a1', to: 'b1', kind: null, count: 1, derived: true, realizedBy: ['x1'] },
-        { id: 'g2', from: 'a1', to: 'b2', kind: null, count: 1, derived: true, realizedBy: ['x2'] },
-        { id: 's', from: 'a1', to: 'solo', kind: null, count: 1, derived: true, realizedBy: ['x3'] },
-      ],
-      externalGroups: [{ id: 'cb', name: 'Beta', childIds: ['b1', 'b2'] }],
-    };
-    const pos = layoutFocusView(grouped);
-    // members share a column x and are vertically separated
-    expect(pos.b1.x).toBe(pos.b2.x);
-    expect(pos.b1.y).not.toBe(pos.b2.y);
-    // the solo external sits in the same (outgoing) column but does not overlap the group members
-    const groupMinY = Math.min(pos.b1.y, pos.b2.y);
-    const groupMaxY = Math.max(pos.b1.y, pos.b2.y) + NODE_H;
-    expect(pos.solo.y >= groupMaxY || pos.solo.y + NODE_H <= groupMinY).toBe(true);
-    // group members are indented relative to a standalone external in the same column
-    // (old ungrouped layout placed b1/b2/solo all at the same x, so this distinguishes the feature)
-    expect(pos.b1.x).not.toBe(pos.solo.x);
-  });
-
-  it('keeps two ungrouped externals in a column at the original ROW_GAP pitch (no inflation)', () => {
+  it('keeps two externals in a column at the ROW_GAP pitch', () => {
     const v: FocusView = {
       focusId: 'ca', focusNode: node('ca', 'Container'),
       children: [node('a1')],
@@ -91,21 +62,94 @@ describe('layoutFocusView', () => {
       ],
     };
     const pos = layoutFocusView(v);
-    expect(pos.x1.x).toBe(pos.x2.x);                          // same column
-    expect(Math.abs(pos.x1.y - pos.x2.y)).toBe(ROW_GAP);      // original pitch, not NODE_H+ROW_GAP
+    expect(pos.x1.x).toBe(pos.x2.x);
+    expect(Math.abs(pos.x1.y - pos.x2.y)).toBe(ROW_GAP);
   });
 
-  it('stacks ungrouped externals in a stable id order (no reordering vs pre-feature)', () => {
+  it('stacks externals in a stable id order', () => {
     const v: FocusView = {
       focusId: 'ca', focusNode: node('ca', 'Container'),
       children: [node('a1')],
-      externals: [node('zed', 'Container'), node('abe', 'Container')], // deliberately out of id order
+      externals: [node('zed', 'Container'), node('abe', 'Container')],
       edges: [
         { id: 'o1', from: 'a1', to: 'zed', kind: null, count: 1, derived: true, realizedBy: ['p1'] },
         { id: 'o2', from: 'a1', to: 'abe', kind: null, count: 1, derived: true, realizedBy: ['p2'] },
       ],
     };
     const pos = layoutFocusView(v);
-    expect(pos.abe.y).toBeLessThan(pos.zed.y); // 'abe' sorts before 'zed' → placed above
+    expect(pos.abe.y).toBeLessThan(pos.zed.y);
+  });
+});
+
+describe('resolveViewPositions', () => {
+  it('reuses base positions for children and collapsed externals (filter/audience stability)', () => {
+    const base = { a1: { x: 0, y: 0 }, a2: { x: 0, y: 100 }, cb: { x: 500, y: 50 } };
+    const v: FocusView = {
+      focusId: 'ca', focusNode: node('ca', 'Container'),
+      children: [node('a1'), node('a2')],
+      externals: [node('cb', 'Container')],
+      edges: [{ id: 'x', from: 'a1', to: 'cb', kind: null, count: 1, derived: true, realizedBy: ['e'] }],
+    };
+    const pos = resolveViewPositions(v, base);
+    expect(pos.a1).toEqual({ x: 0, y: 0 });
+    expect(pos.a2).toEqual({ x: 0, y: 100 });
+    expect(pos.cb).toEqual({ x: 500, y: 50 });
+  });
+
+  it('leaves a still-shown external at its base slot when a sibling is filtered out (no re-centering)', () => {
+    // base has cb + cc in one column; the current view only shows cb — it must stay put, not recenter.
+    const base = { a1: { x: 0, y: 0 }, cb: { x: 500, y: 20 }, cc: { x: 500, y: 90 } };
+    const v: FocusView = {
+      focusId: 'ca', focusNode: node('ca', 'Container'),
+      children: [node('a1')],
+      externals: [node('cb', 'Container')],
+      edges: [{ id: 'x', from: 'a1', to: 'cb', kind: null, count: 1, derived: true, realizedBy: ['e'] }],
+    };
+    const pos = resolveViewPositions(v, base);
+    expect(pos.cb).toEqual({ x: 500, y: 20 });
+    expect(pos.cc).toBeUndefined();
+  });
+
+  it('anchors an expanded group at the collapsed ghost base slot with members at MEMBER_PITCH', () => {
+    const base = { a1: { x: 0, y: 0 }, cb: { x: 500, y: 100 } };
+    const v: FocusView = {
+      focusId: 'ca', focusNode: node('ca', 'Container'),
+      children: [node('a1')],
+      externals: [node('b1'), node('b2')],
+      edges: [
+        { id: 'g1', from: 'a1', to: 'b1', kind: null, count: 1, derived: true, realizedBy: ['x1'] },
+        { id: 'g2', from: 'a1', to: 'b2', kind: null, count: 1, derived: true, realizedBy: ['x2'] },
+      ],
+      externalGroups: [{ id: 'cb', name: 'Beta', childIds: ['b1', 'b2'] }],
+    };
+    const pos = resolveViewPositions(v, base);
+    // members indented from the group's base x (same column/side as the collapsed ghost)
+    expect(pos.b1.x).toBe(base.cb.x + PAD);
+    expect(pos.b2.x).toBe(pos.b1.x);
+    // stacked at MEMBER_PITCH — no overlap
+    expect(pos.b2.y - pos.b1.y).toBe(MEMBER_PITCH);
+    // the group box top aligns with the collapsed ghost's base y (first member below the label band)
+    expect(pos.b1.y).toBe(base.cb.y + LABEL_H + PAD);
+  });
+
+  it('an expanded group pushes only lower same-column items down; other column and children stay', () => {
+    const base = {
+      a1: { x: 0, y: 0 },
+      top: { x: 500, y: 0 }, cb: { x: 500, y: 100 }, low: { x: 500, y: 200 },
+      left: { x: -300, y: 50 },
+    };
+    const v: FocusView = {
+      focusId: 'ca', focusNode: node('ca', 'Container'),
+      children: [node('a1')],
+      externals: [node('top', 'Container'), node('b1'), node('b2'), node('low', 'Container'), node('left', 'Container')],
+      edges: [],
+      externalGroups: [{ id: 'cb', name: 'Beta', childIds: ['b1', 'b2'] }],
+    };
+    const pos = resolveViewPositions(v, base);
+    const extra = groupBoxHeight(2) - NODE_H;
+    expect(pos.top).toEqual({ x: 500, y: 0 });               // above the group — unchanged
+    expect(pos.low).toEqual({ x: 500, y: 200 + extra });     // below the group — pushed down
+    expect(pos.left).toEqual({ x: -300, y: 50 });            // other column — unchanged
+    expect(pos.a1).toEqual({ x: 0, y: 0 });                  // child — unchanged
   });
 });

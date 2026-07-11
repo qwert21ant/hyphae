@@ -9,10 +9,23 @@ export const LABEL_H = 22;
 export type XY = { x: number; y: number };
 
 const COL_GAP = 120;  // horizontal gap between the children cluster and an external column
-export const ROW_GAP = 70;   // vertical gap between stacked externals
+export const ROW_GAP = 70;   // vertical pitch between stacked externals
+export const MEMBER_PITCH = ROW_GAP; // expanded-group members stack at the same pitch as externals
 
-/** Children laid out by their inner edges via dagre; externals placed in incoming (left)
- *  / outgoing (right) columns beside the resulting cluster. Deterministic. */
+/** The rendered height of an expanded group's box wrapping `n` members. */
+export function groupBoxHeight(n: number): number {
+  return LABEL_H + 2 * PAD + Math.max(0, n - 1) * MEMBER_PITCH + NODE_H;
+}
+
+/**
+ * Base structural layout: children placed by dagre from their inner edges; externals placed as
+ * single boxes in incoming (left) / outgoing (right) columns beside the cluster. Deterministic.
+ *
+ * Call this on the full / unfiltered / full-audience / COLLAPSED view to get stable slots for every
+ * child and every collapsed external. The actually-rendered view (which may be filtered, in
+ * stakeholder mode, or have expanded externals) is mapped onto these slots by resolveViewPositions,
+ * so the connection filter, the audience toggle, and expansion never reflow the whole graph.
+ */
 export function layoutFocusView(view: FocusView): Record<string, XY> {
   const childIds = new Set(view.children.map((n) => n.id));
   const pos: Record<string, XY> = {};
@@ -21,9 +34,7 @@ export function layoutFocusView(view: FocusView): Record<string, XY> {
   g.setGraph({ rankdir: 'TB', nodesep: 40, ranksep: 80, marginx: 20, marginy: 20 });
   g.setDefaultEdgeLabel(() => ({}));
   for (const n of view.children) g.setNode(n.id, { width: NODE_W, height: NODE_H });
-  for (const e of view.edges) {
-    if (childIds.has(e.from) && childIds.has(e.to)) g.setEdge(e.from, e.to);
-  }
+  for (const e of view.edges) if (childIds.has(e.from) && childIds.has(e.to)) g.setEdge(e.from, e.to);
   dagre.layout(g);
   for (const n of view.children) {
     const d = g.node(n.id);
@@ -31,9 +42,7 @@ export function layoutFocusView(view: FocusView): Record<string, XY> {
   }
 
   // When the focus node has no children, give it a slot at the origin so edges can anchor on it.
-  if (view.focusNode && view.children.length === 0) {
-    pos[view.focusNode.id] = { x: 0, y: 0 };
-  }
+  if (view.focusNode && view.children.length === 0) pos[view.focusNode.id] = { x: 0, y: 0 };
 
   // Children bounding box (fall back to origin when there are no children).
   const xs = view.children.map((n) => pos[n.id].x);
@@ -44,46 +53,66 @@ export function layoutFocusView(view: FocusView): Record<string, XY> {
   const maxY = ys.length ? Math.max(...ys) + NODE_H : NODE_H;
   const midY = (minY + maxY) / 2;
 
-  const MEMBER_GAP = 16; // vertical gap between stacked group members
-  const ITEM_GAP = ROW_GAP - NODE_H; // gap between column items; preserves the original ROW_GAP pitch for standalone externals
+  const incoming = view.externals.filter((ext) => view.edges.some((e) => e.from === ext.id)).map((n) => n.id);
+  const outgoing = view.externals.filter((ext) => !view.edges.some((e) => e.from === ext.id)).map((n) => n.id);
+  const byId = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+  incoming.sort(byId);
+  outgoing.sort(byId);
 
-  // A column item is either a standalone external or an expanded group (its members).
-  const groups = view.externalGroups ?? [];
-  const memberOf = new Map<string, string>();
-  for (const grp of groups) for (const cid of grp.childIds) memberOf.set(cid, grp.id);
-  type Item = { ids: string[]; group: boolean };
-  const items: Item[] = [];
-  for (const ext of view.externals) if (!memberOf.has(ext.id)) items.push({ ids: [ext.id], group: false });
-  for (const grp of groups) items.push({ ids: grp.childIds, group: true });
-
-  const itemHeight = (it: Item) =>
-    it.group ? it.ids.length * NODE_H + (it.ids.length - 1) * MEMBER_GAP + LABEL_H + 2 * PAD : NODE_H;
-  const isIncoming = (it: Item) => view.edges.some((ed) => it.ids.includes(ed.from));
-
-  const incoming = items.filter(isIncoming);
-  const outgoing = items.filter((it) => !isIncoming(it));
-
-  // Stable, deterministic vertical order within each column (matches the pre-item-based behavior
-  // of sorting the external ids alphabetically), keyed off each item's first id.
-  const byFirstId = (a: Item, b: Item) => (a.ids[0] < b.ids[0] ? -1 : a.ids[0] > b.ids[0] ? 1 : 0);
-  incoming.sort(byFirstId);
-  outgoing.sort(byFirstId);
-
-  const placeColumn = (col: Item[], x: number) => {
-    const totalH = col.reduce((h, it) => h + itemHeight(it), 0) + Math.max(0, col.length - 1) * ITEM_GAP;
-    let y = midY - totalH / 2;
-    for (const it of col) {
-      if (it.group) {
-        // members stacked below the group's label band, indented by PAD
-        it.ids.forEach((id, i) => { pos[id] = { x: x + PAD, y: y + LABEL_H + PAD + i * (NODE_H + MEMBER_GAP) }; });
-      } else {
-        pos[it.ids[0]] = { x, y };
-      }
-      y += itemHeight(it) + ITEM_GAP;
-    }
+  const placeColumn = (ids: string[], x: number) => {
+    const totalH = Math.max(0, ids.length - 1) * ROW_GAP;
+    ids.forEach((id, i) => { pos[id] = { x, y: midY - totalH / 2 + i * ROW_GAP - NODE_H / 2 }; });
   };
   placeColumn(incoming, minX - COL_GAP - NODE_W);
   placeColumn(outgoing, maxX + COL_GAP);
 
+  return pos;
+}
+
+/**
+ * Map a rendered view onto stable `base` slots (from layoutFocusView on the collapsed base view):
+ * - children and a childless focus node keep their base position (so filtering connections or
+ *   switching audience never moves them);
+ * - a collapsed external keeps its base slot (a filtered-out sibling just leaves a gap — no
+ *   re-centering);
+ * - an expanded external's group is anchored at its collapsed ghost's base slot (same base x ⇒ same
+ *   column ⇒ same side), its members stacked downward at MEMBER_PITCH; only lower items in that same
+ *   column are pushed down to make room (children and the opposite column never move).
+ */
+export function resolveViewPositions(view: FocusView, base: Record<string, XY>): Record<string, XY> {
+  const pos: Record<string, XY> = {};
+  for (const n of view.children) if (base[n.id]) pos[n.id] = base[n.id];
+  if (view.focusNode && base[view.focusNode.id]) pos[view.focusNode.id] = base[view.focusNode.id];
+
+  const groups = view.externalGroups ?? [];
+  const memberIds = new Set(groups.flatMap((g) => g.childIds));
+  type Item = { id: string; members?: string[] };
+  const items: Item[] = [];
+  for (const ext of view.externals) if (!memberIds.has(ext.id)) items.push({ id: ext.id });
+  for (const g of groups) items.push({ id: g.id, members: g.childIds });
+
+  // Group items into columns keyed by their collapsed ghost's base x (all collapsed externals in a
+  // column share that x; a group's column x is its collapsed ghost's base x).
+  const cols = new Map<number, Item[]>();
+  for (const it of items) {
+    const b = base[it.id];
+    if (!b) continue; // no stable slot (base is the superset, so this shouldn't happen) — skip defensively
+    const col = cols.get(b.x);
+    if (col) col.push(it); else cols.set(b.x, [it]);
+  }
+  for (const col of cols.values()) {
+    col.sort((a, b) => base[a.id].y - base[b.id].y);
+    let offset = 0;
+    for (const it of col) {
+      const b = base[it.id];
+      const y = b.y + offset;
+      if (it.members) {
+        it.members.forEach((mid, i) => { pos[mid] = { x: b.x + PAD, y: y + LABEL_H + PAD + i * MEMBER_PITCH }; });
+        offset += groupBoxHeight(it.members.length) - NODE_H; // reserve extra room below the group
+      } else {
+        pos[it.id] = { x: b.x, y };
+      }
+    }
+  }
   return pos;
 }

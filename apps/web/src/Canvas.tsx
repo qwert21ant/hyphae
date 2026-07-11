@@ -7,7 +7,7 @@ import '@xyflow/react/dist/style.css';
 import { c4Backend, layerOfType } from '@hyphae/schema';
 import { useStore } from './store';
 import { buildFocusView } from './focusView';
-import { layoutFocusView } from './layout';
+import { layoutFocusView, resolveViewPositions } from './layout';
 import { focusViewToFlow, highlightSets } from './flow';
 import { GroupNode } from './GroupNode';
 import { NodeBox } from './NodeBox';
@@ -42,11 +42,20 @@ export function Canvas() {
   // Drilling changes focus (and remounts the graph); reset hover so the new view opens neutral.
   useEffect(() => setHoveredId(null), [focusId]);
 
+  // Stable base layout: positions come from the full / unfiltered / full-audience / COLLAPSED view,
+  // memoized on [model, focusId] only. The connection filter, the audience toggle, and expansion
+  // therefore never reflow the graph — resolveViewPositions maps the actual view onto these slots.
+  const EMPTY_EXPANDED = useMemo(() => new Set<string>(), []);
+  const baseView = useMemo(
+    () => buildFocusView(model, focusId, undefined, 'full', EMPTY_EXPANDED),
+    [model, focusId, EMPTY_EXPANDED],
+  );
+  const basePositions = useMemo(() => layoutFocusView(baseView), [baseView]);
   const view = useMemo(
     () => buildFocusView(model, focusId, connFilter, audience, expandedExternals),
     [model, focusId, connFilter, audience, expandedExternals],
   );
-  const positions = useMemo(() => layoutFocusView(view), [view]);
+  const positions = useMemo(() => resolveViewPositions(view, basePositions), [view, basePositions]);
   const { nodes, edges } = useMemo(() => focusViewToFlow(view, positions), [view, positions]);
 
   // Highlight the active node/edge + neighbors (a region highlights its children), dim the rest.
@@ -92,7 +101,9 @@ export function Canvas() {
       `.hyphae-canvas .react-flow__node:not(.react-flow__node-region):not(.react-flow__node-ghostGroup){opacity:${dimNode}}`,
       `.hyphae-canvas .react-flow__edge{opacity:${dimEdge}}`,
     ];
-    if (nodeSel.length) rules.push(`${nodeSel.join(',')}{opacity:1;box-shadow:0 0 0 2px ${accent};border-radius:4px}`);
+    // !important: the dim rule's two :not() pseudo-classes give it specificity (0,4,0), which
+    // outranks this [data-id] restore (0,3,0) — without !important the active node would stay dimmed.
+    if (nodeSel.length) rules.push(`${nodeSel.join(',')}{opacity:1!important;box-shadow:0 0 0 2px ${accent};border-radius:4px}`);
     if (edgeSel.length) {
       rules.push(`${edgeSel.join(',')}{opacity:1}`);
       // !important beats the derived edge's inline stroke-width.
