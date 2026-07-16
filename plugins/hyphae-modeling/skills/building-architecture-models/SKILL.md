@@ -57,13 +57,23 @@ Cost ≈ turns × context size. To avoid carrying a huge context across many tur
 Dispatch one subagent per container marked "drill", in parallel. Build each subagent's prompt from `references/subagent-prompt.md` (REQUIRED REFERENCE). Each subagent deeply analyzes its package, writes its own Components and intra-container connections, and **writes a structured report to its assigned `.hyphae/reports/` file (returning only a short status)**. Subagents never touch other packages or shared nodes.
 
 ### Phase 3 — Reconcile + connections + GATE 2
-1. Aggregate all reports into one review bundle:
+1. Aggregate all reports into one review bundle using the shared **Reconcile procedure** below:
    - cross-package connections — resolve each endpoint to an id by **(container, name)**, not by bare name (component names repeat across containers); dedupe,
    - proposed amendments to System / Containers (`update_nodes`),
    - new ExternalSystem nodes + edges to them.
-2. **GATE 2: show the bundle. Conflicting amendments from different subagents are surfaced for the user to resolve — never last-write-wins. Wait for approval/trim.**
-3. Apply the approved bundle: one `update_nodes` for amendments → one `create_nodes` for ExternalSystems → one `create_connections` for all cross-package/external edges.
-4. Tick the plan artifact's progress markers. Call `model_overview` and summarize the model.
+2. **Coverage sweep (context still hot).** Call `model_gaps` once — it returns orphan Components, unbound cross-component code edges, and thin/name-echoing descriptions (with degree) in a single read. Carry the flags into GATE 2 as *candidates*, separating likely-real gaps from legitimately standalone components (a component a subagent listed under `standaloneComponents` is expected — not a gap).
+3. **GATE 2: show the bundle + the coverage flags.** Conflicting amendments from different subagents are surfaced for the user to resolve — never last-write-wins. Confirmed gaps are filled by the **owning container's subagent**, never by the orchestrator inventing edges. Wait for approval/trim.
+4. Apply the approved bundle: one `update_nodes` for amendments → one `create_nodes` for ExternalSystems → one `create_connections` for all cross-package/external edges. Re-dispatch owning subagents for any confirmed intra-container gaps.
+5. Tick the plan artifact's progress markers. Call `model_overview` and summarize the model.
+
+#### Reconcile procedure (shared by GATE 2 and GATE 3)
+
+Mechanical part (do this before showing the gate, so the human sees only real decisions):
+1. **Resolve** each reported endpoint to a node id by **(container[, component], name)** — never bare name.
+2. **Dedupe** identical resolved edges (same from/to/type) into one.
+3. **Surface only**: amendments that *conflict* between subagents, and new ExternalSystem nodes/edges. Identical or non-overlapping amendments need no human decision — apply them.
+
+Never resolve a conflict by last-write-wins; a genuine disagreement is always a human decision at the gate.
 
 ### Phase 4 — Code layer (re-runnable; runs after Phase 3)
 
@@ -85,9 +95,9 @@ unwieldy count is a signal the Component is too coarse (surface it, don't trunca
    and `codeRefs` as `path#SymbolName`. It writes **intra-component** connections (both endpoints are
    Code nodes under the *same* Component) and reports **cross-component** code edges (endpoints in
    different Components — whether in this container or another) upward.
-2. **GATE 3 (mirrors Phase 3).** The orchestrator aggregates reports, resolves each cross-component code
-   edge endpoint by (container, component, name), dedupes, and surfaces conflicts (never last-write-wins).
-   Wait for approval.
+2. **GATE 3 (mirrors Phase 3).** The orchestrator aggregates reports with the shared **Reconcile procedure**
+   (resolve each cross-component code edge endpoint by (container, component, name), dedupe, surface only
+   conflicts — never last-write-wins). Wait for approval.
 3. **Binding rule (orchestrator only).** Apply approved cross-component code edges, then bind: a single
    `update_connections` call sets `realizedBy` on each existing Component↔Component edge between the two
    owning Components; create any missing Component↔Component parent edges with `create_connections`
@@ -96,17 +106,14 @@ unwieldy count is a signal the Component is too coarse (surface it, don't trunca
 4. Tick the plan artifact's Code-layer markers; call `model_overview` and summarize.
 
 ### Phase 5 — Verify (optional, re-runnable)
-A standalone consistency pass over an existing model. Run it right after Phase 3, or any time later — it is independent of Phase 4. Read-mostly: gaps are filled by the owning subagent, never by the orchestrator inventing edges.
-0. **Structural check.** Call `validate_model` first — it returns any structural/field issues (bad containment, dangling/bad endpoints, unknown or missing-required fields, bad enum values, bad refs) in one read. Fix those before the semantic sweep. An empty result means the model is structurally clean (it does not check for orphans/unbound edges — that is the sweep below).
-1. **Coverage sweep.** Call `list_connections({ maxLayer: 'Code' })` once (optionally per container via `containerId`) to get every edge with endpoint/container names, plus `list_nodes`, and flag: Components with **zero connections** (orphans); and "hub" Components whose `description`/`invariants` claim broad dependence ("all others depend on it", "implements", "used by") but have few or no inbound edges. A Component a subagent listed under `standaloneComponents` is expected — not a flag.
-   - **Unbound code edges.** Flag any cross-component code edge whose id is NOT in any Component↔Component
-     edge's `realizedBy`. Fix by binding it (orchestrator) or by having the owning subagent confirm it.
-     Reads now default to Component-and-above, so `maxLayer:'Code'` is required here to see the code edges the unbound-edge check needs.
-2. **VERIFY CHECKPOINT: show the user the flagged gaps**, separating likely-real gaps from legitimately standalone nodes. Wait for confirmation of which to fix.
-3. For confirmed gaps, **re-dispatch the owning container's subagent** (same `references/subagent-prompt.md`) to add the missing intra-container edges. The orchestrator must not write intra-container edges itself.
+A standalone consistency pass over an existing model. The Phase-3 tail already runs this sweep inline (its checkpoint folded into GATE 2), so Phase 5 is only needed as a **re-run** — after Phase 4, or any time later. Read-mostly: gaps are filled by the owning subagent, never by the orchestrator inventing edges.
+0. **Structural check.** Call `validate_model` — it returns any structural/field issues (bad containment, dangling/bad endpoints, unknown or missing-required fields, bad enum values, bad refs) in one read. Fix those first. Empty means structurally clean.
+1. **Coverage sweep.** Call `model_gaps` — one read returns orphan Components (zero connections), unbound cross-component code edges (id in no `realizedBy`), and thin/name-echoing descriptions (with inbound/outbound degree, so a thin hub — high inbound but an empty/echoing description — stands out). Separate likely-real gaps from legitimately standalone components (`standaloneComponents` are expected).
+2. **CHECKPOINT: show the flagged gaps.** Wait for confirmation of which to fix.
+3. For confirmed gaps, **re-dispatch the owning container's subagent** (same `references/subagent-prompt.md`) to add the missing intra-container edges or descriptions. The orchestrator must not write intra-container edges itself.
 4. Idempotent (create-or-skip), so Verify can be re-run until clean.
 
-> `list_connections` returns the whole edge set (with names and owning containers) in one call, so the sweep stays cheap even on large models — reads default to Component-and-above, so include code edges via `maxLayer:'Code'` (as the coverage sweep above does). To inspect a single node's edges, pass `list_connections({nodeId})`.
+> `model_gaps` computes the coverage flags server-side in one call, so the sweep stays cheap even on large models — no need to pull the whole edge set and re-derive orphans/unbound edges in context. To inspect a single flagged node's edges, use `list_connections({nodeId})`.
 
 ## Idempotency contract (every run, every agent)
 
@@ -120,4 +127,5 @@ A standalone consistency pass over an existing model. Run it right after Phase 3
 - A subagent creating a Container, an ExternalSystem, or a cross-package edge → not allowed; report it upward, that is the orchestrator's job.
 - "The docs say the layout is X" treated as fact without checking the filesystem → verify.
 - Writing a connection before both endpoints exist → reorder.
-- Skipping a gate to "save time" → both gates are mandatory.
+- The orchestrator writing an intra-container edge to "fix" a model_gaps flag → re-dispatch the owning subagent instead.
+- Skipping a gate to "save time" → all three gates (GATE 1, GATE 2, GATE 3) are mandatory.

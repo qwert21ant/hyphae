@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import {
-  modelOverview, rollupConnections, validateModel, resolveProfile, HyphaeModelSchema, c4Backend,
+  modelOverview, rollupConnections, validateModel, modelGaps, resolveProfile, HyphaeModelSchema, c4Backend,
   effectiveFields, connectionKindIds, nodeAtOrAboveLayer,
   type HyphaeModel, type FieldDef,
 } from '@hyphae/schema';
@@ -211,6 +211,10 @@ export function buildTools(api: HyphaeApi) {
       const model = await api.getModel();
       return validateModel(model, resolveProfile(model));
     },
+    model_gaps: async (_: Record<string, never>) => {
+      const model = await api.getModel();
+      return modelGaps(model, resolveProfile(model));
+    },
     create_nodes: async ({ nodes }: { nodes: Record<string, unknown>[] }) => runCreate(nodes, api.createNode, 'node'),
     create_connections: async ({ connections }: { connections: Record<string, unknown>[] }) => runCreate(connections, api.createConnection, 'connection'),
     update_nodes: async ({ updates }: { updates: Array<{ id: string } & Record<string, unknown>> }) =>
@@ -409,9 +413,14 @@ async function main() {
   }, async () => text(await tools.describe_profile({})));
 
   server.registerTool('validate_model', {
-    description: 'Validate the whole model against the active profile and return the structural/field issues ({kind, ref, message}): bad containment, dangling/bad endpoints, unknown or missing-required fields, bad enum values, bad refs. Empty array means structurally clean. Use in the Verify phase instead of dumping the model and re-deriving validity in-context. Note: this checks structure/fields only — it does NOT find semantic gaps like orphan components or unbound code edges.',
+    description: 'Validate the whole model against the active profile and return the structural/field issues ({kind, ref, message}): bad containment, dangling/bad endpoints, unknown or missing-required fields, bad enum values, bad refs. Empty array means structurally clean. Use in the Verify phase instead of dumping the model and re-deriving validity in-context. Note: this checks structure/fields only — for semantic coverage gaps (orphan components, unbound code edges, thin descriptions) use model_gaps.',
     inputSchema: {},
   }, async () => text(await tools.validate_model({})));
+
+  server.registerTool('model_gaps', {
+    description: 'Advisory coverage/quality read (read-only, whole-model). Returns three gap lists: orphanNodes (Component-layer nodes with zero connections), unboundCodeEdges (cross-component Code↔Code edges whose id is in no connection\'s realizedBy — candidates to bind), and thinDescriptions (Component-and-above nodes whose description is empty or echoes the name, each with inbound/outbound degree so a thin hub is visible). Flags candidates only — it never mutates or auto-fixes; a legitimately standalone component or a terse-but-fine node may appear. Complements validate_model, which checks structure/fields; this checks semantic coverage.',
+    inputSchema: {},
+  }, async () => text(await tools.model_gaps({})));
 
   await server.connect(new StdioServerTransport());
 }
