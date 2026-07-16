@@ -55,6 +55,25 @@ describe('MCP tool handlers', () => {
     const issues = (await buildTools(api).validate_model({})) as Array<{ kind: string; ref: string }>;
     expect(issues).toContainEqual(expect.objectContaining({ kind: 'dangling-endpoint', ref: 'c2' }));
   });
+  it('model_gaps flags orphans, unbound code edges, and thin descriptions', async () => {
+    const api = fakeApi({ getModel: async () => {
+      const m = model();
+      // add a second container with a lone (orphan) component + an unbound cross-component code edge
+      m.nodes.push(
+        { id: 'comp', name: 'Comp', type: 'Component', parentId: 'api', description: 'does work', fields: {}, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
+        { id: 'orph', name: 'Orph', type: 'Component', parentId: 'api', description: '', fields: {}, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
+      );
+      return m;
+    } });
+    const g = (await buildTools(api).model_gaps({})) as {
+      orphanNodes: Array<{ id: string }>;
+      thinDescriptions: Array<{ id: string; reason: string }>;
+      unboundCodeEdges: unknown[];
+    };
+    expect(g.orphanNodes.map((n) => n.id)).toEqual(['comp', 'orph']); // both components have no edges
+    expect(g.thinDescriptions.some((t) => t.id === 'orph' && t.reason === 'empty')).toBe(true);
+    expect(Array.isArray(g.unboundCodeEdges)).toBe(true);
+  });
   it('create_nodes returns ids on full success', async () => {
     const r = await buildTools(fakeApi()).create_nodes({ nodes: [{ name: 'X', type: 'Component' }] });
     expect(r).toEqual({ ids: ['new'] });
