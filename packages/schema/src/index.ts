@@ -8,4 +8,5 @@ export * from './model';
 export * from './validate';
 export * from './overview';
 export * from './rollup';
+export * from './gaps';
 export * from './json-schema';
