@@ -9,8 +9,14 @@ What the skill does (summary — the skill body is authoritative):
 - **Phase 0** — discover packages, verify docs against the real filesystem, record drift.
 - **Phase 1** — write the System + one Container per package, emit `.hyphae/model-plan.md`, **GATE 1**.
 - **Phase 2** — one subagent per container writes its own Components + intra-container edges, in parallel.
-- **Phase 3** — reconcile cross-package connections + upward findings into one bundle, **GATE 2**, then apply.
-- **Phase 4** — optional deepening passes (code-level via gitnexus, Flows, …).
+- **Phase 3** — reconcile cross-package connections + upward findings into one bundle, run the `model_gaps`
+  coverage sweep, **GATE 2**, then apply.
+- **Phase 4** — one subagent per container writes the selective Code layer, then reconcile + bind
+  cross-component code edges, **GATE 3**.
+- **Phase 5** — optional, re-runnable Verify: `validate_model` (structure) + `model_gaps` (coverage gaps),
+  with confirmed gaps filled by the owning subagent.
+
+Three human gates (GATE 1 / 2 / 3); the coverage sweep folds into GATE 2.
 
 ## Requirements
 

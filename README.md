@@ -1,7 +1,7 @@
 # Hyphae
 
 Local visual editor for a C4-style architecture model, readable **and writable** by LLM agents over MCP.
-See `docs/MODEL_RU.md` for the model concept and `docs/SPEC_RU.md` for the product spec.
+See `docs/MODEL.md` for the model concept and `docs/SPEC.md` for the product spec.
 
 ## Develop
 
@@ -51,14 +51,16 @@ The MCP server is an HTTP client of the running Hyphae server, so the server mus
 Read tools: `describe_profile` (the active profile's node/connection kinds and their documented
 fields — call it first), `model_overview`, `get_node`, `list_nodes` (with an optional text `query`),
 `list_connections` (incl. a `nodeId` filter for one node's edges), `rollup_connections` (derived
-higher-layer edges), `get_subgraph`, `validate_model` (structural/field issues).
+higher-layer edges), `get_subgraph`, `validate_model` (structural/field issues), `model_gaps`
+(coverage/quality gaps — orphan components, unbound code edges, thin/name-echoing descriptions).
 Write tools: `create_nodes`, `update_nodes`, `delete_nodes`, `create_connections`, `update_connections`, `delete_connections`.
 Domain values go in a `fields` bag validated against the profile; the write tools' params are built
 from the active profile.
 
 For Claude Code, `.mcp.json` registers this server (project scope) — approve it on session start,
-then check `/mcp`. A ready-made "analyze this repo and build its model" prompt lives in
-`docs/prompts/analyze-and-model.md`.
+then check `/mcp`. To build a model of a large repo top-down and resumably, use the
+`building-architecture-models` skill bundled in the `hyphae-modeling` plugin
+(`plugins/hyphae-modeling/`).
 
 ## Production
 
