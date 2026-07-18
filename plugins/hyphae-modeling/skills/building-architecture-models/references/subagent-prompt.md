@@ -7,8 +7,13 @@ You are modeling ONE package of a larger repo into the Hyphae model. Stay strict
 
 Container: {{CONTAINER_NAME}}  (id: {{CONTAINER_ID}})
 Package path: {{PACKAGE_PATH}}
+Container root: {{CONTAINER_ROOT}}
 Detected archetype: {{ARCHETYPE}}
 Report file: {{REPORT_FILE}}
+
+Your container declares `root: {{CONTAINER_ROOT}}`. Every `codeRef` / `docRef` you write is resolved
+against it, so write refs **relative to that root** — `src/api/Client.ts`, never
+`{{CONTAINER_ROOT}}src/api/Client.ts`. Do not set `root` yourself; the orchestrator owns it.
 
 All hyphae tools use the `mcp__hyphae__` prefix (e.g. `mcp__hyphae__describe_profile`).
 
@@ -56,9 +61,15 @@ Same ownership rules. The orchestrator fills placeholders and dispatches one per
 You are adding the CODE layer for ONE container. Stay strictly within your container's Components.
 
 Container: {{CONTAINER_NAME}}  (id: {{CONTAINER_ID}})
+Container root: {{CONTAINER_ROOT}}
 Report file: {{REPORT_FILE}}
 
 All hyphae tools use the `mcp__hyphae__` prefix (e.g. `mcp__hyphae__describe_profile`).
+
+Every `codeRef` you write is resolved against your container's `root: {{CONTAINER_ROOT}}`, so write
+refs **relative to it** — `src/api/Client.ts#Client`, never `{{CONTAINER_ROOT}}src/api/Client.ts#Client`.
+Do not set `root` yourself. Prefer a directory (`src/handlers/`) or glob (`src/views/**/*.vue`) Ref
+over a long flat list of file refs.
 
 0. Call `mcp__hyphae__describe_profile`, then `mcp__hyphae__model_overview` and
    `mcp__hyphae__list_nodes({ parentId: <componentId>, maxLayer: 'Code' })` (Code nodes are hidden unless
@@ -68,7 +79,7 @@ All hyphae tools use the `mcp__hyphae__` prefix (e.g. `mcp__hyphae__describe_pro
 2. create all Code nodes in one `mcp__hyphae__create_nodes` call, each as type
    Class/Interface/Function/Module/UIComponent with parentId = the Component id, a 1–3 sentence purpose
    `description`, `responsibilities`/`invariants` where known, and `codeRefs` as
-   ["path/to/file.ext#SymbolName", ...].
+   ["path/to/file.ext#SymbolName", ...] — **root-relative**, per the note above.
 3. create intra-component edges in one `mcp__hyphae__create_connections` call, ONLY for edges where both
    endpoints are Code nodes under the *same* Component; set `type` and put `transport` in `fields`.
    Report cross-component code edges (endpoints in different Components) upward — do NOT create them.
