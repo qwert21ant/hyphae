@@ -3,7 +3,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import {
   modelOverview, rollupConnections, validateModel, modelGaps, resolveProfile, HyphaeModelSchema, c4Backend,
-  effectiveFields, connectionKindIds, nodeAtOrAboveLayer,
+  effectiveFields, connectionKindIds, nodeAtOrAboveLayer, refOwners, resolveRoot, resolveRef,
   type HyphaeModel, type FieldDef,
 } from '@hyphae/schema';
 
@@ -215,6 +215,18 @@ export function buildTools(api: HyphaeApi) {
       const model = await api.getModel();
       return modelGaps(model, resolveProfile(model));
     },
+    resolve_refs: async ({ nodeId, path }: { nodeId?: string; path?: string }) => {
+      const model = await api.getModel();
+      if (path) return { path, owners: refOwners(model.nodes, path) };
+      if (!nodeId) return { error: 'Pass either nodeId or path.' };
+      const node = model.nodes.find((n) => n.id === nodeId);
+      if (!node) return { error: `node ${nodeId} not found` };
+      return {
+        nodeId,
+        root: resolveRoot(model.nodes, nodeId),
+        refs: node.codeRefs.map((ref) => ({ ref, resolved: resolveRef(model.nodes, nodeId, ref) })),
+      };
+    },
     create_nodes: async ({ nodes }: { nodes: Record<string, unknown>[] }) => runCreate(nodes, api.createNode, 'node'),
     create_connections: async ({ connections }: { connections: Record<string, unknown>[] }) => runCreate(connections, api.createConnection, 'connection'),
     update_nodes: async ({ updates }: { updates: Array<{ id: string } & Record<string, unknown>> }) =>
@@ -361,8 +373,11 @@ async function main() {
 
   const coreNodeFields = {
     parentId: z.string().nullable().optional(),
+    root: z.string().nullable().optional()
+      .describe('Optional directory Ref (must end with "/") anchoring this node\'s subtree on disk, e.g. "endpoints/media_gateway/". Refs on this node and its descendants resolve against it, and roots chain down the containment tree — a System declares the repo root, a Container its subtree, and Components stay short and relative. A codeRef on a node with no anchoring root anywhere in its ancestors is a validation issue.'),
     description: z.string().optional(),
-    codeRefs: z.array(z.string()).optional(),
+    codeRefs: z.array(z.string()).optional()
+      .describe('Refs into the source, relative to the nearest ancestor root. Syntax decides the kind: "src/views/cctv/" directory, "src/main.ts" file, "src/main.ts#getRouter" symbol, "src/main.ts#L10-L40" line range, "src/views/**/*.vue" glob.'),
     docRefs: z.array(z.string()).optional(),
     fields: z.object(fieldsShape('node')).partial().optional(),
   };
@@ -417,8 +432,16 @@ async function main() {
     inputSchema: {},
   }, async () => text(await tools.validate_model({})));
 
+  server.registerTool('resolve_refs', {
+    description: 'Resolve a node\'s codeRefs to full repo-relative paths through its inherited root, or reverse-look-up which nodes claim a given path. Pass nodeId to resolve that node\'s refs (and see its effective root); pass path to list every node whose refs point there — more than one owner means the path is genuinely shared. Use before editing code to find what models a file, and after writing refs to confirm they anchor where you expect.',
+    inputSchema: {
+      nodeId: z.string().optional().describe('Resolve this node\'s codeRefs and report its effective root.'),
+      path: z.string().optional().describe('Repo-relative path to reverse-look-up, e.g. "endpoints/media_gateway/src/main.ts".'),
+    },
+  }, async (a) => text(await tools.resolve_refs(a)));
+
   server.registerTool('model_gaps', {
-    description: 'Advisory coverage/quality read (read-only, whole-model). Returns three gap lists: orphanNodes (Component-layer nodes with zero connections), unboundCodeEdges (cross-component Code↔Code edges whose id is in no connection\'s realizedBy — candidates to bind), and thinDescriptions (Component-and-above nodes whose description is empty or echoes the name, each with inbound/outbound degree so a thin hub is visible). Flags candidates only — it never mutates or auto-fixes; a legitimately standalone component or a terse-but-fine node may appear. Complements validate_model, which checks structure/fields; this checks semantic coverage.',
+    description: 'Advisory coverage/quality read (read-only, whole-model). Returns four gap lists: orphanNodes (Component-layer nodes with zero connections), unboundCodeEdges (cross-component Code↔Code edges whose id is in no connection\'s realizedBy — candidates to bind), thinDescriptions (Component-and-above nodes whose description is empty or echoes the name, each with inbound/outbound degree so a thin hub is visible), and missingRefs (codeRefs that resolve to a path absent on disk — populated only when a disk check is requested; currently always empty, as no caller wires checkDisk yet). Flags candidates only — it never mutates or auto-fixes; a legitimately standalone component or a terse-but-fine node may appear. Complements validate_model, which checks structure/fields; this checks semantic coverage.',
     inputSchema: {},
   }, async () => text(await tools.model_gaps({})));
 

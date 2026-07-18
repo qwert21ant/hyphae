@@ -5,6 +5,9 @@ export const NodeSchema = z.object({
   name: z.string().min(1),
   type: z.string().min(1), // validated against active profile in validate.ts
   parentId: z.string().nullable().default(null),
+  // Optional directory Ref anchoring this node's subtree on disk. Refs below it resolve
+  // against it; roots chain down the containment tree. See ref.ts.
+  root: z.string().nullable().default(null),
   description: z.string().default(''),
   codeRefs: z.array(z.string()).default([]),
   docRefs: z.array(z.string()).default([]),

@@ -6,7 +6,7 @@ import type { Node } from '../src/node';
 import type { Connection } from '../src/connection';
 
 const node = (over: Record<string, unknown>): Node => ({
-  id: 'x', name: 'X', type: 'Component', parentId: null, description: '',
+  id: 'x', name: 'X', type: 'Component', parentId: null, description: '', root: null,
   codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
 } as Node);
 const conn = (over: Record<string, unknown>): Connection => ({
@@ -67,7 +67,7 @@ describe('validateModel', () => {
 });
 
 describe('Code layer containment', () => {
-  const base = { description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
+  const base = { description: '', root: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
   function withParent(parentType: string) {
     const m = emptyModel();
     m.nodes.push(
@@ -87,5 +87,76 @@ describe('Code layer containment', () => {
   it('rejects a Class under a Container', () => {
     const issues = validateModel(withParent('Container'), c4Backend);
     expect(issues).toEqual([expect.objectContaining({ kind: 'bad-parent', ref: 'code' })]);
+  });
+});
+
+import { isDirectoryRef } from '../src/ref';
+
+describe('ref anchoring', () => {
+  const base = { codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, root: null };
+
+  function anchoredModel(): HyphaeModel {
+    const m = emptyModel();
+    m.nodes.push(
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, description: 'd', ...base, root: 'endpoints/' },
+      { id: 'mg', name: 'MG', type: 'Container', parentId: 'sys', description: 'd', ...base, root: 'media_gateway/' },
+      { id: 'comp', name: 'C', type: 'Component', parentId: 'mg', description: 'd', ...base, codeRefs: ['src/main.ts'] },
+    );
+    return m;
+  }
+
+  it('accepts a ref anchored by an ancestor root', () => {
+    expect(validateModel(anchoredModel(), c4Backend)).toEqual([]);
+  });
+
+  it('flags a node whose refs have no anchoring root', () => {
+    const m = anchoredModel();
+    m.nodes[0].root = null;
+    m.nodes[1].root = null;
+    const issues = validateModel(m, c4Backend).filter((i) => i.kind === 'unanchored-ref');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].ref).toBe('comp');
+    expect(issues[0].message).toMatch(/no ancestor declares a root/i);
+  });
+
+  it('reports one issue per node, not one per ref', () => {
+    const m = anchoredModel();
+    m.nodes[0].root = null;
+    m.nodes[1].root = null;
+    m.nodes[2].codeRefs = ['src/a.ts', 'src/b.ts', 'src/c.ts'];
+    expect(validateModel(m, c4Backend).filter((i) => i.kind === 'unanchored-ref')).toHaveLength(1);
+  });
+
+  it('exempts an absolute ref from anchoring', () => {
+    const m = anchoredModel();
+    m.nodes[0].root = null;
+    m.nodes[1].root = null;
+    m.nodes[2].codeRefs = ['/opt/vendor/lib.ts'];
+    expect(validateModel(m, c4Backend).filter((i) => i.kind === 'unanchored-ref')).toEqual([]);
+  });
+
+  it('ignores docRefs, which may be URLs', () => {
+    const m = anchoredModel();
+    m.nodes[0].root = null;
+    m.nodes[1].root = null;
+    m.nodes[2].codeRefs = [];
+    m.nodes[2].docRefs = ['https://example.test/adr-1'];
+    expect(validateModel(m, c4Backend).filter((i) => i.kind === 'unanchored-ref')).toEqual([]);
+  });
+
+  it('flags a root that is not a directory Ref', () => {
+    const m = anchoredModel();
+    m.nodes[1].root = 'media_gateway';   // missing trailing slash
+    const issues = validateModel(m, c4Backend).filter((i) => i.kind === 'bad-root');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].ref).toBe('mg');
+    expect(issues[0].message).toMatch(/directory ref/i);
+    expect(isDirectoryRef('media_gateway')).toBe(false);
+  });
+
+  it('flags a glob used as a root', () => {
+    const m = anchoredModel();
+    m.nodes[1].root = 'endpoints/*/';
+    expect(validateModel(m, c4Backend).filter((i) => i.kind === 'bad-root')).toHaveLength(1);
   });
 });

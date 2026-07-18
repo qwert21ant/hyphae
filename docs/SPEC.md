@@ -1,44 +1,72 @@
 # Hyphae — Specification
 
-> A visual editor for a multi-dimensional model of code architecture, and a knowledge base for LLM agents. The long-term goal is bidirectional sync between the model and the code.
+> A visual editor for a **business-legible** model of software architecture, and a knowledge
+> base for LLM agents — one artifact for both. The long-term goal is bidirectional sync
+> between the model and the code.
 
-> The model concept (axes, first-class entities, profiles) lives in a separate document: **[MODEL.md](./MODEL.md)**. This file is about the product, scope, and implementation.
+> The model concept (axes, first-class entities, profiles) lives in a separate document:
+> **[MODEL.md](./MODEL.md)**. The repositioning that shaped this version is recorded in
+> **[docs/superpowers/specs/2026-07-18-business-legible-rethink-design.md](./superpowers/specs/2026-07-18-business-legible-rethink-design.md)**.
+> This file is about the product, scope, and implementation.
 
 ---
 
 ## 1. Vision
 
-Hyphae turns a software system's architecture from stale documentation into a living model, accessible to a human (visual editor) and an LLM (structured format + MCP) at the same time. The end goal is the reverse flow: the user edits the top-level model → the AI cascades a rebuild of the lower levels → the AI rewrites the code to match the new structure.
+Hyphae turns a software system's architecture from stale documentation into a **living
+diagram a person understands at a glance** — what users do to the system, how components
+collaborate, and how data moves and is processed — backed by the same graph an LLM queries and
+edits over MCP. The diagram is primary; the diagram and the knowledge graph are one artifact,
+not two copies.
 
-The core premise: the model must describe **any** type of project — a server application, a frontend (views, components, store), a CLI, a desktop app — not only a C4-style backend. This is achieved not through a zoo of diagrams, but through a small set of **orthogonal description axes** (structure, dependencies, behavior, data, intent, presentation) over universal mechanisms. The project type changes only the **node type vocabulary** (the profile); the engine — edges, flows, state machines, traceability, views — is shared. Details in [MODEL.md](./MODEL.md).
+Two north stars, in order:
+1. **Human-diagram-first.** A reader learns the architecture from the picture: node roles
+   (shapes/icons), connections labeled with a **business action + object** ("reads camera
+   list", "stores clip"), numbered **Flows** for scenarios, and **Patterns** (pipeline,
+   middleware, state machine, …) that show internal shape without a class graph.
+2. **LLM still core.** The model humans read is the model the LLM reads and writes. Structured
+   fields, stable ids, and MCP make it queryable and verifiable; the end goal is the reverse
+   flow — the user edits the top-level model → the AI cascades a rebuild of the lower levels →
+   the AI rewrites the code to match.
 
-The metaphor in the name: hyphae are the threads of a mycelium. The invisible fabric connecting code, architectural knowledge, and AI agents.
+The core premise stays: the model must describe **any** type of project — a server, a
+frontend, a CLI, a desktop app — not only a C4 backend. This is achieved through a small set
+of **orthogonal axes** (structure, dependencies, behavior, data, intent, presentation) over
+universal mechanisms. The project type changes only the **profile vocabulary** (node types,
+roles, verbs, pattern kinds); the engine is shared. Details in [MODEL.md](./MODEL.md).
+
+The metaphor in the name: hyphae are the threads of a mycelium — the invisible fabric
+connecting code, architectural knowledge, and AI agents.
 
 ---
 
-## 2. MVP goals
+## 2. Goals
 
-- A visual editor for multi-level diagrams with a flexible drag-and-drop UX (the `c4-backend` profile first).
-- Flow diagrams bound to the model (sequence-like scenarios over existing nodes and connections).
+- A visual editor whose **diagrams are legible on their own**: node roles as shapes/icons,
+  connections labeled with a business verb + object, detail in the side panel.
+- **Flows** bound to the model — numbered step-sequences overlaid on the diagram for scenarios
+  ("user views live feed").
+- **Patterns** — a profile-driven overlay entity that renders architectural motifs
+  (pipeline / middleware / state-machine / layered / event-bus) instead of a class graph.
+- A **real Data axis** — named data entities that connections carry and nodes own/store, with
+  an ERD-style projection.
 - A single structured model (JSON) — the single source of truth for all views.
-- A schema laid down for the multi-axis model and profiles **from day one** (even if a single profile is active), so as not to pay for a migration later.
-- A format and metadata optimized for LLM consumption.
+- A format and metadata optimized for LLM consumption; MCP read + write.
 - Local execution without a cloud or accounts.
 
-## 3. MVP non-goals
+## 3. Non-goals (for now)
 
-Explicitly deferred to avoid bloating the scope. Important: some of these are **full model axes** (see MODEL.md); they are reserved in the schema as empty collections, but the editor/visualization for them arrive later.
+Explicitly deferred to keep scope focused:
 
-- Code binding — auto-parsing code (tree-sitter, AST), linking nodes to symbols.
-- LLM-driven editing — writing to the model via AI. In the MVP the LLM only reads.
-- Real-time collaboration (CRDT, multi-cursor).
-- State machines (the Behavior axis) — schema reserved, editor later.
-- Domain/Data model (the Data axis, ERD projection) — schema reserved, editor later.
-- Requirements / Decisions (the Intent axis, traceability) — schema reserved, editor later.
-- Profiles other than `c4-backend` (frontend / cli / desktop) — the model supports them, the ready-made profiles land later.
-- Deployment / infra views.
-- Code-level visualization as a class graph.
-- Drift detection, metrics, hotspots.
+- **Code-as-nodes.** Individual classes/interfaces are **not** modeled as diagram nodes; code
+  is `codeRefs` + Patterns. (This is a removal, not a deferral — see §6.7.)
+- **Requirements / Decisions (Intent axis).** Schema-reserved; no editor yet.
+- **Auto-parsing code** (tree-sitter/AST) to populate the model — `codeRefs` are authored/AI-set.
+- **Real-time collaboration** (CRDT, multi-cursor).
+- **Deployment / infra views.**
+- **Drift detection, metrics, hotspots dashboards.**
+- **Team workspace** (comments, drafts, accounts). Storage is a Git-friendly JSON file, so
+  git-diff collaboration works from day one.
 
 ---
 
@@ -46,11 +74,13 @@ Explicitly deferred to avoid bloating the scope. Important: some of these are **
 
 A solo developer + an AI agent as a co-user. Scenarios:
 
-- The developer maintains their project's model by hand through the visual editor.
-- An AI agent (Claude Code or similar) reads the model as context before changing code.
-- In later phases the AI edits the model, and the human reviews the changes.
+- The developer maintains their project's model by hand through the visual editor and **reads
+  the architecture off the diagram**.
+- An AI agent (Claude Code or similar) reads the model as context before changing code, and
+  (in later phases) proposes model edits the human reviews.
 
-Team scenarios (shared workspace, comments, drafts) are out of scope for the MVP, but the storage (a JSON file) is Git-compatible, so basic collaboration via git diff/merge is possible from day one.
+Team scenarios are out of scope for now, but `hyphae.json` is Git-compatible, so basic
+collaboration via git diff/merge is possible from day one.
 
 ---
 
@@ -58,119 +88,177 @@ Team scenarios (shared workspace, comments, drafts) are out of scope for the MVP
 
 A local web application on the Structurizr Lite model:
 
-- One process — a local Node server.
-- Frontend — an SPA, opened in a browser at `localhost`.
-- Backend — serves the API and delivers the built bundle.
-- Persistence — a single JSON file on disk.
-- No external services, no cloud, no authentication in the MVP.
+- One process — a local Node server, the single source of truth.
+- Frontend — an SPA opened in a browser at `localhost`.
+- Backend — serves a granular, validated API + the built bundle; persists a single JSON file
+  atomically (debounced) and broadcasts changes over SSE.
+- No external services, no cloud, no authentication.
 
 ---
 
 ## 6. Data model
 
-> The full concept (axes, categories, profiles, anti-redundancy) is in [MODEL.md](./MODEL.md). Below is the operational slice: what is stored and what is edited in the MVP.
+> The full concept (axes, categories, profiles, anti-redundancy) is in [MODEL.md](./MODEL.md).
+> Below is the operational slice: what is stored and edited.
 
 ### 6.1 Profiles and layers
 
-A node's layer is not a global hardcoded enum, but a derivative of the **profile** + the node's category. A profile is a declarative vocabulary: which node types exist, who is whose parent (containment rules), and a node's category (Structure / Behavior / Data / Intent / Actor).
+A node's layer is a derivative of the **profile** + the node's category. A profile is a
+declarative vocabulary: node types (each with a `role`/archetype), containment rules,
+connection kinds, the **verb** vocabulary, and **pattern** kinds.
 
-The MVP activates a single profile — `c4-backend`:
+The primary profile is `c4-backend`:
 
-| Layer | Description | MVP |
-|-------|-------------|-----|
-| Landscape | Multiple systems in an ecosystem | No |
+| Layer | Description | In scope |
+|-------|-------------|----------|
+| Landscape | Multiple systems in an ecosystem | Later |
 | Context | A system + external actors and systems | Yes |
 | Container | Deployable units inside a system | Yes |
 | Component | Logical building blocks inside a container | Yes |
-| Code | Classes / functions — a proxy layer (references to code) | No (phase 5) |
+| ~~Code~~ | ~~Classes / functions~~ | **Removed** — code = `codeRefs` + Patterns |
 
-A fixed vocabulary (rather than free-form layer declaration) is kept for the sake of LLM-friendliness — but it is now a property of the profile, not the engine. Future profiles (frontend / cli / desktop) define their own layers and types without touching the core.
-
-> **Updated (profile-driven schema).** The Node/Connection core is now lightweight; everything
-> domain-specific has moved into the `fields` bag, which the profile declares and validates. The full
-> current schema is in `packages/schema/src`.
+A fixed-but-profiled vocabulary is kept for LLM-friendliness. Future profiles
+(frontend / cli / desktop) define their own layers, roles, verbs, and pattern kinds without
+touching the core.
 
 ### 6.2 Nodes
 
-**Core (the same for all profiles):**
-- `id` — a stable UUID/slug.
-- `name` — a human-readable name (not unique).
-- `type` — the node kind from the active profile (in `c4-backend`: System | Container | Component | Actor | ExternalSystem).
-- `description` — the main description (free text).
-- `parentId` — the parent per the profile's containment rules. The **sole** carrier of "what it is made of."
-- `codeRefs` / `docRefs` — references to code / documents (plain strings).
-- `createdAt` / `updatedAt`.
-- `fields` — a bag of domain values (see below).
-- `layer` / `category` — **not stored**, derived from `type` per the profile.
+**Core (same for all profiles):** `id`, `name`, `type` (profile node kind), **`role`**
+(archetype → shape/icon), `description`, `parentId` (the sole carrier of "what it is made of"),
+**`root`** (optional directory Ref anchoring this subtree on disk — §6.10), `codeRefs` /
+`docRefs`, `createdAt` / `updatedAt`, and a `fields` bag. `layer` / `category` are derived from
+`type`, not stored.
 
-**`fields` (the profile's domain fields):** keys and types are declared by the profile (`commonNodeFields` +
-the node kind's fields). In `c4-backend`: `responsibilities` (list), `invariants` (list) — on all;
-`technology` (text) — on Container/Component. Every field and every enum value is described (for the
-LLM/editor). Values are strictly validated against the profile.
+**`fields` (profile domain fields):** e.g. in `c4-backend` `responsibilities` (list),
+`invariants` (list) on all; `technology` (text) on Container/Component. Every field and enum
+value is described; values are strictly validated.
 
-### 6.3 Connections (Edges)
+On the diagram a node renders as its **role shape + name + a one-line purpose (+ tech chip)**;
+the rest is side-panel detail.
 
-A connection is a first-class entity, not just an arrow.
+### 6.3 Connections (edges)
 
-**Core:**
-- `id`, `from` (node id), `to` (node id).
-- `type` — the **connection kind (ConnectionKind) from the profile** (in `c4-backend`: Dependency | DataFlow | Realization | Trace). It replaced the former `relationCategory`.
-- `description` — what the connection does.
-- `direction` — Unidirectional | Bidirectional.
-- `realizedBy` — an array of lower-level connection ids (cross-layer realization); rollup excludes connections referenced by another edge's `realizedBy`.
-- `codeRefs` — where it is realized.
-- `fields` — a bag of the profile's domain fields.
+A first-class entity and the main carrier of on-diagram meaning.
 
-**A connection's `fields` (profile fields):** in `c4-backend` — `transport` (Sync | Async | InProcess | None) and
-`intent` (Read | Write | Trigger | Notify | Use, optional); a specific connection kind may add its own fields.
-The former "three orthogonal axes" are conceptually preserved, but this is now `type` + profile fields, not a
-hardcoded enum.
+**Core:** `id`, `from`, `to`, `type` (connection kind: `Dependency` | `DataFlow` |
+`Realization` | `Trace`), **`verb`** (profile business action), **`object`** (short noun or a
+`DataEntity` ref), `description`, `direction`, `realizedBy` (cross-layer aggregation),
+`codeRefs`, and a `fields` bag.
 
-> `Composition` is removed — containment is expressed only by `parentId`. No "is made of" duplication.
+- **`verb`** is shown on the edge and colored by class — *data access* (reads / writes /
+  stores / modifies / aggregates …), *messaging* (publishes / subscribes / notifies …),
+  *control* (invokes / triggers / requests), *user* (views / submits / navigates). It replaces
+  the former low-signal `intent`.
+- **`object`** links the action to a `DataEntity` when relevant ("reads → Camera").
+- **`fields`** carry lower-signal detail such as `transport` (Sync | Async | InProcess | None).
+
+> `Composition` is removed — containment is only `parentId`.
 
 ### 6.4 Flows
 
-A Flow is an ordered sequence of steps over existing nodes and connections. Not a standalone diagram, but an overlay.
+A Flow is an ordered sequence of steps over existing nodes and connections — an overlay, not a
+standalone diagram.
 
-**Structure:**
-- `id`, `name`, `description`.
-- `scope` — which layer it unfolds on (usually Container or Component).
-- `steps` — an ordered array:
-  - `order` — the step index.
-  - `from` — a node id (or actor).
-  - `to` — a node id.
-  - `via` — a connection id (optional; if set, the step is bound to an existing connection).
-  - `message` — a description of the message / call.
-  - `kind` — Sync | Async | Return.
-  - `control` — optional { type: alt | opt | loop | par, condition } for branching/loops/parallelism (sequence diagrams support this; a linear list is a special case).
+**Structure:** `id`, `name`, `description`, `scope` (which layer it unfolds on), and ordered
+`steps` — each `{ order, from, to, via? (connection id), message, kind: Sync|Async|Return,
+control?: { type: alt|opt|loop|par, condition } }`.
 
-**Invariant:** every `from`, `to`, `via` must exist in the model. When a node/connection is deleted, the affected flows are marked `invalid` and highlighted in the UI.
+**Invariant:** every `from`/`to`/`via` must exist; deleting a referenced node/connection marks
+the flow `invalid` and highlights it. On the diagram a selected flow lights its steps in order
+with per-step captions.
 
-### 6.5 Cross-layer connections
+### 6.5 Patterns
 
-Two mechanisms work at the same time:
+A Pattern is a first-class **overlay** that annotates a set of members with a recognized
+architectural shape and renders it specially.
 
-**Containment (a node's `parentId`):** Component → Container → Context system. Reverse navigation: from a Container, get all its Components.
+**Structure:** `id`, `name`, `kind` (profile pattern kind: `pipeline` | `middleware` |
+`state-machine` | `layered` | `event-bus` | …), `members`, optional `order` (for ordered kinds
+like pipeline), and kind-specific detail (e.g. a `state-machine`'s states + transitions
+`{ from, to, trigger, guard, effect }`).
 
-**Realization (a connection's `realizedBy`):** an upper-level connection A→B is realized by a set of lower-level connections within A and B; the upper connection lists their ids. Optional; if filled in, consistency is checked.
+A member is `{ name, nodeId? | ref?, description? }` — it points at **either a node id or a
+code Ref** (§6.10), and must carry exactly one of the two. Code-level patterns need the `ref`
+form: with classes no longer modeled as nodes, a pipeline's stages are named members pointing
+into the source. Higher-altitude patterns use `nodeId`.
 
-### 6.6 Reserved axes (schema from day 1, editor later)
+Patterns are how a Component's internal shape appears **without** code-as-nodes. The former
+standalone `StateMachine` is the `state-machine` pattern kind.
 
-These collections are present in the model as (possibly empty) arrays from the MVP — for the sake of future migrations without pain. Each one's concept is in [MODEL.md](./MODEL.md).
+### 6.6 Data entities
 
-- `dataTypes` — **the Data axis.** Domain type nodes (Entity | Value | Event | DTO) with fields. An ERD = a projection of produces/consumes/persists connections.
-- `stateMachines` — **the Behavior axis.** A state machine bound to a node (lifecycle, protocol, UI modes): states + transitions {from, to, trigger, guard, effect}.
-- `requirements` — **the Intent axis.** Requirement nodes (Functional | Quality | Constraint). Traced from nodes/flows via `type: Trace` connections.
-- `decisions` — **the Intent axis.** ADR nodes (context / choice / consequences / status), linked to the affected nodes.
+A DataEntity is a named data object (Entity | Value | Event | DTO) with optional fields. Nodes
+**own/store** entities; connections **carry** them (via `object`/`carries`). An ERD is a
+projection of ownership + carriage. The Data axis is **built**, not reserved.
 
-### 6.7 Views
+### 6.7 Code layer removal
 
-A View is a named saved "viewing configuration":
-- Which layer.
-- Which nodes and connections to show (filter by tags / containment).
-- The manual-layout coordinates of each node.
+Individual classes/interfaces are no longer diagram nodes. A Component's code is expressed by:
+- `codeRefs` — pointers to real files/symbols, and
+- an optional **Pattern** describing internal structure (pipeline, middleware, state machine).
 
-Views are stored in the same model. Truth is the structure; views are presentation.
+`realizedBy` on connections still aggregates finer edges between the surviving altitudes.
+Existing models with a Code layer are migrated in Phase E (fold Code nodes → `codeRefs` /
+Patterns; drop Code kinds from profiles).
+
+**Folding refs upward.** A Code node's `codeRefs` move onto its parent Component. In the cctv
+model that is 328 refs collapsing onto 81 Components — unusable as flat lists, which is why
+directory and glob Refs (§6.10) matter: one `src/views/cctv/**` replaces thirty class refs.
+Code structure worth naming individually survives as **Pattern members** carrying a `ref`, not
+as a ref list.
+
+### 6.8 Reserved axes (schema present, editor later)
+
+- `requirements` — **Intent axis.** Requirement nodes (Functional | Quality | Constraint),
+  traced from nodes/flows via `Trace`.
+- `decisions` — **Intent axis.** ADR nodes (context / choice / consequences / status).
+
+### 6.9 Views
+
+A View is a named saved viewing configuration: which layer, which nodes/connections to show
+(filters), and manual-layout coordinates. Truth is the structure; views are presentation.
+
+### 6.10 Refs and roots
+
+A **Ref** is a plain string pointing at an artifact outside the model. Kind is inferred from
+syntax — no extra fields to fill:
+
+| Syntax | Kind | Example |
+|--------|------|---------|
+| trailing `/` | directory | `src/views/cctv/` |
+| plain path | file | `src/main.ts` |
+| `path#Symbol` | code symbol | `src/main.ts#getRouter` |
+| `path#Lstart-Lend` | line range | `src/main.ts#L10-L40` |
+| contains `*` | glob | `src/views/**/*.vue` |
+
+The same concept serves `root` (directories only), `codeRefs` on nodes and connections,
+`docRefs` (a file Ref or a URL), and Pattern member `ref`s. Existing refs already use the
+`path` and `path#Symbol` forms, so this is a formalization, not a migration.
+
+**Resolution.** A Ref resolves against the `root` of the **nearest ancestor node that declares
+one**, found by walking `parentId`. A node's own `root` resolves the same way, so roots chain
+down the containment tree. Conventionally the System declares the project root, each Container
+declares its subtree, and Components inherit.
+
+```
+System    root: .
+  Container "Media Gateway"  root: endpoints/media_gateway/backend
+    Component "Web API"      codeRefs: [ WebApi/Controllers/, WebApi/Hubs/BrowserAPIHub.cs#BrowserAPIHub ]
+  Container "Full Client"    root: clients/full
+    Component "App Shell"    codeRefs: [ src/main.ts, src/plugins/**/*.ts ]
+```
+
+**Why this is required, not optional.** In the current cctv model no node declares a root, and
+refs drift across at least four different implied bases (repo-root-relative, container-relative,
+app-relative). 16 refs are genuinely ambiguous — `src/main.ts` names a file in both Full Client
+and Streaming Client; `WebService/Program.cs#Program` names one in both Stream Keeper and Layout
+Manager. Declared roots make that class of ambiguity structurally impossible.
+
+**Validation** (surfaced via `validate_model` / `model_gaps`):
+- a ref with no anchoring root in any ancestor,
+- a ref that resolves to more than one location,
+- a ref that does not exist on disk (drift detection — a file was moved or deleted),
+- a `root` that is not a directory Ref.
 
 ---
 
@@ -183,45 +271,53 @@ project-root/
   hyphae.json     # the whole model
 ```
 
-**Atomic write:**
-- The backend writes to `hyphae.json.tmp`, then `rename` → `hyphae.json`.
-- A 500ms debounce between save requests (drag, etc.).
-
-**Schema:**
-- The JSON Schema is auto-generated from the Zod schemas via `zod-to-json-schema`.
-- Optionally included in the file's `$schema` — for validation in editors.
-
-**Git-friendly:**
-- A deterministic key order.
-- The user decides whether to commit it into the project repo.
-
-**Index (phase 4+):**
-- On startup the JSON is loaded into an in-memory graph for query load.
-- Later — an optional SQLite cache for large models.
+- **Atomic write:** backend writes `hyphae.json.tmp` then `rename`; a debounce between saves.
+- **Schema:** JSON Schema auto-generated from the Zod schemas via `zod-to-json-schema`;
+  optionally referenced via `$schema`.
+- **Git-friendly:** deterministic key order; the user decides whether to commit it.
+- **Index (later):** load JSON into an in-memory graph on startup; optional SQLite cache for
+  large models.
 
 ---
 
 ## 8. LLM-friendliness — design principles
 
-Hyphae's distinguishing feature, built into the core:
+Built into the core, and unchanged by the visual repositioning:
 
-- **JSON Schema as the contract.** The Zod schemas are the source of truth. From them: the editor's TS types, the JSON Schema for validation, OpenAPI for the API, the MCP tools.
-- **Stable IDs on everything.** The LLM references a specific node across messages.
-- **Free text + structured fields.** `description` is semantics; `responsibilities` / `invariants` / `assumptions` are addressable structure.
-- **Traceability as a graph.** Requirement ↔ Node ↔ Code via `Trace`/`realizedBy`/`codeRefs` connections. The LLM walks "requirement → component → code" — to verify the implementation and find gaps. The main value of the multi-axis model for AI.
-- **Text export.** `getContext(scope)` renders the graph into compact plain text for a prompt — read by the LLM better than JSON.
-- **MCP server (phase 4).** Read-only at the start: `get_node`, `list_nodes`, `find_connections`, `describe_flow`, `get_text_context`. Write tools — phase 6.
-- **Inline descriptions, not separate files.** The LLM works with a single document better than with a scattering of them.
+- **JSON Schema as the contract.** Zod schemas are the source of truth → editor TS types, JSON
+  Schema, the granular API, and the MCP tools.
+- **Stable IDs on everything.** The LLM references a specific node/connection across messages.
+- **Free text + structured fields.** `description` is semantics; `responsibilities` /
+  `invariants` and the new `verb`/`object`/`carries` are addressable structure.
+- **Closed, described vocabularies.** Node types, roles, verbs, and pattern kinds are finite
+  and documented per profile — easy for an LLM to fill correctly and for the editor to tooltip.
+- **Traceability as a graph.** Requirement ↔ Node ↔ Code and Connection ↔ DataEntity via
+  `Trace` / `realizedBy` / `carries` / `codeRefs`. The LLM walks "requirement → component →
+  code" and "flow → connections → data" to verify implementation and find gaps.
+- **Text export.** Render the graph into compact plain text for a prompt.
+- **MCP server (read + write).** Read: `describe_profile`, `model_overview`, `get_node`,
+  `list_nodes`, `list_connections`, `rollup_connections`, `get_subgraph`, `validate_model`,
+  `model_gaps`. Write: `create/update/delete` for nodes and connections; extended to flows,
+  patterns, and data entities as those axes are built.
 
 ---
 
 ## 9. UX principles
 
-- **Model-first.** The user edits the structure; diagrams are views. A node's position in each view is a visual hint, not the truth.
-- **One step — one model operation.** Dragging a component into another container = a `parentId` change. Deleting a node = invalidating the connections and flows, explicitly highlighted in the UI.
-- **Zoom navigation between layers.** Double-click a container → the container's Component view. Breadcrumbs on top.
-- **Flow as an overlay.** Turn on a flow → the connections are highlighted on the current view in step order.
-- **All of a node's fields in the side panel** on selection. The semantic fields for the LLM (`invariants`, `assumptions`) are first-class, not "advanced."
+- **Diagram-first, model-backed.** The user reads the architecture off the diagram; a node's
+  position in a view is a hint, not the truth.
+- **Meaning on the canvas, detail in the panel.** Node = role shape + name + one-line purpose;
+  connection = verb + object. Full fields, invariants, codeRefs, and incoming/outgoing lists
+  are side-panel.
+- **Legibility budget.** Cap what is shown at rest; roll up dense fans; push depth into
+  drill-down, Flows, Patterns, and the panel. A legend explains role shapes, verb-class colors,
+  and solid-vs-derived edges.
+- **One step — one model operation.** Dragging a component into a container = a `parentId`
+  change; deleting a node invalidates and highlights affected connections/flows.
+- **Zoom navigation between layers.** Double-click to drill; breadcrumbs on top; each layer
+  keeps its own pan/zoom.
+- **Flow as an overlay; Pattern as a shape.** Turn on a Flow → steps light in order. Open a
+  Component with a Pattern → its internal shape renders (stages / onion / state chart).
 
 ---
 
@@ -229,102 +325,97 @@ Hyphae's distinguishing feature, built into the core:
 
 ### Frontend
 - **Vite** + **React 18** + **TypeScript**
-- **@xyflow/react** (React Flow) — a node-based editor
-- **Zustand** — the editor state
-- **Tailwind CSS** — optional, for styling speed
-- **dagre** — optional auto-layout
+- **@xyflow/react** (React Flow) — node-based editor; custom nodes for role shapes, pattern
+  renderers, and flow overlays
+- **Zustand** — editor state
+- **Tailwind CSS** — styling
+- **dagre** — auto-layout
 
 ### Backend
-- **Node 22+** (or Bun)
-- **Hono** — the web framework (Fastify as an alternative)
-- **Zod** — validation and schema definition
+- **Node 22+** · **Hono** — web framework · **Zod** — validation and schema definition
 
 ### Shared
-- The `@hyphae/schema` package with the Zod schemas as the source of truth.
-- From it: TS types for frontend/backend, JSON Schema via `zod-to-json-schema`.
+- The `@hyphae/schema` package with the Zod schemas as the source of truth → TS types + JSON
+  Schema + profiles.
 
 ### Repo structure
 ```
 hyphae/
   apps/
     web/        # Vite + React frontend
-    server/     # Hono backend
+    server/     # Hono backend (owns hyphae.json, serves API + SSE + SPA)
   packages/
     schema/     # Zod schemas + types + JSON Schema + profiles
   hyphae.json   # the model (or lives next to the user's project)
 ```
-The package manager is **pnpm workspaces**.
-
-### Dev workflow
-- `pnpm dev` starts both processes.
-- In dev the frontend is on the Vite dev server, the backend proxies the API.
-- In prod the backend serves the built SPA from `apps/web/dist`.
-
-### Time-saving decisions
-- Not Redux. Zustand/Jotai is simpler for a node editor.
-- Do not write JSON Schema by hand. Zod → `zod-to-json-schema`.
-- Do not write a custom layout engine. React Flow + manual + dagre.
-- REST is enough for the MVP. WebSocket — once a background AI agent appears.
+Package manager: **pnpm workspaces**.
 
 ---
 
 ## 11. Phased roadmap
 
-### Phase 1 — MVP editor (2–4 weeks)
-- Zod schemas: nodes, connections, flows, profiles; reserved empty collections (dataTypes/stateMachines/requirements/decisions).
-- Server: `GET/PUT /model` (atomic write).
-- A React Flow editor for a single layer — Component.
-- A side panel for all of a node's fields.
-- Saving node positions in views.
+Each phase is a projection of the axes already laid down in the schema.
 
-### Phase 2 — Multi-level (2–3 weeks)
-- The Context, Container, Component layers (the `c4-backend` profile).
-- Zoom navigation (double-click drill-down, breadcrumbs).
-- Containment (`parentId`).
-- Cross-layer view: "all components of this container."
+### Phase A0 — Refs and roots (foundation)
+- Formalize the **Ref** string syntax (dir / file / symbol / lines / glob) + a shape validator.
+- Add optional `root` to the node core; resolution by nearest ancestor via `parentId`.
+- Report unanchored / ambiguous / missing-on-disk refs through `validate_model` + `model_gaps`;
+  backfill roots on the existing model.
+- Cheap, and a prerequisite for Phase C (Pattern member refs) and Phase E (folding code refs up).
 
-### Phase 3 — Flows (2–3 weeks)
-- Creating flows: selecting nodes and connections, adding steps, control structures (alt/opt/loop/par).
-- Visualization over the view (highlighting + step numbers).
-- A sequence-style view (vertical diagram) as an alternative mode.
+### Phase A — Visual language
+- Node **roles** → shapes/icons (profile-declared); render name + one-line purpose + tech chip.
+- Connection **verb + object** on the edge; color by verb class; retire `intent`.
+- On-diagram-label vs side-panel-detail split; legend.
+- Reuses the existing focus view, floating edges, containment regions, side panel.
 
-### Phase 4 — MCP server for the AI (read-only)
-- Tools: `get_node`, `list_nodes`, `find_connections`, `describe_flow`, `get_text_context`.
-- A local MCP server, connects to Claude Code / another MCP client.
-- The first moment Hyphae becomes what it was started for — an AI-friendly knowledge base.
+### Phase B — Flows
+- Build the Behavior axis: create flows (nodes + connections + ordered steps, control
+  structures), numbered overlay on the view, an optional sequence-style mode. MCP + editor.
 
-### Phase 5 — Code binding
-- `codeRefs` are validated: does the file/symbol reference an existing point.
-- A tree-sitter parser (`web-tree-sitter` in Node).
-- A computed Code layer: auto-generating classes/functions from the code, bound to a Component.
-- Drift detection: components without an implementation, classes not reflected in the model.
+### Phase C — Patterns
+- The `Pattern` overlay entity + renderers: pipeline, middleware/interceptor, state-machine
+  (absorbs the old StateMachine), layered, event-bus. Profile-driven `patternKinds`. MCP + editor.
 
-### Phase 6 — LLM editing (write tools in MCP)
-- Write tools: `update_node`, `add_connection`, `add_flow`, `rebind_code`.
-- The AI proposes a model change — the user reviews it as a PR-like diff.
-- Reverse flow: the user edits the model → the AI generates a code-change plan → applies it.
+### Phase D — Data axis
+- `DataEntity` model; connection `carries`/`object` refs; node `owns/stores`; an ERD-style
+  data projection. MCP + editor.
 
-### Phase 7+ — deferred
-- Activating the Behavior / Data / Intent axes in the editor (the schema is already there from phase 1).
-- The frontend / cli / desktop profiles.
-- Multi-system landscape.
-- Real-time collaboration (Yjs / CRDT).
-- Deployment / infra views.
-- Metrics, hotspots, drift dashboards.
+### Phase E — Retire the Code node layer
+- Migrate existing models: fold Code nodes into `codeRefs` + Patterns; drop Code kinds from
+  profiles. Keep `realizedBy` aggregation between surviving altitudes.
+
+### Ongoing — configurable profiles
+- The verb, role, and pattern vocabularies are all profile-declared, so a new project type is a
+  new profile, not a new engine. Ship frontend / cli / desktop profiles after the core.
+
+### Later
+- Intent axis (Requirements / Decisions) in the editor; multi-system Landscape; real-time
+  collaboration; deployment/infra views; metrics/drift dashboards.
 
 ---
 
 ## 12. Open questions
 
-- **Code layer: nodes or a graph?** In phase 5, decide: do we draw Code as a full class graph, or keep Code nodes "attached" to Components without a separate view.
-- **Flow granularity.** Is a step a method call or a logical action? Possibly both, with a level of detail as a parameter.
-- **Profiles: built-in or plugins?** Will frontend/cli/desktop stay built-in vocabularies, or become loadable plugins with their own validators.
-- **Multiple files vs single file.** When the model gets large — split it by systems/containers? Deferred until it becomes a problem.
-- **In-file versioning.** `schemaVersion` in `hyphae.json` from day one — for migrations.
-- **Git merge conflicts.** Two edits to the same node → a JSON conflict. The solution — a deterministic formatter + a clear structure +, in the long run, a schema-aware merge tool.
+- **Code-layer migration.** Automatic vs assisted folding of existing Code nodes into
+  `codeRefs` / Patterns without losing described structure.
+- **Multi-repo roots.** A `root` is a path today. If a model ever spans several repositories,
+  does the top-level root become a list, or does a Container carry a repo identifier/URL?
+  Deferred until a real multi-repo model exists.
+- **Ref drift policy.** When a ref stops resolving on disk, is that a validation error, a
+  `model_gaps` warning, or an auto-repair attempt?
+- **Verb vocabulary shape.** Closed profile-declared verb list vs a small closed core + free
+  object text. Leaning: closed `verb`, free-or-ref `object`.
+- **Pattern membership.** Can a node belong to two Patterns? How is pipeline ordering authored?
+- **Data projection scope.** How much ERD (entity relationships, cardinality) in Phase D vs
+  defer.
+- **Legibility caps.** Concrete at-rest limits (max edges/nodes before rollup kicks in).
+- **Profiles: built-in or plugins.** Do frontend/cli/desktop stay built-in vocabularies or
+  become loadable plugins with their own validators.
 
 ---
 
-*The final Zod schemas are a separate artifact in `packages/schema`. The model concept is [MODEL.md](./MODEL.md).*
+*The final Zod schemas are a separate artifact in `packages/schema`. The model concept is
+[MODEL.md](./MODEL.md).*
 
-*Spec version: 0.2 — to be updated as decisions are made.*
+*Spec version: 0.3 — the business-legible rethink. To be updated as decisions are made.*

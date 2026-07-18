@@ -1,6 +1,7 @@
 import type { HyphaeModel } from './model';
 import type { Profile } from './profile';
 import { layerOfType, nodeAtOrAboveLayer } from './profile';
+import { parseRef, resolveRef } from './ref';
 
 export type OrphanNode = { id: string; name: string; type: string; parentId: string | null };
 
@@ -17,11 +18,17 @@ export type ThinDescription = {
   inbound: number; outbound: number;
 };
 
+export type MissingRef = { nodeId: string; ref: string; resolved: string };
+
 export type ModelGaps = {
   orphanNodes: OrphanNode[];
   unboundCodeEdges: UnboundCodeEdge[];
   thinDescriptions: ThinDescription[];
+  missingRefs: MissingRef[];
 };
+
+/** Disk access is injected, so this package never imports node:fs and stays testable. */
+export type GapOptions = { checkDisk?: { cwd: string; exists: (path: string) => boolean } };
 
 const COMPONENT_LAYER = 'Component';
 const CODE_LAYER = 'Code';
@@ -34,8 +41,10 @@ const normalize = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]+/g, 
  * orphan Component-layer nodes (zero edges), cross-component Code↔Code edges not bound via any
  * connection's realizedBy, and Component-and-above nodes whose description is empty or echoes the name.
  * Layer membership is resolved through profile helpers, not hardcoded type comparisons.
+ * Missing refs (codeRefs whose resolved path is absent from disk) are reported only when
+ * `options.checkDisk` is supplied; without it this function touches no filesystem.
  */
-export function modelGaps(model: HyphaeModel, profile: Profile): ModelGaps {
+export function modelGaps(model: HyphaeModel, profile: Profile, options: GapOptions = {}): ModelGaps {
   const byId = new Map(model.nodes.map((n) => [n.id, n]));
 
   // Degree + touched-node index over all connections.
@@ -112,5 +121,24 @@ export function modelGaps(model: HyphaeModel, profile: Profile): ModelGaps {
     });
   }
 
-  return { orphanNodes, unboundCodeEdges, thinDescriptions };
+  // 4. Missing refs: resolved codeRefs absent from disk. Opt-in — drift is a reporting
+  //    concern, not a validity one, and the server may not have the modeled repo checked out.
+  const missingRefs: MissingRef[] = [];
+  const disk = options.checkDisk;
+  if (disk) {
+    for (const n of model.nodes) {
+      for (const ref of n.codeRefs) {
+        // A glob needs a matcher, not an existence test; an unanchored ref is already
+        // an Issue from validateModel and would only produce a duplicate complaint here.
+        if (ref.includes('*')) continue;
+        const resolved = resolveRef(model.nodes, n.id, ref);
+        if (resolved === null) continue;
+        if (!disk.exists(parseRef(resolved).path)) {
+          missingRefs.push({ nodeId: n.id, ref, resolved });
+        }
+      }
+    }
+  }
+
+  return { orphanNodes, unboundCodeEdges, thinDescriptions, missingRefs };
 }

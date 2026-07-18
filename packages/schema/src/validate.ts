@@ -3,12 +3,14 @@ import type { Profile, FieldDef } from './profile';
 import { allowedParentTypes, c4Backend } from './profiles/c4-backend';
 import { effectiveFields } from './profile';
 import type { Node } from './node';
+import { isDirectoryRef, resolveRoot } from './ref';
 
 export type Issue = {
   kind:
     | 'unknown-type' | 'bad-parent' | 'missing-parent' | 'dangling-endpoint'
     | 'unknown-connection-kind' | 'bad-endpoint'
-    | 'unknown-field' | 'bad-field-type' | 'bad-enum-value' | 'missing-required-field' | 'bad-ref';
+    | 'unknown-field' | 'bad-field-type' | 'bad-enum-value' | 'missing-required-field' | 'bad-ref'
+    | 'unanchored-ref' | 'bad-root';
   ref: string;       // id of the offending node/connection
   message: string;
 };
@@ -54,6 +56,33 @@ function validateFields(fields: Record<string, unknown>, defs: FieldDef[], nodeB
   return issues;
 }
 
+/**
+ * Ref anchoring for one node. `codeRefs` are relative by convention and must resolve
+ * against the nearest ancestor `root`; an absolute ref is self-anchoring and exempt.
+ * `docRefs` are skipped — they may be URLs, which no root applies to.
+ * Reported once per node: thirty unanchored refs are one authoring mistake, not thirty.
+ */
+function validateRefs(node: Node, nodes: Node[]): Issue[] {
+  const issues: Issue[] = [];
+
+  if (node.root !== null && !isDirectoryRef(node.root)) {
+    issues.push({
+      kind: 'bad-root', ref: node.id,
+      message: `root "${node.root}" is not a directory Ref (it must end with "/" and contain no "*" or "#")`,
+    });
+  }
+
+  const relative = node.codeRefs.filter((r) => !r.startsWith('/'));
+  if (relative.length > 0 && resolveRoot(nodes, node.id) === null) {
+    issues.push({
+      kind: 'unanchored-ref', ref: node.id,
+      message: `${relative.length} codeRef(s) cannot be resolved: no ancestor declares a root (e.g. "${relative[0]}")`,
+    });
+  }
+
+  return issues;
+}
+
 export function validateModel(model: HyphaeModel, profile: Profile): Issue[] {
   const issues: Issue[] = [];
   const nodeById = new Map(model.nodes.map((n) => [n.id, n]));
@@ -74,6 +103,7 @@ export function validateModel(model: HyphaeModel, profile: Profile): Issue[] {
       }
     }
     issues.push(...validateFields(n.fields, effectiveFields(profile, n.type, 'node'), nodeById, n.id));
+    issues.push(...validateRefs(n, model.nodes));
   }
 
   for (const c of model.connections) {

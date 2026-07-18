@@ -5,7 +5,7 @@ import { useStore } from '../src/store';
 import { emptyModel, type Node, type Connection } from '@hyphae/schema';
 
 const mkNode = (over: Partial<Node>): Node => ({
-  id: 'n', name: 'N', type: 'Component', description: '', parentId: null, codeRefs: [],
+  id: 'n', name: 'N', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
   docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
 });
 

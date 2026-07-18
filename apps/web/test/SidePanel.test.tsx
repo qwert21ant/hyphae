@@ -4,7 +4,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 vi.mock('../src/api', () => {
   let v = 0;
   const base = (over: Record<string, unknown>) => ({
-    id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+    id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
     docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
   });
   const blank = () => ({
@@ -52,9 +52,23 @@ describe('SidePanel', () => {
     await waitFor(() => expect(useStore.getState().model.nodes[0].fields.invariants).toEqual(['a', 'b']));
   });
 
+  it('edits root, codeRefs, and docRefs', async () => {
+    await useStore.getState().addNode('Component');
+    render(<SidePanel />);
+    fireEvent.change(screen.getByLabelText('root') as HTMLInputElement, { target: { value: 'endpoints/api/' } });
+    await waitFor(() => expect(useStore.getState().model.nodes[0].root).toBe('endpoints/api/'));
+    fireEvent.change(screen.getByLabelText('codeRefs') as HTMLTextAreaElement, { target: { value: 'src/main.ts\nsrc/util.ts' } });
+    await waitFor(() => expect(useStore.getState().model.nodes[0].codeRefs).toEqual(['src/main.ts', 'src/util.ts']));
+    fireEvent.change(screen.getByLabelText('docRefs') as HTMLTextAreaElement, { target: { value: 'https://example.com/doc' } });
+    await waitFor(() => expect(useStore.getState().model.nodes[0].docRefs).toEqual(['https://example.com/doc']));
+    // clearing root back to empty stores null, not an empty string
+    fireEvent.change(screen.getByLabelText('root') as HTMLInputElement, { target: { value: '' } });
+    await waitFor(() => expect(useStore.getState().model.nodes[0].root).toBeNull());
+  });
+
   it('reparents the selected node via the parent dropdown', async () => {
     const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     useStore.setState((s) => ({
@@ -88,7 +102,7 @@ describe('SidePanel', () => {
 
   it('shows a rolled-up connection with its underlying connections and drills on click', () => {
     const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     useStore.setState((s) => ({
@@ -117,7 +131,7 @@ describe('SidePanel', () => {
 
   it('lists connections touching a selected node (and its descendants)', () => {
     const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     const conn = (over: Partial<Connection>): Connection => ({
@@ -141,7 +155,7 @@ describe('SidePanel', () => {
 
   it('splits the selected node connections into Outgoing and Incoming sections', () => {
     const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     const conn = (over: Partial<Connection>): Connection => ({
@@ -164,7 +178,7 @@ describe('SidePanel', () => {
 
   it('omits a direction subsection when it has no connections', () => {
     const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     const conn = (over: Partial<Connection>): Connection => ({
@@ -186,7 +200,7 @@ describe('SidePanel', () => {
 
   it('lists a connection\'s realizedBy children and selects a child on row click', () => {
     const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     const conn = (over: Partial<Connection>): Connection => ({

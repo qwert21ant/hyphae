@@ -13,4 +13,12 @@ describe('NodeSchema', () => {
   it('rejects an empty name', () => {
     expect(() => NodeSchema.parse({ id: 'a', name: '', type: 'Component', createdAt: 't', updatedAt: 't' })).toThrow();
   });
+  it('defaults root to null', () => {
+    const n = NodeSchema.parse({ id: 'a', name: 'A', type: 'Component', createdAt: 't', updatedAt: 't' });
+    expect(n.root).toBe(null);
+  });
+  it('keeps a declared root', () => {
+    const n = NodeSchema.parse({ id: 'a', name: 'A', type: 'Container', createdAt: 't', updatedAt: 't', root: 'endpoints/mg/' });
+    expect(n.root).toBe('endpoints/mg/');
+  });
 });
