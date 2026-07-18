@@ -50,6 +50,7 @@ Cost ≈ turns × context size. To avoid carrying a huge context across many tur
 ### Phase 1 — Map + GATE 1
 1. Call `model_overview` (idempotent read).
 2. Create the System node and all Containers in one `create_nodes` call (a single write is a one-element array). Domain values (`responsibilities`, `invariants`, `technology` for Containers) go in each item's `fields` bag — call `describe_profile` to see each kind's fields.
+   **Give every Container a `root`** — its package path from Phase 0, relative to the repo root, with a trailing slash (`apps/server/`, `endpoints/media_gateway/backend/`). This anchors every `codeRef` written beneath it; see **Refs and roots** below. A Container without a root makes every ref in its subtree an `unanchored-ref` issue.
 3. Write the plan artifact to `.hyphae/model-plan.md` in the target repo. REQUIRED REFERENCE: `references/plan-artifact-template.md`.
 4. **GATE 1: stop and show the user the container map + drift notes + per-container drill/skip list. Wait for approval/edits before continuing.**
 
@@ -92,7 +93,8 @@ unwieldy count is a signal the Component is too coarse (surface it, don't trunca
    reads existing nodes (create-or-skip), finds the important code elements in its Components, and writes
    `Code` nodes (`type` = Class/Interface/Function/Module/UIComponent, `parentId` = the Component id),
    each with a 1–3 sentence purpose-focused `description`, `responsibilities`/`invariants` where known,
-   and `codeRefs` as `path#SymbolName`. It writes **intra-component** connections (both endpoints are
+   and `codeRefs` as `path#SymbolName` **relative to the container's `root`**. It writes
+   **intra-component** connections (both endpoints are
    Code nodes under the *same* Component) and reports **cross-component** code edges (endpoints in
    different Components — whether in this container or another) upward.
 2. **GATE 3 (mirrors Phase 3).** The orchestrator aggregates reports with the shared **Reconcile procedure**
@@ -108,12 +110,44 @@ unwieldy count is a signal the Component is too coarse (surface it, don't trunca
 ### Phase 5 — Verify (optional, re-runnable)
 A standalone consistency pass over an existing model. The Phase-3 tail already runs this sweep inline (its checkpoint folded into GATE 2), so Phase 5 is only needed as a **re-run** — after Phase 4, or any time later. Read-mostly: gaps are filled by the owning subagent, never by the orchestrator inventing edges.
 0. **Structural check.** Call `validate_model` — it returns any structural/field issues (bad containment, dangling/bad endpoints, unknown or missing-required fields, bad enum values, bad refs) in one read. Fix those first. Empty means structurally clean.
+   Two of these are about ref anchoring (see **Refs and roots**): `unanchored-ref` means a node carries relative `codeRefs` but no ancestor declares a `root` — fix by setting `root` on the owning **Container**, not by rewriting every ref to be repo-relative. `bad-root` means a declared `root` is not a directory Ref (needs a trailing `/`, no `*` or `#`). One missing Container root typically accounts for every `unanchored-ref` in its subtree, so fix roots first and re-run before touching anything else.
 1. **Coverage sweep.** Call `model_gaps` — one read returns orphan Components (zero connections), unbound cross-component code edges (id in no `realizedBy`), and thin/name-echoing descriptions (with inbound/outbound degree, so a thin hub — high inbound but an empty/echoing description — stands out). Separate likely-real gaps from legitimately standalone components (`standaloneComponents` are expected).
 2. **CHECKPOINT: show the flagged gaps.** Wait for confirmation of which to fix.
 3. For confirmed gaps, **re-dispatch the owning container's subagent** (same `references/subagent-prompt.md`) to add the missing intra-container edges or descriptions. The orchestrator must not write intra-container edges itself.
 4. Idempotent (create-or-skip), so Verify can be re-run until clean.
 
 > `model_gaps` computes the coverage flags server-side in one call, so the sweep stays cheap even on large models — no need to pull the whole edge set and re-derive orphans/unbound edges in context. To inspect a single flagged node's edges, use `list_connections({nodeId})`.
+
+## Refs and roots
+
+A **Ref** is how the model points at anything outside itself (`codeRefs`, `docRefs`). It is a plain
+string; its kind is inferred from syntax:
+
+| Syntax | Kind | Example |
+|--------|------|---------|
+| trailing `/` | directory | `src/views/cctv/` |
+| plain path | file | `src/main.ts` |
+| `path#Symbol` | symbol | `src/main.ts#getRouter` |
+| `path#Lstart-Lend` | line range | `src/main.ts#L10-L40` |
+| contains `*` | glob | `src/views/**/*.vue` |
+
+**Refs are relative, anchored by containment.** A ref resolves against the `root` of the nearest
+ancestor that declares one, found by walking `parentId`; roots chain down the tree. So a Component
+under a Container with `root: "apps/server/"` writes `src/mcp.ts`, not `apps/server/src/mcp.ts`.
+
+Two rules follow, and both are enforced by `validate_model`:
+- **Declare `root` on every Container** (Phase 1). Without an anchoring root somewhere above it, a
+  relative ref is genuinely ambiguous — `src/main.ts` means nothing when three packages each have a
+  `src/` — and is reported as an `unanchored-ref` issue.
+- **A `root` must be a directory Ref**: trailing `/`, no `*`, no `#`. Anything else is a `bad-root`
+  issue.
+
+Prefer a directory or glob Ref over a long list of file Refs — one `src/views/cctv/**` says more than
+thirty class refs and stays readable.
+
+Use `resolve_refs` to check your work: pass `nodeId` to see a node's effective root and what its refs
+resolve to, or `path` to reverse-look-up which nodes claim a file. More than one owner is legitimate
+(a genuinely shared file), so treat it as information, not an error.
 
 ## Idempotency contract (every run, every agent)
 
@@ -127,5 +161,7 @@ A standalone consistency pass over an existing model. The Phase-3 tail already r
 - A subagent creating a Container, an ExternalSystem, or a cross-package edge → not allowed; report it upward, that is the orchestrator's job.
 - "The docs say the layout is X" treated as fact without checking the filesystem → verify.
 - Writing a connection before both endpoints exist → reorder.
+- Creating a Container without a `root` → every `codeRef` beneath it becomes an `unanchored-ref` issue.
+- Writing a `codeRef` that repeats its Container's root (`apps/server/src/x.ts` under `root: "apps/server/"`) → make it relative (`src/x.ts`); the root is declared once, never per ref.
 - The orchestrator writing an intra-container edge to "fix" a model_gaps flag → re-dispatch the owning subagent instead.
 - Skipping a gate to "save time" → all three gates (GATE 1, GATE 2, GATE 3) are mandatory.
