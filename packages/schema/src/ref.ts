@@ -64,3 +64,43 @@ export function joinRef(root: string | null, ref: string): string {
   const base = root.endsWith('/') ? root.slice(0, -1) : root;
   return base === '' ? ref : `${base}/${ref}`;
 }
+
+/** The minimal node shape root resolution needs — so callers can pass plain nodes. */
+export type RootBearer = { id: string; parentId: string | null; root: string | null };
+
+/**
+ * The accumulated root for a node: every `root` declared from the outermost ancestor
+ * down to the node itself, joined together. Returns null when nothing in the chain
+ * declares one — that node's refs are unanchored.
+ */
+export function resolveRoot(nodes: RootBearer[], nodeId: string): string | null {
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const chain: string[] = [];
+  const seen = new Set<string>();
+  let current = byId.get(nodeId);
+
+  while (current && !seen.has(current.id)) {
+    seen.add(current.id);
+    if (current.root) {
+      chain.push(current.root);
+      // An absolute root is self-anchoring; nothing above it applies.
+      if (current.root.startsWith('/')) break;
+    }
+    current = current.parentId ? byId.get(current.parentId) : undefined;
+  }
+
+  if (chain.length === 0) return null;
+  // chain is innermost-first; join outermost-first.
+  const joined = chain.reverse().reduce((acc, part) => joinRef(acc, part));
+  return joined.endsWith('/') ? joined : `${joined}/`;
+}
+
+/**
+ * A node's ref, anchored to its resolved root. Returns null when the node has no
+ * anchoring root — the caller decides whether that is an error (validateModel says yes).
+ */
+export function resolveRef(nodes: RootBearer[], nodeId: string, ref: string): string | null {
+  const root = resolveRoot(nodes, nodeId);
+  if (root === null) return null;
+  return joinRef(root, ref);
+}

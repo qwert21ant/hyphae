@@ -68,3 +68,72 @@ describe('joinRef', () => {
     expect(joinRef('endpoints/mg/', '/etc/hosts')).toBe('/etc/hosts');
   });
 });
+
+import { resolveRoot, resolveRef, type RootBearer } from '../src/ref';
+
+/** sys(root endpoints/) > mg(root media_gateway/) > comp(no root); and loose(no root anywhere) */
+const tree: RootBearer[] = [
+  { id: 'sys', parentId: null, root: 'endpoints/' },
+  { id: 'mg', parentId: 'sys', root: 'media_gateway/' },
+  { id: 'comp', parentId: 'mg', root: null },
+  { id: 'abs', parentId: 'sys', root: '/opt/thing/' },
+  { id: 'loose', parentId: null, root: null },
+  { id: 'child-of-loose', parentId: 'loose', root: null },
+];
+
+describe('resolveRoot', () => {
+  it('chains roots from the outermost ancestor inwards', () => {
+    expect(resolveRoot(tree, 'mg')).toBe('endpoints/media_gateway/');
+  });
+
+  it('inherits the nearest ancestor root when the node declares none', () => {
+    expect(resolveRoot(tree, 'comp')).toBe('endpoints/media_gateway/');
+  });
+
+  it('returns the top root for a node that declares it', () => {
+    expect(resolveRoot(tree, 'sys')).toBe('endpoints/');
+  });
+
+  it('returns null when no ancestor declares a root', () => {
+    expect(resolveRoot(tree, 'child-of-loose')).toBe(null);
+  });
+
+  it('stops chaining at an absolute root', () => {
+    expect(resolveRoot(tree, 'abs')).toBe('/opt/thing/');
+  });
+
+  it('returns null for an unknown node id', () => {
+    expect(resolveRoot(tree, 'nope')).toBe(null);
+  });
+
+  it('does not hang on a parentId cycle', () => {
+    const cyclic: RootBearer[] = [
+      { id: 'a', parentId: 'b', root: null },
+      { id: 'b', parentId: 'a', root: null },
+    ];
+    expect(resolveRoot(cyclic, 'a')).toBe(null);
+  });
+});
+
+describe('resolveRef', () => {
+  it('anchors a ref against the resolved root', () => {
+    expect(resolveRef(tree, 'comp', 'src/main.ts')).toBe('endpoints/media_gateway/src/main.ts');
+  });
+
+  it('anchors a symbol ref without disturbing the fragment', () => {
+    expect(resolveRef(tree, 'comp', 'src/main.ts#getRouter')).toBe('endpoints/media_gateway/src/main.ts#getRouter');
+  });
+
+  it('returns null for a ref on an unanchored node', () => {
+    expect(resolveRef(tree, 'child-of-loose', 'src/main.ts')).toBe(null);
+  });
+
+  it('disambiguates the same ref string under two different roots', () => {
+    const two: RootBearer[] = [
+      { id: 'fc', parentId: null, root: 'endpoints/full_client/' },
+      { id: 'sc', parentId: null, root: 'endpoints/streaming_client/' },
+    ];
+    expect(resolveRef(two, 'fc', 'src/main.ts')).toBe('endpoints/full_client/src/main.ts');
+    expect(resolveRef(two, 'sc', 'src/main.ts')).toBe('endpoints/streaming_client/src/main.ts');
+  });
+});
