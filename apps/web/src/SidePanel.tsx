@@ -74,6 +74,18 @@ export function SidePanel() {
           <input aria-label="name" value={node.name} onChange={(e) => updateNode(node.id, { name: e.target.value })} /></label>
         <label className="field"><span>description</span>
           <textarea aria-label="description" value={node.description} onChange={(e) => updateNode(node.id, { description: e.target.value })} /></label>
+        <label className="field" title='Directory Ref anchoring this subtree on disk, e.g. "endpoints/media_gateway/". Descendants resolve their refs against it.'>
+          <span>root</span>
+          <input aria-label="root" value={node.root ?? ''}
+            onChange={(e) => updateNode(node.id, { root: e.target.value || null })} /></label>
+        <label className="field" title="One Ref per line, relative to the nearest ancestor root.">
+          <span>codeRefs</span>
+          <textarea aria-label="codeRefs" value={node.codeRefs.join('\n')}
+            onChange={(e) => updateNode(node.id, { codeRefs: lines(e.target.value) })} /></label>
+        <label className="field" title="One Ref or URL per line.">
+          <span>docRefs</span>
+          <textarea aria-label="docRefs" value={node.docRefs.join('\n')}
+            onChange={(e) => updateNode(node.id, { docRefs: lines(e.target.value) })} /></label>
         {effectiveFields(c4Backend, node.type, 'node').map((def) => (
           <FieldInput key={def.key} def={def} value={node.fields[def.key]} nodes={nodes} onChange={(v) => setField(def.key, v)} />
         ))}

@@ -129,6 +129,40 @@ describe('MCP tool handlers', () => {
     expect(seen).toMatchObject({ realizedBy: ['c1'] });
   });
 
+  it('resolve_refs resolves a node\'s codeRefs through its inherited root', async () => {
+    const api = fakeApi({ getModel: async () => {
+      const m = model();
+      m.nodes[0].root = 'endpoints/api/';
+      m.nodes[0].codeRefs = ['src/main.ts'];
+      return m;
+    } });
+    const r = await buildTools(api).resolve_refs({ nodeId: 'api' });
+    expect(r).toEqual({
+      nodeId: 'api',
+      root: 'endpoints/api/',
+      refs: [{ ref: 'src/main.ts', resolved: 'endpoints/api/src/main.ts' }],
+    });
+  });
+
+  it('resolve_refs reverse-looks-up owners by path', async () => {
+    const api = fakeApi({ getModel: async () => {
+      const m = model();
+      m.nodes[0].root = 'endpoints/api/';
+      m.nodes[0].codeRefs = ['src/main.ts'];
+      return m;
+    } });
+    const r = await buildTools(api).resolve_refs({ path: 'endpoints/api/src/main.ts' });
+    expect(r).toEqual({ path: 'endpoints/api/src/main.ts', owners: ['api'] });
+  });
+
+  it('resolve_refs errors when neither nodeId nor path is given', async () => {
+    expect(await buildTools(fakeApi()).resolve_refs({})).toEqual({ error: 'Pass either nodeId or path.' });
+  });
+
+  it('resolve_refs errors for an unknown nodeId', async () => {
+    expect(await buildTools(fakeApi()).resolve_refs({ nodeId: 'nope' })).toEqual({ error: 'node nope not found' });
+  });
+
   it('describe_profile returns kinds and documented fields', async () => {
     const r = (await buildTools(fakeApi()).describe_profile({})) as {
       nodeKinds: Array<{ id: string }>; connectionKinds: Array<{ id: string }>;
