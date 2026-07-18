@@ -6,7 +6,7 @@ function model(): HyphaeModel {
   const m = emptyModel();
   m.nodes.push({
     id: 'api', name: 'API', type: 'Container', description: 'edge', fields: {},
-    parentId: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+    parentId: null, root: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
   });
   m.connections.push({
     id: 'c1', from: 'api', to: 'api', type: 'Dependency', fields: { transport: 'Sync' },
@@ -60,8 +60,8 @@ describe('MCP tool handlers', () => {
       const m = model();
       // add a second container with a lone (orphan) component + an unbound cross-component code edge
       m.nodes.push(
-        { id: 'comp', name: 'Comp', type: 'Component', parentId: 'api', description: 'does work', fields: {}, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
-        { id: 'orph', name: 'Orph', type: 'Component', parentId: 'api', description: '', fields: {}, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
+        { id: 'comp', name: 'Comp', type: 'Component', parentId: 'api', description: 'does work', fields: {}, root: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
+        { id: 'orph', name: 'Orph', type: 'Component', parentId: 'api', description: '', fields: {}, root: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
       );
       return m;
     } });
@@ -143,7 +143,7 @@ describe('MCP tool handlers', () => {
 
 function graphModel(): HyphaeModel {
   const m = emptyModel();
-  const base = { fields: {}, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' };
+  const base = { fields: {}, root: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' };
   m.nodes.push(
     { id: 'sys', name: 'Sys', type: 'System', description: '', parentId: null, ...base },
     { id: 'ca', name: 'Alpha', type: 'Container', description: '', parentId: 'sys', ...base },
@@ -181,7 +181,7 @@ describe('MCP query tools', () => {
   it('list_nodes query caps at 25 rows by default; explicit limit overrides and plain enumeration is uncapped', async () => {
     const big = () => {
       const m = emptyModel();
-      for (let i = 0; i < 30; i++) m.nodes.push({ id: `w${i}`, name: `Widget ${i}`, type: 'Component', description: '', parentId: null, fields: {}, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
+      for (let i = 0; i < 30; i++) m.nodes.push({ id: `w${i}`, name: `Widget ${i}`, type: 'Component', description: '', parentId: null, fields: {}, root: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
       return m;
     };
     const a = fakeApi({ getModel: async () => big() });
@@ -208,7 +208,7 @@ describe('MCP query tools', () => {
   it('list_nodes defaults to Component-and-above and opts into Code via maxLayer', async () => {
     const withCode = () => {
       const m = graphModel();
-      m.nodes.push({ id: 'k1', name: 'K1', type: 'Class', description: '', parentId: 'n1', fields: {}, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
+      m.nodes.push({ id: 'k1', name: 'K1', type: 'Class', description: '', parentId: 'n1', fields: {}, root: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
       return m;
     };
     const a = fakeApi({ getModel: async () => withCode() });
@@ -266,7 +266,7 @@ describe('MCP query tools', () => {
   it('get_subgraph stops at Component by default and descends into Code with maxLayer:Code', async () => {
     const withCode = () => {
       const m = graphModel();
-      m.nodes.push({ id: 'k1', name: 'K1', type: 'Class', description: '', parentId: 'n1', fields: {}, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
+      m.nodes.push({ id: 'k1', name: 'K1', type: 'Class', description: '', parentId: 'n1', fields: {}, root: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
       return m;
     };
     const a = fakeApi({ getModel: async () => withCode() });
@@ -279,7 +279,7 @@ describe('MCP query tools', () => {
 
 function connModel(): HyphaeModel {
   const m = emptyModel();
-  const base = { description: '', fields: {}, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' };
+  const base = { description: '', fields: {}, root: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' };
   m.nodes.push(
     { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
     { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
@@ -345,7 +345,7 @@ describe('list_connections', () => {
   it('drops edges touching a Code node by default and includes them with maxLayer:Code', async () => {
     const withCode = () => {
       const m = connModel();
-      m.nodes.push({ id: 'k1', name: 'K1', type: 'Class', parentId: 'a1', description: '', fields: {}, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
+      m.nodes.push({ id: 'k1', name: 'K1', type: 'Class', parentId: 'a1', description: '', fields: {}, root: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
       m.connections.push({ id: 'kx', from: 'k1', to: 'b1', type: 'Dependency', fields: { transport: 'InProcess' }, description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [] });
       return m;
     };

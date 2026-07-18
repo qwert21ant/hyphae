@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildFocusView, breadcrumbPath, representative, externalConnections, partitionConnections } from '../src/focusView';
 import { emptyModel } from '@hyphae/schema';
 
-const base = { description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
+const base = { description: '', root: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
 const e = { description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
 
 /** sys › (ca, cb containers); ca has comps a1,a2; cb has comp b1; a1 has Code k1; ext is external. */

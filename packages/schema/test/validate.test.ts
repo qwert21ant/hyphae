@@ -6,7 +6,7 @@ import type { Node } from '../src/node';
 import type { Connection } from '../src/connection';
 
 const node = (over: Record<string, unknown>): Node => ({
-  id: 'x', name: 'X', type: 'Component', parentId: null, description: '',
+  id: 'x', name: 'X', type: 'Component', parentId: null, description: '', root: null,
   codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
 } as Node);
 const conn = (over: Record<string, unknown>): Connection => ({
@@ -67,7 +67,7 @@ describe('validateModel', () => {
 });
 
 describe('Code layer containment', () => {
-  const base = { description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
+  const base = { description: '', root: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
   function withParent(parentType: string) {
     const m = emptyModel();
     m.nodes.push(

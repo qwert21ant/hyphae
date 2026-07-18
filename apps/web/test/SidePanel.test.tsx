@@ -4,7 +4,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 vi.mock('../src/api', () => {
   let v = 0;
   const base = (over: Record<string, unknown>) => ({
-    id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+    id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
     docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
   });
   const blank = () => ({
@@ -54,7 +54,7 @@ describe('SidePanel', () => {
 
   it('reparents the selected node via the parent dropdown', async () => {
     const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     useStore.setState((s) => ({
@@ -88,7 +88,7 @@ describe('SidePanel', () => {
 
   it('shows a rolled-up connection with its underlying connections and drills on click', () => {
     const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     useStore.setState((s) => ({
@@ -117,7 +117,7 @@ describe('SidePanel', () => {
 
   it('lists connections touching a selected node (and its descendants)', () => {
     const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     const conn = (over: Partial<Connection>): Connection => ({
@@ -141,7 +141,7 @@ describe('SidePanel', () => {
 
   it('splits the selected node connections into Outgoing and Incoming sections', () => {
     const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     const conn = (over: Partial<Connection>): Connection => ({
@@ -164,7 +164,7 @@ describe('SidePanel', () => {
 
   it('omits a direction subsection when it has no connections', () => {
     const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     const conn = (over: Partial<Connection>): Connection => ({
@@ -186,7 +186,7 @@ describe('SidePanel', () => {
 
   it('lists a connection\'s realizedBy children and selects a child on row click', () => {
     const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, codeRefs: [],
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     const conn = (over: Partial<Connection>): Connection => ({
