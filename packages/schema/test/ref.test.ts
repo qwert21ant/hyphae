@@ -137,3 +137,30 @@ describe('resolveRef', () => {
     expect(resolveRef(two, 'sc', 'src/main.ts')).toBe('endpoints/streaming_client/src/main.ts');
   });
 });
+
+import { refOwners } from '../src/ref';
+
+describe('refOwners', () => {
+  const owners = [
+    { id: 'fc', parentId: null, root: 'endpoints/full_client/', codeRefs: ['src/main.ts'] },
+    { id: 'sc', parentId: null, root: 'endpoints/streaming_client/', codeRefs: ['src/main.ts'] },
+    { id: 'shared', parentId: 'fc', root: null, codeRefs: ['src/main.ts'] },
+  ];
+
+  it('resolves a path back to the single node that claims it', () => {
+    expect(refOwners(owners, 'endpoints/streaming_client/src/main.ts')).toEqual(['sc']);
+  });
+
+  it('returns every claimant when a path is genuinely shared', () => {
+    expect(refOwners(owners, 'endpoints/full_client/src/main.ts').sort()).toEqual(['fc', 'shared']);
+  });
+
+  it('returns nothing for an unclaimed path', () => {
+    expect(refOwners(owners, 'endpoints/other/src/main.ts')).toEqual([]);
+  });
+
+  it('matches on the path, ignoring a symbol fragment', () => {
+    const withSymbol = [{ id: 'a', parentId: null, root: 'app/', codeRefs: ['src/main.ts#getRouter'] }];
+    expect(refOwners(withSymbol, 'app/src/main.ts')).toEqual(['a']);
+  });
+});

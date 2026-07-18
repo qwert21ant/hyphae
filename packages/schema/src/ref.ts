@@ -104,3 +104,22 @@ export function resolveRef(nodes: RootBearer[], nodeId: string, ref: string): st
   if (root === null) return null;
   return joinRef(root, ref);
 }
+
+/** A node as ref ownership sees it: a root bearer that also carries codeRefs. */
+export type RefBearer = RootBearer & { codeRefs: string[] };
+
+/**
+ * Ids of every node whose resolved codeRefs point at `path` (fragments ignored).
+ * More than one owner is legitimate — a shared file — and this is where genuine
+ * ambiguity is observable. Anchoring makes forward resolution deterministic, so
+ * ambiguity is a reverse-lookup property, not a validation error.
+ */
+export function refOwners(nodes: RefBearer[], path: string): string[] {
+  const target = parseRef(path).path;
+  return nodes
+    .filter((n) => n.codeRefs.some((r) => {
+      const resolved = resolveRef(nodes, n.id, r);
+      return resolved !== null && parseRef(resolved).path === target;
+    }))
+    .map((n) => n.id);
+}

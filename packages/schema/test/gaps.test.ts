@@ -70,6 +70,47 @@ describe('modelGaps', () => {
   });
 
   it('returns empty gap lists for an empty model', () => {
-    expect(modelGaps(emptyModel(), c4Backend)).toEqual({ orphanNodes: [], unboundCodeEdges: [], thinDescriptions: [] });
+    expect(modelGaps(emptyModel(), c4Backend)).toEqual({ orphanNodes: [], unboundCodeEdges: [], thinDescriptions: [], missingRefs: [] });
+  });
+});
+
+describe('missingRefs', () => {
+  function refModel(): HyphaeModel {
+    const m = emptyModel();
+    m.nodes.push(
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, description: 'The system', ...nodeBase, root: 'app/' },
+      { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', description: 'Alpha container', ...nodeBase },
+      { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', description: 'Handles alpha ingest',
+        ...nodeBase, codeRefs: ['src/present.ts', 'src/gone.ts'] },
+    );
+    return m;
+  }
+
+  it('is empty when no disk check is requested', () => {
+    expect(modelGaps(refModel(), c4Backend).missingRefs).toEqual([]);
+  });
+
+  it('reports a ref whose resolved path is absent from disk', () => {
+    const present = new Set(['app/src/present.ts']);
+    const gaps = modelGaps(refModel(), c4Backend, {
+      checkDisk: { cwd: '.', exists: (p) => present.has(p) },
+    });
+    expect(gaps.missingRefs).toEqual([
+      { nodeId: 'a1', ref: 'src/gone.ts', resolved: 'app/src/gone.ts' },
+    ]);
+  });
+
+  it('does not check globs, which need a matcher rather than an existence test', () => {
+    const m = refModel();
+    m.nodes[2].codeRefs = ['src/**/*.ts'];
+    const gaps = modelGaps(m, c4Backend, { checkDisk: { cwd: '.', exists: () => false } });
+    expect(gaps.missingRefs).toEqual([]);
+  });
+
+  it('skips unanchored refs, which validateModel already reports', () => {
+    const m = refModel();
+    m.nodes[0].root = null;
+    const gaps = modelGaps(m, c4Backend, { checkDisk: { cwd: '.', exists: () => false } });
+    expect(gaps.missingRefs).toEqual([]);
   });
 });
