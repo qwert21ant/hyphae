@@ -70,8 +70,22 @@ export function SidePanel() {
     return (
       <aside className="panel">
         <h2>{node.type}</h2>
+        <h3>On diagram</h3>
         <label className="field"><span>name</span>
           <input aria-label="name" value={node.name} onChange={(e) => updateNode(node.id, { name: e.target.value })} /></label>
+        <label className="field" title="Shape archetype. Empty = this node kind's default.">
+          <span>role</span>
+          <select aria-label="role" value={node.role ?? ''}
+            onChange={(e) => updateNode(node.id, { role: e.target.value || null })}>
+            <option value="">(kind default)</option>
+            {c4Backend.roles.map((r) => <option key={r.id} value={r.id} title={r.description}>{r.id}</option>)}
+          </select></label>
+        {effectiveFields(c4Backend, node.type, 'node')
+          .filter((def) => def.key === 'summary' || def.key === 'technology')
+          .map((def) => (
+            <FieldInput key={def.key} def={def} value={node.fields[def.key]} nodes={nodes} onChange={(v) => setField(def.key, v)} />
+          ))}
+        <h3>Detail</h3>
         <label className="field"><span>description</span>
           <textarea aria-label="description" value={node.description} onChange={(e) => updateNode(node.id, { description: e.target.value })} /></label>
         <label className="field" title='Directory Ref anchoring this subtree on disk, e.g. "endpoints/media_gateway/". Descendants resolve their refs against it.'>
@@ -86,9 +100,11 @@ export function SidePanel() {
           <span>docRefs</span>
           <textarea aria-label="docRefs" value={node.docRefs.join('\n')}
             onChange={(e) => updateNode(node.id, { docRefs: lines(e.target.value) })} /></label>
-        {effectiveFields(c4Backend, node.type, 'node').map((def) => (
-          <FieldInput key={def.key} def={def} value={node.fields[def.key]} nodes={nodes} onChange={(v) => setField(def.key, v)} />
-        ))}
+        {effectiveFields(c4Backend, node.type, 'node')
+          .filter((def) => def.key !== 'summary' && def.key !== 'technology')
+          .map((def) => (
+            <FieldInput key={def.key} def={def} value={node.fields[def.key]} nodes={nodes} onChange={(v) => setField(def.key, v)} />
+          ))}
         {parentTypes.length > 0 && (
           <label className="field"><span>parent</span>
             <select aria-label="parent" value={node.parentId ?? ''} onChange={(e) => reparent(node.id, e.target.value || null)}>
@@ -129,6 +145,17 @@ export function SidePanel() {
       <aside className="panel">
         <h2>Connection</h2>
         <p className="field"><strong>{nameOf(conn.from)} → {nameOf(conn.to)}</strong></p>
+        <h3>On diagram</h3>
+        <label className="field" title="The business action shown on the edge.">
+          <span>verb</span>
+          <select aria-label="verb" value={conn.verb}
+            onChange={(e) => updateConnection(conn.id, { verb: e.target.value })}>
+            {c4Backend.verbs.map((v) => <option key={v.id} value={v.id} title={v.description}>{v.id}</option>)}
+          </select></label>
+        <label className="field" title='Short noun the action acts on, e.g. "camera list".'>
+          <span>object</span>
+          <input aria-label="object" value={conn.object}
+            onChange={(e) => updateConnection(conn.id, { object: e.target.value })} /></label>
         <label className="field"><span>type</span>
           <select aria-label="type" value={conn.type} onChange={(e) => updateConnection(conn.id, { type: e.target.value })}>
             {connectionKindIds(c4Backend).map((k) => <option key={k} value={k}>{k}</option>)}
@@ -137,6 +164,7 @@ export function SidePanel() {
           <select aria-label="direction" value={conn.direction} onChange={(e) => updateConnection(conn.id, { direction: e.target.value as Connection['direction'] })}>
             {DirectionSchema.options.map((o) => <option key={o} value={o}>{o}</option>)}
           </select></label>
+        <h3>Detail</h3>
         <label className="field"><span>description</span>
           <textarea aria-label="description" value={conn.description} onChange={(e) => updateConnection(conn.id, { description: e.target.value })} /></label>
         {effectiveFields(c4Backend, conn.type, 'connection').map((def) => (

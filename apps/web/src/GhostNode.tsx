@@ -2,6 +2,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { useStore } from './store';
 import type { NodeBoxData } from './NodeBox';
 import { shapeStyle } from './shapes';
+import { NODE_W, NODE_H } from './layout';
 
 // Invisible, non-interactive side handles kept only so floating edges can anchor to the node
 // (React Flow drops edges whose endpoint exposes no handle). Connection-by-dragging is disabled,
@@ -21,16 +22,24 @@ export function GhostNode({ id, data }: NodeProps) {
   const d = data as GhostNodeData;
   const color = d.color ?? { bg: '#f1f5f9', border: '#94a3b8' };
   const toggle = useStore((s) => s.toggleExternal);
+  const shape = shapeStyle(d.shape ?? 'rectangle');
+  // clip-path (used by the hexagon shape) clips the whole border box, so the dashed border that
+  // signals "borrowed from another layer" survives only on the flat top/bottom segments and
+  // vanishes along the diagonal/side edges. A background hatch is clipped the same way as the
+  // shape's fill, so — unlike the border — it stays visible across the entire outline and keeps
+  // the ghost cue legible regardless of shape.
+  const isClipped = !!shape.clipPath;
   return (
     <div
       style={{
         position: 'relative',
-        width: 190,
-        height: 64,
+        width: NODE_W,
+        height: NODE_H,
         padding: '6px 10px',
         boxSizing: 'border-box',
         border: `1.5px dashed ${color.border}`,
         background: color.bg,
+        ...(isClipped ? { backgroundImage: `repeating-linear-gradient(45deg, ${color.border}40 0, ${color.border}40 3px, transparent 3px, transparent 8px)` } : {}),
         color: '#475569',
         fontSize: 12,
         lineHeight: 1.25,
@@ -41,7 +50,7 @@ export function GhostNode({ id, data }: NodeProps) {
         justifyContent: 'center',
         gap: 2,
         overflow: 'hidden',
-        ...shapeStyle(d.shape ?? 'rectangle'),
+        ...shape,
       }}
     >
       {sides.map((s) => (

@@ -198,6 +198,47 @@ describe('SidePanel', () => {
     expect(screen.queryByText(/incoming/i)).toBeNull();
   });
 
+  it('edits a node role', async () => {
+    await useStore.getState().addNode('Component');
+    render(<SidePanel />);
+    fireEvent.change(screen.getByLabelText('role') as HTMLSelectElement, { target: { value: 'datastore' } });
+    await waitFor(() => expect(useStore.getState().model.nodes[0].role).toBe('datastore'));
+  });
+
+  it('clears a role back to the kind default', async () => {
+    await useStore.getState().addNode('Component');
+    render(<SidePanel />);
+    fireEvent.change(screen.getByLabelText('role') as HTMLSelectElement, { target: { value: 'datastore' } });
+    await waitFor(() => expect(useStore.getState().model.nodes[0].role).toBe('datastore'));
+    fireEvent.change(screen.getByLabelText('role') as HTMLSelectElement, { target: { value: '' } });
+    await waitFor(() => expect(useStore.getState().model.nodes[0].role).toBe(null));
+  });
+
+  it('edits the summary shown on the diagram', async () => {
+    await useStore.getState().addNode('Component');
+    render(<SidePanel />);
+    fireEvent.change(screen.getByLabelText('summary') as HTMLInputElement, { target: { value: 'Stores clips' } });
+    await waitFor(() => expect(useStore.getState().model.nodes[0].fields.summary).toBe('Stores clips'));
+  });
+
+  it('edits a connection verb and object', async () => {
+    await useStore.getState().addNode('Component');
+    await useStore.getState().addNode('Component');
+    const [a, b] = useStore.getState().model.nodes.map((n) => n.id);
+    useStore.setState((s) => ({
+      model: {
+        ...s.model,
+        connections: [{ id: 'conn1', from: a, to: b, type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }],
+      },
+      selectedId: 'conn1',
+    }));
+    render(<SidePanel />);
+    fireEvent.change(screen.getByLabelText('verb') as HTMLSelectElement, { target: { value: 'reads' } });
+    await waitFor(() => expect(useStore.getState().model.connections[0].verb).toBe('reads'));
+    fireEvent.change(screen.getByLabelText('object') as HTMLInputElement, { target: { value: 'clips' } });
+    await waitFor(() => expect(useStore.getState().model.connections[0].object).toBe('clips'));
+  });
+
   it('lists a connection\'s realizedBy children and selects a child on row click', () => {
     const mk = (over: Partial<Node>): Node => ({
       id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null, codeRefs: [],
