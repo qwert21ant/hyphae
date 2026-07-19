@@ -6,11 +6,11 @@ import type { Node } from '../src/node';
 import type { Connection } from '../src/connection';
 
 const node = (over: Record<string, unknown>): Node => ({
-  id: 'x', name: 'X', type: 'Component', parentId: null, description: '', root: null,
+  id: 'x', name: 'X', type: 'Component', parentId: null, description: '', root: null, role: null,
   codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
 } as Node);
 const conn = (over: Record<string, unknown>): Connection => ({
-  id: 'e', from: 'a', to: 'b', type: 'Dependency', description: '',
+  id: 'e', from: 'a', to: 'b', type: 'Dependency', verb: 'uses', object: '', description: '',
   direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {}, ...over,
 } as Connection);
 function model(over: Partial<HyphaeModel> = {}): HyphaeModel {
@@ -67,7 +67,7 @@ describe('validateModel', () => {
 });
 
 describe('Code layer containment', () => {
-  const base = { description: '', root: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
+  const base = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
   function withParent(parentType: string) {
     const m = emptyModel();
     m.nodes.push(
@@ -93,7 +93,7 @@ describe('Code layer containment', () => {
 import { isDirectoryRef } from '../src/ref';
 
 describe('ref anchoring', () => {
-  const base = { codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, root: null };
+  const base = { codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, root: null, role: null };
 
   function anchoredModel(): HyphaeModel {
     const m = emptyModel();

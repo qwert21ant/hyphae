@@ -8,8 +8,8 @@ import { emptyModel } from '@hyphae/schema';
 // event wiring — a mock that called our handlers directly previously hid a bug where
 // nodesDraggable={false} suppresses React Flow's onNodeDoubleClick.
 
-const base = { description: '', root: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
-const e = { description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+const base = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
+const e = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
 
 function model() {
   const m = emptyModel();

@@ -8,6 +8,9 @@ export const NodeSchema = z.object({
   // Optional directory Ref anchoring this node's subtree on disk. Refs below it resolve
   // against it; roots chain down the containment tree. See ref.ts.
   root: z.string().nullable().default(null),
+  // Archetype override selecting this node's shape (a role id from the profile).
+  // null = fall back to the node kind's default role. See profile.ts roleOfNode.
+  role: z.string().nullable().default(null),
   description: z.string().default(''),
   codeRefs: z.array(z.string()).default([]),
   docRefs: z.array(z.string()).default([]),

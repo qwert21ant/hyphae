@@ -4,7 +4,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 vi.mock('../src/api', () => {
   let v = 0;
   const base = (over: Record<string, unknown>) => ({
-    id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
+    id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null, codeRefs: [],
     docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
   });
   const blank = () => ({
@@ -20,7 +20,7 @@ vi.mock('../src/api', () => {
     updateNode: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ node: base({ id, ...patch }), version: ++v })),
     deleteNode: vi.fn(async () => ({ version: ++v })),
     createConnection: vi.fn(async () => ({ connection: {}, version: ++v })),
-    updateConnection: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ connection: { id, from: 'a', to: 'b', type: 'Dependency', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {}, ...patch }, version: ++v })),
+    updateConnection: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ connection: { id, from: 'a', to: 'b', type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {}, ...patch }, version: ++v })),
     deleteConnection: vi.fn(async () => ({ version: ++v })),
     setNodePosition: vi.fn(async () => ({ version: ++v })),
   };
@@ -68,7 +68,7 @@ describe('SidePanel', () => {
 
   it('reparents the selected node via the parent dropdown', async () => {
     const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null, codeRefs: [],
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     useStore.setState((s) => ({
@@ -90,7 +90,7 @@ describe('SidePanel', () => {
     useStore.setState((s) => ({
       model: {
         ...s.model,
-        connections: [{ id: 'conn1', from: a, to: b, type: 'Dependency', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }],
+        connections: [{ id: 'conn1', from: a, to: b, type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }],
       },
       selectedId: 'conn1',
     }));
@@ -102,7 +102,7 @@ describe('SidePanel', () => {
 
   it('shows a rolled-up connection with its underlying connections and drills on click', () => {
     const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null, codeRefs: [],
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     useStore.setState((s) => ({
@@ -115,7 +115,7 @@ describe('SidePanel', () => {
           mk({ id: 'a1', name: 'A1', type: 'Component', parentId: 'ca' }),
           mk({ id: 'b1', name: 'B1', type: 'Component', parentId: 'cb' }),
         ],
-        connections: [{ id: 'x1', from: 'a1', to: 'b1', type: 'Dependency', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: { transport: 'Sync' } }],
+        connections: [{ id: 'x1', from: 'a1', to: 'b1', type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: { transport: 'Sync' } }],
       },
       focusId: 'sys',
       selectedId: 'agg:ca->cb',
@@ -131,11 +131,11 @@ describe('SidePanel', () => {
 
   it('lists connections touching a selected node (and its descendants)', () => {
     const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null, codeRefs: [],
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     const conn = (over: Partial<Connection>): Connection => ({
-      id: 'c', from: 'a1', to: 'b1', type: 'Dependency', description: '', direction: 'Unidirectional',
+      id: 'c', from: 'a1', to: 'b1', type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional',
       realizedBy: [], codeRefs: [], fields: {}, ...over,
     });
     useStore.setState((s) => ({
@@ -155,11 +155,11 @@ describe('SidePanel', () => {
 
   it('splits the selected node connections into Outgoing and Incoming sections', () => {
     const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null, codeRefs: [],
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     const conn = (over: Partial<Connection>): Connection => ({
-      id: 'c', from: 'a1', to: 'ext', type: 'Dependency', description: '', direction: 'Unidirectional',
+      id: 'c', from: 'a1', to: 'ext', type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional',
       realizedBy: [], codeRefs: [], fields: {}, ...over,
     });
     useStore.setState((s) => ({
@@ -178,11 +178,11 @@ describe('SidePanel', () => {
 
   it('omits a direction subsection when it has no connections', () => {
     const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null, codeRefs: [],
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     const conn = (over: Partial<Connection>): Connection => ({
-      id: 'c', from: 'a1', to: 'ext', type: 'Dependency', description: '', direction: 'Unidirectional',
+      id: 'c', from: 'a1', to: 'ext', type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional',
       realizedBy: [], codeRefs: [], fields: {}, ...over,
     });
     useStore.setState((s) => ({
@@ -200,11 +200,11 @@ describe('SidePanel', () => {
 
   it('lists a connection\'s realizedBy children and selects a child on row click', () => {
     const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, codeRefs: [],
+      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null, codeRefs: [],
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     const conn = (over: Partial<Connection>): Connection => ({
-      id: 'c', from: 'a1', to: 'b1', type: 'Dependency', description: '', direction: 'Unidirectional',
+      id: 'c', from: 'a1', to: 'b1', type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional',
       realizedBy: [], codeRefs: [], fields: {}, ...over,
     });
     useStore.setState((s) => ({
