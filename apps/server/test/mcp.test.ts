@@ -5,7 +5,7 @@ import { emptyModel, type HyphaeModel } from '@hyphae/schema';
 function model(): HyphaeModel {
   const m = emptyModel();
   m.nodes.push({
-    id: 'api', name: 'API', type: 'Container', description: 'edge', fields: {},
+    id: 'api', name: 'API', type: 'Container', description: 'edge', fields: { summary: 'Edge API' },
     parentId: null, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
   });
   m.connections.push({

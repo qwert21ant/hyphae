@@ -9,6 +9,30 @@ export const EnumValueSchema = z.object({
   description: z.string(),
 });
 
+/** How a role draws. The profile names the shape; the renderer owns the geometry. */
+export const ShapeSchema = z.enum([
+  'rectangle',         // default service box
+  'person',            // an actor
+  'cylinder',          // a datastore
+  'bar',               // a queue — open-ended bar
+  'hexagon',           // an external system
+  'titled-rectangle',  // a UI surface — box with a title bar
+]);
+
+export const RoleDefSchema = z.object({
+  id: z.string(),
+  description: z.string(),
+  shape: ShapeSchema,
+});
+
+export const VerbClassSchema = z.enum(['dataAccess', 'messaging', 'control', 'user']);
+
+export const VerbDefSchema = z.object({
+  id: z.string(),
+  class: VerbClassSchema,
+  description: z.string(),
+});
+
 export const FieldDefSchema = z.object({
   key: z.string(),
   label: z.string().optional(),
@@ -23,6 +47,7 @@ export const NodeKindSchema = z.object({
   id: z.string(),            // the node `type` value
   category: CategorySchema,
   layer: z.string(),
+  role: z.string(),          // this kind's default role id (a node may override)
   allowedParents: z.array(z.string()).default([]),
   allowedChildren: z.array(z.string()).default([]),
   fields: z.array(FieldDefSchema).default([]),
@@ -41,6 +66,8 @@ export const ProfileSchema = z.object({
   layers: z.array(z.string()),       // ordered, top -> bottom
   nodeKinds: z.array(NodeKindSchema),
   connectionKinds: z.array(ConnectionKindSchema),
+  roles: z.array(RoleDefSchema).default([]),
+  verbs: z.array(VerbDefSchema).default([]),
   commonNodeFields: z.array(FieldDefSchema).default([]),
   commonConnectionFields: z.array(FieldDefSchema).default([]),
 });
@@ -51,9 +78,30 @@ export type FieldDef = z.infer<typeof FieldDefSchema>;
 export type Profile = z.infer<typeof ProfileSchema>;
 export type NodeKind = z.infer<typeof NodeKindSchema>;
 export type ConnectionKind = z.infer<typeof ConnectionKindSchema>;
+export type Shape = z.infer<typeof ShapeSchema>;
+export type RoleDef = z.infer<typeof RoleDefSchema>;
+export type VerbClass = z.infer<typeof VerbClassSchema>;
+export type VerbDef = z.infer<typeof VerbDefSchema>;
 
 export const layerOfType = (profile: Profile, type: string): string | undefined =>
   profile.nodeKinds.find((k) => k.id === type)?.layer;
+
+export const roleDefOf = (profile: Profile, roleId: string): RoleDef | undefined =>
+  profile.roles.find((r) => r.id === roleId);
+
+export const verbDefOf = (profile: Profile, verbId: string): VerbDef | undefined =>
+  profile.verbs.find((v) => v.id === verbId);
+
+export const verbClassOf = (profile: Profile, verbId: string): VerbClass | undefined =>
+  verbDefOf(profile, verbId)?.class;
+
+/**
+ * The role that decides a node's shape: its own override, else its kind's default,
+ * else 'service'. The final fallback keeps an unknown node type renderable rather
+ * than blank — validateModel is what reports the unknown type.
+ */
+export const roleOfNode = (profile: Profile, node: { type: string; role: string | null }): string =>
+  node.role ?? profile.nodeKinds.find((k) => k.id === node.type)?.role ?? 'service';
 
 export const allowedParentTypes = (profile: Profile, type: string): string[] =>
   profile.nodeKinds.find((k) => k.id === type)?.allowedParents ?? [];

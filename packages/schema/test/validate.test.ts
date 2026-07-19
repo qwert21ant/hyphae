@@ -57,8 +57,8 @@ describe('validateModel', () => {
   it('accepts a valid model with fields', () => {
     const m = model({
       nodes: [
-        node({ id: 's', type: 'System' }),
-        node({ id: 'co', type: 'Container', parentId: 's', fields: { technology: 'Hono', responsibilities: ['serve'] } }),
+        node({ id: 's', type: 'System', fields: { summary: 'Serves requests' } }),
+        node({ id: 'co', type: 'Container', parentId: 's', fields: { technology: 'Hono', responsibilities: ['serve'], summary: 'HTTP server' } }),
       ],
       connections: [],
     });
@@ -71,9 +71,9 @@ describe('Code layer containment', () => {
   function withParent(parentType: string) {
     const m = emptyModel();
     m.nodes.push(
-      { id: 'sys', name: 'S', type: 'System', parentId: null, ...base },
-      { id: 'ct', name: 'C', type: 'Container', parentId: 'sys', ...base },
-      { id: 'cmp', name: 'Cmp', type: 'Component', parentId: 'ct', ...base },
+      { id: 'sys', name: 'S', type: 'System', parentId: null, ...base, fields: { summary: 'x' } },
+      { id: 'ct', name: 'C', type: 'Container', parentId: 'sys', ...base, fields: { summary: 'x' } },
+      { id: 'cmp', name: 'Cmp', type: 'Component', parentId: 'ct', ...base, fields: { summary: 'x' } },
     );
     const parentId = parentType === 'System' ? 'sys' : parentType === 'Container' ? 'ct' : 'cmp';
     m.nodes.push({ id: 'code', name: 'Svc', type: 'Class', parentId, ...base });
@@ -98,9 +98,9 @@ describe('ref anchoring', () => {
   function anchoredModel(): HyphaeModel {
     const m = emptyModel();
     m.nodes.push(
-      { id: 'sys', name: 'Sys', type: 'System', parentId: null, description: 'd', ...base, root: 'endpoints/' },
-      { id: 'mg', name: 'MG', type: 'Container', parentId: 'sys', description: 'd', ...base, root: 'media_gateway/' },
-      { id: 'comp', name: 'C', type: 'Component', parentId: 'mg', description: 'd', ...base, codeRefs: ['src/main.ts'] },
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, description: 'd', ...base, root: 'endpoints/', fields: { summary: 'x' } },
+      { id: 'mg', name: 'MG', type: 'Container', parentId: 'sys', description: 'd', ...base, root: 'media_gateway/', fields: { summary: 'x' } },
+      { id: 'comp', name: 'C', type: 'Component', parentId: 'mg', description: 'd', ...base, codeRefs: ['src/main.ts'], fields: { summary: 'x' } },
     );
     return m;
   }
