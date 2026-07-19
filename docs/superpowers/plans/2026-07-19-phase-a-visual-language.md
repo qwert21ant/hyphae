@@ -179,14 +179,15 @@ Apply the same shape to the equivalent const in every failing file across `packa
 Write the script to the scratchpad, not the repo:
 
 ```bash
-cd apps/server && cat > "$TMPDIR/load.ts" <<'EOF'
+SCRATCH="C:/Users/qwert/AppData/Local/Temp/claude/C--projects-hyphae/2e553ec9-4405-46ea-bfcb-3f31a0f75e26/scratchpad"
+cd apps/server && cat > "$SCRATCH/load.ts" <<'EOF'
 import { readFileSync } from 'node:fs';
 import { HyphaeModelSchema } from '@hyphae/schema';
 const m = HyphaeModelSchema.parse(JSON.parse(readFileSync('hyphae-cctv-new.json','utf8')));
 const verbs = new Set(m.connections.map((c) => c.verb));
 console.log(m.nodes.length, 'nodes;', m.connections.length, 'connections; verbs seen:', [...verbs]);
 EOF
-pnpm exec tsx "$TMPDIR/load.ts"
+pnpm exec tsx "$SCRATCH/load.ts"
 ```
 
 Expected: `404 nodes; 567 connections; verbs seen: [ 'uses' ]` — every connection gained the default verb at parse time, with the file untouched on disk. Confirm with `git status` that no `.json` is modified.
@@ -619,7 +620,8 @@ Expected: PASS.
 - [ ] **Step 5: Record the fixture's issue profile (do NOT modify the fixture)**
 
 ```bash
-cd apps/server && cat > "$TMPDIR/issues.ts" <<'EOF'
+SCRATCH="C:/Users/qwert/AppData/Local/Temp/claude/C--projects-hyphae/2e553ec9-4405-46ea-bfcb-3f31a0f75e26/scratchpad"
+cd apps/server && cat > "$SCRATCH/issues.ts" <<'EOF'
 import { readFileSync } from 'node:fs';
 import { HyphaeModelSchema, validateModel, resolveProfile } from '@hyphae/schema';
 const m = HyphaeModelSchema.parse(JSON.parse(readFileSync('hyphae-cctv-new.json','utf8')));
@@ -627,7 +629,7 @@ const by: Record<string, number> = {};
 for (const i of validateModel(m, resolveProfile(m))) by[i.kind] = (by[i.kind] ?? 0) + 1;
 console.log(by);
 EOF
-pnpm exec tsx "$TMPDIR/issues.ts"
+pnpm exec tsx "$SCRATCH/issues.ts"
 ```
 
 Expected roughly: `{ 'unanchored-ref': 328, 'unknown-field': 517, 'missing-required-field': 105 }` and **no** `unknown-verb` (every connection defaulted to the declared `uses`). Record the actual numbers in the commit message. `unknown-verb: 0` is the check that matters — a non-zero value means the default verb is not in the vocabulary.
@@ -1448,7 +1450,8 @@ Apply the same `summary` requirement to the Phase 4 Code-layer template's `creat
 Build a model exactly as the skill now instructs and confirm it validates clean:
 
 ```bash
-cd apps/server && cat > "$TMPDIR/skillcheck.ts" <<'EOF'
+SCRATCH="C:/Users/qwert/AppData/Local/Temp/claude/C--projects-hyphae/2e553ec9-4405-46ea-bfcb-3f31a0f75e26/scratchpad"
+cd apps/server && cat > "$SCRATCH/skillcheck.ts" <<'EOF'
 import { emptyModel, validateModel, c4Backend } from '@hyphae/schema';
 const base = { root: null, role: null, description: 'd', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' };
 const edge = { object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
@@ -1462,7 +1465,7 @@ m.nodes.push(
 m.connections.push({ ...edge, id: 'e', from: 'k1', to: 'k2', type: 'Dependency', verb: 'writes', object: 'clip' });
 console.log('issues:', validateModel(m, c4Backend));
 EOF
-pnpm exec tsx "$TMPDIR/skillcheck.ts"
+pnpm exec tsx "$SCRATCH/skillcheck.ts"
 ```
 
 Expected: `issues: []`. Then confirm the red flags really fire: drop `summary` from `k1` and expect one `missing-required-field`; set `verb` to `'yeets'` and expect one `unknown-verb`; set `role` to `'wormhole'` and expect one `unknown-role`. Paste all four results.
