@@ -399,7 +399,7 @@ describe('rollup_connections', () => {
     const r = (await buildTools(api()).rollup_connections({ layer: 'Container' })) as Array<{ from: string; to: string; realizedBy: Array<{ id: string; type: string }> }>;
     expect(r.map((e) => `${e.from}->${e.to}`).sort()).toEqual(['ca->cb', 'ca->ext', 'cb->ext']);
     const caCb = r.find((e) => e.from === 'ca' && e.to === 'cb')!;
-    expect(caCb.realizedBy).toEqual([{ id: 'x1', fromName: 'A1', toName: 'B1', type: 'Dependency', transport: 'Sync', intent: undefined, description: '' }]);
+    expect(caCb.realizedBy).toEqual([{ id: 'x1', fromName: 'A1', toName: 'B1', type: 'Dependency', transport: 'Sync', verb: 'uses', object: '', description: '' }]);
   });
 
   it('layer:Context collapses internal edges to the System, keeping external edges', async () => {
@@ -407,5 +407,38 @@ describe('rollup_connections', () => {
     expect(r).toHaveLength(1);
     expect(r[0]).toMatchObject({ from: 'sys', to: 'ext' });
     expect(r[0].realizedBy.map((u) => u.id).sort()).toEqual(['x2', 'x3']);
+  });
+});
+
+describe('role/verb/object reach the API', () => {
+  it('forwards a node role through create_nodes', async () => {
+    const seen: Record<string, unknown>[] = [];
+    const tools = buildTools(fakeApi({
+      createNode: async (input) => { seen.push(input as Record<string, unknown>); return { node: { id: 'n1', ...(input as object) }, version: 1 }; },
+    }));
+    await tools.create_nodes({ nodes: [
+      { name: 'Clips', type: 'Component', parentId: null, role: 'datastore', fields: { summary: 'Stores clips' } },
+    ] });
+    expect(seen[0]).toMatchObject({ role: 'datastore', fields: { summary: 'Stores clips' } });
+  });
+
+  it('forwards verb and object through create_connections', async () => {
+    const seen: Record<string, unknown>[] = [];
+    const tools = buildTools(fakeApi({
+      createConnection: async (input) => { seen.push(input as Record<string, unknown>); return { connection: { id: 'c1', ...(input as object) }, version: 1 }; },
+    }));
+    await tools.create_connections({ connections: [
+      { from: 'api', to: 'api', type: 'Dependency', verb: 'reads', object: 'camera list' },
+    ] });
+    expect(seen[0]).toMatchObject({ verb: 'reads', object: 'camera list' });
+  });
+
+  it('forwards a role change through update_nodes', async () => {
+    const seen: Record<string, unknown>[] = [];
+    const tools = buildTools(fakeApi({
+      updateNode: async (id, patch) => { seen.push(patch as Record<string, unknown>); return { node: { id, ...(patch as object) }, version: 1 }; },
+    }));
+    await tools.update_nodes({ updates: [{ id: 'api', role: 'queue' }] });
+    expect(seen[0]).toMatchObject({ role: 'queue' });
   });
 });
