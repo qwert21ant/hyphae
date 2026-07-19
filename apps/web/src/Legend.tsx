@@ -42,12 +42,15 @@ export function Legend() {
             </div>
           ))}
           <div style={{ fontWeight: 600, margin: '6px 0 2px' }}>Edge verbs</div>
-          {(['dataAccess', 'messaging', 'control', 'user'] as const).map((cls) => (
-            <div key={cls}>
-              <span style={{ ...line(false), borderColor: VERB_CLASS_COLOR[cls] }} />
-              {cls} — {c4Backend.verbs.filter((v) => v.class === cls).map((v) => v.id).slice(0, 3).join(', ')}…
-            </div>
-          ))}
+          {(['dataAccess', 'messaging', 'control', 'user'] as const).map((cls) => {
+            const verbs = c4Backend.verbs.filter((v) => v.class === cls).map((v) => v.id);
+            return (
+              <div key={cls}>
+                <span style={{ ...line(false), borderColor: VERB_CLASS_COLOR[cls] }} />
+                {cls} — {verbs.slice(0, 3).join(', ')}{verbs.length > 3 ? '…' : ''}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

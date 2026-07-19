@@ -49,7 +49,7 @@ Cost ≈ turns × context size. To avoid carrying a huge context across many tur
 
 ### Phase 1 — Map + GATE 1
 1. Call `model_overview` (idempotent read).
-2. Create the System node and all Containers in one `create_nodes` call (a single write is a one-element array). Domain values (`responsibilities`, `invariants`, `technology` for Containers) go in each item's `fields` bag — call `describe_profile` to see each kind's fields.
+2. Create the System node and all Containers in one `create_nodes` call (a single write is a one-element array). Every System and Container write MUST include `fields.summary` — a one-line purpose shown on the diagram; see **The visual vocabulary** below. Domain values (`responsibilities`, `invariants`, `technology` for Containers) go in each item's `fields` bag — call `describe_profile` to see each kind's fields.
    **Give every Container a `root`** — its package path from Phase 0, relative to the repo root, with a trailing slash (`apps/server/`, `endpoints/media_gateway/backend/`). This anchors every `codeRef` written beneath it; see **Refs and roots** below. A Container without a root makes every ref in its subtree an `unanchored-ref` issue.
 3. Write the plan artifact to `.hyphae/model-plan.md` in the target repo. REQUIRED REFERENCE: `references/plan-artifact-template.md`.
 4. **GATE 1: stop and show the user the container map + drift notes + per-container drill/skip list. Wait for approval/edits before continuing.**
@@ -109,7 +109,7 @@ unwieldy count is a signal the Component is too coarse (surface it, don't trunca
 
 ### Phase 5 — Verify (optional, re-runnable)
 A standalone consistency pass over an existing model. The Phase-3 tail already runs this sweep inline (its checkpoint folded into GATE 2), so Phase 5 is only needed as a **re-run** — after Phase 4, or any time later. Read-mostly: gaps are filled by the owning subagent, never by the orchestrator inventing edges.
-0. **Structural check.** Call `validate_model` — it returns any structural/field issues (bad containment, dangling/bad endpoints, unknown or missing-required fields, bad enum values, bad refs) in one read. Fix those first. Empty means structurally clean.
+0. **Structural check.** Call `validate_model` — it returns any structural/field issues (bad containment, dangling/bad endpoints, unknown or missing-required fields, bad enum values, bad refs, unknown roles, unknown verbs) in one read. Fix those first. Empty means structurally clean.
    Two of these are about ref anchoring (see **Refs and roots**): `unanchored-ref` means a node carries relative `codeRefs` but no ancestor declares a `root` — fix by setting `root` on the owning **Container**, not by rewriting every ref to be repo-relative. `bad-root` means a declared `root` is not a directory Ref (needs a trailing `/`, no `*` or `#`). One missing Container root typically accounts for every `unanchored-ref` in its subtree, so fix roots first and re-run before touching anything else.
 1. **Coverage sweep.** Call `model_gaps` — one read returns orphan Components (zero connections), unbound cross-component code edges (id in no `realizedBy`), and thin/name-echoing descriptions (with inbound/outbound degree, so a thin hub — high inbound but an empty/echoing description — stands out). Separate likely-real gaps from legitimately standalone components (`standaloneComponents` are expected).
 2. **CHECKPOINT: show the flagged gaps.** Wait for confirmation of which to fix.
@@ -149,6 +149,25 @@ Use `resolve_refs` to check your work: pass `nodeId` to see a node's effective r
 resolve to, or `path` to reverse-look-up which nodes claim a file. More than one owner is legitimate
 (a genuinely shared file), so treat it as information, not an error.
 
+## The visual vocabulary
+
+The diagram is meant to be readable without opening the side panel, which puts three
+obligations on every write. Call `describe_profile` for the exact vocabularies.
+
+- **`fields.summary` is required** on System / Actor / ExternalSystem / Container / Component.
+  One line, under ~70 characters, saying what the thing is *for* — it is what the node shows on
+  the canvas. `description` is still where the long explanation goes; it is side-panel only.
+  Omitting `summary` is a `missing-required-field` issue.
+- **Every connection carries a `verb`** from the profile's verb vocabulary, plus a short
+  `object` noun where one applies — "reads camera list", "publishes frame". The verb defaults to
+  `uses`, which renders but says nothing; a diagram full of `uses` is the failure mode this
+  replaces. Pick the specific verb.
+- **Set `role`** when a Component is really a datastore, a queue, an external system, or a UI
+  surface. Otherwise leave it unset and it inherits its node kind's default shape.
+
+`intent` no longer exists — it was 73% the generic `Use`. Use `verb` instead. Writing `intent`
+is now an `unknown-field` issue.
+
 ## Idempotency contract (every run, every agent)
 
 - **Read first** (`model_overview`, then `list_nodes`/`get_subgraph` for the scope you're about to touch). Never assume empty. Reads default to Component-and-above; pass `maxLayer:'Code'` when the scope you are about to touch is the Code layer.
@@ -165,3 +184,6 @@ resolve to, or `path` to reverse-look-up which nodes claim a file. More than one
 - Writing a `codeRef` that repeats its Container's root (`apps/server/src/x.ts` under `root: "apps/server/"`) → make it relative (`src/x.ts`); the root is declared once, never per ref.
 - The orchestrator writing an intra-container edge to "fix" a model_gaps flag → re-dispatch the owning subagent instead.
 - Skipping a gate to "save time" → all three gates (GATE 1, GATE 2, GATE 3) are mandatory.
+- Creating a Component / Container / System without `fields.summary` → `missing-required-field`; the node renders as a bare box.
+- Leaving every connection on the default `uses` verb → the diagram carries no more meaning than before; pick real verbs.
+- Writing `intent` → retired; it is now an `unknown-field` issue. Use `verb`.
