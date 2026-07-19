@@ -34,7 +34,7 @@ describe('focusViewToFlow', () => {
   it('renders a real edge with its kind label and a derived edge with a count label', () => {
     const { edges } = focusViewToFlow(view, pos);
     const real = edges.find((e) => e.id === 'i')!;
-    expect(real.label).toBe('Dependency');
+    expect(real.label).toBe('uses');
     expect((real.data as { derived?: boolean } | undefined)?.derived).toBeFalsy();
     const derived = edges.find((e) => e.id === 'ext:a1->cb')!;
     expect(derived.label).toBe('3');

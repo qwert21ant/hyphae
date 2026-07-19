@@ -1,5 +1,5 @@
 import { MarkerType, type Node as FlowNode, type Edge as FlowEdge } from '@xyflow/react';
-import { c4Backend, layerOfType, roleOfNode, roleDefOf, type Node as ModelNode } from '@hyphae/schema';
+import { c4Backend, layerOfType, roleOfNode, roleDefOf, verbClassOf, type VerbClass, type Node as ModelNode } from '@hyphae/schema';
 import type { FocusView, FocusEdge } from './focusView';
 import { NODE_W, NODE_H, PAD, LABEL_H, type XY } from './layout';
 
@@ -31,8 +31,39 @@ function markers(direction: string | undefined, color?: string): Pick<FlowEdge, 
   return { markerEnd: arrow, ...(direction === 'Bidirectional' ? { markerStart: arrow } : {}) };
 }
 
+/** Verb classes get distinct colors. Violet is deliberately absent — it already means
+ *  "derived rollup edge" here and in the legend, and one color should mean one thing. */
+export const VERB_CLASS_COLOR: Record<VerbClass, string> = {
+  dataAccess: '#0369a1',
+  messaging: '#b45309',
+  control: '#475569',
+  user: '#be185d',
+};
+
+const OBJECT_CAP = 24;
+
+/** "reads camera list" — the verb, plus the object when there is one, capped so a long
+ *  object cannot wreck the layout. */
+export function edgeLabel(verb: string, object: string): string {
+  const obj = object.trim();
+  if (!obj) return verb;
+  const clipped = obj.length > OBJECT_CAP ? `${obj.slice(0, OBJECT_CAP - 1)}…` : obj;
+  return `${verb} ${clipped}`;
+}
+
 function realEdge(e: FocusEdge): FlowEdge {
-  return { id: e.id, type: 'floating', source: e.from, target: e.to, label: e.kind ?? '', ...markers(e.direction) };
+  const verb = e.verb ?? 'uses';
+  const color = VERB_CLASS_COLOR[verbClassOf(c4Backend, verb) ?? 'control'];
+  return {
+    id: e.id,
+    type: 'floating',
+    source: e.from,
+    target: e.to,
+    label: edgeLabel(verb, e.object ?? ''),
+    style: { stroke: color },
+    labelStyle: { fill: color, fontWeight: 500 },
+    ...markers(e.direction, color),
+  };
 }
 
 function derivedEdge(e: FocusEdge): FlowEdge {

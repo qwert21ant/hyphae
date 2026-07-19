@@ -12,6 +12,8 @@ export type FocusEdge = {
   derived: boolean;    // aggregated/collapsed (dashed) edge
   realizedBy: string[]; // ids of the model connections this edge represents (length === count)
   direction?: string;  // the connection's direction for a real edge (e.g. 'Bidirectional')
+  verb?: string;        // the connection's verb for a 1:1 real edge
+  object?: string;      // the connection's object for a 1:1 real edge
 };
 
 export type FocusView = {
@@ -175,7 +177,7 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
   type Pair = {
     a: string; b: string; count: number; connIds: string[];
     ab: boolean; ba: boolean; bidir: boolean;
-    direct?: { id: string; kind: string; from: string; to: string; direction: string };
+    direct?: { id: string; kind: string; from: string; to: string; direction: string; verb: string; object: string };
   };
   const pairs = new Map<string, Pair>(); // key `${a}|${b}` with a <= b
 
@@ -192,7 +194,7 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
     if (from === a) p.ab = true; else p.ba = true;
     if (c.direction === 'Bidirectional') p.bidir = true;
     // An authored connection drawn directly between two shown nodes (not rolled up).
-    if (from === c.from && to === c.to) p.direct = { id: c.id, kind: c.type, from, to, direction: c.direction };
+    if (from === c.from && to === c.to) p.direct = { id: c.id, kind: c.type, from, to, direction: c.direction, verb: c.verb, object: c.object };
   }
 
   // A solid "real" edge when a single authored connection joins two nodes shown in this view
@@ -203,7 +205,7 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
   const edges: FocusEdge[] = [];
   for (const p of pairs.values()) {
     if (p.count === 1 && p.direct) {
-      edges.push({ id: p.direct.id, from: p.direct.from, to: p.direct.to, kind: p.direct.kind, count: 1, derived: false, realizedBy: p.connIds, direction: p.direct.direction });
+      edges.push({ id: p.direct.id, from: p.direct.from, to: p.direct.to, kind: p.direct.kind, count: 1, derived: false, realizedBy: p.connIds, direction: p.direct.direction, verb: p.direct.verb, object: p.direct.object });
       continue;
     }
     let from: string, to: string, direction: string;
