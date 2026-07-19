@@ -160,3 +160,57 @@ describe('ref anchoring', () => {
     expect(validateModel(m, c4Backend).filter((i) => i.kind === 'bad-root')).toHaveLength(1);
   });
 });
+
+describe('role and verb validation', () => {
+  const base = { root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } };
+  const edge = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+
+  function model(): HyphaeModel {
+    const m = emptyModel();
+    m.nodes.push(
+      { ...base, id: 'sys', name: 'Sys', type: 'System', parentId: null, description: 'd' },
+      { ...base, id: 'c', name: 'C', type: 'Container', parentId: 'sys', description: 'd' },
+      { ...base, id: 'k1', name: 'K1', type: 'Component', parentId: 'c', description: 'd' },
+      { ...base, id: 'k2', name: 'K2', type: 'Component', parentId: 'c', description: 'd' },
+    );
+    m.connections.push({ ...edge, id: 'e1', from: 'k1', to: 'k2', type: 'Dependency' });
+    return m;
+  }
+
+  it('accepts a null role and the default verb', () => {
+    expect(validateModel(model(), c4Backend)).toEqual([]);
+  });
+
+  it('accepts a declared role override and a declared verb', () => {
+    const m = model();
+    m.nodes[2].role = 'datastore';
+    m.connections[0].verb = 'reads';
+    expect(validateModel(m, c4Backend)).toEqual([]);
+  });
+
+  it('flags an undeclared role', () => {
+    const m = model();
+    m.nodes[2].role = 'wormhole';
+    const issues = validateModel(m, c4Backend).filter((i) => i.kind === 'unknown-role');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].ref).toBe('k1');
+    expect(issues[0].message).toMatch(/wormhole/);
+  });
+
+  it('flags an undeclared verb', () => {
+    const m = model();
+    m.connections[0].verb = 'yeets';
+    const issues = validateModel(m, c4Backend).filter((i) => i.kind === 'unknown-verb');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].ref).toBe('e1');
+    expect(issues[0].message).toMatch(/yeets/);
+  });
+
+  it('reports a missing summary on a Component', () => {
+    const m = model();
+    m.nodes[2].fields = {};
+    const issues = validateModel(m, c4Backend).filter((i) => i.kind === 'missing-required-field');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].ref).toBe('k1');
+  });
+});
