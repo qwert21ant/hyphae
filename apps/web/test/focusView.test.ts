@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { buildFocusView, breadcrumbPath, representative, externalConnections, partitionConnections } from '../src/focusView';
 import { emptyModel } from '@hyphae/schema';
+import { edgeLabel, VERB_CLASS_COLOR } from '../src/flow';
 
-const base = { description: '', root: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
-const e = { description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+const base = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
+const e = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
 
 /** sys › (ca, cb containers); ca has comps a1,a2; cb has comp b1; a1 has Code k1; ext is external. */
 function model() {
@@ -412,5 +413,51 @@ describe('breadcrumbPath', () => {
   it('builds Root + ancestor chain', () => {
     expect(breadcrumbPath(model(), 'a1').map((c) => c.id)).toEqual([null, 'sys', 'ca', 'a1']);
     expect(breadcrumbPath(model(), null).map((c) => c.id)).toEqual([null]);
+  });
+});
+
+describe('edge labels', () => {
+  it('joins verb and object', () => {
+    expect(edgeLabel('reads', 'camera list')).toBe('reads camera list');
+  });
+
+  it('degrades to the verb alone when there is no object', () => {
+    expect(edgeLabel('publishes', '')).toBe('publishes');
+  });
+
+  it('caps a long object so the label stays readable', () => {
+    const label = edgeLabel('reads', 'an extremely long object name that would wreck the layout');
+    expect(label.length).toBeLessThanOrEqual(36);
+    expect(label.endsWith('…')).toBe(true);
+  });
+
+  it('has a colour for every verb class', () => {
+    for (const c of ['dataAccess', 'messaging', 'control', 'user'] as const) {
+      expect(VERB_CLASS_COLOR[c]).toMatch(/^#/);
+    }
+  });
+});
+
+describe('buildFocusView — verb and object', () => {
+  it('carries verb and object onto a 1:1 edge', () => {
+    const m = model();
+    m.connections.push({ id: 'x', from: 'sys', to: 'ext', type: 'Dependency', ...e });
+    m.connections[0].verb = 'reads';
+    m.connections[0].object = 'clips';
+    const v = buildFocusView(m, null);
+    const edge = v.edges.find((x) => !x.derived && x.count === 1);
+    expect(edge).toMatchObject({ verb: 'reads', object: 'clips' });
+  });
+
+  it('leaves verb undefined on a derived edge, which aggregates several verbs', () => {
+    const m = model();
+    m.connections.push(
+      { id: 'authored', from: 'ca', to: 'cb', type: 'Dependency', ...e, verb: 'reads' },
+      { id: 'realize', from: 'a1', to: 'b1', type: 'Dependency', ...e, verb: 'writes' },
+    );
+    const v = buildFocusView(m, 'sys');
+    const derived = v.edges.filter((x) => x.derived);
+    expect(derived.length).toBeGreaterThan(0);
+    for (const de of derived) expect(de.verb).toBeUndefined();
   });
 });

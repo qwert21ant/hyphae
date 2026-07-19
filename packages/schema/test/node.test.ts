@@ -21,4 +21,12 @@ describe('NodeSchema', () => {
     const n = NodeSchema.parse({ id: 'a', name: 'A', type: 'Container', createdAt: 't', updatedAt: 't', root: 'endpoints/mg/' });
     expect(n.root).toBe('endpoints/mg/');
   });
+  it('defaults role to null', () => {
+    const n = NodeSchema.parse({ id: 'a', name: 'A', type: 'Component', createdAt: 't', updatedAt: 't' });
+    expect(n.role).toBe(null);
+  });
+  it('keeps an explicit role override', () => {
+    const n = NodeSchema.parse({ id: 'a', name: 'A', type: 'Component', createdAt: 't', updatedAt: 't', role: 'datastore' });
+    expect(n.role).toBe('datastore');
+  });
 });

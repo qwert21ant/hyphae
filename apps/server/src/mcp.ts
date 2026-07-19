@@ -143,7 +143,7 @@ export function buildTools(api: HyphaeApi) {
         id: c.id, from: c.from, to: c.to,
         fromName: byId.get(c.from)?.name ?? c.from, toName: byId.get(c.to)?.name ?? c.to,
         fromContainer: containerName(c.from), toContainer: containerName(c.to),
-        type: c.type, transport: c.fields.transport, intent: c.fields.intent,
+        type: c.type, transport: c.fields.transport, verb: c.verb, object: c.object,
         direction: c.direction, description: c.description,
       }));
     },
@@ -203,7 +203,7 @@ export function buildTools(api: HyphaeApi) {
         realizedBy: e.realizedBy.map((id) => {
           const c = connById.get(id);
           if (!c) return { id };
-          return { id: c.id, fromName: byId.get(c.from)?.name ?? c.from, toName: byId.get(c.to)?.name ?? c.to, type: c.type, transport: c.fields.transport, intent: c.fields.intent, description: c.description };
+          return { id: c.id, fromName: byId.get(c.from)?.name ?? c.from, toName: byId.get(c.to)?.name ?? c.to, type: c.type, transport: c.fields.transport, verb: c.verb, object: c.object, description: c.description };
         }),
       }));
     },
@@ -375,6 +375,8 @@ async function main() {
     parentId: z.string().nullable().optional(),
     root: z.string().nullable().optional()
       .describe('Optional directory Ref (must end with "/") anchoring this node\'s subtree on disk, e.g. "endpoints/media_gateway/". Refs on this node and its descendants resolve against it, and roots chain down the containment tree — a System declares the repo root, a Container its subtree, and Components stay short and relative. A codeRef on a node with no anchoring root anywhere in its ancestors is a validation issue.'),
+    role: z.string().nullable().optional()
+      .describe('Archetype that decides this node\'s shape on the diagram — a role id from describe_profile (actor, service, datastore, queue, external, ui). Omit or null to use the node kind\'s default. Set it when a Component is really a database, cache, or queue: that is where the diagram gains meaning, since every Component defaults to a plain service box.'),
     description: z.string().optional(),
     codeRefs: z.array(z.string()).optional()
       .describe('Refs into the source, relative to the nearest ancestor root. Syntax decides the kind: "src/views/cctv/" directory, "src/main.ts" file, "src/main.ts#getRouter" symbol, "src/main.ts#L10-L40" line range, "src/views/**/*.vue" glob.'),
@@ -383,13 +385,17 @@ async function main() {
   };
   const nodeItem = z.object({ name: z.string(), type: z.enum(c4Backend.nodeKinds.map((k) => k.id) as [string, ...string[]]), ...coreNodeFields });
   server.registerTool('create_nodes', {
-    description: "Create one OR MANY nodes in a single call. Pass an array (a single write is a one-element array). Call describe_profile first. Each item: name, type (a profile node kind), parentId, and domain values in `fields`. Containment: Component→Container, Container→System, Code (Class/Interface/Function/Module/UIComponent)→Component. Best-effort: returns {ids:[...]} if all succeed, else {results:[{id}|{issues}]} aligned to input order.",
+    description: "Create one OR MANY nodes in a single call. Pass an array (a single write is a one-element array). Call describe_profile first. Each item: name, type (a profile node kind), parentId, and domain values in `fields` — `fields.summary` is REQUIRED on System/Actor/ExternalSystem/Container/Component and is the one-line purpose shown on the diagram. Optionally set `role` to override the shape. Containment: Component→Container, Container→System, Code (Class/Interface/Function/Module/UIComponent)→Component. Best-effort: returns {ids:[...]} if all succeed, else {results:[{id}|{issues}]} aligned to input order.",
     inputSchema: { nodes: z.array(nodeItem) },
   }, async (a) => text(await tools.create_nodes(a)));
 
   const coreConnFields = {
     description: z.string().optional(),
     direction: z.enum(['Unidirectional', 'Bidirectional']).optional(),
+    verb: z.string().optional()
+      .describe('The business action this edge performs — a verb id from describe_profile (reads, writes, publishes, invokes, views, …). Shown on the diagram and colored by verb class. Defaults to "uses"; pick something more specific whenever one fits, because "uses" carries almost no information.'),
+    object: z.string().optional()
+      .describe('What the action acts on — a short noun such as "camera list" or "clip". Rendered after the verb ("reads camera list"). Keep it under about 24 characters so the label stays readable.'),
     realizedBy: z.array(z.string()).optional()
       .describe('Ids of lower-layer connections this edge aggregates/describes (e.g. a Component↔Component edge realizedBy the Code↔Code edges that explain it). Bound edges are excluded from rollup.'),
     fields: z.object(fieldsShape('connection')).partial().optional(),

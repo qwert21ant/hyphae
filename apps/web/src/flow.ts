@@ -1,5 +1,5 @@
 import { MarkerType, type Node as FlowNode, type Edge as FlowEdge } from '@xyflow/react';
-import { c4Backend, layerOfType } from '@hyphae/schema';
+import { c4Backend, layerOfType, roleOfNode, roleDefOf, verbClassOf, type VerbClass, type Node as ModelNode } from '@hyphae/schema';
 import type { FocusView, FocusEdge } from './focusView';
 import { NODE_W, NODE_H, PAD, LABEL_H, type XY } from './layout';
 
@@ -15,6 +15,14 @@ export function layerColorOf(type: string): { bg: string; border: string } {
   return (layer && LAYER_COLOR[layer]) || { bg: '#fff', border: '#b1b1b7' };
 }
 
+/** The node data every node renderer reads: name, the on-diagram purpose, tech chip, and shape. */
+export function nodeVisual(n: ModelNode) {
+  const shape = roleDefOf(c4Backend, roleOfNode(c4Backend, n))?.shape ?? 'rectangle';
+  const summary = typeof n.fields.summary === 'string' ? n.fields.summary : '';
+  const technology = typeof n.fields.technology === 'string' ? n.fields.technology : '';
+  return { name: n.name, summary, technology, shape, color: layerColorOf(n.type) };
+}
+
 /** Arrowheads showing direction: at the target; also at the source when bidirectional; none
  *  when 'None' (an aggregated pair whose underlying connections point both ways). */
 function markers(direction: string | undefined, color?: string): Pick<FlowEdge, 'markerEnd' | 'markerStart'> {
@@ -23,8 +31,39 @@ function markers(direction: string | undefined, color?: string): Pick<FlowEdge, 
   return { markerEnd: arrow, ...(direction === 'Bidirectional' ? { markerStart: arrow } : {}) };
 }
 
+/** Verb classes get distinct colors. Violet is deliberately absent — it already means
+ *  "derived rollup edge" here and in the legend, and one color should mean one thing. */
+export const VERB_CLASS_COLOR: Record<VerbClass, string> = {
+  dataAccess: '#0369a1',
+  messaging: '#b45309',
+  control: '#475569',
+  user: '#be185d',
+};
+
+const OBJECT_CAP = 24;
+
+/** "reads camera list" — the verb, plus the object when there is one, capped so a long
+ *  object cannot wreck the layout. */
+export function edgeLabel(verb: string, object: string): string {
+  const obj = object.trim();
+  if (!obj) return verb;
+  const clipped = obj.length > OBJECT_CAP ? `${obj.slice(0, OBJECT_CAP - 1)}…` : obj;
+  return `${verb} ${clipped}`;
+}
+
 function realEdge(e: FocusEdge): FlowEdge {
-  return { id: e.id, type: 'floating', source: e.from, target: e.to, label: e.kind ?? '', ...markers(e.direction) };
+  const verb = e.verb ?? 'uses';
+  const color = VERB_CLASS_COLOR[verbClassOf(c4Backend, verb) ?? 'control'];
+  return {
+    id: e.id,
+    type: 'floating',
+    source: e.from,
+    target: e.to,
+    label: edgeLabel(verb, e.object ?? ''),
+    style: { stroke: color },
+    labelStyle: { fill: color, fontWeight: 500 },
+    ...markers(e.direction, color),
+  };
 }
 
 function derivedEdge(e: FocusEdge): FlowEdge {
@@ -77,7 +116,7 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nod
       id: view.focusNode.id,
       type: 'node',
       position: pos[view.focusNode.id] ?? { x: 0, y: 0 },
-      data: { label: `${view.focusNode.name}\n(${view.focusNode.type})`, color: layerColorOf(view.focusNode.type) },
+      data: nodeVisual(view.focusNode),
       initialWidth: NODE_W,
       initialHeight: NODE_H,
       draggable: false,
@@ -107,10 +146,10 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nod
   }
 
   for (const n of view.children) {
-    nodes.push({ id: n.id, type: 'node', position: pos[n.id] ?? { x: 0, y: 0 }, data: { label: `${n.name}\n(${n.type})`, color: layerColorOf(n.type) }, initialWidth: NODE_W, initialHeight: NODE_H, draggable: false });
+    nodes.push({ id: n.id, type: 'node', position: pos[n.id] ?? { x: 0, y: 0 }, data: nodeVisual(n), initialWidth: NODE_W, initialHeight: NODE_H, draggable: false });
   }
   for (const n of view.externals) {
-    nodes.push({ id: n.id, type: 'ghost', position: pos[n.id] ?? { x: 0, y: 0 }, data: { label: `${n.name}\n(${n.type})`, color: layerColorOf(n.type), expandable: view.expandableExternalIds?.has(n.id) ?? false }, initialWidth: NODE_W, initialHeight: NODE_H, draggable: false });
+    nodes.push({ id: n.id, type: 'ghost', position: pos[n.id] ?? { x: 0, y: 0 }, data: { ...nodeVisual(n), expandable: view.expandableExternalIds?.has(n.id) ?? false }, initialWidth: NODE_W, initialHeight: NODE_H, draggable: false });
   }
 
   const edges = view.edges.map((e) => (e.derived ? derivedEdge(e) : realEdge(e)));

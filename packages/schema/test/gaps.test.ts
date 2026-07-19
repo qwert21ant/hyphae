@@ -4,8 +4,8 @@ import { emptyModel } from '../src/model';
 import { c4Backend } from '../src/profiles/c4-backend';
 import type { HyphaeModel } from '../src/model';
 
-const nodeBase = { root: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
-const edgeBase = { description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+const nodeBase = { root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
+const edgeBase = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
 
 /** sys > (ca > a1[code: ka1], a2[code: ka2]) , (cb > b1[code: kb1]) , orphan component a3 */
 function model(): HyphaeModel {

@@ -1,8 +1,8 @@
 import dagre from '@dagrejs/dagre';
 import type { FocusView } from './focusView';
 
-export const NODE_W = 160;
-export const NODE_H = 44;
+export const NODE_W = 190;
+export const NODE_H = 64;
 export const PAD = 24;
 export const LABEL_H = 22;
 

@@ -13,3 +13,21 @@ describe('ConnectionSchema', () => {
     expect('realizes' in c).toBe(false);
   });
 });
+
+describe('ConnectionSchema verb/object', () => {
+  const base = { id: 'c', from: 'a', to: 'b', type: 'Dependency' };
+
+  it('defaults verb to uses so an old file needs no migration', () => {
+    const c = ConnectionSchema.parse(base);
+    expect(c.verb).toBe('uses');
+  });
+
+  it('defaults object to empty', () => {
+    expect(ConnectionSchema.parse(base).object).toBe('');
+  });
+
+  it('keeps an explicit verb and object', () => {
+    const c = ConnectionSchema.parse({ ...base, verb: 'reads', object: 'camera list' });
+    expect(c).toMatchObject({ verb: 'reads', object: 'camera list' });
+  });
+});

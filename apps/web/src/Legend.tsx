@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { c4Backend } from '@hyphae/schema';
-import { LAYER_COLOR } from './flow';
+import { LAYER_COLOR, VERB_CLASS_COLOR } from './flow';
+import { shapeStyle, SHAPE_LABEL } from './shapes';
 
 const box = (bg: string, border: string) => ({
   display: 'inline-block', width: 12, height: 12, background: bg,
@@ -33,6 +34,23 @@ export function Legend() {
           <div><span style={line(false)} />solid — one authored connection (label = kind)</div>
           <div><span style={line(true)} />dashed purple — derived rollup (label = count)</div>
           <div><span style={{ ...line(false), borderColor: '#94a3b8' }} />no arrowhead — mixed directions</div>
+          <div style={{ fontWeight: 600, margin: '6px 0 2px' }}>Roles</div>
+          {c4Backend.roles.map((r) => (
+            <div key={r.id} title={r.description}>
+              <span style={{ display: 'inline-block', width: 14, height: 12, marginRight: 6, verticalAlign: 'middle', background: '#f8fafc', border: '1px solid #64748b', ...shapeStyle(r.shape) }} />
+              {SHAPE_LABEL[r.shape]}
+            </div>
+          ))}
+          <div style={{ fontWeight: 600, margin: '6px 0 2px' }}>Edge verbs</div>
+          {(['dataAccess', 'messaging', 'control', 'user'] as const).map((cls) => {
+            const verbs = c4Backend.verbs.filter((v) => v.class === cls).map((v) => v.id);
+            return (
+              <div key={cls}>
+                <span style={{ ...line(false), borderColor: VERB_CLASS_COLOR[cls] }} />
+                {cls} — {verbs.slice(0, 3).join(', ')}{verbs.length > 3 ? '…' : ''}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

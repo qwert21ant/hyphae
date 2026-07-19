@@ -6,11 +6,11 @@ import type { Node } from '../src/node';
 import type { Connection } from '../src/connection';
 
 const node = (over: Record<string, unknown>): Node => ({
-  id: 'x', name: 'X', type: 'Component', parentId: null, description: '', root: null,
+  id: 'x', name: 'X', type: 'Component', parentId: null, description: '', root: null, role: null,
   codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
 } as Node);
 const conn = (over: Record<string, unknown>): Connection => ({
-  id: 'e', from: 'a', to: 'b', type: 'Dependency', description: '',
+  id: 'e', from: 'a', to: 'b', type: 'Dependency', verb: 'uses', object: '', description: '',
   direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {}, ...over,
 } as Connection);
 function model(over: Partial<HyphaeModel> = {}): HyphaeModel {
@@ -57,8 +57,8 @@ describe('validateModel', () => {
   it('accepts a valid model with fields', () => {
     const m = model({
       nodes: [
-        node({ id: 's', type: 'System' }),
-        node({ id: 'co', type: 'Container', parentId: 's', fields: { technology: 'Hono', responsibilities: ['serve'] } }),
+        node({ id: 's', type: 'System', fields: { summary: 'Serves requests' } }),
+        node({ id: 'co', type: 'Container', parentId: 's', fields: { technology: 'Hono', responsibilities: ['serve'], summary: 'HTTP server' } }),
       ],
       connections: [],
     });
@@ -67,13 +67,13 @@ describe('validateModel', () => {
 });
 
 describe('Code layer containment', () => {
-  const base = { description: '', root: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
+  const base = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
   function withParent(parentType: string) {
     const m = emptyModel();
     m.nodes.push(
-      { id: 'sys', name: 'S', type: 'System', parentId: null, ...base },
-      { id: 'ct', name: 'C', type: 'Container', parentId: 'sys', ...base },
-      { id: 'cmp', name: 'Cmp', type: 'Component', parentId: 'ct', ...base },
+      { id: 'sys', name: 'S', type: 'System', parentId: null, ...base, fields: { summary: 'x' } },
+      { id: 'ct', name: 'C', type: 'Container', parentId: 'sys', ...base, fields: { summary: 'x' } },
+      { id: 'cmp', name: 'Cmp', type: 'Component', parentId: 'ct', ...base, fields: { summary: 'x' } },
     );
     const parentId = parentType === 'System' ? 'sys' : parentType === 'Container' ? 'ct' : 'cmp';
     m.nodes.push({ id: 'code', name: 'Svc', type: 'Class', parentId, ...base });
@@ -93,14 +93,14 @@ describe('Code layer containment', () => {
 import { isDirectoryRef } from '../src/ref';
 
 describe('ref anchoring', () => {
-  const base = { codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, root: null };
+  const base = { codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, root: null, role: null };
 
   function anchoredModel(): HyphaeModel {
     const m = emptyModel();
     m.nodes.push(
-      { id: 'sys', name: 'Sys', type: 'System', parentId: null, description: 'd', ...base, root: 'endpoints/' },
-      { id: 'mg', name: 'MG', type: 'Container', parentId: 'sys', description: 'd', ...base, root: 'media_gateway/' },
-      { id: 'comp', name: 'C', type: 'Component', parentId: 'mg', description: 'd', ...base, codeRefs: ['src/main.ts'] },
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, description: 'd', ...base, root: 'endpoints/', fields: { summary: 'x' } },
+      { id: 'mg', name: 'MG', type: 'Container', parentId: 'sys', description: 'd', ...base, root: 'media_gateway/', fields: { summary: 'x' } },
+      { id: 'comp', name: 'C', type: 'Component', parentId: 'mg', description: 'd', ...base, codeRefs: ['src/main.ts'], fields: { summary: 'x' } },
     );
     return m;
   }
@@ -158,5 +158,59 @@ describe('ref anchoring', () => {
     const m = anchoredModel();
     m.nodes[1].root = 'endpoints/*/';
     expect(validateModel(m, c4Backend).filter((i) => i.kind === 'bad-root')).toHaveLength(1);
+  });
+});
+
+describe('role and verb validation', () => {
+  const base = { root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } };
+  const edge = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+
+  function model(): HyphaeModel {
+    const m = emptyModel();
+    m.nodes.push(
+      { ...base, id: 'sys', name: 'Sys', type: 'System', parentId: null, description: 'd' },
+      { ...base, id: 'c', name: 'C', type: 'Container', parentId: 'sys', description: 'd' },
+      { ...base, id: 'k1', name: 'K1', type: 'Component', parentId: 'c', description: 'd' },
+      { ...base, id: 'k2', name: 'K2', type: 'Component', parentId: 'c', description: 'd' },
+    );
+    m.connections.push({ ...edge, id: 'e1', from: 'k1', to: 'k2', type: 'Dependency' });
+    return m;
+  }
+
+  it('accepts a null role and the default verb', () => {
+    expect(validateModel(model(), c4Backend)).toEqual([]);
+  });
+
+  it('accepts a declared role override and a declared verb', () => {
+    const m = model();
+    m.nodes[2].role = 'datastore';
+    m.connections[0].verb = 'reads';
+    expect(validateModel(m, c4Backend)).toEqual([]);
+  });
+
+  it('flags an undeclared role', () => {
+    const m = model();
+    m.nodes[2].role = 'wormhole';
+    const issues = validateModel(m, c4Backend).filter((i) => i.kind === 'unknown-role');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].ref).toBe('k1');
+    expect(issues[0].message).toMatch(/wormhole/);
+  });
+
+  it('flags an undeclared verb', () => {
+    const m = model();
+    m.connections[0].verb = 'yeets';
+    const issues = validateModel(m, c4Backend).filter((i) => i.kind === 'unknown-verb');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].ref).toBe('e1');
+    expect(issues[0].message).toMatch(/yeets/);
+  });
+
+  it('reports a missing summary on a Component', () => {
+    const m = model();
+    m.nodes[2].fields = {};
+    const issues = validateModel(m, c4Backend).filter((i) => i.kind === 'missing-required-field');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].ref).toBe('k1');
   });
 });

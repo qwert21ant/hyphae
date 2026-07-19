@@ -41,17 +41,17 @@ describe('profile meta-schema', () => {
     expect(connectionKindIds(c4Backend).sort()).toEqual(['DataFlow', 'Dependency', 'Realization', 'Trace']);
   });
 
-  it('effective node fields = common (responsibilities, invariants) then per-kind (technology)', () => {
+  it('effective node fields = common (responsibilities, invariants) then per-kind (summary, technology)', () => {
     const keys = effectiveFields(c4Backend, 'Component', 'node').map((f) => f.key);
-    expect(keys).toEqual(['responsibilities', 'invariants', 'technology']);
+    expect(keys).toEqual(['responsibilities', 'invariants', 'summary', 'technology']);
   });
 
-  it('a node kind with no own fields gets just the common fields', () => {
-    expect(effectiveFields(c4Backend, 'System', 'node').map((f) => f.key)).toEqual(['responsibilities', 'invariants']);
+  it('a node kind with no own fields beyond summary gets the common fields plus summary', () => {
+    expect(effectiveFields(c4Backend, 'System', 'node').map((f) => f.key)).toEqual(['responsibilities', 'invariants', 'summary']);
   });
 
-  it('effective connection fields = common (transport, intent)', () => {
-    expect(effectiveFields(c4Backend, 'Dependency', 'connection').map((f) => f.key)).toEqual(['transport', 'intent']);
+  it('effective connection fields = common (transport)', () => {
+    expect(effectiveFields(c4Backend, 'Dependency', 'connection').map((f) => f.key)).toEqual(['transport']);
   });
 
   it('common fields win on key collision', () => {
@@ -64,5 +64,44 @@ describe('profile meta-schema', () => {
     const tech = effectiveFields(profile, 'Component', 'node').filter((f) => f.key === 'technology');
     expect(tech).toHaveLength(1);
     expect(tech[0].description).toBe('common one');
+  });
+});
+
+describe('c4-backend visual vocabulary', () => {
+  it('declares a role for every node kind, and every such role exists', () => {
+    const roleIds = new Set(c4Backend.roles.map((r) => r.id));
+    for (const k of c4Backend.nodeKinds) {
+      expect(k.role, `${k.id} has no role`).toBeTruthy();
+      expect(roleIds.has(k.role), `${k.id} role "${k.role}" is not declared`).toBe(true);
+    }
+  });
+
+  it('describes every role and every verb', () => {
+    for (const r of c4Backend.roles) expect(r.description).toMatch(/\S/);
+    for (const v of c4Backend.verbs) expect(v.description).toMatch(/\S/);
+  });
+
+  it('includes the default verb "uses" so a defaulted connection is valid', () => {
+    expect(c4Backend.verbs.some((v) => v.id === 'uses')).toBe(true);
+  });
+
+  it('covers all four verb classes', () => {
+    expect(new Set(c4Backend.verbs.map((v) => v.class)))
+      .toEqual(new Set(['dataAccess', 'messaging', 'control', 'user']));
+  });
+
+  it('has retired intent', () => {
+    expect(c4Backend.commonConnectionFields.some((f) => f.key === 'intent')).toBe(false);
+  });
+
+  it('requires summary on the five non-Code kinds and not on Code kinds', () => {
+    const summaryOf = (kindId: string) =>
+      effectiveFields(c4Backend, kindId, 'node').find((f) => f.key === 'summary');
+    for (const k of ['System', 'Actor', 'ExternalSystem', 'Container', 'Component']) {
+      expect(summaryOf(k)?.required, `${k} should require summary`).toBe(true);
+    }
+    for (const k of ['Class', 'Interface', 'Module', 'UIComponent', 'Function']) {
+      expect(summaryOf(k), `${k} should not have summary`).toBeUndefined();
+    }
   });
 });

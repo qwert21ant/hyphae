@@ -1,7 +1,7 @@
 import type { HyphaeModel } from './model';
 import type { Profile, FieldDef } from './profile';
 import { allowedParentTypes, c4Backend } from './profiles/c4-backend';
-import { effectiveFields } from './profile';
+import { effectiveFields, roleDefOf, verbDefOf } from './profile';
 import type { Node } from './node';
 import { isDirectoryRef, resolveRoot } from './ref';
 
@@ -10,7 +10,8 @@ export type Issue = {
     | 'unknown-type' | 'bad-parent' | 'missing-parent' | 'dangling-endpoint'
     | 'unknown-connection-kind' | 'bad-endpoint'
     | 'unknown-field' | 'bad-field-type' | 'bad-enum-value' | 'missing-required-field' | 'bad-ref'
-    | 'unanchored-ref' | 'bad-root';
+    | 'unanchored-ref' | 'bad-root'
+    | 'unknown-role' | 'unknown-verb';
   ref: string;       // id of the offending node/connection
   message: string;
 };
@@ -104,6 +105,9 @@ export function validateModel(model: HyphaeModel, profile: Profile): Issue[] {
     }
     issues.push(...validateFields(n.fields, effectiveFields(profile, n.type, 'node'), nodeById, n.id));
     issues.push(...validateRefs(n, model.nodes));
+    if (n.role !== null && !roleDefOf(profile, n.role)) {
+      issues.push({ kind: 'unknown-role', ref: n.id, message: `Unknown role "${n.role}"` });
+    }
   }
 
   for (const c of model.connections) {
@@ -114,6 +118,9 @@ export function validateModel(model: HyphaeModel, profile: Profile): Issue[] {
     if (!kind) {
       issues.push({ kind: 'unknown-connection-kind', ref: c.id, message: `Unknown connection type "${c.type}"` });
       continue;
+    }
+    if (!verbDefOf(profile, c.verb)) {
+      issues.push({ kind: 'unknown-verb', ref: c.id, message: `Unknown verb "${c.verb}"` });
     }
     const fromNode = nodeById.get(c.from);
     const toNode = nodeById.get(c.to);
