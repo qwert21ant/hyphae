@@ -11,6 +11,7 @@
 ## Global Constraints
 
 - **No model-file migration, at all.** No migration script, no rewriting `hyphae-cctv-new.json` or any other model JSON. Do not edit, stage, or commit a model `.json` file in any task. Existing files must still *load*; they are allowed to report validation issues.
+- **Never stage with a bare `git add <dir>`.** `apps/server/hyphae-cctv-new.json` and `hyphae-cctv.json` are **untracked**, so `git add apps/server` sweeps them into the commit. Use `git add -u <dir>` (tracked files only) and name any genuinely new file explicitly. Run `git status --short` before every commit and confirm no `.json` is staged.
 - **Zod schemas in `packages/schema/src` are the single source of truth.** TS types, JSON Schema (`json-schema.ts`), the server API, and the MCP tool shapes all derive from them. Never hand-write a JSON Schema or duplicate a type.
 - **`schemaVersion` stays `1`.** Every schema change here is additive-with-default or a profile-vocabulary change, so no on-disk shape breaks.
 - **New vocabulary is profile-declared, never hardcoded in the renderer.** Roles and verbs live in `packages/schema/src/profile.ts` + `profiles/c4-backend.ts` and flow automatically into `describe_profile`.
@@ -194,7 +195,7 @@ Expected: `404 nodes; 567 connections; verbs seen: [ 'uses' ]` — every connect
 
 ```bash
 pnpm -r test
-git add packages/schema apps/server apps/web
+git add -u packages/schema apps/server apps/web
 git commit -m "feat(schema): add node role and connection verb/object core fields"
 ```
 
@@ -754,7 +755,7 @@ Expected: `422` carrying an `unknown-role` issue. Check the real port in `apps/s
 
 ```bash
 pnpm -r test
-git add apps/server
+git add -u apps/server
 git commit -m "feat(server): surface role, verb, and object in the MCP write shapes"
 ```
 
@@ -998,7 +999,10 @@ Expected: PASS.
 
 ```bash
 pnpm -r test
-git add apps/web
+# -u alone stages only tracked files, so name this task's two NEW files explicitly.
+git add -u apps/web
+git add apps/web/src/shapes.ts apps/web/test/shapes.test.ts
+git status --short          # confirm no .json is staged before committing
 git commit -m "feat(web): render role shapes with name, purpose, and tech chip"
 ```
 
@@ -1169,7 +1173,7 @@ Expected: PASS. Any existing test asserting an edge label of `'Dependency'` must
 
 ```bash
 pnpm -r test
-git add apps/web
+git add -u apps/web
 git commit -m "feat(web): label edges with verb and object, colored by verb class"
 ```
 
@@ -1352,7 +1356,7 @@ Open the web app, load a model with a few nodes, and confirm by eye: role shapes
 
 ```bash
 pnpm -r test
-git add apps/web
+git add -u apps/web
 git commit -m "feat(web): split panel into on-diagram vs detail, extend legend"
 ```
 
