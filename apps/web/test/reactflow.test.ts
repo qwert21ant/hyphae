@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { focusViewToFlow, highlightSets, layerColorOf, LAYER_COLOR } from '../src/flow';
+import { focusViewToFlow, highlightSets, layerColorOf, LAYER_COLOR } from '../src/reactflow';
 import type { FocusView } from '../src/focusView';
 import type { Edge as FlowEdge } from '@xyflow/react';
 

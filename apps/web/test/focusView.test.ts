@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildFocusView, breadcrumbPath, representative, externalConnections, partitionConnections } from '../src/focusView';
 import { emptyModel } from '@hyphae/schema';
-import { edgeLabel, VERB_CLASS_COLOR } from '../src/flow';
+import { edgeLabel, VERB_CLASS_COLOR } from '../src/reactflow';
 
 const base = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
 const e = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };

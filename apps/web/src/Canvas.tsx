@@ -8,7 +8,7 @@ import { c4Backend, layerOfType } from '@hyphae/schema';
 import { useStore } from './store';
 import { buildFocusView } from './focusView';
 import { layoutFocusView, resolveViewPositions } from './layout';
-import { focusViewToFlow, highlightSets } from './flow';
+import { focusViewToFlow, highlightSets } from './reactflow';
 import { GroupNode } from './GroupNode';
 import { NodeBox } from './NodeBox';
 import { GhostNode } from './GhostNode';
