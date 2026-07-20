@@ -250,3 +250,36 @@ describe('Canvas layout stability', () => {
     expect(Math.sign(xOf(b1!) - a1X)).toBe(cbSide);                // member on the same side as the ghost was
   });
 });
+
+function flowModel() {
+  const m = emptyModel();
+  m.nodes.push(
+    { id: 'ca', name: 'Alpha', type: 'Container', parentId: null, ...base },
+    { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
+    { id: 'a2', name: 'A2', type: 'Component', parentId: 'ca', ...base },
+  );
+  m.connections.push({ id: 'x', from: 'a1', to: 'a2', type: 'Dependency', ...e });
+  m.flows.push({ id: 'f1', name: 'F', description: '', scope: null, steps: [
+    { order: 1, from: 'a1', to: 'a2', via: 'x', message: 'go', kind: 'Sync' },
+  ] });
+  return m;
+}
+
+describe('Canvas flow overlay', () => {
+  const hlCss = (container: HTMLElement) => container.querySelector('style[data-hyphae-hl]')!.textContent ?? '';
+
+  it('mounts the FlowPicker when the model has flows', () => {
+    useStore.setState({ model: flowModel(), focusId: 'ca', selectedId: null, selectedFlowId: null });
+    const { getByText } = render(<Canvas />);
+    expect(getByText('Flows')).toBeTruthy();
+    expect(getByText('F')).toBeTruthy();
+  });
+
+  it('selecting a flow dims the rest and restores its participating edge (via CSS)', () => {
+    useStore.setState({ model: flowModel(), focusId: 'ca', selectedId: null, selectedFlowId: 'f1' });
+    const { container } = render(<Canvas />);
+    const css = hlCss(container);
+    expect(css).toContain('.react-flow__edge{opacity:');           // dim rule active
+    expect(css).toContain('.react-flow__edge[data-id="x"]');       // participating edge restored
+  });
+});

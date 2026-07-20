@@ -9,16 +9,20 @@ import { useStore } from './store';
 import { buildFocusView } from './focusView';
 import { layoutFocusView, resolveViewPositions } from './layout';
 import { focusViewToFlow, highlightSets } from './reactflow';
+import { computeFlowOverlay } from './flowOverlay';
 import { GroupNode } from './GroupNode';
 import { NodeBox } from './NodeBox';
 import { GhostNode } from './GhostNode';
 import { GhostGroupNode } from './GhostGroupNode';
 import { FloatingEdge } from './FloatingEdge';
 import { FilterPanel } from './FilterPanel';
+import { FlowPicker } from './FlowPicker';
 import { Legend } from './Legend';
 
 const nodeTypes = { region: GroupNode, node: NodeBox, ghost: GhostNode, ghostGroup: GhostGroupNode };
 const edgeTypes = { floating: FloatingEdge };
+const STEP_NUM = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩', '⑪', '⑫'];
+const stepBadge = (order: number) => STEP_NUM[order - 1] ?? `(${order})`;
 
 // Colour minimap dots by layer (regions muted) so the overview reads like the canvas.
 const miniMapColor = (n: FlowNode): string => {
@@ -36,6 +40,7 @@ export function Canvas() {
   const setFocus = useStore((s) => s.setFocus);
   const audience = useStore((s) => s.audience);
   const expandedExternals = useStore((s) => s.expandedExternals);
+  const selectedFlowId = useStore((s) => s.selectedFlowId);
 
   // Transient hover, so a user can trace a node's neighborhood without committing a selection.
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -58,16 +63,38 @@ export function Canvas() {
   const positions = useMemo(() => resolveViewPositions(view, basePositions), [view, basePositions]);
   const { nodes, edges } = useMemo(() => focusViewToFlow(view, positions), [view, positions]);
 
+  // Flow overlay: when a flow is selected, map its steps onto the drawn edges.
+  const flow = useMemo(() => model.flows.find((f) => f.id === selectedFlowId) ?? null, [model.flows, selectedFlowId]);
+  const visibleNodeIds = useMemo(() => new Set(nodes.map((n) => n.id)), [nodes]);
+  const overlay = useMemo(() => (flow ? computeFlowOverlay(flow, edges, visibleNodeIds) : null), [flow, edges, visibleNodeIds]);
+  const flowActive = !!overlay;
+
+  // Relabel the participating edges with numbered captions; leave the rest untouched. Only the
+  // edges change reference (never the nodes — that is what blanks the canvas), and only when the
+  // flow selection changes, so this is not per-frame churn.
+  const displayEdges = useMemo(() => {
+    if (!overlay) return edges;
+    return edges.map((ed) => {
+      const steps = overlay.edgeSteps.get(ed.id);
+      if (!steps) return ed;
+      const label = steps.map((s) => `${stepBadge(s.order)} ${s.message}`.trim()).join('   ');
+      const anyReturn = steps.some((s) => s.kind === 'Return');
+      return {
+        ...ed,
+        label,
+        style: { ...ed.style, ...(anyReturn ? { strokeDasharray: '6 4' } : {}) },
+        labelStyle: { ...(ed.labelStyle as Record<string, unknown> | undefined), fontWeight: 700 },
+      };
+    });
+  }, [edges, overlay]);
+
   // Highlight the active node/edge + neighbors (a region highlights its children), dim the rest.
-  // Selection wins over hover: once something is selected, hovering does not change the highlight.
-  // A hover is a softer preview than a selection (lighter accent, gentler dimming).
+  // Selection wins over hover. When a flow is active, its participating set drives the highlight
+  // instead (and is treated as a strong selection).
   //
-  // IMPORTANT: this is applied via an injected stylesheet keyed on React Flow's stable `data-id`s,
-  // NOT by rebuilding the node/edge objects. React Flow drops a node's measured size whenever it
-  // receives a NEW object reference for it (adoptUserNodes reuses dimensions only for the same
-  // reference), rendering that node `visibility:hidden` until a ResizeObserver re-measures it.
-  // Restyling the arrays on every mouse-move therefore made fast hovering blank the canvas. Keeping
-  // the arrays referentially stable and restyling in CSS avoids all churn.
+  // IMPORTANT: applied via an injected stylesheet keyed on React Flow's stable `data-id`s, NOT by
+  // rebuilding the node/edge objects. React Flow drops a node's measured size on a new object
+  // reference, hiding it until re-measured; restyling in CSS avoids that churn.
   const present = useMemo(
     () => new Set<string>([...nodes.map((n) => n.id), ...edges.map((e) => e.id)]),
     [nodes, edges],
@@ -76,22 +103,25 @@ export function Canvas() {
     (selectedId && present.has(selectedId) && selectedId) ||
     (hoveredId && present.has(hoveredId) && hoveredId) ||
     null;
-  const strong = !!(selectedId && present.has(selectedId));
+  const strong = flowActive || !!(selectedId && present.has(selectedId));
   const accent = strong ? '#2563eb' : '#93c5fd';
   const dimEdge = strong ? 0.12 : 0.4;
   const dimNode = strong ? 0.4 : 0.65;
   const childIds = useMemo(
-    () => (activeId === view.focusId ? new Set(view.children.map((n) => n.id)) : new Set<string>()),
-    [activeId, view],
+    () => (!flowActive && activeId === view.focusId ? new Set(view.children.map((n) => n.id)) : new Set<string>()),
+    [flowActive, activeId, view],
   );
-  const hi = useMemo(() => highlightSets(activeId, edges, childIds), [activeId, edges, childIds]);
+  const hi = useMemo(
+    () => (overlay ? { nodes: overlay.participatingNodes, edges: overlay.participatingEdges } : highlightSets(activeId, edges, childIds)),
+    [overlay, activeId, edges, childIds],
+  );
 
   const highlightCss = useMemo(() => {
     // Always-on transitions so both dimming and un-dimming animate.
     const trans =
       '.hyphae-canvas .react-flow__node{transition:opacity .15s ease,box-shadow .15s ease}'
       + '.hyphae-canvas .react-flow__edge,.hyphae-canvas .react-flow__edge .react-flow__edge-path{transition:opacity .15s ease,stroke-width .15s ease}';
-    if (!activeId) return trans;
+    if (!activeId && !flowActive) return trans;
     const esc = (id: string) => id.replace(/["\\]/g, '\\$&');
     const nodeSel = [...hi.nodes].map((id) => `.hyphae-canvas .react-flow__node[data-id="${esc(id)}"]`);
     const edgeSel = [...hi.edges].map((id) => `.hyphae-canvas .react-flow__edge[data-id="${esc(id)}"]`);
@@ -110,7 +140,7 @@ export function Canvas() {
       rules.push(`${edgeSel.map((s) => `${s} .react-flow__edge-path`).join(',')}{stroke-width:${strong ? 3.5 : 3}px!important}`);
     }
     return rules.join('');
-  }, [activeId, hi, strong, accent, dimEdge, dimNode]);
+  }, [activeId, flowActive, hi, strong, accent, dimEdge, dimNode]);
 
   // Drill in: an external ghost, or a node with children, becomes the new focus.
   const drill = (node: FlowNode) => {
@@ -145,7 +175,7 @@ export function Canvas() {
       <ReactFlow
         key={focusId ?? '__root__'}
         nodes={nodes}
-        edges={edges}
+        edges={displayEdges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         connectionMode={ConnectionMode.Loose}
@@ -162,6 +192,7 @@ export function Canvas() {
         fitView
       >
         <Panel position="top-left"><FilterPanel /></Panel>
+        <Panel position="top-left"><FlowPicker /></Panel>
         <Panel position="top-right"><Legend /></Panel>
         <Background />
         <Controls />
