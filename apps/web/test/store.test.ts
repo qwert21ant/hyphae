@@ -143,6 +143,14 @@ describe('editor store', () => {
     useStore.getState().setFocus('ca');
     expect(useStore.getState().expandedExternals.size).toBe(0);
   });
+
+  it('selects and clears a flow without mutating the model', () => {
+    useStore.getState().selectFlow('f1');
+    expect(useStore.getState().selectedFlowId).toBe('f1');
+    expect(useStore.getState().model.flows).toEqual([]);
+    useStore.getState().selectFlow(null);
+    expect(useStore.getState().selectedFlowId).toBeNull();
+  });
 });
 
 // Kept as its own describe block: this is the only test in the file that needs
