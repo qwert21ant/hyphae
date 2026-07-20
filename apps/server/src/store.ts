@@ -1,8 +1,8 @@
 import { existsSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
 import {
-  HyphaeModelSchema, NodeSchema, ConnectionSchema, emptyModel, newId, now,
+  HyphaeModelSchema, NodeSchema, ConnectionSchema, FlowSchema, emptyModel, newId, now,
   newIssues, resolveProfile,
-  type HyphaeModel, type Node, type Connection, type Position,
+  type HyphaeModel, type Node, type Connection, type Flow, type Position,
 } from '@hyphae/schema';
 import { ValidationError, NotFoundError } from './errors';
 
@@ -10,6 +10,7 @@ const DEBOUNCE_MS = 500;
 
 export type NodeInput = Partial<Node> & { name: string; type: string };
 export type ConnectionInput = Partial<Connection> & { from: string; to: string; type: string };
+export type FlowInput = Partial<Flow> & { name: string };
 
 export class ModelStore {
   private model: HyphaeModel;
@@ -57,7 +58,7 @@ export class ModelStore {
       ...this.model,
       nodes: this.model.nodes.filter((n) => n.id !== id),
       connections: this.model.connections.filter((c) => c.from !== id && c.to !== id),
-    });
+    }, { ignoreFlowRefs: true });
   }
 
   addConnection(input: ConnectionInput): Connection {
@@ -76,7 +77,26 @@ export class ModelStore {
 
   deleteConnection(id: string): void {
     if (!this.model.connections.some((c) => c.id === id)) throw new NotFoundError(`connection ${id} not found`);
-    this.commit({ ...this.model, connections: this.model.connections.filter((c) => c.id !== id) });
+    this.commit({ ...this.model, connections: this.model.connections.filter((c) => c.id !== id) }, { ignoreFlowRefs: true });
+  }
+
+  addFlow(input: FlowInput): Flow {
+    const flow = FlowSchema.parse({ ...input, id: input.id ?? newId() });
+    this.commit({ ...this.model, flows: [...this.model.flows, flow] });
+    return flow;
+  }
+
+  updateFlow(id: string, patch: Partial<Flow>): Flow {
+    const existing = this.model.flows.find((f) => f.id === id);
+    if (!existing) throw new NotFoundError(`flow ${id} not found`);
+    const updated = FlowSchema.parse({ ...existing, ...patch, id });
+    this.commit({ ...this.model, flows: this.model.flows.map((f) => (f.id === id ? updated : f)) });
+    return updated;
+  }
+
+  deleteFlow(id: string): void {
+    if (!this.model.flows.some((f) => f.id === id)) throw new NotFoundError(`flow ${id} not found`);
+    this.commit({ ...this.model, flows: this.model.flows.filter((f) => f.id !== id) });
   }
 
   setNodePosition(layer: string, nodeId: string, pos: Position): void {
@@ -90,9 +110,14 @@ export class ModelStore {
     this.commit({ ...this.model, views });
   }
 
-  /** Validate the candidate model; reject if it adds an issue, else commit + bump + save + notify. */
-  private commit(next: HyphaeModel): void {
-    const issues = newIssues(this.model, next, resolveProfile(next));
+  /** Validate the candidate model; reject if it adds an issue, else commit + bump + save + notify.
+   *  `ignoreFlowRefs` lets a node/connection delete proceed even if it strands a flow step — the
+   *  flow is left flagged-invalid (spec: deletes mark flows invalid, they do not block on them). */
+  private commit(next: HyphaeModel, opts: { ignoreFlowRefs?: boolean } = {}): void {
+    let issues = newIssues(this.model, next, resolveProfile(next));
+    if (opts.ignoreFlowRefs) {
+      issues = issues.filter((i) => i.kind !== 'bad-flow-endpoint' && i.kind !== 'bad-flow-via');
+    }
     if (issues.length) throw new ValidationError(issues);
     this.model = next;
     this._version += 1;
