@@ -165,6 +165,31 @@ obligations on every write. Call `describe_profile` for the exact vocabularies.
 - **Set `role`** when a Component is really a datastore, a queue, an external system, or a UI
   surface. Otherwise leave it unset and it inherits its node kind's default shape.
 
+## Flows (the Behavior axis — optional, after connections)
+
+A **Flow** is a named scenario overlaid on existing nodes/connections — the diagram lights its
+steps in order. Author one with `create_flows` when a request path is worth showing end to end
+(e.g. "User views live feed"). Flows are additive and never required.
+
+- A flow is `{ name, description?, scope?, steps: [...] }`. `scope` is an optional layer hint
+  (Context/Container/Component) used only to group flows — leave it off unless it helps.
+- A **step** is `{ order, from, to, via?, message, kind, control? }`:
+  - `from`/`to` are **node ids** that must already exist; `order` is 1-based.
+  - `via` is an **optional connection id** — set it to the specific connection the step traverses
+    (adds traceability and picks the right edge when two nodes have parallel connections). A
+    `Return` or an implied hop may omit it.
+  - `message` is the short caption shown on the step ("request stream").
+  - `kind` is `Sync` (blocking call), `Async` (fire-and-forget), or `Return` (a response back to
+    the caller — drawn dashed). Default `Sync`.
+  - `control` (optional) wraps a step in a sequence fragment: `{ type: alt|opt|loop|par, condition }`.
+- Read flows back with `list_flows` (summaries + a `valid` flag) and `get_flow` (full steps).
+- **The overlay only lights a step when both its endpoints are visible in the current view.** Keep
+  a flow's steps at one altitude (all Component-level, or all Container-level) so it lights up as a
+  unit; a flow whose steps span containers will only partly render at any single focus.
+- Deleting a node or connection a flow references does **not** delete the flow — it leaves the flow
+  flagged invalid (`list_flows` returns `valid:false`, the picker marks it ⚠). Fix or delete such
+  flows with `update_flows`/`delete_flows`.
+
 ## Idempotency contract (every run, every agent)
 
 - **Read first** (`model_overview`, then `list_nodes`/`get_subgraph` for the scope you're about to touch). Never assume empty. Reads default to Component-and-above; pass `maxLayer:'Code'` when the scope you are about to touch is the Code layer.
