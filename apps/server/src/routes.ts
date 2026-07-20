@@ -56,6 +56,25 @@ export function createApp(store: ModelStore) {
     catch (e) { return mapError(c, e); }
   });
 
+  app.post('/flows', async (c) => {
+    let body: unknown;
+    try { body = await c.req.json(); } catch { return c.json({ error: 'invalid JSON' }, 400); }
+    try { const flow = store.addFlow(body as never); return c.json({ flow, version: store.version }, 201); }
+    catch (e) { return mapError(c, e); }
+  });
+
+  app.patch('/flows/:id', async (c) => {
+    let body: unknown;
+    try { body = await c.req.json(); } catch { return c.json({ error: 'invalid JSON' }, 400); }
+    try { const flow = store.updateFlow(c.req.param('id'), body as never); return c.json({ flow, version: store.version }); }
+    catch (e) { return mapError(c, e); }
+  });
+
+  app.delete('/flows/:id', (c) => {
+    try { store.deleteFlow(c.req.param('id')); return c.json({ version: store.version }); }
+    catch (e) { return mapError(c, e); }
+  });
+
   app.put('/views/:layer/positions/:nodeId', async (c) => {
     let body: unknown;
     try { body = await c.req.json(); } catch { return c.json({ error: 'invalid JSON' }, 400); }
