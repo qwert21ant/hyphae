@@ -191,8 +191,12 @@ export function Canvas() {
         onPaneClick={() => select(null)}
         fitView
       >
-        <Panel position="top-left"><FilterPanel /></Panel>
-        <Panel position="top-left"><FlowPicker /></Panel>
+        <Panel position="top-left">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <FilterPanel />
+            <FlowPicker />
+          </div>
+        </Panel>
         <Panel position="top-right"><Legend /></Panel>
         <Background />
         <Controls />
