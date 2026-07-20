@@ -29,7 +29,6 @@ Steps:
    endpoints are your own Components. Set the connection `type`, a `verb` from the profile's verb
    vocabulary, and a short `object` noun where one applies ("reads camera list"). Do not leave the
    verb at its `uses` default when a specific verb fits. Put `transport` in the `fields` bag.
-   There is no `intent` field any more.
 5. On any `422`, read the returned `issues` and fix the input; never blind-retry.
 6. Before returning, **self-review**: re-read each component you wrote. If its `description` / `responsibilities` / `invariants` assert a relationship to another of YOUR components — phrases like "implements", "depends on", "used by", "built on", "all others depend on it" — make sure a matching connection exists, and add any that are missing. Then check for any of your components left with **zero connections**: either wire it, or list it under `standaloneComponents` with a reason.
 

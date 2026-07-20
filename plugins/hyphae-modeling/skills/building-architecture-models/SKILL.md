@@ -165,9 +165,6 @@ obligations on every write. Call `describe_profile` for the exact vocabularies.
 - **Set `role`** when a Component is really a datastore, a queue, an external system, or a UI
   surface. Otherwise leave it unset and it inherits its node kind's default shape.
 
-`intent` no longer exists — it was 73% the generic `Use`. Use `verb` instead. Writing `intent`
-is now an `unknown-field` issue.
-
 ## Idempotency contract (every run, every agent)
 
 - **Read first** (`model_overview`, then `list_nodes`/`get_subgraph` for the scope you're about to touch). Never assume empty. Reads default to Component-and-above; pass `maxLayer:'Code'` when the scope you are about to touch is the Code layer.
@@ -186,4 +183,3 @@ is now an `unknown-field` issue.
 - Skipping a gate to "save time" → all three gates (GATE 1, GATE 2, GATE 3) are mandatory.
 - Creating a Component / Container / System without `fields.summary` → `missing-required-field`; the node renders as a bare box.
 - Leaving every connection on the default `uses` verb → the diagram carries no more meaning than before; pick real verbs.
-- Writing `intent` → retired; it is now an `unknown-field` issue. Use `verb`.
