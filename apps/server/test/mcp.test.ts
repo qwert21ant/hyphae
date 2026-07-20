@@ -24,6 +24,9 @@ function fakeApi(over: Partial<HyphaeApi> = {}): HyphaeApi {
     createConnection: async (input) => ({ connection: { id: 'c2', type: 'Dependency', ...(input as object) }, version: 1 }),
     updateConnection: async (id, patch) => ({ connection: { id, type: 'Dependency', ...(patch as object) }, version: 1 }),
     deleteConnection: async () => ({ version: 1 }),
+    createFlow: async (input) => ({ flow: { id: 'f2', ...(input as object) }, version: 1 }),
+    updateFlow: async (id, patch) => ({ flow: { id, ...(patch as object) }, version: 1 }),
+    deleteFlow: async () => ({ version: 1 }),
     ...over,
   };
 }
@@ -440,5 +443,62 @@ describe('role/verb/object reach the API', () => {
     }));
     await tools.update_nodes({ updates: [{ id: 'api', role: 'queue' }] });
     expect(seen[0]).toMatchObject({ role: 'queue' });
+  });
+});
+
+import { flowItemSchema } from '../src/mcp';
+
+describe('MCP flow tools', () => {
+  const flowModel = (): HyphaeModel => {
+    const m = model();   // 'api' container + self-connection 'c1'
+    m.flows.push({ id: 'f1', name: 'Views feed', description: '', scope: 'Container', steps: [
+      { order: 1, from: 'api', to: 'api', via: 'c1', message: 'go', kind: 'Sync' },
+    ] });
+    return m;
+  };
+  const api = () => fakeApi({ getModel: async () => flowModel() });
+
+  it('list_flows returns summaries with validity', async () => {
+    const r = await buildTools(api()).list_flows({});
+    expect(r).toEqual([{ id: 'f1', name: 'Views feed', scope: 'Container', steps: 1, valid: true }]);
+  });
+
+  it('list_flows marks a flow invalid when a step endpoint is missing', async () => {
+    const bad = fakeApi({ getModel: async () => { const m = flowModel(); m.flows[0].steps[0].to = 'ghost'; return m; } });
+    const r = (await buildTools(bad).list_flows({})) as Array<{ valid: boolean }>;
+    expect(r[0].valid).toBe(false);
+  });
+
+  it('get_flow returns the full flow, errors on a missing id', async () => {
+    expect(await buildTools(api()).get_flow({ id: 'f1' })).toMatchObject({ name: 'Views feed', steps: [{ message: 'go' }] });
+    expect(await buildTools(api()).get_flow({ id: 'nope' })).toMatchObject({ error: expect.stringContaining('not found') });
+  });
+
+  it('create_flows returns ids and forwards the step shape', async () => {
+    const seen: Record<string, unknown>[] = [];
+    const tools = buildTools(fakeApi({ createFlow: async (input) => { seen.push(input as Record<string, unknown>); return { flow: { id: 'f9', ...(input as object) }, version: 1 }; } }));
+    const r = await tools.create_flows({ flows: [{ name: 'F', steps: [{ order: 1, from: 'a', to: 'b', via: 'c1', message: 'go', kind: 'Sync' }] }] });
+    expect(r).toEqual({ ids: ['f9'] });
+    expect(seen[0]).toMatchObject({ name: 'F', steps: [{ from: 'a', to: 'b', via: 'c1' }] });
+  });
+
+  it('update_flows splits id from patch; delete_flows forwards ids', async () => {
+    const seenU: Array<[string, unknown]> = [];
+    const seenD: string[] = [];
+    const tools = buildTools(fakeApi({
+      updateFlow: async (id, patch) => { seenU.push([id, patch]); return { flow: { id }, version: 1 }; },
+      deleteFlow: async (id) => { seenD.push(id); return { version: 1 }; },
+    }));
+    expect(await tools.update_flows({ updates: [{ id: 'f1', name: 'R' }] })).toEqual({ ok: true });
+    expect(seenU).toEqual([['f1', { name: 'R' }]]);
+    expect(await tools.delete_flows({ ids: ['f1'] })).toEqual({ ok: true });
+    expect(seenD).toEqual(['f1']);
+  });
+});
+
+describe('MCP flow write shape', () => {
+  it('accepts a full flow item and rejects a bad step kind', () => {
+    expect(() => flowItemSchema.parse({ name: 'F', steps: [{ order: 1, from: 'a', to: 'b', kind: 'Sync' }] })).not.toThrow();
+    expect(() => flowItemSchema.parse({ name: 'F', steps: [{ order: 1, from: 'a', to: 'b', kind: 'Bad' }] })).toThrow();
   });
 });
