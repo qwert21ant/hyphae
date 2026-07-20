@@ -11,7 +11,8 @@ export type Issue = {
     | 'unknown-connection-kind' | 'bad-endpoint'
     | 'unknown-field' | 'bad-field-type' | 'bad-enum-value' | 'missing-required-field' | 'bad-ref'
     | 'unanchored-ref' | 'bad-root'
-    | 'unknown-role' | 'unknown-verb';
+    | 'unknown-role' | 'unknown-verb'
+    | 'bad-flow-endpoint' | 'bad-flow-via' | 'bad-flow-scope';
   ref: string;       // id of the offending node/connection
   message: string;
 };
@@ -131,6 +132,22 @@ export function validateModel(model: HyphaeModel, profile: Profile): Issue[] {
       issues.push({ kind: 'bad-endpoint', ref: c.id, message: `${c.type} cannot end at ${toNode.type}` });
     }
     issues.push(...validateFields(c.fields, effectiveFields(profile, c.type, 'connection'), nodeById, c.id));
+  }
+
+  const connIds = new Set(model.connections.map((c) => c.id));
+  const layers = new Set(profile.layers);
+  for (const f of model.flows) {
+    if (f.scope !== null && !layers.has(f.scope)) {
+      issues.push({ kind: 'bad-flow-scope', ref: f.id, message: `Flow scope "${f.scope}" is not a profile layer` });
+    }
+    for (const s of f.steps) {
+      if (!nodeById.has(s.from) || !nodeById.has(s.to)) {
+        issues.push({ kind: 'bad-flow-endpoint', ref: f.id, message: `Step ${s.order} references a missing node (${s.from} → ${s.to})` });
+      }
+      if (s.via !== undefined && !connIds.has(s.via)) {
+        issues.push({ kind: 'bad-flow-via', ref: f.id, message: `Step ${s.order} via references a missing connection "${s.via}"` });
+      }
+    }
   }
   return issues;
 }
