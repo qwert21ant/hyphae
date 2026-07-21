@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ModelStore } from '../src/store';
 import { ValidationError, NotFoundError } from '../src/errors';
+import { validateModel, resolveProfile } from '@hyphae/schema';
 
 let dir: string;
 let file: string;
@@ -89,5 +90,51 @@ describe('ModelStore', () => {
     const n = store.addNode({ name: 'A', type: 'Component', fields: { summary: 'x' } });
     store.setNodePosition('Component', n.id, { x: 10, y: 20 });
     expect(store.get().views.find((v) => v.layer === 'Component')?.nodePositions[n.id]).toEqual({ x: 10, y: 20 });
+  });
+});
+
+describe('ModelStore flows', () => {
+  function seed(store: ModelStore) {
+    const a = store.addNode({ name: 'A', type: 'Component', fields: { summary: 'x' } });
+    const b = store.addNode({ name: 'B', type: 'Component', fields: { summary: 'x' } });
+    const c = store.addConnection({ from: a.id, to: b.id, type: 'Dependency' });
+    return { a, b, c };
+  }
+
+  it('addFlow persists a valid flow', () => {
+    const store = new ModelStore(file);
+    const { a, b, c } = seed(store);
+    const flow = store.addFlow({ name: 'Views feed', steps: [{ order: 1, from: a.id, to: b.id, via: c.id, message: 'go', kind: 'Sync' }] });
+    expect(flow.id).toBeTruthy();
+    expect(store.get().flows).toHaveLength(1);
+  });
+
+  it('rejects a flow whose step references a missing node', () => {
+    const store = new ModelStore(file);
+    seed(store);
+    expect(() => store.addFlow({ name: 'Bad', steps: [{ order: 1, from: 'ghost', to: 'ghost', message: '', kind: 'Sync' }] })).toThrow(ValidationError);
+    expect(store.get().flows).toEqual([]);
+  });
+
+  it('updateFlow throws NotFoundError for a missing id', () => {
+    expect(() => new ModelStore(file).updateFlow('nope', { name: 'X' })).toThrow(NotFoundError);
+  });
+
+  it('deleteFlow removes the flow', () => {
+    const store = new ModelStore(file);
+    const { a, b } = seed(store);
+    const flow = store.addFlow({ name: 'F', steps: [{ order: 1, from: a.id, to: b.id, message: '', kind: 'Sync' }] });
+    store.deleteFlow(flow.id);
+    expect(store.get().flows).toEqual([]);
+  });
+
+  it('allows deleting a node used by a flow, leaving the flow invalid (flagged, not blocked)', () => {
+    const store = new ModelStore(file);
+    const { a, b } = seed(store);
+    const flow = store.addFlow({ name: 'F', steps: [{ order: 1, from: a.id, to: b.id, message: '', kind: 'Sync' }] });
+    store.deleteNode(b.id);                                   // not rejected
+    expect(store.get().flows.map((f) => f.id)).toEqual([flow.id]);   // flow survives
+    const issues = validateModel(store.get(), resolveProfile(store.get()));
+    expect(issues.some((i) => i.kind === 'bad-flow-endpoint' && i.ref === flow.id)).toBe(true);
   });
 });

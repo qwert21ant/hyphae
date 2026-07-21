@@ -15,14 +15,36 @@ export interface HyphaeApi {
   createConnection(input: unknown): Promise<unknown>;
   updateConnection(id: string, patch: unknown): Promise<unknown>;
   deleteConnection(id: string): Promise<unknown>;
+  createFlow(input: unknown): Promise<unknown>;
+  updateFlow(id: string, patch: unknown): Promise<unknown>;
+  deleteFlow(id: string): Promise<unknown>;
 }
 
-type ApiResult = { node?: { id: string }; connection?: { id: string }; issues?: unknown; error?: unknown };
+type ApiResult = { node?: { id: string }; connection?: { id: string }; flow?: { id: string }; issues?: unknown; error?: unknown };
+
+export const flowStepSchema = z.object({
+  order: z.number().describe('1-based position of this step in the sequence.'),
+  from: z.string().describe('Node id the step originates at.'),
+  to: z.string().describe('Node id the step targets.'),
+  via: z.string().optional().describe('Optional id of the connection this step traverses (adds traceability and disambiguates parallel edges). A Return or implied hop may omit it.'),
+  message: z.string().optional().describe('Short caption shown on the step, e.g. "request stream".'),
+  kind: z.enum(['Sync', 'Async', 'Return']).optional().describe('Sync = blocking call, Async = fire-and-forget, Return = a response back to the caller (drawn dashed). Default Sync.'),
+  control: z.object({
+    type: z.enum(['alt', 'opt', 'loop', 'par']).describe('alt = alternative branch, opt = optional, loop = repeated, par = parallel.'),
+    condition: z.string().optional().describe('The guard/condition for the fragment.'),
+  }).optional().describe('Optional sequence-fragment wrapping this step.'),
+});
+export const flowItemSchema = z.object({
+  name: z.string(),
+  description: z.string().optional(),
+  scope: z.string().nullable().optional().describe('Optional layer this flow is authored at (Context/Container/Component). Advisory — used only to group flows in the picker.'),
+  steps: z.array(flowStepSchema).default([]),
+});
 
 async function runCreate(
   items: Record<string, unknown>[],
   fn: (i: Record<string, unknown>) => Promise<unknown>,
-  key: 'node' | 'connection',
+  key: 'node' | 'connection' | 'flow',
 ) {
   const results: Array<{ id: string } | { issues: unknown } | { error: unknown }> = [];
   let ok = true;
@@ -227,6 +249,18 @@ export function buildTools(api: HyphaeApi) {
         refs: node.codeRefs.map((ref) => ({ ref, resolved: resolveRef(model.nodes, nodeId, ref) })),
       };
     },
+    list_flows: async (_: Record<string, never>) => {
+      const model = await api.getModel();
+      const issues = validateModel(model, resolveProfile(model));
+      const invalid = new Set(issues.filter((i) => i.kind.startsWith('bad-flow-')).map((i) => i.ref));
+      return model.flows.map((f) => ({ id: f.id, name: f.name, scope: f.scope, steps: f.steps.length, valid: !invalid.has(f.id) }));
+    },
+    get_flow: async ({ id }: { id: string }) =>
+      (await api.getModel()).flows.find((f) => f.id === id) ?? { error: `flow ${id} not found` },
+    create_flows: async ({ flows }: { flows: Record<string, unknown>[] }) => runCreate(flows, api.createFlow, 'flow'),
+    update_flows: async ({ updates }: { updates: Array<{ id: string } & Record<string, unknown>> }) =>
+      runVoid(updates.map((u) => () => { const { id, ...patch } = u; return api.updateFlow(id, patch); })),
+    delete_flows: async ({ ids }: { ids: string[] }) => runVoid(ids.map((id) => () => api.deleteFlow(id))),
     create_nodes: async ({ nodes }: { nodes: Record<string, unknown>[] }) => runCreate(nodes, api.createNode, 'node'),
     create_connections: async ({ connections }: { connections: Record<string, unknown>[] }) => runCreate(connections, api.createConnection, 'connection'),
     update_nodes: async ({ updates }: { updates: Array<{ id: string } & Record<string, unknown>> }) =>
@@ -266,6 +300,9 @@ function httpApi(base: string): HyphaeApi {
     createConnection: (input) => mutate('POST', '/connections', input),
     updateConnection: (id, patch) => mutate('PATCH', `/connections/${id}`, patch),
     deleteConnection: (id) => mutate('DELETE', `/connections/${id}`),
+    createFlow: (input) => mutate('POST', '/flows', input),
+    updateFlow: (id, patch) => mutate('PATCH', `/flows/${id}`, patch),
+    deleteFlow: (id) => mutate('DELETE', `/flows/${id}`),
   };
 }
 
@@ -450,6 +487,32 @@ async function main() {
     description: 'Advisory coverage/quality read (read-only, whole-model). Returns four gap lists: orphanNodes (Component-layer nodes with zero connections), unboundCodeEdges (cross-component Code↔Code edges whose id is in no connection\'s realizedBy — candidates to bind), thinDescriptions (Component-and-above nodes whose description is empty or echoes the name, each with inbound/outbound degree so a thin hub is visible), and missingRefs (codeRefs that resolve to a path absent on disk — populated only when a disk check is requested; currently always empty, as no caller wires checkDisk yet). Flags candidates only — it never mutates or auto-fixes; a legitimately standalone component or a terse-but-fine node may appear. Complements validate_model, which checks structure/fields; this checks semantic coverage.',
     inputSchema: {},
   }, async () => text(await tools.model_gaps({})));
+
+  server.registerTool('list_flows', {
+    description: 'List behavior Flow summaries: id, name, scope, step count, and whether the flow currently validates (all step endpoints and via still resolve). Use get_flow for the full ordered steps.',
+    inputSchema: {},
+  }, async () => text(await tools.list_flows({})));
+
+  server.registerTool('get_flow', {
+    description: 'Get one behavior Flow by id with its full ordered steps. Returns {error} if the id does not exist.',
+    inputSchema: { id: z.string() },
+  }, async (a) => text(await tools.get_flow(a)));
+
+  server.registerTool('create_flows', {
+    description: "Create one OR MANY behavior Flows (numbered scenario overlays; single write = one-element array). Each flow: name, optional description/scope, and ordered steps. A step is { order, from, to (existing node ids), optional via (an existing connection id), message caption, kind (Sync|Async|Return), optional control fragment }. from/to must be existing nodes; via, when set, an existing connection. Best-effort: {ids:[...]} on full success, else {results:[{id}|{issues}]}.",
+    inputSchema: { flows: z.array(flowItemSchema) },
+  }, async (a) => text(await tools.create_flows(a)));
+
+  const flowUpdate = z.object({ id: z.string(), name: z.string().optional(), description: z.string().optional(), scope: z.string().nullable().optional(), steps: z.array(flowStepSchema).optional() });
+  server.registerTool('update_flows', {
+    description: 'Update one OR MANY flows by id (single update = one-element array). Each item: id + fields to change (name, description, scope, or the full replacement steps array). Best-effort: {ok:true} on full success, else {results:[{ok}|{issues}]}.',
+    inputSchema: { updates: z.array(flowUpdate) },
+  }, async (a) => text(await tools.update_flows(a)));
+
+  server.registerTool('delete_flows', {
+    description: 'Delete one OR MANY flows by id (single delete = one-element array). Best-effort: {ok:true} on full success, else {results:[{ok}|{error}]}.',
+    inputSchema: { ids: z.array(z.string()) },
+  }, async (a) => text(await tools.delete_flows(a)));
 
   await server.connect(new StdioServerTransport());
 }

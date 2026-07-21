@@ -214,3 +214,70 @@ describe('role and verb validation', () => {
     expect(issues[0].ref).toBe('k1');
   });
 });
+
+describe('flow validation', () => {
+  const nbase = { root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } };
+  const edge = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+
+  function flowModel(): HyphaeModel {
+    const m = emptyModel();
+    m.nodes.push(
+      { ...nbase, id: 'a', name: 'A', type: 'Component', parentId: null, description: 'd' },
+      { ...nbase, id: 'b', name: 'B', type: 'Component', parentId: null, description: 'd' },
+    );
+    m.connections.push({ ...edge, id: 'c1', from: 'a', to: 'b', type: 'Dependency' });
+    m.flows.push({ id: 'f1', name: 'F', description: '', scope: null, steps: [
+      { order: 1, from: 'a', to: 'b', via: 'c1', message: 'go', kind: 'Sync' },
+    ] });
+    return m;
+  }
+
+  it('accepts a flow whose steps reference existing nodes and connection', () => {
+    expect(validateModel(flowModel(), c4Backend)).toEqual([]);
+  });
+
+  it('flags a step endpoint that is not a node', () => {
+    const m = flowModel();
+    m.flows[0].steps[0].to = 'ghost';
+    const issues = validateModel(m, c4Backend).filter((i) => i.kind === 'bad-flow-endpoint');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].ref).toBe('f1');
+  });
+
+  it('flags a via that is not a connection', () => {
+    const m = flowModel();
+    m.flows[0].steps[0].via = 'nope';
+    const issues = validateModel(m, c4Backend).filter((i) => i.kind === 'bad-flow-via');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].ref).toBe('f1');
+  });
+
+  it('flags a scope that is not a profile layer, accepts one that is', () => {
+    const bad = flowModel(); bad.flows[0].scope = 'Stratosphere';
+    expect(validateModel(bad, c4Backend).filter((i) => i.kind === 'bad-flow-scope')).toHaveLength(1);
+    const ok = flowModel(); ok.flows[0].scope = 'Container';
+    expect(validateModel(ok, c4Backend)).toEqual([]);
+  });
+
+  it('accepts a step with no via', () => {
+    const m = flowModel();
+    m.flows[0].steps[0].via = undefined;
+    expect(validateModel(m, c4Backend)).toEqual([]);
+  });
+
+  it('marks a flow invalid when a referenced node is deleted (the delete invariant)', () => {
+    const m = flowModel();
+    m.nodes = m.nodes.filter((n) => n.id !== 'b');
+    m.connections = [];
+    expect(validateModel(m, c4Backend).map((i) => i.kind)).toContain('bad-flow-endpoint');
+  });
+
+  it('a realistic 2-step request/return flow validates clean', () => {
+    const m = flowModel();
+    m.flows[0].steps = [
+      { order: 1, from: 'a', to: 'b', via: 'c1', message: 'request stream', kind: 'Sync' },
+      { order: 2, from: 'b', to: 'a', message: 'stream frames', kind: 'Return' },
+    ];
+    expect(validateModel(m, c4Backend)).toEqual([]);
+  });
+});

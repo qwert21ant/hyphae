@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { c4Backend } from '@hyphae/schema';
-import { LAYER_COLOR, VERB_CLASS_COLOR } from './flow';
+import { LAYER_COLOR, VERB_CLASS_COLOR } from './reactflow';
 import { shapeStyle, SHAPE_LABEL } from './shapes';
 
 const box = (bg: string, border: string) => ({

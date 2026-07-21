@@ -2,6 +2,7 @@ export * from './ids';
 export * from './ref';
 export * from './node';
 export * from './connection';
+export * from './flow';
 export * from './view';
 export * from './profile';
 export * from './profiles/c4-backend';

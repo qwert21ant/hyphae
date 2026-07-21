@@ -250,3 +250,58 @@ describe('Canvas layout stability', () => {
     expect(Math.sign(xOf(b1!) - a1X)).toBe(cbSide);                // member on the same side as the ghost was
   });
 });
+
+function flowModel() {
+  const m = emptyModel();
+  m.nodes.push(
+    { id: 'ca', name: 'Alpha', type: 'Container', parentId: null, ...base },
+    { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
+    { id: 'a2', name: 'A2', type: 'Component', parentId: 'ca', ...base },
+  );
+  m.connections.push({ id: 'x', from: 'a1', to: 'a2', type: 'Dependency', ...e });
+  m.flows.push({ id: 'f1', name: 'F', description: '', scope: null, steps: [
+    { order: 1, from: 'a1', to: 'a2', via: 'x', message: 'go', kind: 'Sync' },
+  ] });
+  return m;
+}
+
+describe('Canvas flow overlay', () => {
+  const hlCss = (container: HTMLElement) => container.querySelector('style[data-hyphae-hl]')!.textContent ?? '';
+
+  it('mounts the FlowPicker when the model has flows', () => {
+    useStore.setState({ model: flowModel(), focusId: 'ca', selectedId: null, selectedFlowId: null });
+    const { getByText } = render(<Canvas />);
+    expect(getByText('Flows')).toBeTruthy();
+    expect(getByText('F')).toBeTruthy();
+  });
+
+  it('selecting a flow dims the rest and restores its participating edge (via CSS)', () => {
+    useStore.setState({ model: flowModel(), focusId: 'ca', selectedId: null, selectedFlowId: 'f1' });
+    const { container } = render(<Canvas />);
+    const css = hlCss(container);
+    expect(css).toContain('.react-flow__edge{opacity:');           // dim rule active
+    expect(css).toContain('.react-flow__edge[data-id="x"]');       // participating edge restored
+  });
+
+  it('selecting a flow whose steps are all off-view does not dim the canvas', () => {
+    const m = emptyModel();
+    m.nodes.push(
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
+      { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
+      { id: 'cb', name: 'Beta', type: 'Container', parentId: 'sys', ...base },
+      { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
+      { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
+    );
+    m.connections.push({ id: 'x', from: 'a1', to: 'b1', type: 'Dependency', ...e });
+    // Step a1 -> b1; focused on 'ca', b1 lives in cb and is not a visible node -> off-view.
+    m.flows.push({ id: 'f1', name: 'F', description: '', scope: null, steps: [
+      { order: 1, from: 'a1', to: 'b1', message: 'go', kind: 'Sync' },
+    ] });
+    // Reset expandedExternals: a prior test may leave 'cb' expanded (singleton store), which would
+    // surface b1 as a visible member and make the step on-view — defeating this test's premise.
+    useStore.setState({ model: m, focusId: 'ca', selectedId: null, selectedFlowId: 'f1', expandedExternals: new Set() });
+    const { container } = render(<Canvas />);
+    const css = container.querySelector('style[data-hyphae-hl]')!.textContent ?? '';
+    expect(css).not.toMatch(/react-flow__edge\{opacity:0\.\d/);   // no dim-all rule
+  });
+});

@@ -2,8 +2,9 @@ import { z } from 'zod';
 import { NodeSchema } from './node';
 import { ConnectionSchema } from './connection';
 import { ViewSchema } from './view';
+import { FlowSchema } from './flow';
 import {
-  FlowSchema, StateMachineSchema, DataTypeSchema,
+  StateMachineSchema, DataTypeSchema,
   RequirementSchema, DecisionSchema,
 } from './reserved';
 import { now } from './ids';

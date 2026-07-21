@@ -100,3 +100,49 @@ describe('routes', () => {
     expect(model.views.find((v: { layer: string }) => v.layer === 'Component').nodePositions[a.id]).toEqual({ x: 5, y: 6 });
   });
 });
+
+describe('flow routes', () => {
+  const seed = async () => {
+    const a = await createNode({ name: 'A', type: 'Component', fields: { summary: 'x' } });
+    const b = await createNode({ name: 'B', type: 'Component', fields: { summary: 'x' } });
+    return { a, b };
+  };
+  const makeFlow = async (a: { id: string }, b: { id: string }) =>
+    (await (await post('/flows', { name: 'F', steps: [{ order: 1, from: a.id, to: b.id, message: 'go', kind: 'Sync' }] })).json()).flow;
+
+  it('POST /flows creates a flow', async () => {
+    const { a, b } = await seed();
+    const res = await post('/flows', { name: 'Views feed', steps: [{ order: 1, from: a.id, to: b.id, message: 'go', kind: 'Sync' }] });
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.flow).toMatchObject({ name: 'Views feed' });
+    expect(body.flow.steps[0].kind).toBe('Sync');
+  });
+
+  it('POST /flows rejects a step with a missing node (422)', async () => {
+    const res = await post('/flows', { name: 'Bad', steps: [{ order: 1, from: 'ghost', to: 'ghost', message: '', kind: 'Sync' }] });
+    expect(res.status).toBe(422);
+    expect((await res.json()).issues[0]).toMatchObject({ kind: 'bad-flow-endpoint' });
+  });
+
+  it('PATCH /flows/:id updates a flow name', async () => {
+    const { a, b } = await seed();
+    const flow = await makeFlow(a, b);
+    const res = await app.request(`/flows/${flow.id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: 'Renamed' }) });
+    expect(res.status).toBe(200);
+    expect((await res.json()).flow.name).toBe('Renamed');
+  });
+
+  it('PATCH /flows/:id returns 404 for a missing id', async () => {
+    const res = await app.request('/flows/nope', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: 'X' }) });
+    expect(res.status).toBe(404);
+  });
+
+  it('DELETE /flows/:id removes it', async () => {
+    const { a, b } = await seed();
+    const flow = await makeFlow(a, b);
+    expect((await app.request(`/flows/${flow.id}`, { method: 'DELETE' })).status).toBe(200);
+    const model = await (await app.request('/model')).json();
+    expect(model.flows).toEqual([]);
+  });
+});
