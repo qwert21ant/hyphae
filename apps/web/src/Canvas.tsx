@@ -67,7 +67,7 @@ export function Canvas() {
   const flow = useMemo(() => model.flows.find((f) => f.id === selectedFlowId) ?? null, [model.flows, selectedFlowId]);
   const visibleNodeIds = useMemo(() => new Set(nodes.map((n) => n.id)), [nodes]);
   const overlay = useMemo(() => (flow ? computeFlowOverlay(flow, edges, visibleNodeIds) : null), [flow, edges, visibleNodeIds]);
-  const flowActive = !!overlay;
+  const flowActive = !!overlay && (overlay.participatingNodes.size > 0 || overlay.participatingEdges.size > 0);
 
   // Relabel the participating edges with numbered captions; leave the rest untouched. Only the
   // edges change reference (never the nodes — that is what blanks the canvas), and only when the
@@ -112,8 +112,8 @@ export function Canvas() {
     [flowActive, activeId, view],
   );
   const hi = useMemo(
-    () => (overlay ? { nodes: overlay.participatingNodes, edges: overlay.participatingEdges } : highlightSets(activeId, edges, childIds)),
-    [overlay, activeId, edges, childIds],
+    () => (flowActive && overlay ? { nodes: overlay.participatingNodes, edges: overlay.participatingEdges } : highlightSets(activeId, edges, childIds)),
+    [flowActive, overlay, activeId, edges, childIds],
   );
 
   const highlightCss = useMemo(() => {

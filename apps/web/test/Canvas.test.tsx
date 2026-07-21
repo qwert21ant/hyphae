@@ -282,4 +282,26 @@ describe('Canvas flow overlay', () => {
     expect(css).toContain('.react-flow__edge{opacity:');           // dim rule active
     expect(css).toContain('.react-flow__edge[data-id="x"]');       // participating edge restored
   });
+
+  it('selecting a flow whose steps are all off-view does not dim the canvas', () => {
+    const m = emptyModel();
+    m.nodes.push(
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
+      { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
+      { id: 'cb', name: 'Beta', type: 'Container', parentId: 'sys', ...base },
+      { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
+      { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
+    );
+    m.connections.push({ id: 'x', from: 'a1', to: 'b1', type: 'Dependency', ...e });
+    // Step a1 -> b1; focused on 'ca', b1 lives in cb and is not a visible node -> off-view.
+    m.flows.push({ id: 'f1', name: 'F', description: '', scope: null, steps: [
+      { order: 1, from: 'a1', to: 'b1', message: 'go', kind: 'Sync' },
+    ] });
+    // Reset expandedExternals: a prior test may leave 'cb' expanded (singleton store), which would
+    // surface b1 as a visible member and make the step on-view — defeating this test's premise.
+    useStore.setState({ model: m, focusId: 'ca', selectedId: null, selectedFlowId: 'f1', expandedExternals: new Set() });
+    const { container } = render(<Canvas />);
+    const css = container.querySelector('style[data-hyphae-hl]')!.textContent ?? '';
+    expect(css).not.toMatch(/react-flow__edge\{opacity:0\.\d/);   // no dim-all rule
+  });
 });
