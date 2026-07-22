@@ -155,7 +155,6 @@ describe('ModelStore patterns', () => {
       transitions: [{ from: 'Idle', to: 'Recording' }] });
     expect(p.id).toBeTruthy();
     expect(store.get().patterns).toHaveLength(1);
-    // an unbound state member is valid; a nodeId member must resolve
     expect(store.get().patterns[0]).toEqual(p);
   });
 
@@ -176,5 +175,15 @@ describe('ModelStore patterns', () => {
     const p = store.addPattern({ name: 'P', kind: 'pipeline', members: [{ name: 'S' }] });
     store.deletePattern(p.id);
     expect(store.get().patterns).toEqual([]);
+  });
+
+  it('allows deleting a node used by a pattern, leaving the pattern invalid (flagged, not blocked)', () => {
+    const store = new ModelStore(file);
+    const { a } = seed(store);
+    const pattern = store.addPattern({ name: 'P', kind: 'pipeline', members: [{ name: 'S', nodeId: a.id }] });
+    store.deleteNode(a.id);                                          // not rejected
+    expect(store.get().patterns.map((p) => p.id)).toEqual([pattern.id]);   // pattern survives
+    const issues = validateModel(store.get(), resolveProfile(store.get()));
+    expect(issues.some((i) => i.kind === 'pattern-member-bad-node' && i.ref === pattern.id)).toBe(true);
   });
 });

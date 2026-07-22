@@ -138,12 +138,14 @@ export class ModelStore {
   }
 
   /** Validate the candidate model; reject if it adds an issue, else commit + bump + save + notify.
-   *  `ignoreFlowRefs` lets a node/connection delete proceed even if it strands a flow step — the
-   *  flow is left flagged-invalid (spec: deletes mark flows invalid, they do not block on them). */
+   *  `ignoreFlowRefs` lets a node/connection delete proceed even if it strands a flow step or a
+   *  pattern's node reference — the flow/pattern is left flagged-invalid (spec: deletes mark
+   *  flows/patterns invalid, they do not block on them). */
   private commit(next: HyphaeModel, opts: { ignoreFlowRefs?: boolean } = {}): void {
     let issues = newIssues(this.model, next, resolveProfile(next));
     if (opts.ignoreFlowRefs) {
-      issues = issues.filter((i) => i.kind !== 'bad-flow-endpoint' && i.kind !== 'bad-flow-via');
+      issues = issues.filter((i) => i.kind !== 'bad-flow-endpoint' && i.kind !== 'bad-flow-via'
+        && i.kind !== 'pattern-member-bad-node' && i.kind !== 'pattern-bad-anchor' && i.kind !== 'pattern-unanchored-ref');
     }
     if (issues.length) throw new ValidationError(issues);
     this.model = next;
