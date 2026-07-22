@@ -10,16 +10,19 @@ import { buildFocusView } from './focusView';
 import { layoutFocusView, resolveViewPositions } from './layout';
 import { focusViewToFlow, highlightSets } from './reactflow';
 import { computeFlowOverlay } from './flowOverlay';
+import { patternViewToFlow } from './patternView';
 import { GroupNode } from './GroupNode';
 import { NodeBox } from './NodeBox';
 import { GhostNode } from './GhostNode';
 import { GhostGroupNode } from './GhostGroupNode';
+import { PatternMemberNode } from './PatternMemberNode';
 import { FloatingEdge } from './FloatingEdge';
 import { FilterPanel } from './FilterPanel';
 import { FlowPicker } from './FlowPicker';
+import { PatternPicker } from './PatternPicker';
 import { Legend } from './Legend';
 
-const nodeTypes = { region: GroupNode, node: NodeBox, ghost: GhostNode, ghostGroup: GhostGroupNode };
+const nodeTypes = { region: GroupNode, node: NodeBox, ghost: GhostNode, ghostGroup: GhostGroupNode, patternMember: PatternMemberNode };
 const edgeTypes = { floating: FloatingEdge };
 const STEP_NUM = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩', '⑪', '⑫'];
 const stepBadge = (order: number) => STEP_NUM[order - 1] ?? `(${order})`;
@@ -41,6 +44,7 @@ export function Canvas() {
   const audience = useStore((s) => s.audience);
   const expandedExternals = useStore((s) => s.expandedExternals);
   const selectedFlowId = useStore((s) => s.selectedFlowId);
+  const selectedPatternId = useStore((s) => s.selectedPatternId);
 
   // Transient hover, so a user can trace a node's neighborhood without committing a selection.
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -68,6 +72,11 @@ export function Canvas() {
   const visibleNodeIds = useMemo(() => new Set(nodes.map((n) => n.id)), [nodes]);
   const overlay = useMemo(() => (flow ? computeFlowOverlay(flow, edges, visibleNodeIds) : null), [flow, edges, visibleNodeIds]);
   const flowActive = !!overlay && (overlay.participatingNodes.size > 0 || overlay.participatingEdges.size > 0);
+
+  // Pattern view: when a pattern is selected, replace the focus view entirely with its own
+  // small diagram (member boxes + sequence/transition edges), built by patternViewToFlow.
+  const pattern = useMemo(() => model.patterns.find((p) => p.id === selectedPatternId) ?? null, [model.patterns, selectedPatternId]);
+  const patternFlow = useMemo(() => (pattern ? patternViewToFlow(pattern, c4Backend, model.nodes) : null), [pattern, model.nodes]);
 
   // Relabel the participating edges with numbered captions; leave the rest untouched. Only the
   // edges change reference (never the nodes — that is what blanks the canvas), and only when the
@@ -121,7 +130,7 @@ export function Canvas() {
     const trans =
       '.hyphae-canvas .react-flow__node{transition:opacity .15s ease,box-shadow .15s ease}'
       + '.hyphae-canvas .react-flow__edge,.hyphae-canvas .react-flow__edge .react-flow__edge-path{transition:opacity .15s ease,stroke-width .15s ease}';
-    if (!activeId && !flowActive) return trans;
+    if (patternFlow || (!activeId && !flowActive)) return trans;
     const esc = (id: string) => id.replace(/["\\]/g, '\\$&');
     const nodeSel = [...hi.nodes].map((id) => `.hyphae-canvas .react-flow__node[data-id="${esc(id)}"]`);
     const edgeSel = [...hi.edges].map((id) => `.hyphae-canvas .react-flow__edge[data-id="${esc(id)}"]`);
@@ -140,7 +149,7 @@ export function Canvas() {
       rules.push(`${edgeSel.map((s) => `${s} .react-flow__edge-path`).join(',')}{stroke-width:${strong ? 3.5 : 3}px!important}`);
     }
     return rules.join('');
-  }, [activeId, flowActive, hi, strong, accent, dimEdge, dimNode]);
+  }, [activeId, flowActive, hi, strong, accent, dimEdge, dimNode, patternFlow]);
 
   // Drill in: an external ghost, or a node with children, becomes the new focus.
   const drill = (node: FlowNode) => {
@@ -169,13 +178,16 @@ export function Canvas() {
     }
   };
 
+  const rfNodes = patternFlow ? patternFlow.nodes : nodes;
+  const rfEdges = patternFlow ? patternFlow.edges : displayEdges;
+
   return (
     <div className="hyphae-canvas" style={{ flex: 1, height: '100%' }}>
       <style data-hyphae-hl>{highlightCss}</style>
       <ReactFlow
-        key={focusId ?? '__root__'}
-        nodes={nodes}
-        edges={displayEdges}
+        key={selectedPatternId ? `pattern:${selectedPatternId}` : (focusId ?? '__root__')}
+        nodes={rfNodes}
+        edges={rfEdges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         connectionMode={ConnectionMode.Loose}
@@ -195,6 +207,7 @@ export function Canvas() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <FilterPanel />
             <FlowPicker />
+            <PatternPicker />
           </div>
         </Panel>
         <Panel position="top-right"><Legend /></Panel>
