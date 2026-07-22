@@ -40,6 +40,13 @@ export const c4Backend: Profile = {
     { id: 'submits', class: 'user', description: 'A person sends input to the target.' },
     { id: 'navigates', class: 'user', description: 'A person moves to the target surface.' },
   ],
+  patternKinds: [
+    { id: 'pipeline', renderer: 'pipeline', ordered: true, description: 'Ordered stages data flows through in sequence (e.g. decode → normalize → persist). Members are the stages, in array order.' },
+    { id: 'middleware', renderer: 'middleware', ordered: true, description: 'A request passes through an ordered chain of interceptors (e.g. auth → log → handler).' },
+    { id: 'state-machine', renderer: 'state-machine', ordered: false, description: 'States and the transitions between them (e.g. Idle → Recording → Error). Members are states (pure names); transitions connect them by member name.' },
+    { id: 'layered', renderer: 'layered', ordered: false, description: 'Stacked architectural bands (e.g. UI / domain / data).' },
+    { id: 'event-bus', renderer: 'event-bus', ordered: false, description: 'A hub with publishers and subscribers around it.' },
+  ],
   commonNodeFields: [
     { key: 'responsibilities', type: 'list', description: 'What this node is responsible for (one item per line).' },
     { key: 'invariants', type: 'list', description: 'Conditions that always hold true for this node.' },

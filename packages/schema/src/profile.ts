@@ -33,6 +33,18 @@ export const VerbDefSchema = z.object({
   description: z.string(),
 });
 
+/** Which built-in renderer draws a pattern kind. The profile names it; the code owns the geometry. */
+export const PatternRendererSchema = z.enum([
+  'pipeline', 'middleware', 'state-machine', 'layered', 'event-bus',
+]);
+
+export const PatternKindDefSchema = z.object({
+  id: z.string(),
+  description: z.string(),
+  renderer: PatternRendererSchema,
+  ordered: z.boolean().default(false),
+});
+
 export const FieldDefSchema = z.object({
   key: z.string(),
   label: z.string().optional(),
@@ -68,6 +80,7 @@ export const ProfileSchema = z.object({
   connectionKinds: z.array(ConnectionKindSchema),
   roles: z.array(RoleDefSchema).default([]),
   verbs: z.array(VerbDefSchema).default([]),
+  patternKinds: z.array(PatternKindDefSchema).default([]),
   commonNodeFields: z.array(FieldDefSchema).default([]),
   commonConnectionFields: z.array(FieldDefSchema).default([]),
 });
@@ -82,6 +95,8 @@ export type Shape = z.infer<typeof ShapeSchema>;
 export type RoleDef = z.infer<typeof RoleDefSchema>;
 export type VerbClass = z.infer<typeof VerbClassSchema>;
 export type VerbDef = z.infer<typeof VerbDefSchema>;
+export type PatternRenderer = z.infer<typeof PatternRendererSchema>;
+export type PatternKindDef = z.infer<typeof PatternKindDefSchema>;
 
 export const layerOfType = (profile: Profile, type: string): string | undefined =>
   profile.nodeKinds.find((k) => k.id === type)?.layer;
@@ -94,6 +109,9 @@ export const verbDefOf = (profile: Profile, verbId: string): VerbDef | undefined
 
 export const verbClassOf = (profile: Profile, verbId: string): VerbClass | undefined =>
   verbDefOf(profile, verbId)?.class;
+
+export const patternKindDefOf = (profile: Profile, kindId: string): PatternKindDef | undefined =>
+  profile.patternKinds.find((k) => k.id === kindId);
 
 /**
  * The role that decides a node's shape: its own override, else its kind's default,

@@ -104,4 +104,15 @@ describe('c4-backend visual vocabulary', () => {
       expect(summaryOf(k), `${k} should not have summary`).toBeUndefined();
     }
   });
+
+  it('declares the five pattern kinds, each with a described renderer', () => {
+    const ids = c4Backend.patternKinds.map((k) => k.id).sort();
+    expect(ids).toEqual(['event-bus', 'layered', 'middleware', 'pipeline', 'state-machine']);
+    for (const k of c4Backend.patternKinds) expect(k.description).toMatch(/\S/);
+  });
+
+  it('marks pipeline and middleware as ordered', () => {
+    const ordered = new Set(c4Backend.patternKinds.filter((k) => k.ordered).map((k) => k.id));
+    expect(ordered).toEqual(new Set(['pipeline', 'middleware']));
+  });
 });
