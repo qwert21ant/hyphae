@@ -18,9 +18,12 @@ export interface HyphaeApi {
   createFlow(input: unknown): Promise<unknown>;
   updateFlow(id: string, patch: unknown): Promise<unknown>;
   deleteFlow(id: string): Promise<unknown>;
+  createPattern(input: unknown): Promise<unknown>;
+  updatePattern(id: string, patch: unknown): Promise<unknown>;
+  deletePattern(id: string): Promise<unknown>;
 }
 
-type ApiResult = { node?: { id: string }; connection?: { id: string }; flow?: { id: string }; issues?: unknown; error?: unknown };
+type ApiResult = { node?: { id: string }; connection?: { id: string }; flow?: { id: string }; pattern?: { id: string }; issues?: unknown; error?: unknown };
 
 export const flowStepSchema = z.object({
   order: z.number().describe('1-based position of this step in the sequence.'),
@@ -40,11 +43,31 @@ export const flowItemSchema = z.object({
   scope: z.string().nullable().optional().describe('Optional layer this flow is authored at (Context/Container/Component). Advisory — used only to group flows in the picker.'),
   steps: z.array(flowStepSchema).default([]),
 });
+export const patternMemberSchema = z.object({
+  name: z.string().describe('Human label for this member/stage/state.'),
+  nodeId: z.string().optional().describe('Id of the node this member is — use for a higher-altitude member (a Component, a Container). Set nodeId OR ref, never both.'),
+  ref: z.string().optional().describe('A code Ref for a member with no node (a code stage), relative to the pattern anchor\'s root, e.g. "decode.ts" or "src/pipeline/#normalize". Set ref OR nodeId, never both.'),
+  description: z.string().optional(),
+});
+export const patternTransitionSchema = z.object({
+  from: z.string().describe('The source member name (state).'),
+  to: z.string().describe('The target member name (state).'),
+  trigger: z.string().optional().describe('What causes the transition, e.g. "start", "error".'),
+  description: z.string().optional(),
+});
+export const patternItemSchema = z.object({
+  name: z.string(),
+  kind: z.string().describe('A pattern kind id from describe_profile.patternKinds: pipeline, middleware, state-machine, layered, event-bus.'),
+  description: z.string().optional(),
+  anchor: z.string().nullable().optional().describe('Optional id of the node this pattern describes (the Component a code pipeline lives in). Required when any member uses a relative ref, since a ref resolves against the anchor\'s root.'),
+  members: z.array(patternMemberSchema).default([]).describe('The members, in order. For an ordered kind (pipeline, middleware) the array order IS the stage order.'),
+  transitions: z.array(patternTransitionSchema).default([]).describe('For state-machine: directed transitions between members, referenced by member name.'),
+});
 
 async function runCreate(
   items: Record<string, unknown>[],
   fn: (i: Record<string, unknown>) => Promise<unknown>,
-  key: 'node' | 'connection' | 'flow',
+  key: 'node' | 'connection' | 'flow' | 'pattern',
 ) {
   const results: Array<{ id: string } | { issues: unknown } | { error: unknown }> = [];
   let ok = true;
@@ -261,6 +284,18 @@ export function buildTools(api: HyphaeApi) {
     update_flows: async ({ updates }: { updates: Array<{ id: string } & Record<string, unknown>> }) =>
       runVoid(updates.map((u) => () => { const { id, ...patch } = u; return api.updateFlow(id, patch); })),
     delete_flows: async ({ ids }: { ids: string[] }) => runVoid(ids.map((id) => () => api.deleteFlow(id))),
+    list_patterns: async (_: Record<string, never>) => {
+      const model = await api.getModel();
+      const issues = validateModel(model, resolveProfile(model));
+      const invalid = new Set(issues.filter((i) => i.kind.startsWith('pattern-')).map((i) => i.ref));
+      return model.patterns.map((p) => ({ id: p.id, name: p.name, kind: p.kind, members: p.members.length, anchor: p.anchor, valid: !invalid.has(p.id) }));
+    },
+    get_pattern: async ({ id }: { id: string }) =>
+      (await api.getModel()).patterns.find((p) => p.id === id) ?? { error: `pattern ${id} not found` },
+    create_patterns: async ({ patterns }: { patterns: Record<string, unknown>[] }) => runCreate(patterns, api.createPattern, 'pattern'),
+    update_patterns: async ({ updates }: { updates: Array<{ id: string } & Record<string, unknown>> }) =>
+      runVoid(updates.map((u) => () => { const { id, ...patch } = u; return api.updatePattern(id, patch); })),
+    delete_patterns: async ({ ids }: { ids: string[] }) => runVoid(ids.map((id) => () => api.deletePattern(id))),
     create_nodes: async ({ nodes }: { nodes: Record<string, unknown>[] }) => runCreate(nodes, api.createNode, 'node'),
     create_connections: async ({ connections }: { connections: Record<string, unknown>[] }) => runCreate(connections, api.createConnection, 'connection'),
     update_nodes: async ({ updates }: { updates: Array<{ id: string } & Record<string, unknown>> }) =>
@@ -303,6 +338,9 @@ function httpApi(base: string): HyphaeApi {
     createFlow: (input) => mutate('POST', '/flows', input),
     updateFlow: (id, patch) => mutate('PATCH', `/flows/${id}`, patch),
     deleteFlow: (id) => mutate('DELETE', `/flows/${id}`),
+    createPattern: (input) => mutate('POST', '/patterns', input),
+    updatePattern: (id, patch) => mutate('PATCH', `/patterns/${id}`, patch),
+    deletePattern: (id) => mutate('DELETE', `/patterns/${id}`),
   };
 }
 
@@ -513,6 +551,32 @@ async function main() {
     description: 'Delete one OR MANY flows by id (single delete = one-element array). Best-effort: {ok:true} on full success, else {results:[{ok}|{error}]}.',
     inputSchema: { ids: z.array(z.string()) },
   }, async (a) => text(await tools.delete_flows(a)));
+
+  server.registerTool('list_patterns', {
+    description: 'List Pattern summaries: id, name, kind, member count, anchor, and whether the pattern currently validates. Use get_pattern for full members + transitions.',
+    inputSchema: {},
+  }, async () => text(await tools.list_patterns({})));
+
+  server.registerTool('get_pattern', {
+    description: 'Get one Pattern by id with its full members and transitions. Returns {error} if the id does not exist.',
+    inputSchema: { id: z.string() },
+  }, async (a) => text(await tools.get_pattern(a)));
+
+  server.registerTool('create_patterns', {
+    description: "Create one OR MANY Patterns (architectural shapes; single write = one-element array). A Pattern has a name, a kind (from describe_profile.patternKinds), optional anchor (the node it describes), members, and — for state-machine — transitions. A member is { name, and either nodeId (a node) OR ref (a code Ref, resolved against the anchor's root) OR neither (a pure name, e.g. a state) }. For ordered kinds (pipeline, middleware) member array order is the stage order. Best-effort: {ids:[...]} on full success, else {results:[{id}|{issues}]}.",
+    inputSchema: { patterns: z.array(patternItemSchema) },
+  }, async (a) => text(await tools.create_patterns(a)));
+
+  const patternUpdate = z.object({ id: z.string(), name: z.string().optional(), kind: z.string().optional(), description: z.string().optional(), anchor: z.string().nullable().optional(), members: z.array(patternMemberSchema).optional(), transitions: z.array(patternTransitionSchema).optional() });
+  server.registerTool('update_patterns', {
+    description: 'Update one OR MANY patterns by id (single update = one-element array). Each item: id + fields to change (name, kind, anchor, or the full replacement members/transitions arrays). Best-effort: {ok:true} on full success, else {results:[{ok}|{issues}]}.',
+    inputSchema: { updates: z.array(patternUpdate) },
+  }, async (a) => text(await tools.update_patterns(a)));
+
+  server.registerTool('delete_patterns', {
+    description: 'Delete one OR MANY patterns by id (single delete = one-element array). Best-effort: {ok:true} on full success, else {results:[{ok}|{error}]}.',
+    inputSchema: { ids: z.array(z.string()) },
+  }, async (a) => text(await tools.delete_patterns(a)));
 
   await server.connect(new StdioServerTransport());
 }

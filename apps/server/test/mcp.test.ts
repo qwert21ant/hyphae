@@ -27,6 +27,9 @@ function fakeApi(over: Partial<HyphaeApi> = {}): HyphaeApi {
     createFlow: async (input) => ({ flow: { id: 'f2', ...(input as object) }, version: 1 }),
     updateFlow: async (id, patch) => ({ flow: { id, ...(patch as object) }, version: 1 }),
     deleteFlow: async () => ({ version: 1 }),
+    createPattern: async (input) => ({ pattern: { id: 'p2', ...(input as object) }, version: 1 }),
+    updatePattern: async (id, patch) => ({ pattern: { id, ...(patch as object) }, version: 1 }),
+    deletePattern: async () => ({ version: 1 }),
     ...over,
   };
 }
@@ -169,11 +172,12 @@ describe('MCP tool handlers', () => {
   it('describe_profile returns kinds and documented fields', async () => {
     const r = (await buildTools(fakeApi()).describe_profile({})) as {
       nodeKinds: Array<{ id: string }>; connectionKinds: Array<{ id: string }>;
-      commonNodeFields: Array<{ key: string }>;
+      commonNodeFields: Array<{ key: string }>; patternKinds: Array<{ id: string }>;
     };
     expect(r.nodeKinds.map((k) => k.id)).toContain('Container');
     expect(r.connectionKinds.map((k) => k.id)).toContain('Dependency');
     expect(r.commonNodeFields.map((f) => f.key)).toContain('responsibilities');
+    expect(Array.isArray((r as { patternKinds?: unknown[] }).patternKinds)).toBe(true);
   });
 
 });
@@ -500,5 +504,48 @@ describe('MCP flow write shape', () => {
   it('accepts a full flow item and rejects a bad step kind', () => {
     expect(() => flowItemSchema.parse({ name: 'F', steps: [{ order: 1, from: 'a', to: 'b', kind: 'Sync' }] })).not.toThrow();
     expect(() => flowItemSchema.parse({ name: 'F', steps: [{ order: 1, from: 'a', to: 'b', kind: 'Bad' }] })).toThrow();
+  });
+});
+
+import { patternItemSchema } from '../src/mcp';
+
+describe('MCP pattern tools', () => {
+  const patternModel = (): HyphaeModel => {
+    const m = emptyModel();
+    m.patterns.push({ id: 'p1', name: 'Recorder', kind: 'state-machine', description: '', anchor: null,
+      members: [{ name: 'Idle', description: '' }], transitions: [] });
+    return m;
+  };
+  const api = () => fakeApi({ getModel: async () => patternModel() });
+
+  it('list_patterns returns summaries with validity', async () => {
+    const r = await buildTools(api()).list_patterns({});
+    expect(r).toEqual([{ id: 'p1', name: 'Recorder', kind: 'state-machine', members: 1, anchor: null, valid: true }]);
+  });
+
+  it('list_patterns marks a pattern invalid on an unknown kind', async () => {
+    const bad = fakeApi({ getModel: async () => { const m = patternModel(); m.patterns[0].kind = 'octopus'; return m; } });
+    const r = (await buildTools(bad).list_patterns({})) as Array<{ valid: boolean }>;
+    expect(r[0].valid).toBe(false);
+  });
+
+  it('get_pattern returns one pattern, or an error', async () => {
+    expect(await buildTools(api()).get_pattern({ id: 'p1' })).toMatchObject({ name: 'Recorder' });
+    expect(await buildTools(api()).get_pattern({ id: 'nope' })).toMatchObject({ error: expect.stringContaining('not found') });
+  });
+
+  it('create_patterns returns ids and forwards the member shape', async () => {
+    const seen: Record<string, unknown>[] = [];
+    const tools = buildTools(fakeApi({ createPattern: async (input) => { seen.push(input as Record<string, unknown>); return { pattern: { id: 'p9', ...(input as object) }, version: 1 }; } }));
+    const r = await tools.create_patterns({ patterns: [{ name: 'P', kind: 'pipeline', members: [{ name: 'Decode', ref: 'd.ts' }] }] });
+    expect(r).toEqual({ ids: ['p9'] });
+    expect(seen[0]).toMatchObject({ name: 'P', kind: 'pipeline', members: [{ name: 'Decode', ref: 'd.ts' }] });
+  });
+});
+
+describe('MCP pattern write shape', () => {
+  it('accepts a full pattern item and rejects a missing name', () => {
+    expect(() => patternItemSchema.parse({ name: 'P', kind: 'pipeline', members: [{ name: 'M', ref: 'x.ts' }], transitions: [{ from: 'M', to: 'M' }] })).not.toThrow();
+    expect(() => patternItemSchema.parse({ kind: 'pipeline' })).toThrow();
   });
 });
