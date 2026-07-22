@@ -151,6 +151,18 @@ describe('editor store', () => {
     useStore.getState().selectFlow(null);
     expect(useStore.getState().selectedFlowId).toBeNull();
   });
+
+  it('selects a pattern and clears any selected flow (and vice versa)', () => {
+    useStore.getState().selectFlow('f1');
+    useStore.getState().selectPattern('p1');
+    expect(useStore.getState().selectedPatternId).toBe('p1');
+    expect(useStore.getState().selectedFlowId).toBeNull();
+    useStore.getState().selectFlow('f2');
+    expect(useStore.getState().selectedFlowId).toBe('f2');
+    expect(useStore.getState().selectedPatternId).toBeNull();
+    useStore.getState().selectPattern(null);
+    expect(useStore.getState().selectedPatternId).toBeNull();
+  });
 });
 
 // Kept as its own describe block: this is the only test in the file that needs
