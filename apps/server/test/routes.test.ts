@@ -146,3 +146,48 @@ describe('flow routes', () => {
     expect(model.flows).toEqual([]);
   });
 });
+
+describe('pattern routes', () => {
+  it('POST /patterns creates a pattern', async () => {
+    const res = await app.request('/patterns', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Recorder', kind: 'state-machine', members: [{ name: 'Idle' }] }),
+    });
+    expect(res.status).toBe(201);
+    const body = await res.json() as { pattern: { id: string; kind: string } };
+    expect(body.pattern.kind).toBe('state-machine');
+  });
+
+  it('POST /patterns rejects an unknown kind with 422', async () => {
+    const res = await app.request('/patterns', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Bad', kind: 'octopus' }),
+    });
+    expect(res.status).toBe(422);
+  });
+
+  it('PATCH /patterns/:id updates a pattern name', async () => {
+    const created = (await (await post('/patterns', { name: 'Recorder', kind: 'state-machine', members: [{ name: 'Idle' }] })).json()).pattern;
+    const res = await app.request(`/patterns/${created.id}`, {
+      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: 'Renamed' }),
+    });
+    expect(res.status).toBe(200);
+    expect((await res.json()).pattern.name).toBe('Renamed');
+  });
+
+  it('PATCH /patterns/:id returns 404 for a missing id', async () => {
+    const res = await app.request('/patterns/nope', {
+      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: 'X' }),
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it('DELETE /patterns/:id removes it', async () => {
+    const created = (await (await post('/patterns', { name: 'Recorder', kind: 'state-machine', members: [{ name: 'Idle' }] })).json()).pattern;
+    expect((await app.request(`/patterns/${created.id}`, { method: 'DELETE' })).status).toBe(200);
+    const model = await (await app.request('/model')).json();
+    expect(model.patterns).toEqual([]);
+  });
+});
