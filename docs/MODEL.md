@@ -105,13 +105,16 @@ handles branching. The Behavior axis, "horizontal" time. Flows are **built**, no
 ### 3.4 Pattern
 A first-class **overlay** that annotates a set of members with a recognized *architectural
 shape* and draws it specially. A `Pattern` has a `kind` (from the profile —
-`pipeline` / `middleware` / `state-machine` / `layered` / `event-bus` …), a set of **members**,
-and an optional ordering; each kind has a dedicated renderer.
+`pipeline` / `middleware` / `state-machine` / `layered` / `event-bus` …) and a set of
+**members**; array order is the stage order for ordered kinds, so no separate order field is
+needed. Pipeline and middleware render as an ordered row of stages, state-machine lays out
+states and transitions, and layered/event-bus currently fall back to an unordered member list.
 
-A member is `{ name, nodeId? | ref?, description? }` — it points at **either a node id or a
-code Ref** (§3.7). This matters: with code no longer modeled as nodes, a code-level pipeline's
-stages have no nodes to reference, so they are named members carrying a `ref` into the source.
-At higher altitudes members are node ids as usual.
+A member is `{ name, nodeId? | ref?, description? }` — it binds to **at most one** of a node id
+or a code Ref (§3.7), or **neither** (a pure name, e.g. a state in a state-machine Pattern). This
+matters: with code no longer modeled as nodes, a code-level pipeline's stages have no nodes to
+reference, so they are named members carrying a `ref` into the source. At higher altitudes
+members are node ids as usual.
 
 Pattern is how code-level structure survives **without** modeling classes as nodes: a
 Component annotated with a `pipeline` Pattern shows its stages, not thirty class boxes. The
