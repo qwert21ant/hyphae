@@ -281,3 +281,83 @@ describe('flow validation', () => {
     expect(validateModel(m, c4Backend)).toEqual([]);
   });
 });
+
+describe('pattern validation', () => {
+  const base = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } };
+  const patternModel = () => {
+    const m = emptyModel();
+    m.nodes.push(
+      { id: 'cont', name: 'Gateway', type: 'Container', parentId: null, ...base, root: 'media_gateway/' } as never,
+      { id: 'comp', name: 'Ingest', type: 'Component', parentId: 'cont', ...base } as never,
+    );
+    return m;
+  };
+
+  it('accepts a realistic ref-member pipeline anchored to a component', () => {
+    const m = patternModel();
+    m.patterns.push({ id: 'p1', name: 'Ingest', kind: 'pipeline', description: '', anchor: 'comp',
+      members: [{ name: 'Decode', ref: 'decode.ts', description: '' }, { name: 'Persist', nodeId: 'comp', description: '' }],
+      transitions: [] });
+    expect(validateModel(m, c4Backend)).toEqual([]);
+  });
+
+  it('accepts a pure-name state machine with transitions', () => {
+    const m = patternModel();
+    m.patterns.push({ id: 'p2', name: 'Recorder', kind: 'state-machine', description: '', anchor: null,
+      members: [{ name: 'Idle', description: '' }, { name: 'Recording', description: '' }],
+      transitions: [{ from: 'Idle', to: 'Recording', trigger: 'start', description: '' }] });
+    expect(validateModel(m, c4Backend)).toEqual([]);
+  });
+
+  it('flags an unknown kind', () => {
+    const m = patternModel();
+    m.patterns.push({ id: 'p', name: 'X', kind: 'octopus', description: '', anchor: null, members: [], transitions: [] });
+    expect(validateModel(m, c4Backend).filter((i) => i.kind === 'pattern-unknown-kind')).toHaveLength(1);
+  });
+
+  it('flags a member bound to both a node and a ref', () => {
+    const m = patternModel();
+    m.patterns.push({ id: 'p', name: 'X', kind: 'pipeline', description: '', anchor: 'comp',
+      members: [{ name: 'M', nodeId: 'comp', ref: 'decode.ts', description: '' }], transitions: [] });
+    const issues = validateModel(m, c4Backend).filter((i) => i.kind === 'pattern-member-double-bind');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].ref).toBe('p');
+  });
+
+  it('flags a member nodeId that is not a node', () => {
+    const m = patternModel();
+    m.patterns.push({ id: 'p', name: 'X', kind: 'pipeline', description: '', anchor: null,
+      members: [{ name: 'M', nodeId: 'ghost', description: '' }], transitions: [] });
+    expect(validateModel(m, c4Backend).filter((i) => i.kind === 'pattern-member-bad-node')).toHaveLength(1);
+  });
+
+  it('flags an anchor that is not a node', () => {
+    const m = patternModel();
+    m.patterns.push({ id: 'p', name: 'X', kind: 'pipeline', description: '', anchor: 'ghost', members: [], transitions: [] });
+    expect(validateModel(m, c4Backend).filter((i) => i.kind === 'pattern-bad-anchor')).toHaveLength(1);
+  });
+
+  it('flags a relative ref member with no anchoring root', () => {
+    const m = patternModel();
+    // comp has no root and its ancestor "cont" DOES declare one — so anchor:'comp' resolves.
+    // Anchor null => the ref cannot resolve.
+    m.patterns.push({ id: 'p', name: 'X', kind: 'pipeline', description: '', anchor: null,
+      members: [{ name: 'M', ref: 'decode.ts', description: '' }], transitions: [] });
+    expect(validateModel(m, c4Backend).filter((i) => i.kind === 'pattern-unanchored-ref')).toHaveLength(1);
+  });
+
+  it('flags a transition endpoint that is not a member name', () => {
+    const m = patternModel();
+    m.patterns.push({ id: 'p', name: 'X', kind: 'state-machine', description: '', anchor: null,
+      members: [{ name: 'Idle', description: '' }],
+      transitions: [{ from: 'Idle', to: 'Ghost', trigger: '', description: '' }] });
+    expect(validateModel(m, c4Backend).filter((i) => i.kind === 'pattern-bad-transition')).toHaveLength(1);
+  });
+
+  it('flags duplicate member names', () => {
+    const m = patternModel();
+    m.patterns.push({ id: 'p', name: 'X', kind: 'pipeline', description: '', anchor: null,
+      members: [{ name: 'M', description: '' }, { name: 'M', description: '' }], transitions: [] });
+    expect(validateModel(m, c4Backend).filter((i) => i.kind === 'pattern-duplicate-member-name')).toHaveLength(1);
+  });
+});
