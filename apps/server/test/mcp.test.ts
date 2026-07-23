@@ -74,11 +74,9 @@ describe('MCP tool handlers', () => {
     const g = (await buildTools(api).model_gaps({})) as {
       orphanNodes: Array<{ id: string }>;
       thinDescriptions: Array<{ id: string; reason: string }>;
-      unboundCodeEdges: unknown[];
     };
     expect(g.orphanNodes.map((n) => n.id)).toEqual(['comp', 'orph']); // both components have no edges
     expect(g.thinDescriptions.some((t) => t.id === 'orph' && t.reason === 'empty')).toBe(true);
-    expect(Array.isArray(g.unboundCodeEdges)).toBe(true);
   });
   it('create_nodes returns ids on full success', async () => {
     const r = await buildTools(fakeApi()).create_nodes({ nodes: [{ name: 'X', type: 'Component' }] });

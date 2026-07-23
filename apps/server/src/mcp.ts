@@ -509,7 +509,7 @@ async function main() {
   }, async () => text(await tools.describe_profile({})));
 
   server.registerTool('validate_model', {
-    description: 'Validate the whole model against the active profile and return the structural/field issues ({kind, ref, message}): bad containment, dangling/bad endpoints, unknown or missing-required fields, bad enum values, bad refs. Empty array means structurally clean. Use in the Verify phase instead of dumping the model and re-deriving validity in-context. Note: this checks structure/fields only — for semantic coverage gaps (orphan components, unbound code edges, thin descriptions) use model_gaps.',
+    description: 'Validate the whole model against the active profile and return the structural/field issues ({kind, ref, message}): bad containment, dangling/bad endpoints, unknown or missing-required fields, bad enum values, bad refs. Empty array means structurally clean. Use in the Verify phase instead of dumping the model and re-deriving validity in-context. Note: this checks structure/fields only — for semantic coverage gaps (orphan components, thin descriptions) use model_gaps.',
     inputSchema: {},
   }, async () => text(await tools.validate_model({})));
 
@@ -522,7 +522,7 @@ async function main() {
   }, async (a) => text(await tools.resolve_refs(a)));
 
   server.registerTool('model_gaps', {
-    description: 'Advisory coverage/quality read (read-only, whole-model). Returns four gap lists: orphanNodes (Component-layer nodes with zero connections), unboundCodeEdges (cross-component Code↔Code edges whose id is in no connection\'s realizedBy — candidates to bind), thinDescriptions (Component-and-above nodes whose description is empty or echoes the name, each with inbound/outbound degree so a thin hub is visible), and missingRefs (codeRefs that resolve to a path absent on disk — populated only when a disk check is requested; currently always empty, as no caller wires checkDisk yet). Flags candidates only — it never mutates or auto-fixes; a legitimately standalone component or a terse-but-fine node may appear. Complements validate_model, which checks structure/fields; this checks semantic coverage.',
+    description: 'Advisory coverage/quality read (read-only, whole-model). Returns three gap lists: orphanNodes (Component-layer nodes with zero connections), thinDescriptions (Component-and-above nodes whose description is empty or echoes the name, each with inbound/outbound degree so a thin hub is visible), and missingRefs (codeRefs that resolve to a path absent on disk — populated only when a disk check is requested; currently always empty, as no caller wires checkDisk yet). Flags candidates only — it never mutates or auto-fixes; a legitimately standalone component or a terse-but-fine node may appear. Complements validate_model, which checks structure/fields; this checks semantic coverage.',
     inputSchema: {},
   }, async () => text(await tools.model_gaps({})));
 
