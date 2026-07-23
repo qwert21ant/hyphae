@@ -17,22 +17,16 @@ describe('c4-backend profile', () => {
     expect(allowedParentTypes(c4Backend, 'Container')).toContain('System');
   });
 
-  it('defines the Code layer below Component', () => {
-    expect(c4Backend.layers).toEqual(['Context', 'Container', 'Component', 'Code']);
+  it('has three layers ending at Component (no Code layer)', () => {
+    expect(c4Backend.layers).toEqual(['Context', 'Container', 'Component']);
   });
 
-  it('maps the code kinds to the Code layer', () => {
-    for (const k of ['Class', 'Interface', 'Function', 'Module', 'UIComponent']) {
-      expect(layerOfType(c4Backend, k)).toBe('Code');
-    }
-  });
-
-  it('code kinds are children of Component', () => {
-    expect(allowedParentTypes(c4Backend, 'Class')).toEqual(['Component']);
+  it('Component is the leaf structural layer (no code-kind children)', () => {
     const component = c4Backend.nodeKinds.find((k) => k.id === 'Component')!;
-    expect(component.allowedChildren).toEqual(
-      expect.arrayContaining(['Class', 'Interface', 'Function', 'Module', 'UIComponent']),
-    );
+    expect(component.allowedChildren).toEqual([]);
+    for (const k of ['Class', 'Interface', 'Function', 'Module', 'UIComponent']) {
+      expect(c4Backend.nodeKinds.find((nk) => nk.id === k)).toBeUndefined();
+    }
   });
 });
 
@@ -94,14 +88,11 @@ describe('c4-backend visual vocabulary', () => {
     expect(c4Backend.commonConnectionFields.some((f) => f.key === 'intent')).toBe(false);
   });
 
-  it('requires summary on the five non-Code kinds and not on Code kinds', () => {
+  it('requires summary on the five structural kinds', () => {
     const summaryOf = (kindId: string) =>
       effectiveFields(c4Backend, kindId, 'node').find((f) => f.key === 'summary');
     for (const k of ['System', 'Actor', 'ExternalSystem', 'Container', 'Component']) {
       expect(summaryOf(k)?.required, `${k} should require summary`).toBe(true);
-    }
-    for (const k of ['Class', 'Interface', 'Module', 'UIComponent', 'Function']) {
-      expect(summaryOf(k), `${k} should not have summary`).toBeUndefined();
     }
   });
 

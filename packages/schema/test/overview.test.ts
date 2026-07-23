@@ -11,7 +11,6 @@ function model(): HyphaeModel {
     { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base, description: 'the system' },
     { id: 'ca', name: 'Api', type: 'Container', parentId: 'sys', ...base, description: 'edge service' },
     { id: 'cmp', name: 'Auth', type: 'Component', parentId: 'ca', ...base },
-    { id: 'code', name: 'AuthService', type: 'Class', parentId: 'cmp', ...base },
   );
   m.connections.push({ id: 'x1', from: 'cmp', to: 'cmp', type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} });
   return m;
@@ -21,13 +20,11 @@ describe('modelOverview', () => {
   it('shows per-layer and per-kind counts and totals', () => {
     const out = modelOverview(model());
     expect(out).toContain('# Demo');
-    expect(out).toContain('Nodes: 4');
+    expect(out).toContain('Nodes: 3');
     expect(out).toContain('Connections: 1');
     expect(out).toMatch(/Context=1/);
     expect(out).toMatch(/Container=1/);
     expect(out).toMatch(/Component=1/);
-    expect(out).toMatch(/Code=1/);
-    expect(out).toMatch(/Class=1/);
   });
 
   it('lists only System and Container nodes (not Components or Code)', () => {

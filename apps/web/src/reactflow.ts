@@ -8,7 +8,6 @@ export const LAYER_COLOR: Record<string, { bg: string; border: string }> = {
   Context: { bg: '#eef2ff', border: '#6366f1' },
   Container: { bg: '#ecfeff', border: '#0891b2' },
   Component: { bg: '#f0fdf4', border: '#16a34a' },
-  Code: { bg: '#fefce8', border: '#ca8a04' },
 };
 export function layerColorOf(type: string): { bg: string; border: string } {
   const layer = layerOfType(c4Backend, type);
