@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { c4Backend, allowedChildTypes, topLevelTypes, nodeAtOrAboveLayer } from '../src/index';
-import { roleOfNode, roleDefOf, verbDefOf, verbClassOf } from '../src/profile';
+import { roleOfNode, roleDefOf, verbDefOf, verbClassOf, patternKindDefOf } from '../src/profile';
 
 describe('profile child/top-level helpers', () => {
   it('returns the allowed child types for a kind', () => {
@@ -65,5 +65,12 @@ describe('role and verb lookup', () => {
 
   it('exposes the verb description for the LLM and tooltips', () => {
     expect(verbDefOf(c4Backend, 'reads')?.description).toMatch(/\S/);
+  });
+});
+
+describe('patternKinds', () => {
+  it('patternKindDefOf resolves a declared kind and its renderer', () => {
+    expect(patternKindDefOf(c4Backend, 'pipeline')?.renderer).toBe('pipeline');
+    expect(patternKindDefOf(c4Backend, 'nope')).toBeUndefined();
   });
 });

@@ -8,7 +8,7 @@ describe('HyphaeModel', () => {
     expect(m.nodes).toEqual([]);
     expect(m.connections).toEqual([]);
     expect(m.flows).toEqual([]);
-    expect(m.stateMachines).toEqual([]);
+    expect(m.patterns).toEqual([]);
     expect(m.dataTypes).toEqual([]);
     expect(m.requirements).toEqual([]);
     expect(m.decisions).toEqual([]);
@@ -19,7 +19,7 @@ describe('HyphaeModel', () => {
   it('keeps deterministic top-level key order', () => {
     expect(Object.keys(emptyModel())).toEqual([
       'schemaVersion', 'metadata', 'activeProfile',
-      'nodes', 'connections', 'flows', 'stateMachines',
+      'nodes', 'connections', 'flows', 'patterns',
       'dataTypes', 'requirements', 'decisions', 'views',
     ]);
   });

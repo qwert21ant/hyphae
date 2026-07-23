@@ -1,8 +1,8 @@
 import { existsSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
 import {
-  HyphaeModelSchema, NodeSchema, ConnectionSchema, FlowSchema, emptyModel, newId, now,
+  HyphaeModelSchema, NodeSchema, ConnectionSchema, FlowSchema, PatternSchema, emptyModel, newId, now,
   newIssues, resolveProfile,
-  type HyphaeModel, type Node, type Connection, type Flow, type Position,
+  type HyphaeModel, type Node, type Connection, type Flow, type Pattern, type PatternMember, type PatternTransition, type Position,
 } from '@hyphae/schema';
 import { ValidationError, NotFoundError } from './errors';
 
@@ -11,6 +11,14 @@ const DEBOUNCE_MS = 500;
 export type NodeInput = Partial<Node> & { name: string; type: string };
 export type ConnectionInput = Partial<Connection> & { from: string; to: string; type: string };
 export type FlowInput = Partial<Flow> & { name: string };
+// `members`/`transitions` entries carry zod-defaulted fields (e.g. `description`) that need not be
+// supplied by callers — only the name-bearing keys are required; the rest fill in at parse time.
+export type PatternInput = Partial<Omit<Pattern, 'members' | 'transitions'>> & {
+  name: string;
+  kind: string;
+  members?: Array<Partial<PatternMember> & { name: string }>;
+  transitions?: Array<Partial<PatternTransition> & { from: string; to: string }>;
+};
 
 export class ModelStore {
   private model: HyphaeModel;
@@ -99,6 +107,25 @@ export class ModelStore {
     this.commit({ ...this.model, flows: this.model.flows.filter((f) => f.id !== id) });
   }
 
+  addPattern(input: PatternInput): Pattern {
+    const pattern = PatternSchema.parse({ ...input, id: input.id ?? newId() });
+    this.commit({ ...this.model, patterns: [...this.model.patterns, pattern] });
+    return pattern;
+  }
+
+  updatePattern(id: string, patch: Partial<Pattern>): Pattern {
+    const existing = this.model.patterns.find((p) => p.id === id);
+    if (!existing) throw new NotFoundError(`pattern ${id} not found`);
+    const updated = PatternSchema.parse({ ...existing, ...patch, id });
+    this.commit({ ...this.model, patterns: this.model.patterns.map((p) => (p.id === id ? updated : p)) });
+    return updated;
+  }
+
+  deletePattern(id: string): void {
+    if (!this.model.patterns.some((p) => p.id === id)) throw new NotFoundError(`pattern ${id} not found`);
+    this.commit({ ...this.model, patterns: this.model.patterns.filter((p) => p.id !== id) });
+  }
+
   setNodePosition(layer: string, nodeId: string, pos: Position): void {
     const views = this.model.views.map((v) => ({ ...v, nodePositions: { ...v.nodePositions } }));
     let view = views.find((v) => v.layer === layer);
@@ -111,12 +138,14 @@ export class ModelStore {
   }
 
   /** Validate the candidate model; reject if it adds an issue, else commit + bump + save + notify.
-   *  `ignoreFlowRefs` lets a node/connection delete proceed even if it strands a flow step — the
-   *  flow is left flagged-invalid (spec: deletes mark flows invalid, they do not block on them). */
+   *  `ignoreFlowRefs` lets a node/connection delete proceed even if it strands a flow step or a
+   *  pattern's node reference — the flow/pattern is left flagged-invalid (spec: deletes mark
+   *  flows/patterns invalid, they do not block on them). */
   private commit(next: HyphaeModel, opts: { ignoreFlowRefs?: boolean } = {}): void {
     let issues = newIssues(this.model, next, resolveProfile(next));
     if (opts.ignoreFlowRefs) {
-      issues = issues.filter((i) => i.kind !== 'bad-flow-endpoint' && i.kind !== 'bad-flow-via');
+      issues = issues.filter((i) => i.kind !== 'bad-flow-endpoint' && i.kind !== 'bad-flow-via'
+        && i.kind !== 'pattern-member-bad-node' && i.kind !== 'pattern-bad-anchor' && i.kind !== 'pattern-unanchored-ref');
     }
     if (issues.length) throw new ValidationError(issues);
     this.model = next;

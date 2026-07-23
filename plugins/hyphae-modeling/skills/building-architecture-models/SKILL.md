@@ -190,6 +190,30 @@ steps in order. Author one with `create_flows` when a request path is worth show
   flagged invalid (`list_flows` returns `valid:false`, the picker marks it ⚠). Fix or delete such
   flows with `update_flows`/`delete_flows`.
 
+## Patterns (architectural shapes)
+
+A **Pattern** gives a Component's internals or a behavior a recognized *shape*, drawn specially —
+instead of a wall of class boxes. Author with `create_patterns`. Each pattern has:
+
+- `name`, and `kind` — one of the profile's `patternKinds` (see `describe_profile`):
+  **pipeline** (ordered stages), **middleware** (interceptor chain), **state-machine**
+  (states + transitions), **layered** (bands), **event-bus** (hub). Pipeline and middleware
+  render as an ordered row of stages; state-machine lays out states and transitions; layered
+  and event-bus fall back to an unordered member list.
+- `members: [{ name, nodeId? | ref?, description? }]` — each member binds to **at most one** of a
+  node (`nodeId`) or a code Ref (`ref`), or **neither** (a pure name, e.g. a state). For an
+  ordered kind the **array order is the stage order** — no separate order field.
+- `anchor` — the node the pattern describes (the Component a code pipeline lives in). **Required
+  when a member uses a relative `ref`**, because a ref resolves against the anchor's `root`.
+- `transitions: [{ from, to, trigger?, description? }]` — for **state-machine** only; `from`/`to`
+  are member **names**.
+
+Guidance:
+- A code pipeline inside a Component: `anchor` = that Component, members = the stages with `ref`s
+  into the source (`decode.ts`, `normalize.ts`), in order.
+- A state machine: members = the states (pure names), plus `transitions` between them by name.
+- Member names must be unique within a pattern. A node may appear in more than one pattern.
+
 ## Idempotency contract (every run, every agent)
 
 - **Read first** (`model_overview`, then `list_nodes`/`get_subgraph` for the scope you're about to touch). Never assume empty. Reads default to Component-and-above; pass `maxLayer:'Code'` when the scope you are about to touch is the Code layer.

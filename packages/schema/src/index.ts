@@ -3,6 +3,7 @@ export * from './ref';
 export * from './node';
 export * from './connection';
 export * from './flow';
+export * from './pattern';
 export * from './view';
 export * from './profile';
 export * from './profiles/c4-backend';

@@ -304,4 +304,19 @@ describe('Canvas flow overlay', () => {
     const css = container.querySelector('style[data-hyphae-hl]')!.textContent ?? '';
     expect(css).not.toMatch(/react-flow__edge\{opacity:0\.\d/);   // no dim-all rule
   });
+
+  it('renders pattern member boxes when a pattern is selected', () => {
+    const m = emptyModel();
+    m.nodes.push({ id: 'comp', name: 'Ingest', type: 'Component', parentId: null, root: null, role: null, description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } } as never);
+    m.patterns.push({ id: 'p1', name: 'Recorder', kind: 'state-machine', description: '', anchor: null,
+      members: [{ name: 'Idle', description: '' }, { name: 'Recording', description: '' }],
+      transitions: [{ from: 'Idle', to: 'Recording', trigger: 'start', description: '' }] });
+    useStore.setState({ model: m, selectedPatternId: 'p1', selectedFlowId: null, focusId: null });
+    // NOTE: PatternPicker (Task 11) also lists member names as plain text (<li>Idle</li>) when the
+    // pattern is selected, so a bare getByText('Idle') is ambiguous. Scope to the canvas's own
+    // React Flow nodes via the file's `node()` helper instead.
+    const { container } = render(<Canvas />);
+    expect(node(container, 'Idle')).toBeTruthy();
+    expect(node(container, 'Recording')).toBeTruthy();
+  });
 });

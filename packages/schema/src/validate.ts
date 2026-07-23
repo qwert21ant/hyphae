@@ -3,7 +3,7 @@ import type { Profile, FieldDef } from './profile';
 import { allowedParentTypes, c4Backend } from './profiles/c4-backend';
 import { effectiveFields, roleDefOf, verbDefOf } from './profile';
 import type { Node } from './node';
-import { isDirectoryRef, resolveRoot } from './ref';
+import { isDirectoryRef, resolveRoot, resolveRef } from './ref';
 
 export type Issue = {
   kind:
@@ -12,7 +12,10 @@ export type Issue = {
     | 'unknown-field' | 'bad-field-type' | 'bad-enum-value' | 'missing-required-field' | 'bad-ref'
     | 'unanchored-ref' | 'bad-root'
     | 'unknown-role' | 'unknown-verb'
-    | 'bad-flow-endpoint' | 'bad-flow-via' | 'bad-flow-scope';
+    | 'bad-flow-endpoint' | 'bad-flow-via' | 'bad-flow-scope'
+    | 'pattern-unknown-kind' | 'pattern-member-double-bind' | 'pattern-member-bad-node'
+    | 'pattern-bad-anchor' | 'pattern-unanchored-ref' | 'pattern-bad-transition'
+    | 'pattern-duplicate-member-name';
   ref: string;       // id of the offending node/connection
   message: string;
 };
@@ -146,6 +149,40 @@ export function validateModel(model: HyphaeModel, profile: Profile): Issue[] {
       }
       if (s.via !== undefined && !connIds.has(s.via)) {
         issues.push({ kind: 'bad-flow-via', ref: f.id, message: `Step ${s.order} via references a missing connection "${s.via}"` });
+      }
+    }
+  }
+
+  const patternKinds = new Set(profile.patternKinds.map((k) => k.id));
+  for (const p of model.patterns) {
+    if (!patternKinds.has(p.kind)) {
+      issues.push({ kind: 'pattern-unknown-kind', ref: p.id, message: `Unknown pattern kind "${p.kind}"` });
+    }
+    if (p.anchor !== null && !nodeById.has(p.anchor)) {
+      issues.push({ kind: 'pattern-bad-anchor', ref: p.id, message: `anchor "${p.anchor}" is not a node` });
+    }
+    const names = new Set<string>();
+    for (const m of p.members) {
+      if (m.nodeId !== undefined && m.ref !== undefined) {
+        issues.push({ kind: 'pattern-member-double-bind', ref: p.id, message: `Member "${m.name}" has both a nodeId and a ref` });
+      }
+      if (m.nodeId !== undefined && !nodeById.has(m.nodeId)) {
+        issues.push({ kind: 'pattern-member-bad-node', ref: p.id, message: `Member "${m.name}" nodeId "${m.nodeId}" is not a node` });
+      }
+      if (m.ref !== undefined && !m.ref.startsWith('/')) {
+        const resolved = p.anchor !== null ? resolveRef(model.nodes, p.anchor, m.ref) : null;
+        if (resolved === null) {
+          issues.push({ kind: 'pattern-unanchored-ref', ref: p.id, message: `Member "${m.name}" ref "${m.ref}" cannot be resolved: no anchoring root (set the pattern's anchor to a node whose root chain covers it)` });
+        }
+      }
+      if (names.has(m.name)) {
+        issues.push({ kind: 'pattern-duplicate-member-name', ref: p.id, message: `Duplicate member name "${m.name}"` });
+      }
+      names.add(m.name);
+    }
+    for (const t of p.transitions) {
+      if (!names.has(t.from) || !names.has(t.to)) {
+        issues.push({ kind: 'pattern-bad-transition', ref: p.id, message: `Transition ${t.from} → ${t.to} references a name that is not a member` });
       }
     }
   }

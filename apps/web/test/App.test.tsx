@@ -9,7 +9,7 @@ vi.mock('../src/api', () => {
   });
   const blank = () => ({
     schemaVersion: 1, metadata: { name: 'Untitled', description: '', createdAt: 't', updatedAt: 't' },
-    activeProfile: 'c4-backend', nodes: [], connections: [], flows: [], stateMachines: [],
+    activeProfile: 'c4-backend', nodes: [], connections: [], flows: [], patterns: [],
     dataTypes: [], requirements: [], decisions: [], views: [],
   });
   class ApiError extends Error { constructor(public status: number, public body: unknown) { super('x'); } }

@@ -75,6 +75,25 @@ export function createApp(store: ModelStore) {
     catch (e) { return mapError(c, e); }
   });
 
+  app.post('/patterns', async (c) => {
+    let body: unknown;
+    try { body = await c.req.json(); } catch { return c.json({ error: 'invalid JSON' }, 400); }
+    try { const pattern = store.addPattern(body as never); return c.json({ pattern, version: store.version }, 201); }
+    catch (e) { return mapError(c, e); }
+  });
+
+  app.patch('/patterns/:id', async (c) => {
+    let body: unknown;
+    try { body = await c.req.json(); } catch { return c.json({ error: 'invalid JSON' }, 400); }
+    try { const pattern = store.updatePattern(c.req.param('id'), body as never); return c.json({ pattern, version: store.version }); }
+    catch (e) { return mapError(c, e); }
+  });
+
+  app.delete('/patterns/:id', (c) => {
+    try { store.deletePattern(c.req.param('id')); return c.json({ version: store.version }); }
+    catch (e) { return mapError(c, e); }
+  });
+
   app.put('/views/:layer/positions/:nodeId', async (c) => {
     let body: unknown;
     try { body = await c.req.json(); } catch { return c.json({ error: 'invalid JSON' }, 400); }

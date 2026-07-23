@@ -3,9 +3,9 @@ import { NodeSchema } from './node';
 import { ConnectionSchema } from './connection';
 import { ViewSchema } from './view';
 import { FlowSchema } from './flow';
+import { PatternSchema } from './pattern';
 import {
-  StateMachineSchema, DataTypeSchema,
-  RequirementSchema, DecisionSchema,
+  DataTypeSchema, RequirementSchema, DecisionSchema,
 } from './reserved';
 import { now } from './ids';
 
@@ -23,7 +23,7 @@ export const HyphaeModelSchema = z.object({
   nodes: z.array(NodeSchema).default([]),
   connections: z.array(ConnectionSchema).default([]),
   flows: z.array(FlowSchema).default([]),
-  stateMachines: z.array(StateMachineSchema).default([]),
+  patterns: z.array(PatternSchema).default([]),
   dataTypes: z.array(DataTypeSchema).default([]),
   requirements: z.array(RequirementSchema).default([]),
   decisions: z.array(DecisionSchema).default([]),
@@ -41,7 +41,7 @@ export function emptyModel(): HyphaeModel {
     nodes: [],
     connections: [],
     flows: [],
-    stateMachines: [],
+    patterns: [],
     dataTypes: [],
     requirements: [],
     decisions: [],

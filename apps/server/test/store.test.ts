@@ -138,3 +138,52 @@ describe('ModelStore flows', () => {
     expect(issues.some((i) => i.kind === 'bad-flow-endpoint' && i.ref === flow.id)).toBe(true);
   });
 });
+
+describe('ModelStore patterns', () => {
+  function seed(store: ModelStore) {
+    const a = store.addNode({ name: 'A', type: 'Component', fields: { summary: 'x' } });
+    const b = store.addNode({ name: 'B', type: 'Component', fields: { summary: 'x' } });
+    const c = store.addConnection({ from: a.id, to: b.id, type: 'Dependency' });
+    return { a, b, c };
+  }
+
+  it('addPattern persists a valid pattern', () => {
+    const store = new ModelStore(file);
+    seed(store);
+    const p = store.addPattern({ name: 'Recorder', kind: 'state-machine',
+      members: [{ name: 'Idle' }, { name: 'Recording' }],
+      transitions: [{ from: 'Idle', to: 'Recording' }] });
+    expect(p.id).toBeTruthy();
+    expect(store.get().patterns).toHaveLength(1);
+    expect(store.get().patterns[0]).toEqual(p);
+  });
+
+  it('addPattern rejects a pattern with an unknown kind', () => {
+    const store = new ModelStore(file);
+    seed(store);
+    expect(() => store.addPattern({ name: 'Bad', kind: 'octopus' })).toThrow(ValidationError);
+    expect(store.get().patterns).toEqual([]);
+  });
+
+  it('updatePattern throws NotFoundError for a missing id', () => {
+    expect(() => new ModelStore(file).updatePattern('nope', { name: 'X' })).toThrow(NotFoundError);
+  });
+
+  it('deletePattern removes the pattern', () => {
+    const store = new ModelStore(file);
+    seed(store);
+    const p = store.addPattern({ name: 'P', kind: 'pipeline', members: [{ name: 'S' }] });
+    store.deletePattern(p.id);
+    expect(store.get().patterns).toEqual([]);
+  });
+
+  it('allows deleting a node used by a pattern, leaving the pattern invalid (flagged, not blocked)', () => {
+    const store = new ModelStore(file);
+    const { a } = seed(store);
+    const pattern = store.addPattern({ name: 'P', kind: 'pipeline', members: [{ name: 'S', nodeId: a.id }] });
+    store.deleteNode(a.id);                                          // not rejected
+    expect(store.get().patterns.map((p) => p.id)).toEqual([pattern.id]);   // pattern survives
+    const issues = validateModel(store.get(), resolveProfile(store.get()));
+    expect(issues.some((i) => i.kind === 'pattern-member-bad-node' && i.ref === pattern.id)).toBe(true);
+  });
+});

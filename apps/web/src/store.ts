@@ -13,6 +13,7 @@ type State = {
   focusId: string | null;
   selectedId: string | null;
   selectedFlowId: string | null;
+  selectedPatternId: string | null;
   ownVersion: number;
   error: string | null;
   connFilter: ConnFilter;
@@ -24,6 +25,7 @@ type State = {
   revealNode: (id: string) => void;
   select: (id: string | null) => void;
   selectFlow: (id: string | null) => void;
+  selectPattern: (id: string | null) => void;
   setAudience: (a: Audience) => void;
   toggleConnKind: (value: string) => void;
   toggleConnField: (key: string, value: string) => void;
@@ -59,6 +61,7 @@ export const useStore = create<State>((set, get) => {
     focusId: null,
     selectedId: null,
     selectedFlowId: null,
+    selectedPatternId: null,
     ownVersion: 0,
     error: null,
     connFilter: { kinds: [], fields: {} },
@@ -81,7 +84,8 @@ export const useStore = create<State>((set, get) => {
       set({ focusId: parentId, selectedId: id, expandedExternals: new Set<string>() });
     },
     select: (selectedId) => set({ selectedId }),
-    selectFlow: (selectedFlowId) => set({ selectedFlowId }),
+    selectFlow: (selectedFlowId) => set({ selectedFlowId, selectedPatternId: null }),
+    selectPattern: (selectedPatternId) => set({ selectedPatternId, selectedFlowId: null }),
     setAudience: (audience) => {
       if (typeof localStorage !== 'undefined') localStorage.setItem('hyphae.audience', audience);
       set({ audience });
