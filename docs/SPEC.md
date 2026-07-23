@@ -198,14 +198,12 @@ Individual classes/interfaces are no longer diagram nodes. A Component's code is
 - an optional **Pattern** describing internal structure (pipeline, middleware, state machine).
 
 `realizedBy` on connections still aggregates finer edges between the surviving altitudes.
-Existing models with a Code layer are migrated in Phase E (fold Code nodes → `codeRefs` /
-Patterns; drop Code kinds from profiles).
-
-**Folding refs upward.** A Code node's `codeRefs` move onto its parent Component. In the cctv
-model that is 328 refs collapsing onto 81 Components — unusable as flat lists, which is why
-directory and glob Refs (§6.10) matter: one `src/views/cctv/**` replaces thirty class refs.
-Code structure worth naming individually survives as **Pattern members** carrying a `ref`, not
-as a ref list.
+Phase E retires the Code kinds from the profile; it ships **no migration** of existing models —
+a model built under the old Code layer is recreated from scratch rather than folded, and
+`schemaVersion` deliberately stays `1` (there is no `1→2` migration path to mark). Directory and
+glob Refs (§6.10) matter for the recreated model: one `src/views/cctv/**` replaces what would
+otherwise be dozens of individual file refs. Code structure worth naming individually is
+authored as **Pattern members** carrying a `ref`, not as a ref list.
 
 ### 6.8 Reserved axes (schema present, editor later)
 
@@ -361,7 +359,7 @@ Each phase is a projection of the axes already laid down in the schema.
 - Add optional `root` to the node core; resolution by nearest ancestor via `parentId`.
 - Report unanchored / ambiguous / missing-on-disk refs through `validate_model` + `model_gaps`;
   backfill roots on the existing model.
-- Cheap, and a prerequisite for Phase C (Pattern member refs) and Phase E (folding code refs up).
+- Cheap, and a prerequisite for Phase C (Pattern member refs) and Phase E (Component `codeRefs`).
 
 ### Phase A — Visual language
 - Node **roles** → shapes/icons (profile-declared); render name + one-line purpose + tech chip.
@@ -382,8 +380,9 @@ Each phase is a projection of the axes already laid down in the schema.
   data projection. MCP + editor.
 
 ### Phase E — Retire the Code node layer
-- Migrate existing models: fold Code nodes into `codeRefs` + Patterns; drop Code kinds from
-  profiles. Keep `realizedBy` aggregation between surviving altitudes.
+- Drop Code kinds from profiles; a Component's code presence becomes `codeRefs` + an optional
+  Pattern. Keep `realizedBy` aggregation between surviving altitudes. No migration ships —
+  an existing model is recreated, not folded — and `schemaVersion` stays `1`.
 
 ### Ongoing — configurable profiles
 - The verb, role, and pattern vocabularies are all profile-declared, so a new project type is a
@@ -397,8 +396,6 @@ Each phase is a projection of the axes already laid down in the schema.
 
 ## 12. Open questions
 
-- **Code-layer migration.** Automatic vs assisted folding of existing Code nodes into
-  `codeRefs` / Patterns without losing described structure.
 - **Multi-repo roots.** A `root` is a path today. If a model ever spans several repositories,
   does the top-level root become a list, or does a Container carry a repo identifier/URL?
   Deferred until a real multi-repo model exists.

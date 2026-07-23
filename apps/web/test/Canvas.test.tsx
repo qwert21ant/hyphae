@@ -19,7 +19,6 @@ function model() {
     { id: 'cb', name: 'Beta', type: 'Container', parentId: 'sys', ...base },
     { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
     { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
-    { id: 'k1', name: 'K1', type: 'Class', parentId: 'a1', ...base },
   );
   m.connections.push({ id: 'x', from: 'a1', to: 'b1', type: 'Dependency', ...e });
   return m;
@@ -59,11 +58,11 @@ describe('Canvas navigation (real React Flow)', () => {
   });
 
   it('double-clicking a leaf only selects (focus unchanged)', () => {
-    useStore.setState({ model: model(), focusId: 'a1', selectedId: null });
+    useStore.setState({ model: model(), focusId: 'ca', selectedId: null });
     const { container } = render(<Canvas />);
-    dblclick(container, 'k1');
-    expect(useStore.getState().focusId).toBe('a1');
-    expect(useStore.getState().selectedId).toBe('k1');
+    dblclick(container, 'a1');
+    expect(useStore.getState().focusId).toBe('ca');
+    expect(useStore.getState().selectedId).toBe('a1');
   });
 
   it('double-clicking an external ghost drills into it', () => {
@@ -162,19 +161,11 @@ describe('Canvas navigation (real React Flow)', () => {
     expect(css).toMatch(/opacity:1\s*!important/);         // its restore rule must override the dim rule
   });
 
-  it('in stakeholder mode, double-clicking a Component does not drill into its Code', () => {
-    useStore.setState({ model: model(), focusId: 'ca', selectedId: null, audience: 'stakeholder' });
+  it('in full mode, double-clicking a node with children still drills', () => {
+    useStore.setState({ model: model(), focusId: 'sys', selectedId: null, audience: 'full' });
     const { container } = render(<Canvas />);
-    dblclick(container, 'a1');                        // a1 is a Component with a Class child (k1)
-    expect(useStore.getState().focusId).toBe('ca');   // stayed put
-    expect(useStore.getState().selectedId).toBe('a1');
-  });
-
-  it('in full mode, double-clicking a Component with children still drills', () => {
-    useStore.setState({ model: model(), focusId: 'ca', selectedId: null, audience: 'full' });
-    const { container } = render(<Canvas />);
-    dblclick(container, 'a1');
-    expect(useStore.getState().focusId).toBe('a1');
+    dblclick(container, 'ca');
+    expect(useStore.getState().focusId).toBe('ca');
   });
 
   it('clicking a ghost\'s expand caret expands it into its participating child', () => {
@@ -198,9 +189,9 @@ describe('Canvas navigation (real React Flow)', () => {
 });
 
 // A container whose children form a chain a1 → a2 → a3, where a2 → a3 exists only as a DERIVED edge
-// (rolled up from a Code connection m1 → m2). Filtering to Dependency-only, or switching to
-// stakeholder, hides that derived edge — which under the old (unstable) pipeline re-ran dagre and
-// moved a3. The stable-base pipeline must keep a3 put.
+// (two DataFlow connections collapsed, count 2). Filtering to Dependency-only, or switching to
+// stakeholder (which drops derived edges), hides it — which under the old (unstable) pipeline re-ran
+// dagre and moved a3. The stable-base pipeline must keep a3 put.
 function chainModel() {
   const m = emptyModel();
   m.nodes.push(
@@ -208,12 +199,11 @@ function chainModel() {
     { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
     { id: 'a2', name: 'A2', type: 'Component', parentId: 'ca', ...base },
     { id: 'a3', name: 'A3', type: 'Component', parentId: 'ca', ...base },
-    { id: 'm1', name: 'M1', type: 'Class', parentId: 'a2', ...base },
-    { id: 'm2', name: 'M2', type: 'Class', parentId: 'a3', ...base },
   );
   m.connections.push(
     { id: 'e1', from: 'a1', to: 'a2', type: 'Dependency', ...e },
-    { id: 'e2', from: 'm1', to: 'm2', type: 'DataFlow', ...e }, // rolls up to a derived a2 → a3
+    { id: 'e2', from: 'a2', to: 'a3', type: 'DataFlow', ...e }, // two DataFlow edges → derived a2 → a3
+    { id: 'e3', from: 'a2', to: 'a3', type: 'DataFlow', ...e },
   );
   return m;
 }

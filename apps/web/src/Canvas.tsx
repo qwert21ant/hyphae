@@ -4,7 +4,7 @@ import {
   type Node as FlowNode,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { c4Backend, layerOfType } from '@hyphae/schema';
+import { c4Backend } from '@hyphae/schema';
 import { useStore } from './store';
 import { buildFocusView } from './focusView';
 import { layoutFocusView, resolveViewPositions } from './layout';
@@ -155,10 +155,6 @@ export function Canvas() {
   const drill = (node: FlowNode) => {
     if (node.type === 'ghost') { setFocus(node.id); return; }
     if (!model.nodes.some((n) => n.parentId === node.id)) return;
-    if (audience === 'stakeholder') {
-      const target = model.nodes.find((n) => n.id === node.id);
-      if (target && layerOfType(c4Backend, target.type) === 'Component') return; // Components are leaves for stakeholders
-    }
     setFocus(node.id);
   };
 

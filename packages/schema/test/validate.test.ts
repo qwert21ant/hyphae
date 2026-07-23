@@ -66,27 +66,26 @@ describe('validateModel', () => {
   });
 });
 
-describe('Code layer containment', () => {
+describe('containment', () => {
   const base = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
   function withParent(parentType: string) {
     const m = emptyModel();
     m.nodes.push(
       { id: 'sys', name: 'S', type: 'System', parentId: null, ...base, fields: { summary: 'x' } },
       { id: 'ct', name: 'C', type: 'Container', parentId: 'sys', ...base, fields: { summary: 'x' } },
-      { id: 'cmp', name: 'Cmp', type: 'Component', parentId: 'ct', ...base, fields: { summary: 'x' } },
     );
-    const parentId = parentType === 'System' ? 'sys' : parentType === 'Container' ? 'ct' : 'cmp';
-    m.nodes.push({ id: 'code', name: 'Svc', type: 'Class', parentId, ...base });
+    const parentId = parentType === 'System' ? 'sys' : 'ct';
+    m.nodes.push({ id: 'cmp', name: 'Cmp', type: 'Component', parentId, ...base, fields: { summary: 'x' } });
     return m;
   }
 
-  it('allows a Class under a Component', () => {
-    expect(validateModel(withParent('Component'), c4Backend)).toEqual([]);
+  it('allows a Component under a Container', () => {
+    expect(validateModel(withParent('Container'), c4Backend)).toEqual([]);
   });
 
-  it('rejects a Class under a Container', () => {
-    const issues = validateModel(withParent('Container'), c4Backend);
-    expect(issues).toEqual([expect.objectContaining({ kind: 'bad-parent', ref: 'code' })]);
+  it('rejects a Component under a System', () => {
+    const issues = validateModel(withParent('System'), c4Backend);
+    expect(issues).toEqual([expect.objectContaining({ kind: 'bad-parent', ref: 'cmp' })]);
   });
 });
 

@@ -6,7 +6,7 @@ import { edgeLabel, VERB_CLASS_COLOR } from '../src/reactflow';
 const base = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
 const e = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
 
-/** sys › (ca, cb containers); ca has comps a1,a2; cb has comp b1; a1 has Code k1; ext is external. */
+/** sys › (ca, cb containers); ca has comps a1,a2; cb has comp b1; ext is external. */
 function model() {
   const m = emptyModel();
   m.nodes.push(
@@ -16,7 +16,6 @@ function model() {
     { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
     { id: 'a2', name: 'A2', type: 'Component', parentId: 'ca', ...base },
     { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
-    { id: 'k1', name: 'K1', type: 'Class', parentId: 'a1', ...base },
     { id: 'ext', name: 'Ext', type: 'ExternalSystem', parentId: null, ...base },
   );
   return m;
@@ -61,12 +60,12 @@ describe('buildFocusView', () => {
   });
 
   it('merges opposite-direction rollups between the same pair into one undirected edge', () => {
-    // k1 (Class under a1) ↔ b1 (Component under cb) in both directions: both roll up to a1↔cb.
+    // a1 (shown child of focus ca) ↔ b1 (Component under cb) in both directions: both map to a1↔cb.
     // They must collapse to a single edge (count 2) with no direction, not two overlapping arrows.
     const m = model();
     m.connections.push(
-      { id: 'f', from: 'k1', to: 'b1', type: 'Dependency', ...e },
-      { id: 'b', from: 'b1', to: 'k1', type: 'Dependency', ...e },
+      { id: 'f', from: 'a1', to: 'b1', type: 'Dependency', ...e },
+      { id: 'b', from: 'b1', to: 'a1', type: 'Dependency', ...e },
     );
     const v = buildFocusView(m, 'ca');
     const between = v.edges.filter(
@@ -80,7 +79,7 @@ describe('buildFocusView', () => {
   it('keeps the arrow direction when all rollups between a pair point the same way', () => {
     const m = model();
     m.connections.push(
-      { id: 'f1', from: 'k1', to: 'b1', type: 'Dependency', ...e },
+      { id: 'f1', from: 'a1', to: 'b1', type: 'Dependency', ...e },
       { id: 'f2', from: 'a1', to: 'b1', type: 'Dependency', ...e },
     );
     const v = buildFocusView(m, 'ca');
@@ -144,15 +143,6 @@ describe('buildFocusView — rolling connections up to the children level', () =
     expect(v.edges[0]).toMatchObject({ from: 'ca', to: 'cb', derived: true, count: 1 });
   });
 
-  it('rolls a connection several levels below the children up to the children (System focus)', () => {
-    // k1 (Class under a1 under ca) → b1 (Component in cb) still rolls up to ca → cb.
-    const m = model();
-    m.connections.push({ id: 'x', from: 'k1', to: 'b1', type: 'Dependency', ...e });
-    const v = buildFocusView(m, 'sys');
-    expect(v.edges).toHaveLength(1);
-    expect(v.edges[0]).toMatchObject({ from: 'ca', to: 'cb', derived: true, count: 1 });
-  });
-
   it('merges an authored edge and its lower-level realizations into one counted edge', () => {
     // An authored Container→Container edge plus a Component→Component edge that realizes it must
     // collapse to a single ca → cb edge (count 2), not two parallel edges.
@@ -168,51 +158,51 @@ describe('buildFocusView — rolling connections up to the children level', () =
   });
 
   it('does not double-count realizedBy children: a direct edge with realized children stays one real edge', () => {
-    // Parent a1→a2 (Component level, both shown children) is realized by child k1→k2 (Class level),
-    // which rolls up to the same a1→a2 pair. The child must not inflate the pair to a [d2] rollup —
+    // Parent ca→cb (Container level, both shown children of sys) is realized by child a1→b1 (Component
+    // level), which rolls up to the same ca→cb pair. The child must not inflate the pair to a rollup —
     // it is represented by its parent (reachable via the parent's realizedBy in the panel).
     const m = emptyModel();
     m.nodes.push(
-      { id: 'ca', name: 'Alpha', type: 'Container', parentId: null, ...base },
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
+      { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
+      { id: 'cb', name: 'Beta', type: 'Container', parentId: 'sys', ...base },
       { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
-      { id: 'a2', name: 'A2', type: 'Component', parentId: 'ca', ...base },
-      { id: 'k1', name: 'K1', type: 'Class', parentId: 'a1', ...base },
-      { id: 'k2', name: 'K2', type: 'Class', parentId: 'a2', ...base },
+      { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
     );
     m.connections.push(
-      { id: 'parent', from: 'a1', to: 'a2', type: 'Dependency', ...e, realizedBy: ['child'] },
-      { id: 'child', from: 'k1', to: 'k2', type: 'DataFlow', ...e },
+      { id: 'parent', from: 'ca', to: 'cb', type: 'Dependency', ...e, realizedBy: ['child'] },
+      { id: 'child', from: 'a1', to: 'b1', type: 'DataFlow', ...e },
     );
-    const v = buildFocusView(m, 'ca');
-    const a1a2 = v.edges.filter((x) => x.from === 'a1' && x.to === 'a2');
-    expect(a1a2).toHaveLength(1);
-    expect(a1a2[0]).toMatchObject({ id: 'parent', kind: 'Dependency', derived: false, count: 1 });
+    const v = buildFocusView(m, 'sys');
+    const caCb = v.edges.filter((x) => x.from === 'ca' && x.to === 'cb');
+    expect(caCb).toHaveLength(1);
+    expect(caCb[0]).toMatchObject({ id: 'parent', kind: 'Dependency', derived: false, count: 1 });
   });
 
-  it('at a Component focus shows code-child↔external edges, not the rolled-up group-node edge', () => {
-    // Parent y→x (Component level) is realized by m1→k1 (Class level), where k1 is a code child of the
-    // focus x. Focusing x, the child must surface as an edge to the code child (y → k1), and the
-    // coarse parent must NOT also appear as a group-node edge (y → x). A connection authored directly
-    // on the focus (x → ext, no realizedBy) is preserved as a group-node edge.
+  it('at a Container focus anchors a realizing edge to the shown child component, not the group-node rollup', () => {
+    // Parent other→cont (Container level) is realized by m1→x (Component level), where x is a child
+    // component of the focus cont. Focusing cont, the child must surface as an edge to the shown child
+    // (other → x), and the coarse parent must NOT also appear as a group-node edge (other → cont). A
+    // connection authored directly on the focus (cont → ext, no realizedBy) is preserved.
     const m = emptyModel();
     m.nodes.push(
-      { id: 'cont', name: 'Cont', type: 'Container', parentId: null, ...base },
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
+      { id: 'cont', name: 'Cont', type: 'Container', parentId: 'sys', ...base },
       { id: 'x', name: 'X', type: 'Component', parentId: 'cont', ...base },
-      { id: 'k1', name: 'K1', type: 'Class', parentId: 'x', ...base },
-      { id: 'y', name: 'Y', type: 'Component', parentId: 'cont', ...base },
-      { id: 'm1', name: 'M1', type: 'Class', parentId: 'y', ...base },
+      { id: 'other', name: 'Other', type: 'Container', parentId: 'sys', ...base },
+      { id: 'm1', name: 'M1', type: 'Component', parentId: 'other', ...base },
       { id: 'ext', name: 'Ext', type: 'ExternalSystem', parentId: null, ...base },
     );
     m.connections.push(
-      { id: 'pc', from: 'y', to: 'x', type: 'Dependency', ...e, realizedBy: ['cc'] },
-      { id: 'cc', from: 'm1', to: 'k1', type: 'Dependency', ...e },
-      { id: 'q', from: 'x', to: 'ext', type: 'DataFlow', ...e },
+      { id: 'pc', from: 'other', to: 'cont', type: 'Dependency', ...e, realizedBy: ['cc'] },
+      { id: 'cc', from: 'm1', to: 'x', type: 'Dependency', ...e },
+      { id: 'q', from: 'cont', to: 'ext', type: 'DataFlow', ...e },
     );
-    const v = buildFocusView(m, 'x');
-    expect(v.edges.find((edge) => edge.from === 'y' && edge.to === 'k1')).toBeTruthy(); // child-anchored
-    expect(v.edges.find((edge) => edge.to === 'x')).toBeUndefined();                     // no group-node rollup edge
-    expect(v.edges.find((edge) => edge.from === 'x' && edge.to === 'ext')).toMatchObject({ kind: 'DataFlow', derived: false });
-    expect(v.externals.map((n) => n.id).sort()).toEqual(['ext', 'y']);
+    const v = buildFocusView(m, 'cont');
+    expect(v.edges.find((edge) => edge.from === 'other' && edge.to === 'x')).toBeTruthy(); // child-anchored
+    expect(v.edges.find((edge) => edge.to === 'cont')).toBeUndefined();                    // no group-node rollup edge
+    expect(v.edges.find((edge) => edge.from === 'cont' && edge.to === 'ext')).toMatchObject({ kind: 'DataFlow', derived: false });
+    expect(v.externals.map((n) => n.id).sort()).toEqual(['ext', 'other']);
   });
 
   it('a real edge carries realizedBy with its single connection id', () => {
@@ -240,13 +230,6 @@ describe('buildFocusView — rolling connections up to the children level', () =
 });
 
 describe('buildFocusView — stakeholder audience', () => {
-  it('hides Code-layer children at a Component focus', () => {
-    const full = buildFocusView(model(), 'a1', undefined, 'full');
-    expect(full.children.map((n) => n.id)).toEqual(['k1']);           // Class child shown in full
-    const stake = buildFocusView(model(), 'a1', undefined, 'stakeholder');
-    expect(stake.children).toHaveLength(0);                            // Code hidden
-  });
-
   it('drops derived edges and their orphan externals', () => {
     const m = model();
     m.connections.push({ id: 'x', from: 'a1', to: 'b1', type: 'Dependency', ...e }); // rolls up to ca->cb (derived) at sys focus
@@ -304,7 +287,7 @@ describe('buildFocusView — expandable externals', () => {
   });
 
   it('flags a peer external as expandable even when the finer child is absorbed into a coarse edge realizedBy', () => {
-    const m = model(); // sys > ca(a1,a2), cb(b1); a1 > k1; ext
+    const m = model(); // sys > ca(a1,a2), cb(b1); ext
     m.connections.push(
       { id: 'P', from: 'a1', to: 'cb', type: 'Dependency', ...e, realizedBy: ['C'] },
       { id: 'C', from: 'a1', to: 'b1', type: 'Dependency', ...e },
@@ -345,17 +328,21 @@ describe('representative', () => {
   });
 
   it('climbs to the ancestor on the focus layer when the endpoint is below it', () => {
-    expect(representative(model(), 'k1', 'Container')).toBe('ca'); // k1 (Class) under a1 under ca
-    expect(representative(model(), 'k1', 'Component')).toBe('a1'); // k1 (Class) under a1
+    expect(representative(model(), 'a1', 'Container')).toBe('ca'); // a1 (Component) under ca
+    expect(representative(model(), 'b1', 'Container')).toBe('cb'); // b1 (Component) under cb
+  });
+
+  it('climbs two hops to the ancestor on the focus layer', () => {
+    expect(representative(model(), 'a1', 'Context')).toBe('sys'); // a1 (Component) → ca (Container) → sys (Context)
   });
 });
 
 describe('externalConnections', () => {
   it('returns only connections that cross the subtree boundary (exactly one endpoint inside)', () => {
-    const m = model(); // sys › ca › (a1, a2); a1 › k1; cb › b1; ext
+    const m = model(); // sys › ca › (a1, a2); cb › b1; ext
     m.connections.push(
       { id: 'c1', from: 'a1', to: 'b1', type: 'Dependency', ...e },   // a1 in, b1 out → crosses
-      { id: 'c2', from: 'k1', to: 'ext', type: 'Dependency', ...e },  // k1 (under a1) in, ext out → crosses
+      { id: 'c2', from: 'a2', to: 'ext', type: 'Dependency', ...e },  // a2 in, ext out → crosses
       { id: 'c3', from: 'b1', to: 'ext', type: 'Dependency', ...e },  // both outside ca
     );
     expect(externalConnections(m, 'ca').map((c) => c.id).sort()).toEqual(['c1', 'c2']);
@@ -365,17 +352,29 @@ describe('externalConnections', () => {
     const m = model();
     m.connections.push(
       { id: 'kid', from: 'a1', to: 'a2', type: 'Dependency', ...e },  // child ↔ child
-      { id: 'desc', from: 'a1', to: 'k1', type: 'Dependency', ...e }, // node ↔ descendant
+      { id: 'desc', from: 'a1', to: 'a2', type: 'Dependency', ...e }, // duplicate child ↔ child pair
       { id: 'out', from: 'a1', to: 'ext', type: 'Dependency', ...e }, // crosses → kept
     );
     expect(externalConnections(m, 'ca').map((c) => c.id)).toEqual(['out']);
+  });
+
+  it('excludes a connection between two grandchildren, and keeps a crossing edge, at a two-level-deep focus', () => {
+    // sys's subtree is two levels deep: ca/cb (children) and a1/a2/b1 (grandchildren). A flat
+    // `parentId === nodeId` check (one hop) would see neither a1 nor b1 as inside sys's subtree,
+    // wrongly excluding 'out' entirely instead of classifying it as a crossing edge.
+    const m = model(); // sys > ca(a1,a2), cb(b1); ext
+    m.connections.push(
+      { id: 'grandkid', from: 'a1', to: 'b1', type: 'Dependency', ...e }, // both grandchildren of sys
+      { id: 'out', from: 'a1', to: 'ext', type: 'Dependency', ...e },     // crosses → kept
+    );
+    expect(externalConnections(m, 'sys').map((c) => c.id)).toEqual(['out']);
   });
 
   it('excludes connections that are realized children of another connection', () => {
     const m = model();
     m.connections.push(
       { id: 'p', from: 'a1', to: 'ext', type: 'Dependency', ...e, realizedBy: ['x'] },
-      { id: 'x', from: 'k1', to: 'ext', type: 'Dependency', ...e },  // realized under p → hidden
+      { id: 'x', from: 'a2', to: 'ext', type: 'Dependency', ...e },  // realized under p → hidden
     );
     expect(externalConnections(m, 'ca').map((c) => c.id)).toEqual(['p']);
   });
@@ -383,10 +382,10 @@ describe('externalConnections', () => {
 
 describe('partitionConnections', () => {
   it('splits boundary connections into outgoing (from inside) and incoming (to inside)', () => {
-    const m = model(); // sys › ca › (a1,a2); a1 › k1; cb › b1; ext
+    const m = model(); // sys › ca › (a1,a2); cb › b1; ext
     m.connections.push(
       { id: 'out1', from: 'a1', to: 'ext', type: 'Dependency', ...e },  // from inside ca → outgoing
-      { id: 'out2', from: 'k1', to: 'b1', type: 'Dependency', ...e },   // k1 under a1, inside → outgoing
+      { id: 'out2', from: 'a2', to: 'b1', type: 'Dependency', ...e },   // a2 inside ca → outgoing
       { id: 'in1', from: 'ext', to: 'a1', type: 'Dependency', ...e },   // to inside ca → incoming
     );
     const { outgoing, incoming } = partitionConnections(m, 'ca');
@@ -399,7 +398,7 @@ describe('partitionConnections', () => {
     m.connections.push(
       { id: 'kid', from: 'a1', to: 'a2', type: 'Dependency', ...e },    // both inside → excluded
       { id: 'p', from: 'a1', to: 'ext', type: 'Dependency', ...e, realizedBy: ['x'] },
-      { id: 'x', from: 'k1', to: 'ext', type: 'Dependency', ...e },     // realized child → excluded
+      { id: 'x', from: 'a2', to: 'ext', type: 'Dependency', ...e },     // realized child → excluded
       { id: 'in', from: 'ext', to: 'b1', type: 'Dependency', ...e },    // b1 not under ca → excluded
     );
     const { outgoing, incoming } = partitionConnections(m, 'ca');

@@ -2,7 +2,7 @@ import type { Profile, FieldDef } from '../profile';
 
 const technology: FieldDef = { key: 'technology', type: 'text', description: 'Implementation stack / technology used by this node.' };
 
-/** The one-line purpose shown on the diagram. Required above the Code layer: an unlabeled
+/** The one-line purpose shown on the diagram. Required on every structural kind: an unlabeled
  *  box is exactly what this phase exists to eliminate. `description` stays the long form. */
 const summary: FieldDef = {
   key: 'summary', type: 'text', required: true,
@@ -11,7 +11,7 @@ const summary: FieldDef = {
 
 export const c4Backend: Profile = {
   id: 'c4-backend',
-  layers: ['Context', 'Container', 'Component', 'Code'],
+  layers: ['Context', 'Container', 'Component'],
   roles: [
     { id: 'actor', shape: 'person', description: 'A human or external agent that uses the system.' },
     { id: 'service', shape: 'rectangle', description: 'Runs logic — the default for most structural nodes.' },
@@ -67,12 +67,7 @@ export const c4Backend: Profile = {
     { id: 'Actor', category: 'Actor', layer: 'Context', role: 'actor', allowedParents: [], allowedChildren: [], fields: [summary] },
     { id: 'ExternalSystem', category: 'Structure', layer: 'Context', role: 'external', allowedParents: [], allowedChildren: [], fields: [summary] },
     { id: 'Container', category: 'Structure', layer: 'Container', role: 'service', allowedParents: ['System'], allowedChildren: ['Component'], fields: [summary, technology] },
-    { id: 'Component', category: 'Structure', layer: 'Component', role: 'service', allowedParents: ['Container'], allowedChildren: ['Class', 'Interface', 'Function', 'Module', 'UIComponent'], fields: [summary, technology] },
-    { id: 'Class', category: 'Structure', layer: 'Code', role: 'service', allowedParents: ['Component'], allowedChildren: [], fields: [] },
-    { id: 'Interface', category: 'Structure', layer: 'Code', role: 'service', allowedParents: ['Component'], allowedChildren: [], fields: [] },
-    { id: 'Module', category: 'Structure', layer: 'Code', role: 'service', allowedParents: ['Component'], allowedChildren: [], fields: [] },
-    { id: 'UIComponent', category: 'Structure', layer: 'Code', role: 'ui', allowedParents: ['Component'], allowedChildren: [], fields: [] },
-    { id: 'Function', category: 'Behavior', layer: 'Code', role: 'service', allowedParents: ['Component'], allowedChildren: [], fields: [] },
+    { id: 'Component', category: 'Structure', layer: 'Component', role: 'service', allowedParents: ['Container'], allowedChildren: [], fields: [summary, technology] },
   ],
   connectionKinds: [
     { id: 'Dependency', description: 'A depends on / uses B.', fields: [] },
