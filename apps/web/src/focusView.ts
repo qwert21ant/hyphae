@@ -1,4 +1,4 @@
-import { c4Backend, layerOfType, nodeAtOrAboveLayer, type HyphaeModel, type Node, type Connection } from '@hyphae/schema';
+import { c4Backend, layerOfType, type HyphaeModel, type Node, type Connection } from '@hyphae/schema';
 
 export type ConnFilter = { kinds: string[]; fields: Record<string, string[]> };
 export type Audience = 'stakeholder' | 'full';
@@ -108,7 +108,6 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
     : model.nodes.filter((n) => !n.parentId || !allIds.has(n.parentId));
 
   const stakeholder = audience === 'stakeholder';
-  if (stakeholder) children = children.filter((n) => nodeAtOrAboveLayer(c4Backend, n.type, 'Component'));
 
   // The layer external endpoints are rolled up to: the focus node's own layer
   // (its peers), or the top layer at the root view.
@@ -151,11 +150,11 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
 
   // Reconcile realizedBy by granularity:
   // - a parent is "expanded" (shown via its children, not itself) when a child would appear at a
-  //   finer, different pair — e.g. at a Component focus a class→external child attaches to the code
-  //   child, not to the component (group node);
+  //   finer, different pair — e.g. at a System focus a Component→external connection attaches to the
+  //   finer child Component, not to its Container (group node);
   // - a child is "absorbed" (hidden, represented by its parent) when its parent is kept and the child
-  //   maps to the same pair — e.g. at a Container focus a class connection that rolls up to the same
-  //   Component↔Component pair as its authored parent.
+  //   maps to the same pair — e.g. at a Container focus a Component-level connection that rolls up to
+  //   the same Container↔Container pair as its authored parent.
   const expanded = new Set<string>();
   for (const c of conns) {
     const pk = pairKey(c.id);
@@ -219,13 +218,7 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
     edges.push({ id: `agg:${p.a}->${p.b}`, from, to, kind: null, count: p.count, derived: true, realizedBy: p.connIds, direction });
   }
 
-  const atComponent = (id: string): boolean => {
-    const n = nodes.get(id);
-    return !!n && nodeAtOrAboveLayer(c4Backend, n.type, 'Component');
-  };
-  const shownEdges = stakeholder
-    ? edges.filter((ed) => !ed.derived && atComponent(ed.from) && atComponent(ed.to))
-    : edges;
+  const shownEdges = stakeholder ? edges.filter((ed) => !ed.derived) : edges;
 
   const shownExternalIds = new Set<string>();
   for (const ed of shownEdges) {
@@ -238,7 +231,6 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
   // Computed from the surviving connections (not the rendered edges), so a finer child that got
   // absorbed into a coarse edge's realizedBy is still detected.
   const expandableExternalIds = new Set<string>();
-  const memberVisible = (childId: string): boolean => !stakeholder || atComponent(childId);
   for (const c of conns) {
     if (!mapped.has(c.id)) continue;
     for (const origId of [c.from, c.to]) {
@@ -247,7 +239,7 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
       if (!shownExternalIds.has(rep)) continue;                          // only externals actually rendered
       if (representativeWith(nodes, rep, focusLayer) !== rep) continue;  // focus-peer reps only (not members)
       const child = childOfFocus(nodes, origId, rep);
-      if (child !== null && memberVisible(child)) expandableExternalIds.add(rep);
+      if (child !== null) expandableExternalIds.add(rep);
     }
   }
 

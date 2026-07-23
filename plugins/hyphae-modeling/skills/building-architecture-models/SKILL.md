@@ -77,8 +77,8 @@ Mechanical part (do this before showing the gate, so the human sees only real de
 
 Never resolve a conflict by last-write-wins; a genuine disagreement is always a human decision at the gate.
 
-### Phase 5 — Verify (optional, re-runnable)
-A standalone consistency pass over an existing model. The Phase-3 tail already runs this sweep inline (its checkpoint folded into GATE 2), so Phase 5 is only needed as a **re-run** — any time after the initial build. Read-mostly: gaps are filled by the owning subagent, never by the orchestrator inventing edges.
+### Phase 4 — Verify (optional, re-runnable)
+A standalone consistency pass over an existing model. The Phase-3 tail already runs this sweep inline (its checkpoint folded into GATE 2), so Phase 4 is only needed as a **re-run** — any time after the initial build. Read-mostly: gaps are filled by the owning subagent, never by the orchestrator inventing edges.
 0. **Structural check.** Call `validate_model` — it returns any structural/field issues (bad containment, dangling/bad endpoints, unknown or missing-required fields, bad enum values, bad refs, unknown roles, unknown verbs) in one read. Fix those first. Empty means structurally clean.
    Two of these are about ref anchoring (see **Refs and roots**): `unanchored-ref` means a node carries relative `codeRefs` but no ancestor declares a `root` — fix by setting `root` on the owning **Container**, not by rewriting every ref to be repo-relative. `bad-root` means a declared `root` is not a directory Ref (needs a trailing `/`, no `*` or `#`). One missing Container root typically accounts for every `unanchored-ref` in its subtree, so fix roots first and re-run before touching anything else.
 1. **Coverage sweep.** Call `model_gaps` — one read returns orphan Components (zero connections) and thin/name-echoing descriptions (with inbound/outbound degree, so a thin hub — high inbound but an empty/echoing description — stands out). Separate likely-real gaps from legitimately standalone components (`standaloneComponents` are expected).

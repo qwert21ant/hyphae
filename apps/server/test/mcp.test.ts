@@ -61,10 +61,10 @@ describe('MCP tool handlers', () => {
     const issues = (await buildTools(api).validate_model({})) as Array<{ kind: string; ref: string }>;
     expect(issues).toContainEqual(expect.objectContaining({ kind: 'dangling-endpoint', ref: 'c2' }));
   });
-  it('model_gaps flags orphans, unbound code edges, and thin descriptions', async () => {
+  it('model_gaps flags orphans and thin descriptions', async () => {
     const api = fakeApi({ getModel: async () => {
       const m = model();
-      // add a second container with a lone (orphan) component + an unbound cross-component code edge
+      // add a second container with two lone (orphan) components — neither has a connection
       m.nodes.push(
         { id: 'comp', name: 'Comp', type: 'Component', parentId: 'api', description: 'does work', fields: {}, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
         { id: 'orph', name: 'Orph', type: 'Component', parentId: 'api', description: '', fields: {}, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },

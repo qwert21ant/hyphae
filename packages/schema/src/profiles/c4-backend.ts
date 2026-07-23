@@ -2,7 +2,7 @@ import type { Profile, FieldDef } from '../profile';
 
 const technology: FieldDef = { key: 'technology', type: 'text', description: 'Implementation stack / technology used by this node.' };
 
-/** The one-line purpose shown on the diagram. Required above the Code layer: an unlabeled
+/** The one-line purpose shown on the diagram. Required on every structural kind: an unlabeled
  *  box is exactly what this phase exists to eliminate. `description` stays the long form. */
 const summary: FieldDef = {
   key: 'summary', type: 'text', required: true,

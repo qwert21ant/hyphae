@@ -287,7 +287,7 @@ describe('buildFocusView — expandable externals', () => {
   });
 
   it('flags a peer external as expandable even when the finer child is absorbed into a coarse edge realizedBy', () => {
-    const m = model(); // sys > ca(a1,a2), cb(b1); a1 > k1; ext
+    const m = model(); // sys > ca(a1,a2), cb(b1); ext
     m.connections.push(
       { id: 'P', from: 'a1', to: 'cb', type: 'Dependency', ...e, realizedBy: ['C'] },
       { id: 'C', from: 'a1', to: 'b1', type: 'Dependency', ...e },
@@ -331,6 +331,10 @@ describe('representative', () => {
     expect(representative(model(), 'a1', 'Container')).toBe('ca'); // a1 (Component) under ca
     expect(representative(model(), 'b1', 'Container')).toBe('cb'); // b1 (Component) under cb
   });
+
+  it('climbs two hops to the ancestor on the focus layer', () => {
+    expect(representative(model(), 'a1', 'Context')).toBe('sys'); // a1 (Component) → ca (Container) → sys (Context)
+  });
 });
 
 describe('externalConnections', () => {
@@ -348,10 +352,22 @@ describe('externalConnections', () => {
     const m = model();
     m.connections.push(
       { id: 'kid', from: 'a1', to: 'a2', type: 'Dependency', ...e },  // child ↔ child
-      { id: 'desc', from: 'a1', to: 'a2', type: 'Dependency', ...e }, // node ↔ descendant
+      { id: 'desc', from: 'a1', to: 'a2', type: 'Dependency', ...e }, // duplicate child ↔ child pair
       { id: 'out', from: 'a1', to: 'ext', type: 'Dependency', ...e }, // crosses → kept
     );
     expect(externalConnections(m, 'ca').map((c) => c.id)).toEqual(['out']);
+  });
+
+  it('excludes a connection between two grandchildren, and keeps a crossing edge, at a two-level-deep focus', () => {
+    // sys's subtree is two levels deep: ca/cb (children) and a1/a2/b1 (grandchildren). A flat
+    // `parentId === nodeId` check (one hop) would see neither a1 nor b1 as inside sys's subtree,
+    // wrongly excluding 'out' entirely instead of classifying it as a crossing edge.
+    const m = model(); // sys > ca(a1,a2), cb(b1); ext
+    m.connections.push(
+      { id: 'grandkid', from: 'a1', to: 'b1', type: 'Dependency', ...e }, // both grandchildren of sys
+      { id: 'out', from: 'a1', to: 'ext', type: 'Dependency', ...e },     // crosses → kept
+    );
+    expect(externalConnections(m, 'sys').map((c) => c.id)).toEqual(['out']);
   });
 
   it('excludes connections that are realized children of another connection', () => {

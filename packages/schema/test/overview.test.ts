@@ -27,11 +27,11 @@ describe('modelOverview', () => {
     expect(out).toMatch(/Component=1/);
   });
 
-  it('lists only System and Container nodes (not Components or Code)', () => {
+  it('lists only System and Container nodes (not Components)', () => {
     const out = modelOverview(model());
     expect(out).toContain('Sys [System]');
     expect(out).toContain('Api [Container]');
-    expect(out).not.toContain('AuthService');
+    expect(out).not.toContain('Auth ['); // the Component in the fixture is absent
     expect(out).not.toContain('[Component]');
   });
 });

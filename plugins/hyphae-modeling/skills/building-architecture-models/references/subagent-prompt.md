@@ -25,6 +25,11 @@ Steps:
    is REQUIRED — one line under ~70 characters saying what the component is for; it is what the
    diagram shows. Put the long form in `description`. Set `role` only when the component is
    really a datastore, queue, or UI surface. Put other domain values (`responsibilities`, `invariants`, `technology`) in the `fields` bag where known — `describe_profile` (step 0) lists the valid keys.
+   For each Component, also record its important source locations in `codeRefs`, relative to the
+   container's `root` — prefer one directory or glob ref (`src/views/cctv/`, `src/views/**/*.vue`)
+   over a long list of individual file refs. Where a Component's internal structure is worth
+   showing (e.g. a state machine, a multi-step pipeline), author an optional Pattern anchored to it
+   with `mcp__hyphae__create_patterns` once the Component exists.
 4. Create all intra-container edges in one `mcp__hyphae__create_connections` call, ONLY when BOTH
    endpoints are your own Components. Set the connection `type`, a `verb` from the profile's verb
    vocabulary, and a short `object` noun where one applies ("reads camera list"). Do not leave the
