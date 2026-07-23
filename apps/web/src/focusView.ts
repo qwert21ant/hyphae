@@ -150,10 +150,10 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
 
   // Reconcile realizedBy by granularity:
   // - a parent is "expanded" (shown via its children, not itself) when a child would appear at a
-  //   finer, different pair — e.g. at a System focus a Component→external connection attaches to the
-  //   finer child Component, not to its Container (group node);
+  //   finer, different pair — e.g. at a Container focus an external→Component connection attaches to
+  //   the finer child Component shown inside the focus, not to the focus itself (group node);
   // - a child is "absorbed" (hidden, represented by its parent) when its parent is kept and the child
-  //   maps to the same pair — e.g. at a Container focus a Component-level connection that rolls up to
+  //   maps to the same pair — e.g. at a System focus a Component-level connection that rolls up to
   //   the same Container↔Container pair as its authored parent.
   const expanded = new Set<string>();
   for (const c of conns) {

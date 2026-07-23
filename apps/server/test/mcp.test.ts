@@ -64,7 +64,7 @@ describe('MCP tool handlers', () => {
   it('model_gaps flags orphans and thin descriptions', async () => {
     const api = fakeApi({ getModel: async () => {
       const m = model();
-      // add a second container with two lone (orphan) components — neither has a connection
+      // add two lone (orphan) components under the existing container — neither has a connection
       m.nodes.push(
         { id: 'comp', name: 'Comp', type: 'Component', parentId: 'api', description: 'does work', fields: {}, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
         { id: 'orph', name: 'Orph', type: 'Component', parentId: 'api', description: '', fields: {}, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
