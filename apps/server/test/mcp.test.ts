@@ -244,17 +244,12 @@ describe('MCP query tools', () => {
     expect(r).toHaveLength(2);
   });
 
-  it('list_nodes defaults to Component-and-above and opts into Code via maxLayer', async () => {
-    const withCode = () => {
-      const m = graphModel();
-      m.nodes.push({ id: 'k1', name: 'K1', type: 'Class', description: '', parentId: 'n1', fields: {}, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
-      return m;
-    };
-    const a = fakeApi({ getModel: async () => withCode() });
-    const def = (await buildTools(a).list_nodes({ parentId: 'n1' })) as Array<{ id: string }>;
-    expect(def.map((n) => n.id)).toEqual([]);                         // Code child hidden by default
-    const code = (await buildTools(a).list_nodes({ parentId: 'n1', maxLayer: 'Code' })) as Array<{ id: string }>;
-    expect(code.map((n) => n.id)).toEqual(['k1']);                    // opt in
+  it('list_nodes includes Components by default and caps to a shallower layer via maxLayer', async () => {
+    const a = fakeApi({ getModel: async () => graphModel() });
+    const def = (await buildTools(a).list_nodes({ parentId: 'ca' })) as Array<{ id: string }>;
+    expect(def.map((n) => n.id).sort()).toEqual(['n1', 'n2']);          // Components included by default
+    const capped = (await buildTools(a).list_nodes({ parentId: 'ca', maxLayer: 'Container' })) as Array<{ id: string }>;
+    expect(capped.map((n) => n.id)).toEqual([]);                        // capped above Component
   });
 
   it('get_subgraph returns the directional neighborhood', async () => {
@@ -302,17 +297,12 @@ describe('MCP query tools', () => {
     expect(r.nodes.map((n) => n.id)).toContain('ca');
   });
 
-  it('get_subgraph stops at Component by default and descends into Code with maxLayer:Code', async () => {
-    const withCode = () => {
-      const m = graphModel();
-      m.nodes.push({ id: 'k1', name: 'K1', type: 'Class', description: '', parentId: 'n1', fields: {}, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
-      return m;
-    };
-    const a = fakeApi({ getModel: async () => withCode() });
-    const def = (await buildTools(a).get_subgraph({ nodeId: 'n1', depth: 1 })) as { nodes: Array<{ id: string }> };
-    expect(def.nodes.map((n) => n.id)).not.toContain('k1');            // Code child not reached by default
-    const code = (await buildTools(a).get_subgraph({ nodeId: 'n1', depth: 1, maxLayer: 'Code' })) as { nodes: Array<{ id: string }> };
-    expect(code.nodes.map((n) => n.id)).toContain('k1');              // opt in
+  it('get_subgraph includes Components by default and caps to a shallower layer via maxLayer', async () => {
+    const a = fakeApi({ getModel: async () => graphModel() });
+    const def = (await buildTools(a).get_subgraph({ nodeId: 'ca', depth: 1 })) as { nodes: Array<{ id: string }> };
+    expect(def.nodes.map((n) => n.id)).toContain('n1');                 // Component reached by default
+    const capped = (await buildTools(a).get_subgraph({ nodeId: 'ca', depth: 1, maxLayer: 'Container' })) as { nodes: Array<{ id: string }> };
+    expect(capped.nodes.map((n) => n.id)).not.toContain('n1');          // capped above Component
   });
 });
 
@@ -381,18 +371,17 @@ describe('list_connections', () => {
     expect(x1).toMatchObject({ fromName: 'A1', toName: 'B1', fromContainer: 'Alpha', toContainer: 'Beta' });
   });
 
-  it('drops edges touching a Code node by default and includes them with maxLayer:Code', async () => {
-    const withCode = () => {
+  it('caps edges to the max layer: a Component edge is dropped, a Container edge kept', async () => {
+    const withContainerEdge = () => {
       const m = connModel();
-      m.nodes.push({ id: 'k1', name: 'K1', type: 'Class', parentId: 'a1', description: '', fields: {}, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
-      m.connections.push({ id: 'kx', from: 'k1', to: 'b1', type: 'Dependency', fields: { transport: 'InProcess' }, verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [] });
+      m.connections.push({ id: 'cc', from: 'ca', to: 'cb', type: 'Dependency', fields: {}, verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [] });
       return m;
     };
-    const a = fakeApi({ getModel: async () => withCode() });
+    const a = fakeApi({ getModel: async () => withContainerEdge() });
     const def = (await buildTools(a).list_connections({})) as Array<{ id: string }>;
-    expect(def.map((c) => c.id).sort()).toEqual(['x1', 'x2', 'x3', 'x4']);      // kx (Code-touching) hidden
-    const all = (await buildTools(a).list_connections({ maxLayer: 'Code' })) as Array<{ id: string }>;
-    expect(all.map((c) => c.id).sort()).toEqual(['kx', 'x1', 'x2', 'x3', 'x4']); // opt in
+    expect(def.map((c) => c.id).sort()).toEqual(['cc', 'x1', 'x2', 'x3', 'x4']);   // all included by default
+    const capped = (await buildTools(a).list_connections({ maxLayer: 'Container' })) as Array<{ id: string }>;
+    expect(capped.map((c) => c.id).sort()).toEqual(['cc']);                        // only the Container↔Container edge survives
   });
 
 });
