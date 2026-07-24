@@ -232,7 +232,7 @@ Guidance:
 - **A member binds at most one of `nodeId`/`ref`** (or neither, for a pure-name state). Setting both
   is an issue.
 - **`anchor` is required whenever a member uses a relative `ref`** — the ref resolves against the
-  anchor's root; a ref member without an anchor is an `unanchored-pattern-ref` issue.
+  anchor's root; a ref member without an anchor is a `pattern-unanchored-ref` issue.
 
 ## Idempotency contract (every run, every agent)
 
@@ -258,6 +258,6 @@ Guidance:
 - The orchestrator authoring a Pattern (it needs a Component's internals) → that is the Phase 2
   subagent's job; the orchestrator owns Flows, not Patterns.
 - A subagent authoring a Flow, or a cross-container flow step → Flows are the orchestrator's, Phase 4.
-- A Pattern `ref` member with no `anchor` → `unanchored-pattern-ref`; set the anchor to the Component.
+- A Pattern `ref` member with no `anchor` → `pattern-unanchored-ref`; set the anchor to the Component.
 - Two members in one Pattern sharing a `name` → breaks transitions and renderer keys; make them unique.
 - Leaving a `list_flows` `valid:false` flow unfixed → fix or delete it (Phase 4 self-check / Phase 5).

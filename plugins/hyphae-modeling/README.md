@@ -8,7 +8,8 @@ What the skill does (summary — the skill body is authoritative):
 
 - **Phase 0** — discover packages, verify docs against the real filesystem, record drift.
 - **Phase 1** — write the System + one Container per package, emit `.hyphae/model-plan.md`, **GATE 1**.
-- **Phase 2** — one subagent per container writes its own Components + intra-container edges, in parallel.
+- **Phase 2** — one subagent per container (on `sonnet`) writes its own Components, their `codeRefs`,
+  opportunistic Patterns, and intra-container edges, in parallel.
 - **Phase 3** — reconcile cross-package connections + upward findings into one bundle, run the `model_gaps`
   coverage sweep, **GATE 2**, then apply.
 - **Phase 4** — optional: author + self-check Flows.
