@@ -42,6 +42,12 @@ Cost ≈ turns × context size. To avoid carrying a huge context across many tur
 - **Reset/compact context between phases.** The skill is resumable — the server is the source of truth — so after each phase you can clear context and re-orient with `model_overview` + scoped `list_nodes`/`get_subgraph`. Nothing is lost.
 - **Batch every multi-write step** (`create_nodes`/`create_connections`/`update_*`) instead of one call per node/edge.
 - **Read subagent reports from their files** (see Phase 2), not from chat history — they survive a context reset.
+- **Dispatch Phase 2 subagents on `sonnet`.** Per-package analysis is mechanical; reserve the
+  strongest model for the orchestrator's reconcile/gate reasoning. Pass the model explicitly when you
+  dispatch (the Agent tool takes a `model` override).
+- **One subagent per container produces all four Phase 2 outputs** (Components, codeRefs, Patterns,
+  connections) from a single analysis — do not split them across agents, which would re-read the
+  package to rediscover what the first agent already knew.
 
 ### Phase 0 — Discover & verify
 1. Read README / docs / ADRs → form a hypothesis of the structure.
@@ -56,7 +62,21 @@ Cost ≈ turns × context size. To avoid carrying a huge context across many tur
 4. **GATE 1: stop and show the user the container map + drift notes + per-container drill/skip list. Wait for approval/edits before continuing.**
 
 ### Phase 2 — Parallel components
-Dispatch one subagent per container marked "drill", in parallel. Build each subagent's prompt from `references/subagent-prompt.md` (REQUIRED REFERENCE). Each subagent deeply analyzes its package, writes its own Components and intra-container connections, and **writes a structured report to its assigned `.hyphae/reports/` file (returning only a short status)**. Subagents never touch other packages or shared nodes.
+Dispatch one subagent per container marked "drill", in parallel, **on `sonnet`**. Build each
+subagent's prompt from `references/subagent-prompt.md` (REQUIRED REFERENCE). Each subagent deeply
+analyzes its package and produces **four outputs of that one analysis**, then writes a structured
+report to its assigned `.hyphae/reports/` file (returning only a short status):
+
+1. **Components** — with required `fields.summary`, `role` where it applies, domain `fields`.
+2. **codeRefs** — a field on each Component (same `create_nodes` call), chosen with the selectivity
+   heuristics in `references/analysis-loop.md` ("Choosing what to ref / make a member"); prefer a
+   directory/glob ref over many file refs. See **Refs and roots** below.
+3. **Patterns** — *opportunistic*: author one (`create_patterns`) only when a Component's internals
+   already showed a recognizable shape (pipeline, state machine); never a separate hunt. See
+   **Patterns** below for the shape rules.
+4. **Intra-container connections** — both endpoints the subagent's own Components.
+
+Subagents never touch other packages or shared nodes.
 
 ### Phase 3 — Reconcile + connections + GATE 2
 1. Aggregate all reports into one review bundle using the shared **Reconcile procedure** below:
@@ -64,7 +84,12 @@ Dispatch one subagent per container marked "drill", in parallel. Build each suba
    - proposed amendments to System / Containers (`update_nodes`),
    - new ExternalSystem nodes + edges to them.
 2. **Coverage sweep (context still hot).** Call `model_gaps` once — it returns orphan Components and thin/name-echoing descriptions (with degree) in a single read. Carry the flags into GATE 2 as *candidates*, separating likely-real gaps from legitimately standalone components (a component a subagent listed under `standaloneComponents` is expected — not a gap).
-3. **GATE 2: show the bundle + the coverage flags.** Conflicting amendments from different subagents are surfaced for the user to resolve — never last-write-wins. Confirmed gaps are filled by the **owning container's subagent**, never by the orchestrator inventing edges. Wait for approval/trim.
+3. **GATE 2 (conditional hard-stop).** Always show the reconcile summary. **STOP and wait for the
+   user only when there is a genuine decision: a conflicting amendment between subagents, or a new
+   ExternalSystem (a trust boundary).** A conflict is never resolved last-write-wins — that is always
+   a human decision. With no conflict and no new external system, apply the deduped bundle and
+   summarize without blocking (its writes are reversible `update_*`/`delete_*`, and gap candidates
+   flow into Phase 5 either way).
 4. Apply the approved bundle: one `update_nodes` for amendments → one `create_nodes` for ExternalSystems → one `create_connections` for all cross-package/external edges. Re-dispatch owning subagents for any confirmed intra-container gaps.
 5. Tick the plan artifact's progress markers. Call `model_overview` and summarize the model.
 
@@ -77,11 +102,23 @@ Mechanical part (do this before showing the gate, so the human sees only real de
 
 Never resolve a conflict by last-write-wins; a genuine disagreement is always a human decision at the gate.
 
-### Phase 4 — Verify (optional, re-runnable)
-A standalone consistency pass over an existing model. The Phase-3 tail already runs this sweep inline (its checkpoint folded into GATE 2), so Phase 4 is only needed as a **re-run** — any time after the initial build. Read-mostly: gaps are filled by the owning subagent, never by the orchestrator inventing edges.
+### Phase 4 — Flows (the Behavior axis — orchestrator, optional)
+Flows span nodes/connections across containers, so the orchestrator authors them here, **after GATE 2
+when all endpoints exist** — never a subagent (a subagent sees only its own container). Flows are
+optional and additive: a model with zero flows is complete.
+1. Author flows with `create_flows` for request paths worth showing end to end ("User views live
+   feed"). See **Flows** below for the exact step shape (`describe_profile` does not carry it).
+2. **Self-check:** call `list_flows`; every flow should read `valid:true`. Fix or delete any
+   `valid:false` (a step endpoint or `via` that did not resolve) with `update_flows`/`delete_flows`.
+3. No human gate — flows are reversible overlays with no decision to adjudicate.
+
+### Phase 5 — Verify (optional, re-runnable)
+A standalone consistency pass over an existing model. The Phase-3 tail already runs this sweep inline (its checkpoint folded into GATE 2), so Phase 5 is only needed as a **re-run** — any time after the initial build. Read-mostly: gaps are filled by the owning subagent, never by the orchestrator inventing edges.
 0. **Structural check.** Call `validate_model` — it returns any structural/field issues (bad containment, dangling/bad endpoints, unknown or missing-required fields, bad enum values, bad refs, unknown roles, unknown verbs) in one read. Fix those first. Empty means structurally clean.
    Two of these are about ref anchoring (see **Refs and roots**): `unanchored-ref` means a node carries relative `codeRefs` but no ancestor declares a `root` — fix by setting `root` on the owning **Container**, not by rewriting every ref to be repo-relative. `bad-root` means a declared `root` is not a directory Ref (needs a trailing `/`, no `*` or `#`). One missing Container root typically accounts for every `unanchored-ref` in its subtree, so fix roots first and re-run before touching anything else.
 1. **Coverage sweep.** Call `model_gaps` — one read returns orphan Components (zero connections) and thin/name-echoing descriptions (with inbound/outbound degree, so a thin hub — high inbound but an empty/echoing description — stands out). Separate likely-real gaps from legitimately standalone components (`standaloneComponents` are expected).
+   Also call `list_flows` and flag any flow with `valid:false` — a later node/connection deletion
+   can leave a flow dangling; fix or delete it with `update_flows`/`delete_flows`.
 2. **CHECKPOINT: show the flagged gaps.** Wait for confirmation of which to fix.
 3. For confirmed gaps, **re-dispatch the owning container's subagent** (same `references/subagent-prompt.md`) to add the missing intra-container edges or descriptions. The orchestrator must not write intra-container edges itself.
 4. Idempotent (create-or-skip), so Verify can be re-run until clean.
@@ -135,11 +172,12 @@ obligations on every write. Call `describe_profile` for the exact vocabularies.
 - **Set `role`** when a Component is really a datastore, a queue, an external system, or a UI
   surface. Otherwise leave it unset and it inherits its node kind's default shape.
 
-## Flows (the Behavior axis — optional, after connections)
+## Flows (Behavior-axis shape detail)
 
-A **Flow** is a named scenario overlaid on existing nodes/connections — the diagram lights its
-steps in order. Author one with `create_flows` when a request path is worth showing end to end
-(e.g. "User views live feed"). Flows are additive and never required.
+Authored by the orchestrator in **Phase 4** (see above). This section is the exact step shape,
+because `describe_profile` does **not** expose flow `kind`/`control` — they are core enums, so this
+skill is the only place to learn them. A **Flow** is a named scenario overlaid on existing
+nodes/connections — the diagram lights its steps in order.
 
 - A flow is `{ name, description?, scope?, steps: [...] }`. `scope` is an optional layer hint
   (Context/Container/Component) used only to group flows — leave it off unless it helps.
@@ -163,7 +201,13 @@ steps in order. Author one with `create_flows` when a request path is worth show
 ## Patterns (architectural shapes)
 
 A **Pattern** gives a Component's internals or a behavior a recognized *shape*, drawn specially —
-instead of a wall of class boxes. Author with `create_patterns`. Each pattern has:
+instead of a wall of class boxes.
+
+Authored by the **Phase 2** container subagent, *opportunistically* — only when a Component's
+internals already showed a recognizable shape. Author with `create_patterns` once the Component
+(the `anchor`) exists.
+
+Each pattern has:
 
 - `name`, and `kind` — one of the profile's `patternKinds` (see `describe_profile`):
   **pipeline** (ordered stages), **middleware** (interceptor chain), **state-machine**
@@ -182,13 +226,22 @@ Guidance:
 - A code pipeline inside a Component: `anchor` = that Component, members = the stages with `ref`s
   into the source (`decode.ts`, `normalize.ts`), in order.
 - A state machine: members = the states (pure names), plus `transitions` between them by name.
-- Member names must be unique within a pattern. A node may appear in more than one pattern.
+- A node may appear in more than one pattern.
+- **Member names must be unique within a pattern** — `transitions` reference members by name and the
+  renderer keys on the name; a duplicate name breaks both.
+- **A member binds at most one of `nodeId`/`ref`** (or neither, for a pure-name state). Setting both
+  is an issue.
+- **`anchor` is required whenever a member uses a relative `ref`** — the ref resolves against the
+  anchor's root; a ref member without an anchor is a `pattern-unanchored-ref` issue.
 
 ## Idempotency contract (every run, every agent)
 
 - **Read first** (`model_overview`, then `list_nodes`/`get_subgraph` for the scope you're about to touch). Never assume empty. Reads default to Component-and-above (Component is the deepest layer).
 - **Create-or-skip by (`name` + `parentId`).** If a node with that identity exists, reuse its id — do not create a second one.
 - **On `422`, read the returned `issues` and fix the input** (almost always a missing parent/endpoint or a containment violation). Never blind-retry.
+- **Patterns and Flows are create-or-skip too, by the agent reading first** (the server does not
+  dedup): before `create_patterns`, `list_patterns` and skip a matching (`name` + `anchor`); before
+  `create_flows`, `list_flows` and skip a matching `name`.
 
 ## Red flags — STOP
 
@@ -202,3 +255,9 @@ Guidance:
 - Skipping a gate to "save time" → all gates (GATE 1, GATE 2) are mandatory.
 - Creating a Component / Container / System without `fields.summary` → `missing-required-field`; the node renders as a bare box.
 - Leaving every connection on the default `uses` verb → the diagram carries no more meaning than before; pick real verbs.
+- The orchestrator authoring a Pattern (it needs a Component's internals) → that is the Phase 2
+  subagent's job; the orchestrator owns Flows, not Patterns.
+- A subagent authoring a Flow, or a cross-container flow step → Flows are the orchestrator's, Phase 4.
+- A Pattern `ref` member with no `anchor` → `pattern-unanchored-ref`; set the anchor to the Component.
+- Two members in one Pattern sharing a `name` → breaks transitions and renderer keys; make them unique.
+- Leaving a `list_flows` `valid:false` flow unfixed → fix or delete it (Phase 4 self-check / Phase 5).
