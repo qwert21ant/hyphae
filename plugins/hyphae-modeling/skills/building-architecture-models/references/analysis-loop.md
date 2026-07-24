@@ -20,6 +20,20 @@ No per-language cheatsheets. For any unit of code run the same loop and let the 
 
 Phase 0 runs steps 1–3 only (cheap). Phase 2 subagents run all four to full depth.
 
+## Choosing what to ref / make a member
+
+The same judgment picks a Component's `codeRefs` and a Pattern's members: model what carries
+architectural meaning, skip the noise.
+
+- **Include** an element when it: realizes a documented responsibility, is a public entrypoint
+  (an exported/registered surface others call), has high fan-in (an importance signal — gitnexus
+  `impact` surfaces it), or participates in a documented flow.
+- **Exclude** utilities, generated code, and tests — they inflate the model without adding shape.
+- **Prefer one directory or glob ref** that captures a cohesive area (`src/views/cctv/`,
+  `src/pipeline/**`) over an enumerated list of files — it says more and stays readable in a diff.
+
+This is selectivity, not completeness: a Component with three meaningful refs beats one with thirty.
+
 ## gitnexus (cross-cutting accelerator — any phase)
 
 If the `gitnexus` MCP is connected AND its index is current for this repo, you MAY use it in ANY
