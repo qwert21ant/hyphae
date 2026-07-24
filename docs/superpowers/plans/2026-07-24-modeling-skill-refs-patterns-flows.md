@@ -275,7 +275,7 @@ In the Guidance bullets, ensure these appear verbatim as their own bullets (miti
 - **A member binds at most one of `nodeId`/`ref`** (or neither, for a pure-name state). Setting both
   is an issue.
 - **`anchor` is required whenever a member uses a relative `ref`** — the ref resolves against the
-  anchor's root; a ref member without an anchor is an `unanchored-pattern-ref` issue.
+  anchor's root; a ref member without an anchor is a `pattern-unanchored-ref` issue.
 ```
 
 Verify the kinds paragraph still teaches "see `describe_profile`" and the three-way renderer reality (ordered row / state-machine chart / plain list for layered+event-bus).
@@ -288,7 +288,7 @@ In `## Red flags — STOP`, add:
 - The orchestrator authoring a Pattern (it needs a Component's internals) → that is the Phase 2
   subagent's job; the orchestrator owns Flows, not Patterns.
 - A subagent authoring a Flow, or a cross-container flow step → Flows are the orchestrator's, Phase 4.
-- A Pattern `ref` member with no `anchor` → `unanchored-pattern-ref`; set the anchor to the Component.
+- A Pattern `ref` member with no `anchor` → `pattern-unanchored-ref`; set the anchor to the Component.
 - Two members in one Pattern sharing a `name` → breaks transitions and renderer keys; make them unique.
 - Leaving a `list_flows` `valid:false` flow unfixed → fix or delete it (Phase 4 self-check / Phase 5).
 ```
@@ -400,7 +400,7 @@ Call `mcp__hyphae__list_patterns`. Expected: the pattern appears with `valid:tru
 
 - [ ] **Step 5: Verify the Flow**
 
-Call `mcp__hyphae__list_flows`. Expected: the flow appears with `valid:true`. Then `mcp__hyphae__validate_model` — expected: no `unanchored-ref`, `unanchored-pattern-ref`, `bad-flow-endpoint`, or `duplicate-pattern-member-name` issues.
+Call `mcp__hyphae__list_flows`. Expected: the flow appears with `valid:true`. Then `mcp__hyphae__validate_model` — expected: no `unanchored-ref`, `pattern-unanchored-ref`, `bad-flow-endpoint`, or `pattern-duplicate-member-name` issues.
 
 - [ ] **Step 6: Confirm nothing is staged**
 
