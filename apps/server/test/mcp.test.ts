@@ -50,8 +50,16 @@ describe('MCP tool handlers', () => {
     expect(await buildTools(fakeApi()).list_nodes({})).toEqual([{ id: 'api', name: 'API', type: 'Container', parentId: null }]);
   });
   it('validate_model returns issues against the active profile', async () => {
-    // a clean single-container model has no structural issues
-    expect(await buildTools(fakeApi()).validate_model({})).toEqual([]);
+    // a well-formed System→Container model has no structural issues
+    const clean = fakeApi({ getModel: async () => {
+      const m = emptyModel();
+      m.nodes.push(
+        { id: 'sys', name: 'Sys', type: 'System', description: '', fields: { summary: 'x' }, parentId: null, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
+        { id: 'api', name: 'API', type: 'Container', description: 'edge', fields: { summary: 'Edge API' }, parentId: 'sys', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
+      );
+      return m;
+    } });
+    expect(await buildTools(clean).validate_model({})).toEqual([]);
     // a dangling connection endpoint surfaces an issue
     const api = fakeApi({ getModel: async () => {
       const m = model();

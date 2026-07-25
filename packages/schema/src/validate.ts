@@ -106,6 +106,13 @@ export function validateModel(model: HyphaeModel, profile: Profile): Issue[] {
       } else if (!allowedParentTypes(profile, n.type).includes(parent.type)) {
         issues.push({ kind: 'bad-parent', ref: n.id, message: `${n.type} cannot be child of ${parent.type}` });
       }
+    } else {
+      // A null parent is legitimate only for a top-level kind (empty allowedParents).
+      // A Container/Component with no parent is an orphan, not a root — flag it.
+      const allowed = allowedParentTypes(profile, n.type);
+      if (allowed.length > 0) {
+        issues.push({ kind: 'missing-parent', ref: n.id, message: `${n.type} must be a child of ${allowed.join(' or ')} but has no parent` });
+      }
     }
     issues.push(...validateFields(n.fields, effectiveFields(profile, n.type, 'node'), nodeById, n.id));
     issues.push(...validateRefs(n, model.nodes));
