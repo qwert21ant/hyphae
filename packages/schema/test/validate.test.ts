@@ -87,6 +87,28 @@ describe('containment', () => {
     const issues = validateModel(withParent('System'), c4Backend);
     expect(issues).toEqual([expect.objectContaining({ kind: 'bad-parent', ref: 'cmp' })]);
   });
+
+  it('flags a Container with no parent (orphan)', () => {
+    const m = model({ nodes: [node({ id: 'ct', type: 'Container', parentId: null, fields: { summary: 'x' } })] });
+    const issues = validateModel(m, c4Backend).filter((i) => i.kind === 'missing-parent');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].ref).toBe('ct');
+    expect(issues[0].message).toMatch(/must be a child of System/i);
+  });
+
+  it('flags a Component with no parent (orphan)', () => {
+    const m = model({ nodes: [node({ id: 'cmp', type: 'Component', parentId: null, fields: { summary: 'x' } })] });
+    expect(validateModel(m, c4Backend).filter((i) => i.kind === 'missing-parent').map((i) => i.ref)).toEqual(['cmp']);
+  });
+
+  it('does not flag a top-level System, Actor, or ExternalSystem (no parent required)', () => {
+    const m = model({ nodes: [
+      node({ id: 's', type: 'System', fields: { summary: 'x' } }),
+      node({ id: 'a', type: 'Actor', fields: { summary: 'x' } }),
+      node({ id: 'e', type: 'ExternalSystem', fields: { summary: 'x' } }),
+    ] });
+    expect(validateModel(m, c4Backend).filter((i) => i.kind === 'missing-parent')).toEqual([]);
+  });
 });
 
 import { isDirectoryRef } from '../src/ref';
@@ -221,8 +243,10 @@ describe('flow validation', () => {
   function flowModel(): HyphaeModel {
     const m = emptyModel();
     m.nodes.push(
-      { ...nbase, id: 'a', name: 'A', type: 'Component', parentId: null, description: 'd' },
-      { ...nbase, id: 'b', name: 'B', type: 'Component', parentId: null, description: 'd' },
+      { ...nbase, id: 'sys', name: 'S', type: 'System', parentId: null, description: 'd' },
+      { ...nbase, id: 'ct', name: 'C', type: 'Container', parentId: 'sys', description: 'd' },
+      { ...nbase, id: 'a', name: 'A', type: 'Component', parentId: 'ct', description: 'd' },
+      { ...nbase, id: 'b', name: 'B', type: 'Component', parentId: 'ct', description: 'd' },
     );
     m.connections.push({ ...edge, id: 'c1', from: 'a', to: 'b', type: 'Dependency' });
     m.flows.push({ id: 'f1', name: 'F', description: '', scope: null, steps: [
@@ -286,7 +310,8 @@ describe('pattern validation', () => {
   const patternModel = () => {
     const m = emptyModel();
     m.nodes.push(
-      { id: 'cont', name: 'Gateway', type: 'Container', parentId: null, ...base, root: 'media_gateway/' } as never,
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base } as never,
+      { id: 'cont', name: 'Gateway', type: 'Container', parentId: 'sys', ...base, root: 'media_gateway/' } as never,
       { id: 'comp', name: 'Ingest', type: 'Component', parentId: 'cont', ...base } as never,
     );
     return m;

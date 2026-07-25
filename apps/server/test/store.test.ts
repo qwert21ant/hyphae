@@ -21,7 +21,7 @@ describe('ModelStore', () => {
 
   it('addNode persists atomically and reloads', async () => {
     const store = new ModelStore(file);
-    const node = store.addNode({ name: 'API', type: 'Container', fields: { summary: 'x' } });
+    const node = store.addNode({ name: 'API', type: 'System', fields: { summary: 'x' } });
     expect(node.id).toBeTruthy();
     expect(store.version).toBe(1);
     await store.flush();
@@ -43,8 +43,8 @@ describe('ModelStore', () => {
 
   it('deleteNode cascades its connections', () => {
     const store = new ModelStore(file);
-    const a = store.addNode({ name: 'A', type: 'Component', fields: { summary: 'x' } });
-    const b = store.addNode({ name: 'B', type: 'Component', fields: { summary: 'x' } });
+    const a = store.addNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
+    const b = store.addNode({ name: 'B', type: 'System', fields: { summary: 'x' } });
     store.addConnection({ from: a.id, to: b.id, type: 'Dependency' });
     store.deleteNode(a.id);
     expect(store.get().nodes.map((n) => n.id)).toEqual([b.id]);
@@ -55,17 +55,17 @@ describe('ModelStore', () => {
     const store = new ModelStore(file);
     const seen: number[] = [];
     const unsub = store.subscribe((v) => seen.push(v));
-    store.addNode({ name: 'A', type: 'Component', fields: { summary: 'x' } });
-    store.addNode({ name: 'B', type: 'Component', fields: { summary: 'x' } });
+    store.addNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
+    store.addNode({ name: 'B', type: 'System', fields: { summary: 'x' } });
     unsub();
-    store.addNode({ name: 'C', type: 'Component', fields: { summary: 'x' } });
+    store.addNode({ name: 'C', type: 'System', fields: { summary: 'x' } });
     expect(seen).toEqual([1, 2]);
   });
 
   it('updateConnection updates a field', () => {
     const store = new ModelStore(file);
-    const a = store.addNode({ name: 'A', type: 'Component', fields: { summary: 'x' } });
-    const b = store.addNode({ name: 'B', type: 'Component', fields: { summary: 'x' } });
+    const a = store.addNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
+    const b = store.addNode({ name: 'B', type: 'System', fields: { summary: 'x' } });
     const conn = store.addConnection({ from: a.id, to: b.id, type: 'Dependency' });
     const updated = store.updateConnection(conn.id, { fields: { transport: 'Sync' }, description: 'calls' });
     expect(updated).toMatchObject({ id: conn.id, fields: { transport: 'Sync' }, description: 'calls' });
@@ -78,8 +78,8 @@ describe('ModelStore', () => {
 
   it('persists realizedBy on a connection', () => {
     const store = new ModelStore(file);
-    const a = store.addNode({ name: 'A', type: 'Component', fields: { summary: 'x' } });
-    const b = store.addNode({ name: 'B', type: 'Component', fields: { summary: 'x' } });
+    const a = store.addNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
+    const b = store.addNode({ name: 'B', type: 'System', fields: { summary: 'x' } });
     const conn = store.addConnection({ from: a.id, to: b.id, type: 'Dependency', realizedBy: ['x1'] });
     expect(conn.realizedBy).toEqual(['x1']);
     expect(store.get().connections.at(-1)!.realizedBy).toEqual(['x1']);
@@ -87,16 +87,16 @@ describe('ModelStore', () => {
 
   it('stores a node position in the layer view', () => {
     const store = new ModelStore(file);
-    const n = store.addNode({ name: 'A', type: 'Component', fields: { summary: 'x' } });
-    store.setNodePosition('Component', n.id, { x: 10, y: 20 });
-    expect(store.get().views.find((v) => v.layer === 'Component')?.nodePositions[n.id]).toEqual({ x: 10, y: 20 });
+    const n = store.addNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
+    store.setNodePosition('Context', n.id, { x: 10, y: 20 });
+    expect(store.get().views.find((v) => v.layer === 'Context')?.nodePositions[n.id]).toEqual({ x: 10, y: 20 });
   });
 });
 
 describe('ModelStore flows', () => {
   function seed(store: ModelStore) {
-    const a = store.addNode({ name: 'A', type: 'Component', fields: { summary: 'x' } });
-    const b = store.addNode({ name: 'B', type: 'Component', fields: { summary: 'x' } });
+    const a = store.addNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
+    const b = store.addNode({ name: 'B', type: 'System', fields: { summary: 'x' } });
     const c = store.addConnection({ from: a.id, to: b.id, type: 'Dependency' });
     return { a, b, c };
   }
@@ -141,8 +141,8 @@ describe('ModelStore flows', () => {
 
 describe('ModelStore patterns', () => {
   function seed(store: ModelStore) {
-    const a = store.addNode({ name: 'A', type: 'Component', fields: { summary: 'x' } });
-    const b = store.addNode({ name: 'B', type: 'Component', fields: { summary: 'x' } });
+    const a = store.addNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
+    const b = store.addNode({ name: 'B', type: 'System', fields: { summary: 'x' } });
     const c = store.addConnection({ from: a.id, to: b.id, type: 'Dependency' });
     return { a, b, c };
   }
