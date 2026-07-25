@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "hyphae-modeling",
-      "source": "./plugins/hyphae-modeling",
+      "source": ".",
       "description": "Build and incrementally deepen a Hyphae C4 architecture model of a large repository via the hyphae MCP tools."
     }
   ]
