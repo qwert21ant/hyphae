@@ -56,7 +56,7 @@ Cost ≈ turns × context size. To avoid carrying a huge context across many tur
 
 ### Phase 1 — Map + GATE 1
 1. Call `model_overview` (idempotent read).
-2. Create the System node and all Containers in one `create_nodes` call (a single write is a one-element array). Every System and Container write MUST include `fields.summary` — a one-line purpose shown on the diagram; see **The visual vocabulary** below. Domain values (`responsibilities`, `invariants`, `technology` for Containers) go in each item's `fields` bag — call `describe_profile` to see each kind's fields.
+2. **Create the System first, then the Containers — two `create_nodes` calls.** A Container's `parentId` must be the System's id, which only exists *after* the System is created; you cannot reference a not-yet-created id inside the same batch, and a Container written with no `parentId` is an orphan (a `missing-parent` issue). So: first create the System (a one-element array) and read back its id; then create all Containers in one `create_nodes` call, each with `parentId` set to that System id. Every System and Container write MUST include `fields.summary` — a one-line purpose shown on the diagram; see **The visual vocabulary** below. Domain values (`responsibilities`, `invariants`, `technology` for Containers) go in each item's `fields` bag — call `describe_profile` to see each kind's fields.
    **Give every Container a `root`** — its package path from Phase 0, relative to the repo root, with a trailing slash (`apps/server/`, `endpoints/media_gateway/backend/`). This anchors every `codeRef` written beneath it; see **Refs and roots** below. A Container without a root makes every ref in its subtree an `unanchored-ref` issue.
 3. Write the plan artifact to `.hyphae/model-plan.md` in the target repo. REQUIRED REFERENCE: `references/plan-artifact-template.md`.
 4. **GATE 1: stop and show the user the container map + drift notes + per-container drill/skip list. Wait for approval/edits before continuing.**
@@ -250,6 +250,7 @@ Guidance:
 - "The docs say the layout is X" treated as fact without checking the filesystem → verify.
 - Writing a connection before both endpoints exist → reorder.
 - Creating a Container without a `root` → every `codeRef` beneath it becomes an `unanchored-ref` issue.
+- Creating a Container or Component with no `parentId` (orphan) → a `missing-parent` issue; a Container needs its System and a Component needs its Container. Create the parent first, then set `parentId` (never batch a child with its not-yet-created parent).
 - Writing a `codeRef` that repeats its Container's root (`apps/server/src/x.ts` under `root: "apps/server/"`) → make it relative (`src/x.ts`); the root is declared once, never per ref.
 - The orchestrator writing an intra-container edge to "fix" a model_gaps flag → re-dispatch the owning subagent instead.
 - Skipping a gate to "save time" → all gates (GATE 1, GATE 2) are mandatory.
