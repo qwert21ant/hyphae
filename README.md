@@ -59,8 +59,27 @@ from the active profile.
 
 For Claude Code, `.mcp.json` registers this server (project scope) — approve it on session start,
 then check `/mcp`. To build a model of a large repo top-down and resumably, use the
-`building-architecture-models` skill bundled in the `hyphae-modeling` plugin
-(`plugins/hyphae-modeling/`).
+`building-architecture-models` skill at `skills/building-architecture-models/` (see below).
+
+## Claude Code plugin / agent skill
+
+The `building-architecture-models` skill lives at `skills/building-architecture-models/`, so it is
+discoverable both as a standalone agent skill (`skills/<name>/SKILL.md`) and as a Claude Code plugin —
+this repo is itself a plugin marketplace (`.claude-plugin/marketplace.json`) and a root plugin
+(`.claude-plugin/plugin.json`).
+
+    # add the marketplace (git URL or a local clone path), then install the plugin
+    /plugin marketplace add <git-url-or-local-path-to-this-repo>
+    /plugin install hyphae-modeling@hyphae
+
+The skill drives a resumable, top-down, breadth-first build: Phase 0 discover → 1 map + GATE 1 →
+2 components (Components, `codeRefs`, opportunistic Patterns, connections) → 3 reconcile + GATE 2 →
+4 Flows → 5 Verify. It requires a running Hyphae server with the `hyphae` MCP connected (it checks by
+calling `model_overview`).
+
+**Not yet bundled:** the `hyphae` MCP server still runs from this workspace
+(`pnpm --filter @hyphae/server mcp`), not a published binary, so it is not wired into the plugin. Once
+Hyphae is published, the plugin can add a `.mcp.json` that launches the server via `npx`.
 
 ## Production
 
