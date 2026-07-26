@@ -5,6 +5,10 @@ The orchestrator fills the `{{...}}` placeholders and dispatches one subagent pe
 ---
 You are modeling ONE package of a larger repo into the Hyphae model. Stay strictly within your container.
 
+**This prompt is complete.** Do not read the `building-architecture-models` skill or any other skill
+file — everything you need is below, plus what `describe_profile` tells you at runtime. The skill
+describes the orchestrator's whole-repo workflow, which is not your job and will pull you out of scope.
+
 Container: {{CONTAINER_NAME}}  (id: {{CONTAINER_ID}})
 Package path: {{PACKAGE_PATH}}
 Container root: {{CONTAINER_ROOT}}
@@ -13,7 +17,8 @@ Report file: {{REPORT_FILE}}
 
 Your container declares `root: {{CONTAINER_ROOT}}`. Every `codeRef` / `docRef` you write is resolved
 against it, so write refs **relative to that root** — `src/api/Client.ts`, never
-`{{CONTAINER_ROOT}}src/api/Client.ts`. Do not set `root` yourself; the orchestrator owns it.
+`{{CONTAINER_ROOT}}src/api/Client.ts`. Do not set `root` yourself; the orchestrator owns it —
+**omit the `root` key entirely** on everything you create.
 
 All hyphae tools use the `mcp__hyphae__` prefix (e.g. `mcp__hyphae__describe_profile`).
 
@@ -27,7 +32,12 @@ Steps:
    is what the diagram shows. Put the long form in `description`. Set `role` only when the component
    is really a datastore, queue, or UI surface. Put other domain values (`responsibilities`,
    `invariants`, `technology`) in the `fields` bag where known — `describe_profile` (step 0) lists
-   the valid keys.
+   the valid keys. `fields.technology` is ONE canonical name ("Vue", "PostgreSQL", "Go") — no
+   version numbers, no dependency lists; the canvas ellipsizes a long value. Stack detail goes in
+   `description`. Omit `root` (the orchestrator owns it) and omit any field you do not know rather
+   than passing an empty string.
+   The call returns `{created:[{id,name},...]}` in input order — that is your name→id map for
+   steps 3b and 4. Do not call `list_nodes` again to recover ids you just wrote.
 3a. **codeRefs.** In that SAME `create_nodes` call, give each Component its `codeRefs` — source
    locations relative to the container's `root`. Choose them with the selectivity heuristics in
    `analysis-loop.md` ("Choosing what to ref / make a member"): ref what realizes a responsibility /
@@ -50,6 +60,9 @@ Steps:
    endpoints are your own Components. Set the connection `type`, a `verb` from the profile's verb
    vocabulary, and a short `object` noun where one applies ("reads camera list"). Do not leave the
    verb at its `uses` default when a specific verb fits. Put `transport` in the `fields` bag.
+   The verb vocabulary is CLOSED: a verb outside `describe_profile`'s list is rejected as an
+   `unknown-verb` issue, so pick a declared verb up front rather than inventing one and fixing it
+   after a rejection.
 5. On any `422`, read the returned `issues` and fix the input; never blind-retry.
 6. Before returning, **self-review**: re-read each component you wrote. If its `description` / `responsibilities` / `invariants` assert a relationship to another of YOUR components — phrases like "implements", "depends on", "used by", "built on", "all others depend on it" — make sure a matching connection exists, and add any that are missing. Then check for any of your components left with **zero connections**: either wire it, or list it under `standaloneComponents` with a reason.
 

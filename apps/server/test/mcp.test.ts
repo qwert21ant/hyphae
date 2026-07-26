@@ -86,9 +86,9 @@ describe('MCP tool handlers', () => {
     expect(g.orphanNodes.map((n) => n.id)).toEqual(['comp', 'orph']); // both components have no edges
     expect(g.thinDescriptions.some((t) => t.id === 'orph' && t.reason === 'empty')).toBe(true);
   });
-  it('create_nodes returns ids on full success', async () => {
+  it('create_nodes echoes id + name on full success', async () => {
     const r = await buildTools(fakeApi()).create_nodes({ nodes: [{ name: 'X', type: 'Component' }] });
-    expect(r).toEqual({ ids: ['new'] });
+    expect(r).toEqual({ created: [{ id: 'new', name: 'X' }] });
   });
 
   it('create_nodes is best-effort: returns per-item results when one fails', async () => {
@@ -97,12 +97,12 @@ describe('MCP tool handlers', () => {
       ? { node: { id: 'a', ...(input as object) }, version: 1 }
       : { issues: [{ kind: 'bad-parent', ref: 'b', message: 'no' }] }) });
     const r = await buildTools(api).create_nodes({ nodes: [{ name: 'A', type: 'Component' }, { name: 'B', type: 'Component', parentId: 'z' }] });
-    expect(r).toEqual({ results: [{ id: 'a' }, { issues: [{ kind: 'bad-parent', ref: 'b', message: 'no' }] }] });
+    expect(r).toEqual({ results: [{ id: 'a', name: 'A' }, { issues: [{ kind: 'bad-parent', ref: 'b', message: 'no' }] }] });
   });
 
-  it('create_connections returns ids on full success', async () => {
+  it('create_connections echoes id + from/to/type on full success', async () => {
     const r = await buildTools(fakeApi()).create_connections({ connections: [{ from: 'a', to: 'b', type: 'Dependency' }] });
-    expect(r).toEqual({ ids: ['c2'] });
+    expect(r).toEqual({ created: [{ id: 'c2', from: 'a', to: 'b', type: 'Dependency' }] });
   });
 
   it('update_nodes returns ok on full success and splits id from patch', async () => {
@@ -137,7 +137,7 @@ describe('MCP tool handlers', () => {
     let seen: Record<string, unknown> | undefined;
     const api = fakeApi({ createConnection: async (input) => { seen = input as Record<string, unknown>; return { connection: { id: 'c2', type: 'Dependency', ...(input as object) }, version: 1 }; } });
     const r = await buildTools(api).create_connections({ connections: [{ from: 'a', to: 'b', type: 'Dependency', realizedBy: ['c1'] }] });
-    expect(r).toEqual({ ids: ['c2'] });
+    expect(r).toEqual({ created: [{ id: 'c2', from: 'a', to: 'b', type: 'Dependency' }] });
     expect(seen).toMatchObject({ realizedBy: ['c1'] });
   });
 
@@ -473,11 +473,11 @@ describe('MCP flow tools', () => {
     expect(await buildTools(api()).get_flow({ id: 'nope' })).toMatchObject({ error: expect.stringContaining('not found') });
   });
 
-  it('create_flows returns ids and forwards the step shape', async () => {
+  it('create_flows echoes id + name and forwards the step shape', async () => {
     const seen: Record<string, unknown>[] = [];
     const tools = buildTools(fakeApi({ createFlow: async (input) => { seen.push(input as Record<string, unknown>); return { flow: { id: 'f9', ...(input as object) }, version: 1 }; } }));
     const r = await tools.create_flows({ flows: [{ name: 'F', steps: [{ order: 1, from: 'a', to: 'b', via: 'c1', message: 'go', kind: 'Sync' }] }] });
-    expect(r).toEqual({ ids: ['f9'] });
+    expect(r).toEqual({ created: [{ id: 'f9', name: 'F' }] });
     expect(seen[0]).toMatchObject({ name: 'F', steps: [{ from: 'a', to: 'b', via: 'c1' }] });
   });
 
@@ -529,11 +529,11 @@ describe('MCP pattern tools', () => {
     expect(await buildTools(api()).get_pattern({ id: 'nope' })).toMatchObject({ error: expect.stringContaining('not found') });
   });
 
-  it('create_patterns returns ids and forwards the member shape', async () => {
+  it('create_patterns echoes id + name and forwards the member shape', async () => {
     const seen: Record<string, unknown>[] = [];
     const tools = buildTools(fakeApi({ createPattern: async (input) => { seen.push(input as Record<string, unknown>); return { pattern: { id: 'p9', ...(input as object) }, version: 1 }; } }));
     const r = await tools.create_patterns({ patterns: [{ name: 'P', kind: 'pipeline', members: [{ name: 'Decode', ref: 'd.ts' }] }] });
-    expect(r).toEqual({ ids: ['p9'] });
+    expect(r).toEqual({ created: [{ id: 'p9', name: 'P' }] });
     expect(seen[0]).toMatchObject({ name: 'P', kind: 'pipeline', members: [{ name: 'Decode', ref: 'd.ts' }] });
   });
 });

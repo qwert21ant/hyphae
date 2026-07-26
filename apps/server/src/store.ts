@@ -47,7 +47,10 @@ export class ModelStore {
 
   addNode(input: NodeInput): Node {
     const ts = now();
-    const node = NodeSchema.parse({ ...input, id: input.id ?? newId(), createdAt: ts, updatedAt: ts });
+    // An empty root is "unknown", not a malformed directory Ref — a caller that has no path for a
+    // node should not have to choose between omitting the key and tripping a `bad-root` issue.
+    const root = input.root?.trim() === '' ? null : input.root;
+    const node = NodeSchema.parse({ ...input, root, id: input.id ?? newId(), createdAt: ts, updatedAt: ts });
     this.commit({ ...this.model, nodes: [...this.model.nodes, node] });
     return node;
   }
@@ -138,14 +141,15 @@ export class ModelStore {
   }
 
   /** Validate the candidate model; reject if it adds an issue, else commit + bump + save + notify.
-   *  `ignoreFlowRefs` lets a node/connection delete proceed even if it strands a flow step or a
-   *  pattern's node reference — the flow/pattern is left flagged-invalid (spec: deletes mark
-   *  flows/patterns invalid, they do not block on them). */
+   *  `ignoreFlowRefs` lets a node/connection delete proceed even if it strands a flow step, a
+   *  pattern's node reference, or a higher-layer edge's `realizedBy` claim — the referrer is left
+   *  flagged-invalid (spec: deletes mark referrers invalid, they do not block on them). */
   private commit(next: HyphaeModel, opts: { ignoreFlowRefs?: boolean } = {}): void {
     let issues = newIssues(this.model, next, resolveProfile(next));
     if (opts.ignoreFlowRefs) {
       issues = issues.filter((i) => i.kind !== 'bad-flow-endpoint' && i.kind !== 'bad-flow-via'
-        && i.kind !== 'pattern-member-bad-node' && i.kind !== 'pattern-bad-anchor' && i.kind !== 'pattern-unanchored-ref');
+        && i.kind !== 'pattern-member-bad-node' && i.kind !== 'pattern-bad-anchor' && i.kind !== 'pattern-unanchored-ref'
+        && i.kind !== 'dangling-realizedBy');
     }
     if (issues.length) throw new ValidationError(issues);
     this.model = next;

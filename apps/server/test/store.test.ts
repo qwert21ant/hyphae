@@ -80,9 +80,48 @@ describe('ModelStore', () => {
     const store = new ModelStore(file);
     const a = store.addNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
     const b = store.addNode({ name: 'B', type: 'System', fields: { summary: 'x' } });
-    const conn = store.addConnection({ from: a.id, to: b.id, type: 'Dependency', realizedBy: ['x1'] });
-    expect(conn.realizedBy).toEqual(['x1']);
-    expect(store.get().connections.at(-1)!.realizedBy).toEqual(['x1']);
+    const lower = store.addConnection({ from: a.id, to: b.id, type: 'Dependency' });
+    const conn = store.addConnection({ from: a.id, to: b.id, type: 'Dependency', realizedBy: [lower.id] });
+    expect(conn.realizedBy).toEqual([lower.id]);
+    expect(store.get().connections.at(-1)!.realizedBy).toEqual([lower.id]);
+  });
+
+  it('rejects a realizedBy claim on an id that is not a connection', () => {
+    const store = new ModelStore(file);
+    const a = store.addNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
+    const b = store.addNode({ name: 'B', type: 'System', fields: { summary: 'x' } });
+    expect(() => store.addConnection({ from: a.id, to: b.id, type: 'Dependency', realizedBy: ['nope'] })).toThrow(ValidationError);
+    expect(store.get().connections).toEqual([]);
+  });
+
+  it('deleting a claimed connection still succeeds, leaving the claim stale (the delete invariant)', () => {
+    const store = new ModelStore(file);
+    const a = store.addNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
+    const b = store.addNode({ name: 'B', type: 'System', fields: { summary: 'x' } });
+    const lower = store.addConnection({ from: a.id, to: b.id, type: 'Dependency' });
+    const upper = store.addConnection({ from: a.id, to: b.id, type: 'Dependency', realizedBy: [lower.id] });
+    store.deleteConnection(lower.id);
+    expect(store.get().connections.map((c) => c.id)).toEqual([upper.id]);
+    const kinds = validateModel(store.get(), resolveProfile(store.get())).map((i) => i.kind);
+    expect(kinds).toContain('dangling-realizedBy');   // surfaced by validate_model, not blocked at delete
+  });
+
+  it('treats an empty-string root as absent rather than a bad-root issue', () => {
+    const store = new ModelStore(file);
+    const node = store.addNode({ name: 'A', type: 'System', root: '', fields: { summary: 'x' } });
+    expect(node.root).toBeNull();
+    expect(validateModel(store.get(), resolveProfile(store.get()))).toEqual([]);
+  });
+
+  it('keeps a real root untouched', () => {
+    const store = new ModelStore(file);
+    const node = store.addNode({ name: 'A', type: 'System', root: 'apps/server/', fields: { summary: 'x' } });
+    expect(node.root).toBe('apps/server/');
+  });
+
+  it('still rejects a non-empty root that is not a directory Ref', () => {
+    const store = new ModelStore(file);
+    expect(() => store.addNode({ name: 'A', type: 'System', root: 'apps/server', fields: { summary: 'x' } })).toThrow(ValidationError);
   });
 
   it('stores a node position in the layer view', () => {

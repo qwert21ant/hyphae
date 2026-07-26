@@ -236,6 +236,62 @@ describe('role and verb validation', () => {
   });
 });
 
+describe('realizedBy validation', () => {
+  const base = { root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } };
+  const edge = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+
+  /** Two containers wired at the Component layer by e1, plus an authored Container edge `up`
+   *  that claims e1 — the shape Phase 3 of the modeling skill produces. */
+  function model(): HyphaeModel {
+    const m = emptyModel();
+    m.nodes.push(
+      { ...base, id: 'sys', name: 'Sys', type: 'System', parentId: null, description: 'd' },
+      { ...base, id: 'ca', name: 'A', type: 'Container', parentId: 'sys', description: 'd' },
+      { ...base, id: 'cb', name: 'B', type: 'Container', parentId: 'sys', description: 'd' },
+      { ...base, id: 'k1', name: 'K1', type: 'Component', parentId: 'ca', description: 'd' },
+      { ...base, id: 'k2', name: 'K2', type: 'Component', parentId: 'cb', description: 'd' },
+    );
+    m.connections.push(
+      { ...edge, id: 'e1', from: 'k1', to: 'k2', type: 'Dependency' },
+      { ...edge, id: 'up', from: 'ca', to: 'cb', type: 'Dependency', realizedBy: ['e1'] },
+    );
+    return m;
+  }
+
+  it('accepts a container edge realizedBy an existing component edge', () => {
+    expect(validateModel(model(), c4Backend)).toEqual([]);
+  });
+
+  it('flags a realizedBy id that is not a connection', () => {
+    const m = model();
+    m.connections[1].realizedBy = ['ghost'];
+    const issues = validateModel(m, c4Backend).filter((i) => i.kind === 'dangling-realizedBy');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].ref).toBe('up');
+    expect(issues[0].message).toMatch(/ghost/);
+  });
+
+  it('flags a realizedBy id that names a node rather than a connection', () => {
+    const m = model();
+    m.connections[1].realizedBy = ['k1'];
+    expect(validateModel(m, c4Backend).map((i) => i.kind)).toContain('dangling-realizedBy');
+  });
+
+  it('reports one issue per stale id, keeping the good ones silent', () => {
+    const m = model();
+    m.connections[1].realizedBy = ['e1', 'gone-1', 'gone-2'];
+    const issues = validateModel(m, c4Backend).filter((i) => i.kind === 'dangling-realizedBy');
+    expect(issues.map((i) => i.message.match(/"(.+)"/)?.[1])).toEqual(['gone-1', 'gone-2']);
+  });
+
+  it('still flags the stale id on a connection whose kind is unknown', () => {
+    const m = model();
+    m.connections[1].type = 'Bogus';
+    m.connections[1].realizedBy = ['ghost'];
+    expect(validateModel(m, c4Backend).map((i) => i.kind)).toContain('dangling-realizedBy');
+  });
+});
+
 describe('flow validation', () => {
   const nbase = { root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } };
   const edge = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };

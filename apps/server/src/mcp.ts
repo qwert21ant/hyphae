@@ -23,7 +23,8 @@ export interface HyphaeApi {
   deletePattern(id: string): Promise<unknown>;
 }
 
-type ApiResult = { node?: { id: string }; connection?: { id: string }; flow?: { id: string }; pattern?: { id: string }; issues?: unknown; error?: unknown };
+type CreatedEntity = { id: string; name?: string; from?: string; to?: string; type?: string };
+type ApiResult = { node?: CreatedEntity; connection?: CreatedEntity; flow?: CreatedEntity; pattern?: CreatedEntity; issues?: unknown; error?: unknown };
 
 export const flowStepSchema = z.object({
   order: z.number().describe('1-based position of this step in the sequence.'),
@@ -64,20 +65,32 @@ export const patternItemSchema = z.object({
   transitions: z.array(patternTransitionSchema).default([]).describe('For state-machine: directed transitions between members, referenced by member name.'),
 });
 
+/** What a create echoes back so the caller never has to re-look-up what it just wrote:
+ *  the id plus enough identity to match it to the input — the name for a named entity
+ *  (node/flow/pattern), the endpoints for a connection. */
+type Identity = { id: string; name?: string; from?: string; to?: string; type?: string };
+function identityOf(e: CreatedEntity): Identity {
+  return e.name !== undefined
+    ? { id: e.id, name: e.name }
+    : e.from !== undefined || e.to !== undefined
+      ? { id: e.id, from: e.from, to: e.to, type: e.type }
+      : { id: e.id };
+}
+
 async function runCreate(
   items: Record<string, unknown>[],
   fn: (i: Record<string, unknown>) => Promise<unknown>,
   key: 'node' | 'connection' | 'flow' | 'pattern',
 ) {
-  const results: Array<{ id: string } | { issues: unknown } | { error: unknown }> = [];
+  const results: Array<Identity | { issues: unknown } | { error: unknown }> = [];
   let ok = true;
   for (const it of items) {
     const r = (await fn(it)) as ApiResult;
     const created = r?.[key];
-    if (created?.id) results.push({ id: created.id });
+    if (created?.id) results.push(identityOf(created));
     else { ok = false; results.push('issues' in (r ?? {}) ? { issues: r.issues } : { error: r?.error ?? 'failed' }); }
   }
-  return ok ? { ids: results.map((x) => (x as { id: string }).id) } : { results };
+  return ok ? { created: results as Identity[] } : { results };
 }
 
 async function runVoid(calls: Array<() => Promise<unknown>>) {
@@ -460,7 +473,7 @@ async function main() {
   };
   const nodeItem = z.object({ name: z.string(), type: z.enum(c4Backend.nodeKinds.map((k) => k.id) as [string, ...string[]]), ...coreNodeFields });
   server.registerTool('create_nodes', {
-    description: "Create one OR MANY nodes in a single call. Pass an array (a single write is a one-element array). Call describe_profile first. Each item: name, type (a profile node kind), parentId, and domain values in `fields` — `fields.summary` is REQUIRED on System/Actor/ExternalSystem/Container/Component and is the one-line purpose shown on the diagram. Optionally set `role` to override the shape. Containment: Component→Container, Container→System. Component is the deepest structural layer (a Component's internal code lives in its codeRefs plus an optional Pattern, not child nodes). Best-effort: returns {ids:[...]} if all succeed, else {results:[{id}|{issues}]} aligned to input order.",
+    description: "Create one OR MANY nodes in a single call. Pass an array (a single write is a one-element array). Call describe_profile first. Each item: name, type (a profile node kind), parentId, and domain values in `fields` — `fields.summary` is REQUIRED on System/Actor/ExternalSystem/Container/Component and is the one-line purpose shown on the diagram. Optionally set `role` to override the shape. Containment: Component→Container, Container→System. Component is the deepest structural layer (a Component's internal code lives in its codeRefs plus an optional Pattern, not child nodes). Best-effort: returns {created:[{id,name},...]} in input order if all succeed, else {results:[{id,name}|{issues}]} aligned to input order. The echoed name means you never need a follow-up list_nodes to map names to ids.",
     inputSchema: { nodes: z.array(nodeItem) },
   }, async (a) => text(await tools.create_nodes(a)));
 
@@ -477,7 +490,7 @@ async function main() {
   };
   const connItem = z.object({ from: z.string(), to: z.string(), type: z.enum(connectionKindIds(c4Backend) as [string, ...string[]]), ...coreConnFields });
   server.registerTool('create_connections', {
-    description: "Create one OR MANY connections in a single call (single write = one-element array). Each item: from, to (existing node ids), type (a profile connection kind), domain values in `fields`, and optional realizedBy to bind lower-layer edges. Best-effort: {ids:[...]} on full success, else {results:[{id}|{issues}]}.",
+    description: "Create one OR MANY connections in a single call (single write = one-element array). Each item: from, to (existing node ids), type (a profile connection kind), domain values in `fields`, and optional realizedBy to bind lower-layer edges. Best-effort: {created:[{id,from,to,type},...]} in input order on full success, else {results:[{id,from,to,type}|{issues}]}. Use the echoed ids to fill `realizedBy` on a higher-layer edge without re-listing.",
     inputSchema: { connections: z.array(connItem) },
   }, async (a) => text(await tools.create_connections(a)));
 
@@ -537,7 +550,7 @@ async function main() {
   }, async (a) => text(await tools.get_flow(a)));
 
   server.registerTool('create_flows', {
-    description: "Create one OR MANY behavior Flows (numbered scenario overlays; single write = one-element array). Each flow: name, optional description/scope, and ordered steps. A step is { order, from, to (existing node ids), optional via (an existing connection id), message caption, kind (Sync|Async|Return), optional control fragment }. from/to must be existing nodes; via, when set, an existing connection. Best-effort: {ids:[...]} on full success, else {results:[{id}|{issues}]}.",
+    description: "Create one OR MANY behavior Flows (numbered scenario overlays; single write = one-element array). Each flow: name, optional description/scope, and ordered steps. A step is { order, from, to (existing node ids), optional via (an existing connection id), message caption, kind (Sync|Async|Return), optional control fragment }. from/to must be existing nodes; via, when set, an existing connection. Best-effort: {created:[{id,name},...]} on full success, else {results:[{id,name}|{issues}]}.",
     inputSchema: { flows: z.array(flowItemSchema) },
   }, async (a) => text(await tools.create_flows(a)));
 
@@ -563,7 +576,7 @@ async function main() {
   }, async (a) => text(await tools.get_pattern(a)));
 
   server.registerTool('create_patterns', {
-    description: "Create one OR MANY Patterns (architectural shapes; single write = one-element array). A Pattern has a name, a kind (from describe_profile.patternKinds), optional anchor (the node it describes), members, and — for state-machine — transitions. A member is { name, and either nodeId (a node) OR ref (a code Ref, resolved against the anchor's root) OR neither (a pure name, e.g. a state) }. For ordered kinds (pipeline, middleware) member array order is the stage order. Best-effort: {ids:[...]} on full success, else {results:[{id}|{issues}]}.",
+    description: "Create one OR MANY Patterns (architectural shapes; single write = one-element array). A Pattern has a name, a kind (from describe_profile.patternKinds), optional anchor (the node it describes), members, and — for state-machine — transitions. A member is { name, and either nodeId (a node) OR ref (a code Ref, resolved against the anchor's root) OR neither (a pure name, e.g. a state) }. For ordered kinds (pipeline, middleware) member array order is the stage order. Best-effort: {created:[{id,name},...]} on full success, else {results:[{id,name}|{issues}]}.",
     inputSchema: { patterns: z.array(patternItemSchema) },
   }, async (a) => text(await tools.create_patterns(a)));
 

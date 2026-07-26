@@ -41,6 +41,10 @@ Follow the phases in order. Do not skip the gates.
 Cost ≈ turns × context size. To avoid carrying a huge context across many turns:
 - **Reset/compact context between phases.** The skill is resumable — the server is the source of truth — so after each phase you can clear context and re-orient with `model_overview` + scoped `list_nodes`/`get_subgraph`. Nothing is lost.
 - **Batch every multi-write step** (`create_nodes`/`create_connections`/`update_*`) instead of one call per node/edge.
+- **Creates echo identity — keep the response, don't re-read.** Every `create_*` returns
+  `{created:[...]}` in input order: `{id, name}` for nodes/flows/patterns, `{id, from, to, type}`
+  for connections. That is your name→id map. Never follow a create with a `list_nodes` to recover
+  the ids you just wrote, and never build a side file to hold them.
 - **Read subagent reports from their files** (see Phase 2), not from chat history — they survive a context reset.
 - **Dispatch Phase 2 subagents on `sonnet`.** Per-package analysis is mechanical; reserve the
   strongest model for the orchestrator's reconcile/gate reasoning. Pass the model explicitly when you
@@ -91,7 +95,23 @@ Subagents never touch other packages or shared nodes.
    summarize without blocking (its writes are reversible `update_*`/`delete_*`, and gap candidates
    flow into Phase 5 either way).
 4. Apply the approved bundle: one `update_nodes` for amendments → one `create_nodes` for ExternalSystems → one `create_connections` for all cross-package/external edges. Re-dispatch owning subagents for any confirmed intra-container gaps.
-5. Tick the plan artifact's progress markers. Call `model_overview` and summarize the model.
+5. **Author the Container layer.** The edges from step 4 are Component↔Component; left alone, the
+   container view is only a *derived* rollup — dashed edges labelled with a count, which is the
+   unreadable full-model view. Lift them explicitly:
+   - Group the crossing component edges by the **ordered pair of owning containers**. `A→B` and
+     `B→A` are two different pairs.
+   - For **every** such pair, create **one** `Container→Container` connection carrying a real
+     `verb` + `object` and a `realizedBy` listing the ids of that pair's crossing component edges.
+     Take those ids from step 4's `create_connections` response — it echoes them.
+   - One edge per pair however many component edges it aggregates: this edge is the container-level
+     summary, so name what the pair is *for* ("serves frame data"), not the union of everything
+     under it. The detail stays legible below, in `realizedBy`.
+   - Component edges stay as they are — they carry the detail and are the `realizedBy` targets.
+   Binding an edge in `realizedBy` excludes it from the derived rollup, so the container view
+   becomes these authored solid edges instead of dashed counts. Order matters: a `realizedBy` id
+   that is not an existing connection is a `dangling-realizedBy` issue and the whole write is
+   rejected — create the component edges first, then the container edges that claim them.
+6. Tick the plan artifact's progress markers. Call `model_overview` and summarize the model.
 
 #### Reconcile procedure (used by GATE 2)
 
@@ -114,7 +134,8 @@ optional and additive: a model with zero flows is complete.
 
 ### Phase 5 — Verify (optional, re-runnable)
 A standalone consistency pass over an existing model. The Phase-3 tail already runs this sweep inline (its checkpoint folded into GATE 2), so Phase 5 is only needed as a **re-run** — any time after the initial build. Read-mostly: gaps are filled by the owning subagent, never by the orchestrator inventing edges.
-0. **Structural check.** Call `validate_model` — it returns any structural/field issues (bad containment, dangling/bad endpoints, unknown or missing-required fields, bad enum values, bad refs, unknown roles, unknown verbs) in one read. Fix those first. Empty means structurally clean.
+0. **Structural check.** Call `validate_model` — it returns any structural/field issues (bad containment, dangling/bad endpoints, unknown or missing-required fields, bad enum values, bad refs, unknown roles, unknown verbs, stale `realizedBy` claims) in one read. Fix those first. Empty means structurally clean.
+   A `dangling-realizedBy` means a higher-layer edge claims a connection that no longer exists (usually its component edge was deleted): drop the stale id with `update_connections`, or delete the container edge if nothing is left below it — while it dangles, that pair falls back to a derived rollup.
    Two of these are about ref anchoring (see **Refs and roots**): `unanchored-ref` means a node carries relative `codeRefs` but no ancestor declares a `root` — fix by setting `root` on the owning **Container**, not by rewriting every ref to be repo-relative. `bad-root` means a declared `root` is not a directory Ref (needs a trailing `/`, no `*` or `#`). One missing Container root typically accounts for every `unanchored-ref` in its subtree, so fix roots first and re-run before touching anything else.
 1. **Coverage sweep.** Call `model_gaps` — one read returns orphan Components (zero connections) and thin/name-echoing descriptions (with inbound/outbound degree, so a thin hub — high inbound but an empty/echoing description — stands out). Separate likely-real gaps from legitimately standalone components (`standaloneComponents` are expected).
    Also call `list_flows` and flag any flow with `valid:false` — a later node/connection deletion
@@ -169,6 +190,12 @@ obligations on every write. Call `describe_profile` for the exact vocabularies.
   `object` noun where one applies — "reads camera list", "publishes frame". The verb defaults to
   `uses`, which renders but says nothing; a diagram full of `uses` is the failure mode this
   replaces. Pick the specific verb.
+  The vocabulary is **closed**: a verb that is not in `describe_profile`'s list is an
+  `unknown-verb` issue and the write is rejected. Read the list before you write and choose the
+  nearest declared verb — do not invent one and repair it after a rejection.
+- **`fields.technology` is one canonical name** — "Vue", "PostgreSQL", "Go". Not a version
+  ("Java 17"), not a dependency list ("Netty, Jackson, Guava"): the canvas ellipsizes a long value
+  into nothing readable. Put the stack detail in `description` instead.
 - **Set `role`** when a Component is really a datastore, a queue, an external system, or a UI
   surface. Otherwise leave it unset and it inherits its node kind's default shape.
 
@@ -256,6 +283,15 @@ Guidance:
 - Skipping a gate to "save time" → all gates (GATE 1, GATE 2) are mandatory.
 - Creating a Component / Container / System without `fields.summary` → `missing-required-field`; the node renders as a bare box.
 - Leaving every connection on the default `uses` verb → the diagram carries no more meaning than before; pick real verbs.
+- Leaving the container level as a pure derived rollup when crossing edges exist → author one
+  Container↔Container connection per ordered container pair, `realizedBy` the crossing component
+  edges (Phase 3 step 5).
+- Using a `verb` that is not in `describe_profile`'s vocabulary, then "sanitizing" it after the
+  rejection → read the vocabulary first and pick a declared verb.
+- Putting a version number or a dependency list in `fields.technology` → one canonical name; the
+  detail goes in `description`.
+- Calling `list_nodes` after a create to map names back to ids → the create response already
+  echoed `{id, name}` for every item.
 - The orchestrator authoring a Pattern (it needs a Component's internals) → that is the Phase 2
   subagent's job; the orchestrator owns Flows, not Patterns.
 - A subagent authoring a Flow, or a cross-container flow step → Flows are the orchestrator's, Phase 4.

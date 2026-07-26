@@ -8,7 +8,7 @@ import { isDirectoryRef, resolveRoot, resolveRef } from './ref';
 export type Issue = {
   kind:
     | 'unknown-type' | 'bad-parent' | 'missing-parent' | 'dangling-endpoint'
-    | 'unknown-connection-kind' | 'bad-endpoint'
+    | 'unknown-connection-kind' | 'bad-endpoint' | 'dangling-realizedBy'
     | 'unknown-field' | 'bad-field-type' | 'bad-enum-value' | 'missing-required-field' | 'bad-ref'
     | 'unanchored-ref' | 'bad-root'
     | 'unknown-role' | 'unknown-verb'
@@ -121,9 +121,18 @@ export function validateModel(model: HyphaeModel, profile: Profile): Issue[] {
     }
   }
 
+  const connIds = new Set(model.connections.map((c) => c.id));
+
   for (const c of model.connections) {
     if (!nodeById.has(c.from) || !nodeById.has(c.to)) {
       issues.push({ kind: 'dangling-endpoint', ref: c.id, message: `Connection references missing node` });
+    }
+    // An authored higher-layer edge claims the lower edges it aggregates by id; a claim on
+    // something that is not a connection silently un-hides nothing from the rollup, so flag it.
+    for (const id of c.realizedBy) {
+      if (!connIds.has(id)) {
+        issues.push({ kind: 'dangling-realizedBy', ref: c.id, message: `realizedBy references missing connection "${id}"` });
+      }
     }
     const kind = connKindById.get(c.type);
     if (!kind) {
@@ -144,7 +153,6 @@ export function validateModel(model: HyphaeModel, profile: Profile): Issue[] {
     issues.push(...validateFields(c.fields, effectiveFields(profile, c.type, 'connection'), nodeById, c.id));
   }
 
-  const connIds = new Set(model.connections.map((c) => c.id));
   const layers = new Set(profile.layers);
   for (const f of model.flows) {
     if (f.scope !== null && !layers.has(f.scope)) {
