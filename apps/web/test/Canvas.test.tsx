@@ -280,11 +280,11 @@ function flowModel() {
 describe('Canvas flow overlay', () => {
   const hlCss = (container: HTMLElement) => container.querySelector('style[data-hyphae-hl]')!.textContent ?? '';
 
-  it('mounts the FlowPicker when the model has flows', () => {
+  it('leaves flows and patterns to the tree panel', () => {
     useStore.setState({ model: flowModel(), focusId: 'ca', selectedId: null, selectedFlowId: null });
-    const { getByText } = render(<Canvas />);
-    expect(getByText('Flows')).toBeTruthy();
-    expect(getByText('F')).toBeTruthy();
+    const { queryByText } = render(<Canvas />);
+    expect(queryByText('Flows')).toBeNull();
+    expect(queryByText('Patterns')).toBeNull();
   });
 
   it('selecting a flow dims the rest and restores its participating edge (via CSS)', () => {
@@ -315,6 +315,32 @@ describe('Canvas flow overlay', () => {
     const { container } = render(<Canvas />);
     const css = container.querySelector('style[data-hyphae-hl]')!.textContent ?? '';
     expect(css).not.toMatch(/react-flow__edge\{opacity:0\.\d/);   // no dim-all rule
+    // ...and the step is published as off-view, so the tree can offer to navigate to it.
+    expect(useStore.getState().offViewStepOrders).toEqual([1]);
+  });
+
+  it('draws an ephemeral edge for a step with no connection behind it', () => {
+    // a1 and a2 are both drawn, but nothing connects them — the step still has to be visible.
+    // React Flow renders no edges in jsdom, so assert the highlight CSS keyed on the edge id.
+    const m = emptyModel();
+    m.nodes.push(
+      { id: 'ca', name: 'Alpha', type: 'Container', parentId: null, ...base },
+      { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
+      { id: 'a2', name: 'A2', type: 'Component', parentId: 'ca', ...base },
+    );
+    m.flows.push({ id: 'f1', name: 'F', description: '', scope: null, steps: [
+      { order: 1, from: 'a1', to: 'a2', message: 'go', kind: 'Sync' },
+    ] });
+    useStore.setState({ model: m, focusId: 'ca', selectedId: null, selectedFlowId: 'f1', expandedExternals: new Set() });
+    const { container } = render(<Canvas />);
+    expect(hlCss(container)).toContain('.react-flow__edge[data-id="flow-step:a1|a2"]');
+    expect(useStore.getState().offViewStepOrders).toEqual([]);   // shown, so not marked ↗ in the tree
+  });
+
+  it('publishes an empty off-view step list when no flow is selected', () => {
+    useStore.setState({ model: flowModel(), focusId: 'ca', selectedFlowId: null, offViewStepOrders: [7] });
+    render(<Canvas />);
+    expect(useStore.getState().offViewStepOrders).toEqual([]);
   });
 
   it('renders pattern member boxes when a pattern is selected', () => {
@@ -324,9 +350,9 @@ describe('Canvas flow overlay', () => {
       members: [{ name: 'Idle', description: '' }, { name: 'Recording', description: '' }],
       transitions: [{ from: 'Idle', to: 'Recording', trigger: 'start', description: '' }] });
     useStore.setState({ model: m, selectedPatternId: 'p1', selectedFlowId: null, focusId: null });
-    // NOTE: PatternPicker (Task 11) also lists member names as plain text (<li>Idle</li>) when the
-    // pattern is selected, so a bare getByText('Idle') is ambiguous. Scope to the canvas's own
-    // React Flow nodes via the file's `node()` helper instead.
+    // Scope the lookup to the canvas's own React Flow nodes via the file's `node()` helper: the
+    // TreePanel lists the same member names when the pattern is selected (it is not rendered here,
+    // but the canvas must be checked on its own terms either way).
     const { container } = render(<Canvas />);
     expect(node(container, 'Idle')).toBeTruthy();
     expect(node(container, 'Recording')).toBeTruthy();

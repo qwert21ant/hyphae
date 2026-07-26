@@ -57,3 +57,19 @@ describe('patternViewToFlow', () => {
     expect(fn[0].position.y).toBeLessThan(fn[1].position.y);
   });
 });
+
+describe('patternViewToFlow — member navigation', () => {
+  it('exposes nodeId only for a member bound to a node that exists', () => {
+    const p = pattern({ kind: 'layered', members: [
+      { name: 'Persist', nodeId: 'comp', description: '' },
+      { name: 'Gone', nodeId: 'deleted-id', description: '' },
+      { name: 'Decode', ref: 'd.ts', description: '' },
+      { name: 'Idle', description: '' },
+    ] });
+    const byId = Object.fromEntries(patternViewToFlow(p, c4Backend, nodes).nodes.map((n) => [n.id, n.data as { nodeId?: string }]));
+    expect(byId['Persist'].nodeId).toBe('comp');
+    expect(byId['Gone'].nodeId).toBeUndefined();
+    expect(byId['Decode'].nodeId).toBeUndefined();
+    expect(byId['Idle'].nodeId).toBeUndefined();
+  });
+});

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ReactFlow, Background, Controls, MiniMap, Panel, ConnectionMode,
+  ReactFlow, Background, Controls, MiniMap, Panel, ConnectionMode, MarkerType,
   type Node as FlowNode,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -9,7 +9,7 @@ import { useStore } from './store';
 import { buildFocusView } from './focusView';
 import { layoutFocusView, resolveViewPositions } from './layout';
 import { focusViewToFlow, highlightSets } from './reactflow';
-import { computeFlowOverlay } from './flowOverlay';
+import { computeFlowOverlay, type StepBadge } from './flowOverlay';
 import { patternViewToFlow } from './patternView';
 import { GroupNode } from './GroupNode';
 import { NodeBox } from './NodeBox';
@@ -18,8 +18,6 @@ import { GhostGroupNode } from './GhostGroupNode';
 import { PatternMemberNode } from './PatternMemberNode';
 import { FloatingEdge, EDGE_LABEL_CLASS } from './FloatingEdge';
 import { FilterPanel } from './FilterPanel';
-import { FlowPicker } from './FlowPicker';
-import { PatternPicker } from './PatternPicker';
 import { Legend } from './Legend';
 
 const nodeTypes = { region: GroupNode, node: NodeBox, ghost: GhostNode, ghostGroup: GhostGroupNode, patternMember: PatternMemberNode };
@@ -73,6 +71,13 @@ export function Canvas() {
   const overlay = useMemo(() => (flow ? computeFlowOverlay(flow, edges, visibleNodeIds) : null), [flow, edges, visibleNodeIds]);
   const flowActive = !!overlay && (overlay.participatingNodes.size > 0 || overlay.participatingEdges.size > 0);
 
+  // Publish the steps this view cannot draw, so the tree can mark them as elsewhere. Which steps
+  // those are depends on the drawn edges, which only exist here.
+  const setOffViewSteps = useStore((s) => s.setOffViewSteps);
+  useEffect(() => {
+    setOffViewSteps(overlay ? overlay.offViewSteps.map((s) => s.order) : []);
+  }, [overlay, setOffViewSteps]);
+
   // Pattern view: when a pattern is selected, replace the focus view entirely with its own
   // small diagram (member boxes + sequence/transition edges), built by patternViewToFlow.
   const pattern = useMemo(() => model.patterns.find((p) => p.id === selectedPatternId) ?? null, [model.patterns, selectedPatternId]);
@@ -83,18 +88,34 @@ export function Canvas() {
   // flow selection changes, so this is not per-frame churn.
   const displayEdges = useMemo(() => {
     if (!overlay) return edges;
-    return edges.map((ed) => {
+    const stepLabel = (steps: StepBadge[]) => steps.map((s) => `${stepBadge(s.order)} ${s.message}`.trim()).join('   ');
+    const labelled = edges.map((ed) => {
       const steps = overlay.edgeSteps.get(ed.id);
       if (!steps) return ed;
-      const label = steps.map((s) => `${stepBadge(s.order)} ${s.message}`.trim()).join('   ');
       const anyReturn = steps.some((s) => s.kind === 'Return');
       return {
         ...ed,
-        label,
+        label: stepLabel(steps),
         style: { ...ed.style, ...(anyReturn ? { strokeDasharray: '6 4' } : {}) },
         labelStyle: { ...(ed.labelStyle as Record<string, unknown> | undefined), fontWeight: 700 },
       };
     });
+    // Steps with no structural edge behind them get one for the duration of the selection, drawn
+    // dotted and in the flow accent so it never reads as an authored connection.
+    const ephemeral = overlay.ephemeralEdges.map((ee) => ({
+      id: ee.id,
+      type: 'floating',
+      source: ee.source,
+      target: ee.target,
+      label: stepLabel(overlay.edgeSteps.get(ee.id) ?? []),
+      data: { ephemeral: true },
+      selectable: false,
+      deletable: false,
+      style: { stroke: '#2563eb', strokeDasharray: '2 5', strokeWidth: 2 },
+      labelStyle: { fill: '#1d4ed8', fontWeight: 700 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#2563eb' },
+    }));
+    return [...labelled, ...ephemeral];
   }, [edges, overlay]);
 
   // Highlight the active node/edge + neighbors (a region highlights its children), dim the rest.
@@ -209,13 +230,8 @@ export function Canvas() {
         onPaneClick={() => select(null)}
         fitView
       >
-        <Panel position="top-left">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <FilterPanel />
-            <FlowPicker />
-            <PatternPicker />
-          </div>
-        </Panel>
+        {/* Flows and patterns live in the left TreePanel; the canvas only keeps the filter. */}
+        <Panel position="top-left"><FilterPanel /></Panel>
         <Panel position="top-right"><Legend /></Panel>
         <Background />
         <Controls />

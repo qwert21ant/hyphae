@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildFocusView, breadcrumbPath, representative, externalConnections, partitionConnections } from '../src/focusView';
+import { buildFocusView, breadcrumbPath, representative, externalConnections, partitionConnections, stepReveal } from '../src/focusView';
 import { emptyModel } from '@hyphae/schema';
 import { edgeLabel, VERB_CLASS_COLOR } from '../src/reactflow';
 
@@ -488,5 +488,50 @@ describe('buildFocusView — verb and object', () => {
     const derived = v.edges.filter((x) => x.derived);
     expect(derived.length).toBeGreaterThan(0);
     for (const de of derived) expect(de.verb).toBeUndefined();
+  });
+});
+
+describe('stepReveal', () => {
+  const step = (from: string, to: string, over: Record<string, unknown> = {}) =>
+    ({ order: 1, from, to, message: '', kind: 'Sync' as const, ...over });
+
+  it('focuses the shared parent when both endpoints are siblings', () => {
+    expect(stepReveal(model(), step('a1', 'a2'))).toEqual({ focusId: 'ca', expand: new Set(), selectedId: 'a1' });
+  });
+
+  it('focuses the root when both endpoints are top-level', () => {
+    expect(stepReveal(model(), step('sys', 'ext'))).toEqual({ focusId: null, expand: new Set(), selectedId: 'sys' });
+  });
+
+  it("focuses the source's parent and expands the target's representative across containers", () => {
+    expect(stepReveal(model(), step('a1', 'b1'))).toEqual({ focusId: 'ca', expand: new Set(['cb']), selectedId: 'a1' });
+  });
+
+  it('focuses the DEEPER endpoint\'s parent, so a top-level source stays an external', () => {
+    // ext is an ExternalSystem at top level; a1 is a Component two levels down. Focusing ext's
+    // parent (the root) would show neither endpoint — a1 would be represented by sys.
+    expect(stepReveal(model(), step('ext', 'a1'))).toEqual({ focusId: 'ca', expand: new Set(), selectedId: 'ext' });
+  });
+
+  it('never expands a node that is drawn INSIDE the view', () => {
+    // sys is a root box at the root view. Expanding it would anchor a ghost group on top of the
+    // root cluster (resolveViewPositions places groups in the external columns), so the deeper
+    // endpoint's parent is focused instead and sys stays an ordinary external.
+    const r = stepReveal(model(), step('sys', 'a1'))!;
+    expect(r.focusId).toBe('ca');
+    expect([...r.expand]).toEqual([]);
+  });
+
+  it('needs no expansion when the target is already a focus-level peer', () => {
+    expect(stepReveal(model(), step('a1', 'cb'))).toEqual({ focusId: 'ca', expand: new Set(), selectedId: 'a1' });
+  });
+
+  it('selects the via connection when the step names one', () => {
+    expect(stepReveal(model(), step('a1', 'b1', { via: 'conn-7' }))?.selectedId).toBe('conn-7');
+  });
+
+  it('returns null when an endpoint is not in the model', () => {
+    expect(stepReveal(model(), step('a1', 'ghost'))).toBeNull();
+    expect(stepReveal(model(), step('ghost', 'a1'))).toBeNull();
   });
 });

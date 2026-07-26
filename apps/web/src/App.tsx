@@ -2,21 +2,37 @@ import { useEffect } from 'react';
 import { useStore } from './store';
 import { loadModel } from './api';
 import { breadcrumbPath } from './focusView';
-import { hashToFocusId, focusIdToHash, resolveHashFocus } from './hashRoute';
+import { parseHash, routeToHash, routeOfState, resolveHashRoute, ROOT_ROUTE, type Route } from './hashRoute';
 import { c4Backend, allowedChildTypes, topLevelTypes } from '@hyphae/schema';
 import { Canvas } from './Canvas';
 import { SidePanel } from './SidePanel';
+import { TreePanel } from './TreePanel';
 import { SearchBox } from './SearchBox';
 import './styles.css';
 
-/** Adopt the URL hash as the focus, validated against the loaded model. A hash naming an
- *  unknown node (stale or hand-typed) rewrites the URL to root instead of showing a blank
- *  canvas; replaceState (not push) keeps the bad URL out of history. */
-function applyHashFocus() {
-  const { model, setFocus } = useStore.getState();
-  const { focusId, rewrite } = resolveHashFocus(window.location.hash, (id) => model.nodes.some((n) => n.id === id));
+/** Put the store into the state a route describes. A pattern or a flow is a selection (the flow's
+ *  own first step then decides the focus, see `selectFlow`); a node route is a plain focus with any
+ *  flow/pattern selection dropped — the URL names exactly one view at a time. */
+function applyRoute(route: Route) {
+  const { setFocus, selectFlow, selectPattern } = useStore.getState();
+  if (route.kind === 'pattern') { selectPattern(route.id); return; }
+  if (route.kind === 'flow') { selectFlow(route.id); return; }
+  selectFlow(null); // the store keeps flow/pattern mutually exclusive, so this clears both
+  setFocus(route.kind === 'node' ? route.id : null);
+}
+
+/** Adopt the URL hash as the current view, validated against the loaded model. A hash naming an
+ *  unknown node/flow/pattern (stale, hand-typed, or a pre-Cluster-E bare `#<id>` link) rewrites the
+ *  URL to root instead of showing a blank canvas; replaceState (not push) keeps it out of history. */
+function applyHashRoute() {
+  const { model } = useStore.getState();
+  const { route, rewrite } = resolveHashRoute(window.location.hash, {
+    node: (id) => model.nodes.some((n) => n.id === id),
+    flow: (id) => model.flows.some((f) => f.id === id),
+    pattern: (id) => model.patterns.some((p) => p.id === id),
+  });
   if (rewrite) window.history.replaceState(null, '', window.location.pathname + window.location.search);
-  setFocus(focusId);
+  applyRoute(route);
 }
 
 export function App() {
@@ -32,8 +48,8 @@ export function App() {
     loadModel()
       .then(({ model, version }) => {
         setModel(model, version);
-        // Validate the deep-linked focus now that the model is loaded (see applyHashFocus).
-        applyHashFocus();
+        // Validate the deep-linked view now that the model is loaded (see applyHashRoute).
+        applyHashRoute();
       })
       .catch((e) => console.error('load failed', e));
     const es = new EventSource('/events');
@@ -44,23 +60,23 @@ export function App() {
     return () => es.close();
   }, [setModel]);
 
-  // Keep the focused node in the URL hash: refresh restores it and the browser Back button
-  // walks focus history. The store stays the source of truth; the hash mirrors it.
+  // Keep the current view — focused node, selected flow, or selected pattern — in the URL hash:
+  // refresh restores it and the browser Back button walks the history. The store stays the source
+  // of truth; the hash mirrors it.
   useEffect(() => {
-    const initial = hashToFocusId(window.location.hash);
-    if (initial) useStore.getState().setFocus(initial);
-
-    // store → URL: a focus change the URL doesn't already reflect becomes a history entry.
+    // store → URL: a route change the URL doesn't already reflect becomes a history entry. Compared
+    // as hashes so a focus change *within* a selected flow (same route) pushes nothing.
+    const hashOf = (s: Parameters<typeof routeOfState>[0]) => routeToHash(routeOfState(s));
     const unsub = useStore.subscribe((s, prev) => {
-      if (s.focusId === prev.focusId) return;
-      if (hashToFocusId(window.location.hash) === s.focusId) return;
-      const url = focusIdToHash(s.focusId) || window.location.pathname + window.location.search;
-      window.history.pushState(null, '', url);
+      const next = hashOf(s);
+      if (next === hashOf(prev)) return;
+      if (routeToHash(parseHash(window.location.hash) ?? ROOT_ROUTE) === next) return;
+      window.history.pushState(null, '', next || window.location.pathname + window.location.search);
     });
 
     // URL → store: Back/Forward and manual hash edits, validated against the model. pushState
     // above fires neither event, so this never echoes back into a push.
-    const onNav = () => applyHashFocus();
+    const onNav = () => applyHashRoute();
     window.addEventListener('popstate', onNav);
     window.addEventListener('hashchange', onNav);
     return () => {
@@ -104,6 +120,7 @@ export function App() {
         </div>
       </header>
       <div className="body">
+        <TreePanel />
         <Canvas />
         <SidePanel />
       </div>

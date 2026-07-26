@@ -55,9 +55,9 @@ against a running Hyphae server.
 | `apps/web/src/layout.ts` / `NodeBox.tsx` | bigger nodes; 2-line summary clamp | B4 |
 | `apps/web/src/shapes.ts` / `NodeBox.tsx` / `GhostNode.tsx` / `Legend.tsx` | SVG role archetypes | C1 |
 | `apps/web/src/hashRoute.ts` / `App.tsx` | URL route carries focus **+ flow + pattern** | E1 |
-| `apps/web/src/PatternPicker.tsx` / `patternView.ts` / `PatternMemberNode.tsx` | show anchor; navigable members | E2 |
-| `apps/web/src/FlowPicker.tsx` / `store.ts` | clickable steps → jump to node/connection | E3 |
-| `apps/web/src/TreePanel.tsx` (new) / `App.tsx` / `styles.css` | left tree of nodes + flows + patterns | E4 |
+| `apps/web/src/patternView.ts` / `PatternMemberNode.tsx` | navigable members (anchor moved to the tree) | E2 |
+| `apps/web/src/focusView.ts` / `store.ts` / `Canvas.tsx` | `stepReveal`/`revealStep`; off-view step publication | E3 |
+| `apps/web/src/TreePanel.tsx` (new) / `App.tsx` / `styles.css` | left tree of nodes + flows + patterns; **replaces** the deleted `FlowPicker.tsx` / `PatternPicker.tsx` | E4 |
 
 Task order is dependency order: **A1 before A2** (the skill's `realizedBy` step relies on creates
 echoing identity so the orchestrator can reference component-edge ids). B, C, and E are independent
@@ -242,19 +242,20 @@ A pattern's `anchor` and a flow step's endpoints exist in the data but are not n
 **Why:** make a selected flow/pattern behave like a focused node — restored on refresh, shareable.
 A **pattern** replaces the canvas (a self-contained view); a **flow** is an overlay on a focus.
 
-- [ ] **Step 1: Generalize the hash route.** Replace the focus-only helpers with a small route model
-  `{ focus?: string|null; flow?: string; pattern?: string }`:
-  - `#<id>` (bare) → focus a node (back-compat; keep existing deep-links working).
-  - `#pattern/<id>` → select a pattern (focus irrelevant while shown).
-  - `#flow/<id>` → select a flow; on load, also set focus to the flow's natural altitude so its steps
-    light (reuse E3's `revealStep` on the first step, or the LCA of step 1's endpoints).
-  - Unknown flow/pattern id coerces to root with `rewrite:true`, exactly like a stale node id today.
-- [ ] **Step 2: Two-way sync in `App.tsx`.** Extend the `useStore.subscribe` (`App.tsx:54`) to watch
-  `selectedFlowId`/`selectedPatternId` as well as `focusId`, pushing the matching hash; extend
-  `applyHashFocus` → `applyHashRoute` to call `selectFlow`/`selectPattern`/`setFocus` from the parsed
-  route on `popstate`/`hashchange`.
-- [ ] Verify: selecting a pattern or flow updates the URL; refresh restores it; Back walks the history;
-  a hand-typed `#pattern/bad` rewrites to root. hashRoute unit tests cover parse/format/stale.
+- [x] **Step 1: Generalize the hash route.** Replaced the focus-only helpers with a `Route` union
+  (`{kind:'root'|'node'|'flow'|'pattern'; id}`) plus `parseHash` / `routeToHash` / `routeOfState` /
+  `resolveHashRoute`:
+  - **Decision 1 (chosen): fully prefixed routes** — `#node/<id>`, `#flow/<id>`, `#pattern/<id>`. A
+    bare `#<id>` no longer parses; like any unresolvable hash it coerces to root with `rewrite:true`.
+  - `routeOfState` ranks pattern > flow > focus, so stepping through a selected flow moves the focus
+    without churning the URL.
+  - Unknown node/flow/pattern id coerces to root with `rewrite:true`.
+- [x] **Step 2: Two-way sync in `App.tsx`.** The `useStore.subscribe` compares `routeToHash(routeOfState())`
+  before/after and pushes on change; `applyHashFocus` → `applyHashRoute` + `applyRoute` call
+  `selectFlow`/`selectPattern`/`setFocus` on load, `popstate` and `hashchange`.
+- [x] Verify: `hashRoute.test.ts` covers parse/format/precedence/stale (12 tests); `App.test.tsx`
+  covers adopt, rewrite-to-root (incl. legacy bare id), flow auto-jump, pattern↔node switching, and
+  push-on-selection.
 
 ### Task E2: Show a pattern's anchor; make members navigable
 
@@ -263,13 +264,16 @@ A **pattern** replaces the canvas (a self-contained view); a **flow** is an over
 **Why:** the pattern view replaces the canvas, so the user loses which node the pattern describes.
 `Pattern.anchor` already holds it; `memberData` already knows a member's bound node (`patternView.ts:17-24`).
 
-- [ ] **Step 1: Anchor affordance.** In the `PatternPicker` header for the selected pattern (and/or a
-  banner over the pattern view), show `anchor: <node name>` with a button that calls
-  `revealNode(anchor)` (which navigates out of the pattern to that node in context).
-- [ ] **Step 2: Navigable members.** A member with `binding:'node'` (`patternView.ts:18-21`) gets a
-  click handler in `PatternMemberNode.tsx` → `revealNode(nodeId)`. Ref/pure-name members stay static.
-- [ ] Verify: selecting a pattern shows its anchor by name; clicking the anchor/member jumps to that
-  node's view.
+- [x] **Step 1: Anchor affordance.** Landed in the **TreePanel** instead of `PatternPicker` (see
+  decision 3 — the pickers are gone): the selected pattern's row expands to `anchor: <node name>` as
+  a button calling `revealNode(anchor)`; a dangling anchor shows its raw id marked ⚠.
+- [x] **Step 2: Navigable members.** `memberData` now carries `nodeId`, set **only when the bound node
+  exists**; `PatternMemberNode` renders those as a `role="button"` box (click + Enter/Space) calling
+  `revealNode(nodeId)`, stopping propagation so the canvas click stream can't select it by member
+  name. Ref / pure-name / dangling-node members stay static. `revealNode` now also clears the
+  flow/pattern selection, so navigating leaves the pattern view instead of appearing to do nothing.
+- [x] Verify: `PatternMemberNode.test.tsx` (5) + `patternView.test.ts` (nodeId exposure) +
+  TreePanel's anchor/member tests.
 
 ### Task E3: Flow step navigation
 
@@ -279,17 +283,21 @@ A **pattern** replaces the canvas (a self-contained view); a **flow** is an over
 endpoints are both visible at the current focus, and `flowOverlay.ts` already computes `offViewSteps`
 for the ones that aren't — but nothing lets the user get to them.
 
-- [ ] **Step 1: `revealStep` store action.** Add `revealStep(step)`: focus the LCA-parent of
-  `step.from`/`step.to` (so both are visible) and set `selectedId` to `step.via` (the connection) when
-  present, else `step.from`. (Compute the LCA from `parentId` chains; a small helper in `focusView`.)
-- [ ] **Step 2: Clickable steps.** Each step row in `FlowPicker` calls `revealStep(step)`; render the
-  step number and mark rows in `offViewSteps` (e.g. "↗ not in this view"). Add a "jump to first step"
-  affordance on the selected flow.
-- [ ] **Decision (see open questions):** whether selecting a flow *auto*-jumps to the first step or
-  only lights the overlay until the user clicks a step. Default: manual (no surprise focus jump), plus
-  the explicit "jump to first step" button.
-- [ ] Verify: clicking a step navigates to a view where its edge/nodes are visible and selects the
-  right connection; a cross-altitude flow is now reachable step by step.
+- [x] **Step 1: `revealStep` store action.** `stepReveal(model, step)` in `focusView.ts` is the pure
+  part: the shared parent when the endpoints are siblings (root when both are top-level), else the
+  source's parent **plus the external to expand** so the far endpoint actually surfaces (the plain
+  LCA-parent alone leaves a cross-container target represented by its container, i.e. still off-view).
+  `store.revealStep` applies focus + `expandedExternals` + `selectedId` (`step.via ?? step.from`)
+  atomically; a step naming a missing node no-ops.
+- [x] **Step 2: Clickable steps.** Landed in the **TreePanel** (the `FlowPicker` is gone): numbered
+  rows call `revealStep(step)` and carry a ↗ marker for off-view steps. `Canvas` publishes
+  `offViewStepOrders` to the store (only the canvas knows which steps its drawn edges could host).
+  No separate "jump to first step" button — selecting a flow already jumps there, and step row 1 is
+  the way back.
+- [x] **Decision 2 (chosen): auto-jump to step 1** on flow selection, implemented inside
+  `store.selectFlow` so every entry point (tree row, `#flow/<id>` route) behaves the same.
+- [x] Verify: `focusView.test.ts` stepReveal (6), `store.test.ts` revealStep (2), TreePanel step
+  navigation/off-view marking, `Canvas.test.tsx` off-view publication.
 
 ### Task E4: Left tree-view panel
 
@@ -298,26 +306,57 @@ for the ones that aren't — but nothing lets the user get to them.
 **Why:** a persistent outline of the whole model — nodes by containment, plus Flows and Patterns —
 for orientation and one-click navigation. Depends on E1 so row clicks update the URL route.
 
-- [ ] **Step 1: Tree component.** Collapsible tree: **Nodes** nested by `parentId`
-  (root → System → Containers → Components), then a **Flows** section and a **Patterns** section.
-  Row click: node → `revealNode` (single) / `setFocus` drill (double, mirroring canvas); flow →
-  `selectFlow`; pattern → `selectPattern`. Highlight the current `focusId`/`selectedId`/selected
-  flow/pattern. Reuse the ⚠ invalid markers from the pickers.
-- [ ] **Step 2: Mount left of the canvas** in `App.tsx`'s `.body` (`App.tsx:106-109`); add a
-  collapsible width in `styles.css`.
-- [ ] **Decision (see open questions):** whether the tree *replaces* the floating `FlowPicker`/
-  `PatternPicker` (top-left canvas panel) or coexists. Default: fold the Flows/Patterns lists into the
-  tree and remove the floating pickers (keeping the canvas overlay/selection behavior).
-- [ ] Verify: the tree lists every node/flow/pattern; clicking navigates and updates the URL; the
-  active item is highlighted.
+- [x] **Step 1: Tree component.** `TreePanel.tsx`: **Nodes** nested by `parentId` (a node whose parent
+  id doesn't resolve becomes a root, so nothing is orphaned out of the outline), then **Flows** and
+  **Patterns** sections, each hidden when empty. Branches auto-open along the focus's ancestor chain,
+  with per-node twisty overrides. Row click: node → `revealNode`, double-click → `setFocus` drill
+  (the canvas's gesture); flow → `selectFlow` (toggles); pattern → `selectPattern` (toggles).
+  `focusId` bolds a row, `selectedId`/selected flow/pattern highlights it. ⚠ markers reuse the
+  pickers' `bad-flow-*` / `pattern-*` validation filters.
+- [x] **Step 2: Mounted left of the canvas** in `App.tsx`'s `.body`; `.tree-panel` + collapsed
+  variant in `styles.css`.
+- [x] **Decision 3 (chosen): the tree replaces the floating pickers.** `FlowPicker.tsx`,
+  `PatternPicker.tsx` and their tests are deleted; `Canvas`'s top-left `Panel` keeps only
+  `FilterPanel`. Canvas overlay/selection behaviour is unchanged.
+- [x] Verify: `TreePanel.test.tsx` (14) covers nesting, auto-open, twisty, reveal/drill, flow select
+  + step navigation + ↗ marking, pattern anchor/member navigation, ⚠ markers, collapse, empty model.
 
-### Open design decisions (Cluster E — confirm before building)
-1. **Hash scheme:** keep bare `#<id>` = node focus for back-compat and add `#flow/<id>` / `#pattern/<id>`
-   (recommended), vs. move everything to prefixed routes `#node/…` (breaks existing deep-links).
-2. **Flow selection:** manual step navigation + a "jump to first step" button (recommended), vs.
-   auto-jump to the first step on selection.
-3. **Tree vs floating pickers:** fold Flows/Patterns into the tree and drop the floating pickers
-   (recommended), vs. keep both.
+### Cluster E follow-up fixes (from the first real run against the baritone model)
+
+Three defects surfaced by driving the four authored flows; all fixed, each with a regression test.
+
+- [x] **Step navigation aimed too high.** `stepReveal` focused `parent(from)` unconditionally, so a
+  step whose source is *shallower* than its target (step 1 of "Player runs #goto": the `Minecraft
+  Player` Actor → a Component) landed on the **root view** and expanded the endpoint's System. Since
+  `resolveViewPositions` lays expanded groups out in the external **columns**, expanding a node that
+  is drawn *inside* the view stacked a ghost-group box on top of the cluster — the "new nodes on top
+  of the current view" symptom. Now the **deeper endpoint's parent** is focused (the shallower end is
+  at/above the focus layer, so it draws as itself), and a representative that is the focus or one of
+  its children is never expanded. Verified over all 41 steps of the 4 flows: every step now lands on
+  a sane focus and **no node is left without a layout slot**.
+- [x] **Steps with no connection behind them were invisible.** `computeFlowOverlay` filed a step as
+  off-view whenever no drawn edge joined its endpoints — even with both endpoints plainly on screen
+  (none of these flows author `via`, and some steps have no connection at all). A flow step is a
+  behavioral claim, so the overlay now emits an **ephemeral edge** (`flow-step:<a>|<b>`, dotted blue,
+  one per unordered pair) which the canvas draws for the duration of the selection. `offViewSteps`
+  now means only "an endpoint is not drawn here". 3 of the 41 steps use this.
+- [x] **Doubled step numbers (`1. 1.`).** `.tree-steps` was an `<ol>` whose decimal marker duplicated
+  the authored `order` printed in each row; `list-style:none` now suppresses it (the row keeps the
+  real `order`, which need not be a contiguous 1..n). No DOM test could catch this — jsdom loads no
+  external stylesheet — so the guard asserts the CSS rule itself.
+
+**Known limitation (not fixed):** 1 of the 41 steps (`Concrete Movement Family →
+InputOverrideHandler`) stays off-view. Its endpoints are components in different containers with **no
+connection between them**, and a node is only drawn as an external if some edge anchors it — so no
+view draws both ends. Showing it needs the view to admit "flow participant" nodes that have no
+structural edge, which needs a layout slot for them; that is the deferred auto-layout work, not a
+tweak. The tree marks it ↗.
+
+### Open design decisions (Cluster E) — RESOLVED 2026-07-27
+1. **Hash scheme:** → **fully prefixed routes** (`#node/…`); bare `#<id>` deep-links break and
+   rewrite to root. (Recorded at E1 Step 1.)
+2. **Flow selection:** → **auto-jump to step 1**, in `store.selectFlow`. (Recorded at E3.)
+3. **Tree vs floating pickers:** → **tree replaces them**; pickers deleted. (Recorded at E4.)
 
 ---
 

@@ -51,8 +51,31 @@ describe('computeFlowOverlay', () => {
     expect(o.participatingEdges.size).toBe(0);
   });
 
-  it('lists a step off-view when both endpoints are visible but no drawn edge joins them', () => {
+  it('draws an ephemeral edge when both endpoints are visible but no drawn edge joins them', () => {
+    // A flow step is a behavioral claim; it does not need an authored connection to be shown.
     const o = computeFlowOverlay(flow([{ order: 1, from: 'b', to: 'c', message: 'x', kind: 'Sync' }]), edges, visible);
+    expect(o.offViewSteps).toEqual([]);
+    expect(o.ephemeralEdges).toEqual([{ id: 'flow-step:b|c', source: 'b', target: 'c' }]);
+    expect(o.edgeSteps.get('flow-step:b|c')).toEqual([{ order: 1, message: 'x', kind: 'Sync' }]);
+    expect([...o.participatingEdges]).toEqual(['flow-step:b|c']);
+    expect([...o.participatingNodes].sort()).toEqual(['b', 'c']);
+  });
+
+  it('shares one ephemeral edge between two steps on the same pair, whatever their orientation', () => {
+    const o = computeFlowOverlay(flow([
+      { order: 1, from: 'b', to: 'c', message: 'x', kind: 'Sync' },
+      { order: 2, from: 'c', to: 'b', message: 'y', kind: 'Return' },
+    ]), edges, visible);
+    expect(o.ephemeralEdges).toHaveLength(1);
+    expect(o.edgeSteps.get('flow-step:b|c')).toEqual([
+      { order: 1, message: 'x', kind: 'Sync' },
+      { order: 2, message: 'y', kind: 'Return' },
+    ]);
+  });
+
+  it('still lists a step off-view when an endpoint is not drawn at all', () => {
+    const o = computeFlowOverlay(flow([{ order: 1, from: 'a', to: 'z', message: 'go', kind: 'Sync' }]), edges, visible);
+    expect(o.ephemeralEdges).toEqual([]);
     expect(o.offViewSteps.map((s) => s.order)).toEqual([1]);
   });
 });

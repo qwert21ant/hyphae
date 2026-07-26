@@ -1,4 +1,4 @@
-import { c4Backend, layerOfType, type HyphaeModel, type Node, type Connection } from '@hyphae/schema';
+import { c4Backend, layerOfType, type HyphaeModel, type Node, type Connection, type FlowStep } from '@hyphae/schema';
 
 export type ConnFilter = { kinds: string[]; fields: Record<string, string[]> };
 export type Audience = 'stakeholder' | 'full';
@@ -98,6 +98,28 @@ function rootAncestor(nodes: Map<string, Node>, endpointId: string): string {
   return result;
 }
 
+/** The layer external endpoints roll up to at `focusId`: the focus node's own layer (its peers),
+ *  or the top layer at the root view. */
+function focusLayerOf(nodes: Map<string, Node>, focusId: string | null): string {
+  const focusNode = focusId ? nodes.get(focusId) ?? null : null;
+  return focusNode ? layerOfType(c4Backend, focusNode.type) ?? '' : c4Backend.layers[0];
+}
+
+/**
+ * The node that stands in for connection endpoint `id` in a COLLAPSED view focused at `focusId`:
+ * - root view: its top-level ancestor (a shown root);
+ * - the focus itself: the focus;
+ * - inside the focus subtree: the direct child of the focus that contains it (the children level);
+ * - outside: a peer at the focus's own layer (an aggregated external box), or itself if at/above it.
+ */
+function representativeAtFocus(nodes: Map<string, Node>, id: string, focusId: string | null, focusLayer: string): string {
+  if (!focusId) return rootAncestor(nodes, id);
+  if (id === focusId) return focusId;
+  const child = childOfFocus(nodes, id, focusId);
+  if (child) return child;
+  return representativeWith(nodes, id, focusLayer);
+}
+
 export function buildFocusView(model: HyphaeModel, focusId: string | null, filter?: ConnFilter, audience: Audience = 'full', expandedExternals: Set<string> = new Set()): FocusView {
   const nodes = new Map(model.nodes.map((n) => [n.id, n]));
   const allIds = new Set(model.nodes.map((n) => n.id));
@@ -109,25 +131,12 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
 
   const stakeholder = audience === 'stakeholder';
 
-  // The layer external endpoints are rolled up to: the focus node's own layer
-  // (its peers), or the top layer at the root view.
-  const focusLayer = focusNode ? layerOfType(c4Backend, focusNode.type) ?? '' : c4Backend.layers[0];
+  const focusLayer = focusLayerOf(nodes, focusId);
 
   const inside = new Set<string>(children.map((n) => n.id));
   if (focusId) inside.add(focusId);
 
-  // Map a connection endpoint to the node that represents it in this view:
-  // - root view: its top-level ancestor (a shown root);
-  // - the focus itself: the focus;
-  // - inside the focus subtree: the direct child of the focus that contains it (the children level);
-  // - outside: a peer at the focus's own layer (an aggregated external box), or itself if at/above it.
-  const unexpandedRep = (id: string): string => {
-    if (!focusId) return rootAncestor(nodes, id);
-    if (id === focusId) return focusId;
-    const child = childOfFocus(nodes, id, focusId);
-    if (child) return child;
-    return representativeWith(nodes, id, focusLayer);
-  };
+  const unexpandedRep = (id: string): string => representativeAtFocus(nodes, id, focusId, focusLayer);
   const mapEndpoint = (id: string): string => {
     const rep = unexpandedRep(id);
     if (expandedExternals.has(rep)) return childOfFocus(nodes, id, rep) ?? rep;
@@ -263,6 +272,59 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
   }
 
   return { focusId, focusNode, children, externals, edges: shownEdges, externalGroups, expandableExternalIds };
+}
+
+export type StepReveal = {
+  focusId: string | null;    // the view to focus
+  expand: Set<string>;       // externals to expand so the far endpoint surfaces (see expandedExternals)
+  selectedId: string | null; // the step's connection, or its source node
+};
+
+/**
+ * Where to go to see one flow step. Siblings share a parent, so that parent is the focus (the root
+ * view when both are top-level). Otherwise focus the parent of the **deeper** endpoint: that
+ * endpoint becomes a child box, and the shallower one is at or above the focus's layer, so it is
+ * drawn as itself in an external column. Focusing the *source's* parent instead would aim too high
+ * whenever the source is the shallower end — an Actor step would land on the root view with the
+ * target still collapsed into its System.
+ *
+ * The shallower endpoint can still be represented by a coarser box (a sibling container standing in
+ * for the component inside it); expanding that representative is what surfaces the endpoint itself,
+ * so it is returned with the focus rather than left to the user. Only a node OUTSIDE the focus is
+ * ever expanded: `resolveViewPositions` lays expanded groups out in the external columns, so
+ * expanding a node that is drawn inside the view stacks a group box on top of the cluster.
+ *
+ * Returns null when either endpoint is missing from the model (a stale flow), so callers no-op.
+ */
+export function stepReveal(model: HyphaeModel, step: Pick<FlowStep, 'from' | 'to' | 'via'>): StepReveal | null {
+  const nodes = new Map(model.nodes.map((n) => [n.id, n]));
+  const from = nodes.get(step.from);
+  const to = nodes.get(step.to);
+  if (!from || !to) return null;
+
+  const parentOf = (n: Node): string | null => (n.parentId && nodes.has(n.parentId) ? n.parentId : null);
+  /** How many resolvable ancestors a node has (0 = top-level). Cycle-guarded like the walks above. */
+  const depthOf = (n: Node): number => {
+    const seen = new Set<string>([n.id]);
+    let depth = 0;
+    let cur = parentOf(n) ? nodes.get(parentOf(n)!) : undefined;
+    while (cur && !seen.has(cur.id)) {
+      seen.add(cur.id);
+      depth++;
+      const p = parentOf(cur);
+      cur = p ? nodes.get(p) : undefined;
+    }
+    return depth;
+  };
+  const selectedId = step.via ?? step.from;
+  const fromParent = parentOf(from);
+  if (fromParent === parentOf(to)) return { focusId: fromParent, expand: new Set<string>(), selectedId };
+
+  const [deeper, other] = depthOf(to) > depthOf(from) ? [to, from] : [from, to];
+  const focusId = parentOf(deeper);
+  const rep = representativeAtFocus(nodes, other.id, focusId, focusLayerOf(nodes, focusId));
+  const insideView = rep === focusId || (focusId === null ? true : nodes.get(rep)?.parentId === focusId);
+  return { focusId, expand: rep === other.id || insideView ? new Set<string>() : new Set([rep]), selectedId };
 }
 
 /** Connections listed for a node's panel, split by direction relative to the subtree rooted at

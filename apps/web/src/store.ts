@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import {
   emptyModel, newId,
-  type HyphaeModel, type Node, type Connection,
+  type HyphaeModel, type Node, type Connection, type FlowStep,
 } from '@hyphae/schema';
-import type { Audience } from './focusView';
+import { stepReveal, type Audience } from './focusView';
 import * as api from './api';
 
 export type ConnFilter = { kinds: string[]; fields: Record<string, string[]> };
@@ -19,13 +19,16 @@ type State = {
   connFilter: ConnFilter;
   audience: Audience;
   expandedExternals: Set<string>;
+  offViewStepOrders: number[];
   setModel: (m: HyphaeModel, version?: number) => void;
   syncFromServer: () => Promise<void>;
   setFocus: (id: string | null) => void;
   revealNode: (id: string) => void;
+  revealStep: (step: FlowStep) => void;
   select: (id: string | null) => void;
   selectFlow: (id: string | null) => void;
   selectPattern: (id: string | null) => void;
+  setOffViewSteps: (orders: number[]) => void;
   setAudience: (a: Audience) => void;
   toggleConnKind: (value: string) => void;
   toggleConnField: (key: string, value: string) => void;
@@ -67,6 +70,7 @@ export const useStore = create<State>((set, get) => {
     connFilter: { kinds: [], fields: {} },
     audience: initialAudience,
     expandedExternals: new Set<string>(),
+    offViewStepOrders: [],
 
     setModel: (model, version = 0) => set({ model, ownVersion: version }),
     syncFromServer: async () => {
@@ -74,18 +78,44 @@ export const useStore = create<State>((set, get) => {
       set({ model, ownVersion: version });
     },
     setFocus: (focusId) => set({ focusId, selectedId: null, expandedExternals: new Set<string>() }),
-    // Jump to a node from search: focus its parent (root when top-level) so the node shows as a
-    // highlighted child box, and select it. Atomic so setFocus's selectedId reset can't clobber it.
+    // Jump to a node from search, the tree, or a pattern member: focus its parent (root when
+    // top-level) so the node shows as a highlighted child box, and select it. Atomic so setFocus's
+    // selectedId reset can't clobber it. Any flow/pattern selection is dropped — this is an explicit
+    // "show me this node", and a selected pattern would otherwise keep replacing the canvas.
     revealNode: (id) => {
       const nodes = get().model.nodes;
       const n = nodes.find((x) => x.id === id);
       if (!n) return;
       const parentId = n.parentId && nodes.some((x) => x.id === n.parentId) ? n.parentId : null;
-      set({ focusId: parentId, selectedId: id, expandedExternals: new Set<string>() });
+      set({
+        focusId: parentId, selectedId: id, expandedExternals: new Set<string>(),
+        selectedFlowId: null, selectedPatternId: null,
+      });
+    },
+    // Jump to a flow step: focus the view that owns both endpoints, expand whatever external hides
+    // the far one, and select the step's connection. Atomic for the same reason as revealNode.
+    revealStep: (step) => {
+      const target = stepReveal(get().model, step);
+      if (!target) return;
+      set({ focusId: target.focusId, selectedId: target.selectedId, expandedExternals: target.expand });
     },
     select: (selectedId) => set({ selectedId }),
-    selectFlow: (selectedFlowId) => set({ selectedFlowId, selectedPatternId: null }),
+    // Selecting a flow jumps to its first step, so the overlay is never invisible: a flow authored
+    // at another altitude would otherwise light nothing at the current focus. Deselecting doesn't move.
+    selectFlow: (selectedFlowId) => {
+      set({ selectedFlowId, selectedPatternId: null });
+      if (!selectedFlowId) return;
+      const flow = get().model.flows.find((f) => f.id === selectedFlowId);
+      const first = flow ? [...flow.steps].sort((a, b) => a.order - b.order)[0] : undefined;
+      if (first) get().revealStep(first);
+    },
     selectPattern: (selectedPatternId) => set({ selectedPatternId, selectedFlowId: null }),
+    // Which steps of the selected flow the canvas could not draw. Only the canvas knows (it depends
+    // on the drawn edges), and only the tree shows it — so it is published here rather than lifted.
+    // Skipping an equal update keeps the canvas's publish effect from cycling.
+    setOffViewSteps: (orders) =>
+      set((s) => (s.offViewStepOrders.length === orders.length && s.offViewStepOrders.every((o, i) => o === orders[i])
+        ? {} : { offViewStepOrders: orders })),
     setAudience: (audience) => {
       if (typeof localStorage !== 'undefined') localStorage.setItem('hyphae.audience', audience);
       set({ audience });

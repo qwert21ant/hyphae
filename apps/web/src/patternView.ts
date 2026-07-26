@@ -9,6 +9,8 @@ export type PatternMemberData = {
   binding: 'node' | 'ref' | 'none';
   detail: string;       // node name (node), ref string (ref), or '' (none)
   description: string;
+  nodeId?: string;      // set only when the member binds to a node that EXISTS — the navigable ones.
+                        // React Flow keys these nodes by member name, so navigation must use this.
 };
 
 const H_GAP = 60;   // horizontal pitch between ordered stages
@@ -17,7 +19,7 @@ const V_GAP = 40;   // vertical pitch between stacked (unordered) members
 function memberData(m: Pattern['members'][number], nodes: ModelNode[]): PatternMemberData {
   if (m.nodeId !== undefined) {
     const node = nodes.find((n) => n.id === m.nodeId);
-    return { name: m.name, binding: 'node', detail: node?.name ?? m.nodeId, description: m.description };
+    return { name: m.name, binding: 'node', detail: node?.name ?? m.nodeId, description: m.description, nodeId: node?.id };
   }
   if (m.ref !== undefined) return { name: m.name, binding: 'ref', detail: m.ref, description: m.description };
   return { name: m.name, binding: 'none', detail: '', description: m.description };

@@ -186,3 +186,36 @@ describe('audience init from localStorage', () => {
     }
   });
 });
+
+describe('revealStep', () => {
+  const base = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
+
+  function crossContainerModel() {
+    const m = emptyModel();
+    m.nodes.push(
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base } as never,
+      { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base } as never,
+      { id: 'cb', name: 'Beta', type: 'Container', parentId: 'sys', ...base } as never,
+      { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base } as never,
+      { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base } as never,
+    );
+    return m;
+  }
+
+  it('focuses, expands and selects in one atomic update', () => {
+    useStore.getState().setModel(crossContainerModel(), 0);
+    useStore.getState().revealStep({ order: 1, from: 'a1', to: 'b1', via: 'c9', message: '', kind: 'Sync' });
+    const s = useStore.getState();
+    expect(s.focusId).toBe('ca');
+    expect([...s.expandedExternals]).toEqual(['cb']);
+    expect(s.selectedId).toBe('c9');
+  });
+
+  it('ignores a step whose endpoints are not in the model', () => {
+    useStore.getState().setModel(crossContainerModel(), 0);
+    useStore.setState({ focusId: 'sys', selectedId: 'sys' });
+    useStore.getState().revealStep({ order: 1, from: 'a1', to: 'ghost', message: '', kind: 'Sync' });
+    expect(useStore.getState().focusId).toBe('sys');
+    expect(useStore.getState().selectedId).toBe('sys');
+  });
+});

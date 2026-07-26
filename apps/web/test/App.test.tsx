@@ -28,7 +28,32 @@ import { App } from '../src/App';
 import { useStore } from '../src/store';
 import { emptyModel } from '@hyphae/schema';
 
+const nodeBase = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
+
+/** sys › (ca › a1, cb › b1) with one flow whose first step crosses containers, and one pattern. */
+function routeModel() {
+  const m = emptyModel();
+  m.nodes.push(
+    { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...nodeBase } as never,
+    { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...nodeBase } as never,
+    { id: 'cb', name: 'Beta', type: 'Container', parentId: 'sys', ...nodeBase } as never,
+    { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...nodeBase } as never,
+    { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...nodeBase } as never,
+  );
+  m.flows.push({ id: 'f1', name: 'F1', description: '', scope: null, steps: [{ order: 1, from: 'a1', to: 'b1', message: 'go', kind: 'Sync' }] });
+  m.patterns.push({ id: 'p1', name: 'P1', kind: 'state-machine', description: '', anchor: 'ca', members: [], transitions: [] });
+  return m;
+}
+
+/** Set the hash and deliver the event the browser would (jsdom fires it asynchronously). */
+function navigate(hash: string) {
+  window.location.hash = hash;
+  window.dispatchEvent(new HashChangeEvent('hashchange'));
+}
+
 beforeEach(() => {
+  window.history.replaceState(null, '', window.location.pathname);
+  useStore.setState({ focusId: null, selectedId: null, selectedFlowId: null, selectedPatternId: null, expandedExternals: new Set<string>() });
   useStore.getState().setModel(emptyModel(), 0);
   vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
   vi.stubGlobal('EventSource', class { addEventListener() {} close() {} });
@@ -51,6 +76,61 @@ describe('App', () => {
   it('renders the node search box in the toolbar', () => {
     render(<App />);
     expect(screen.getByLabelText('search nodes')).toBeTruthy();
+  });
+
+  it('adopts a #node/ hash naming a real node', () => {
+    render(<App />);
+    useStore.getState().setModel(routeModel(), 1);
+    navigate('#node/ca');
+    expect(useStore.getState().focusId).toBe('ca');
+  });
+
+  it('rewrites a hash naming nothing (including a legacy bare id) back to root', () => {
+    render(<App />);
+    useStore.getState().setModel(routeModel(), 1);
+    navigate('#node/ghost');
+    expect(useStore.getState().focusId).toBeNull();
+    expect(window.location.hash).toBe('');
+
+    navigate('#ca'); // pre-Cluster-E bare-id deep link
+    expect(useStore.getState().focusId).toBeNull();
+    expect(window.location.hash).toBe('');
+  });
+
+  it('selects a flow from #flow/ and jumps to its first step', () => {
+    render(<App />);
+    useStore.getState().setModel(routeModel(), 1);
+    navigate('#flow/f1');
+    const s = useStore.getState();
+    expect(s.selectedFlowId).toBe('f1');
+    expect(s.focusId).toBe('ca');            // step 1 is a1 -> b1, so focus a1's parent
+    expect([...s.expandedExternals]).toEqual(['cb']);
+  });
+
+  it('selects a pattern from #pattern/ and clears it again on a node route', () => {
+    render(<App />);
+    useStore.getState().setModel(routeModel(), 1);
+    navigate('#pattern/p1');
+    expect(useStore.getState().selectedPatternId).toBe('p1');
+    navigate('#node/ca');
+    expect(useStore.getState().selectedPatternId).toBeNull();
+    expect(useStore.getState().focusId).toBe('ca');
+  });
+
+  it('pushes the matching hash when the store selection changes', async () => {
+    render(<App />);
+    await new Promise((r) => setTimeout(r, 0)); // let the initial loadModel settle before seeding
+    useStore.getState().setModel(routeModel(), 1);
+    useStore.getState().setFocus('ca');
+    await waitFor(() => expect(window.location.hash).toBe('#node/ca'));
+    useStore.getState().selectPattern('p1');
+    await waitFor(() => expect(window.location.hash).toBe('#pattern/p1'));
+    useStore.getState().selectFlow('f1');
+    await waitFor(() => expect(window.location.hash).toBe('#flow/f1'));
+    // Stepping inside the selected flow moves the focus but not the route.
+    useStore.getState().revealStep({ order: 2, from: 'b1', to: 'a1', message: '', kind: 'Sync' });
+    expect(useStore.getState().focusId).toBe('cb');
+    expect(window.location.hash).toBe('#flow/f1');
   });
 
   it('toggles audience from the toolbar', async () => {
