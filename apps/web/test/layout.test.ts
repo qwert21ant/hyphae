@@ -153,3 +153,35 @@ describe('resolveViewPositions', () => {
     expect(pos.a1).toEqual({ x: 0, y: 0 });                  // child — unchanged
   });
 });
+
+describe('node box vs stacking pitch (overlap guards)', () => {
+  it('stacks externals at a pitch greater than the node height', () => {
+    // ROW_GAP is the vertical PITCH between stacked external boxes. If it is not larger than
+    // NODE_H the boxes overlap — which is exactly what happened when NODE_H grew and ROW_GAP
+    // stayed a hardcoded 70.
+    expect(ROW_GAP).toBeGreaterThan(NODE_H);
+    expect(MEMBER_PITCH).toBeGreaterThan(NODE_H);
+  });
+
+  it('leaves a real vertical gap between two stacked externals', () => {
+    const v = {
+      focusId: 'ca', focusNode: { id: 'ca' } as never,
+      children: [{ id: 'a1' } as never],
+      externals: [{ id: 'x1' } as never, { id: 'x2' } as never],
+      edges: [],
+    };
+    const pos = layoutFocusView(v as never);
+    expect(Math.abs(pos.x1.y - pos.x2.y)).toBeGreaterThanOrEqual(NODE_H);
+  });
+
+  it('leaves a real vertical gap between two expanded-group members', () => {
+    const base = { g: { x: 0, y: 0 }, b1: { x: 0, y: 0 }, b2: { x: 0, y: 0 } };
+    const v = {
+      focusId: 'ca', focusNode: { id: 'ca' } as never,
+      children: [], externals: [{ id: 'b1', parentId: 'g' } as never, { id: 'b2', parentId: 'g' } as never],
+      edges: [], externalGroups: [{ id: 'g', name: 'G', childIds: ['b1', 'b2'] }],
+    };
+    const pos = resolveViewPositions(v as never, base);
+    expect(pos.b2.y - pos.b1.y).toBeGreaterThanOrEqual(NODE_H);
+  });
+});

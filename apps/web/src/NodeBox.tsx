@@ -1,7 +1,7 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { Shape } from '@hyphae/schema';
 import { shapeStyle } from './shapes';
-import { NODE_W, NODE_H } from './layout';
+import { NODE_W, NODE_H, SUMMARY_LINES } from './layout';
 
 // Invisible, non-interactive side handles kept only so floating edges can anchor to the node
 // (React Flow drops edges whose endpoint exposes no handle). Connection-by-dragging is disabled,
@@ -50,7 +50,12 @@ export function NodeBox({ data }: NodeProps) {
       ))}
       <div style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name ?? ''}</div>
       {d.summary && (
-        <div style={{ fontSize: 10, color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        // Wrap to SUMMARY_LINES and clip at the line boundary: a one-line ellipsis cut a typical
+        // summary mid-word, which is what made the box unreadable. The name stays single-line.
+        <div style={{
+          fontSize: 10, color: '#475569', overflow: 'hidden',
+          display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: SUMMARY_LINES,
+        }}>
           {d.summary}
         </div>
       )}

@@ -16,7 +16,7 @@ import { NodeBox } from './NodeBox';
 import { GhostNode } from './GhostNode';
 import { GhostGroupNode } from './GhostGroupNode';
 import { PatternMemberNode } from './PatternMemberNode';
-import { FloatingEdge } from './FloatingEdge';
+import { FloatingEdge, EDGE_LABEL_CLASS } from './FloatingEdge';
 import { FilterPanel } from './FilterPanel';
 import { FlowPicker } from './FlowPicker';
 import { PatternPicker } from './PatternPicker';
@@ -129,20 +129,26 @@ export function Canvas() {
     // Always-on transitions so both dimming and un-dimming animate.
     const trans =
       '.hyphae-canvas .react-flow__node{transition:opacity .15s ease,box-shadow .15s ease}'
-      + '.hyphae-canvas .react-flow__edge,.hyphae-canvas .react-flow__edge .react-flow__edge-path{transition:opacity .15s ease,stroke-width .15s ease}';
+      + '.hyphae-canvas .react-flow__edge,.hyphae-canvas .react-flow__edge .react-flow__edge-path{transition:opacity .15s ease,stroke-width .15s ease}'
+      + `.hyphae-canvas .${EDGE_LABEL_CLASS}{transition:opacity .15s ease}`;
     if (patternFlow || (!activeId && !flowActive)) return trans;
     const esc = (id: string) => id.replace(/["\\]/g, '\\$&');
     const nodeSel = [...hi.nodes].map((id) => `.hyphae-canvas .react-flow__node[data-id="${esc(id)}"]`);
     const edgeSel = [...hi.edges].map((id) => `.hyphae-canvas .react-flow__edge[data-id="${esc(id)}"]`);
+    // Edge labels live in the portal, not in the edge's <g> — they need their own dim/restore pair
+    // keyed on the same edge ids, or they stay crisp over a faded canvas.
+    const labelSel = [...hi.edges].map((id) => `.hyphae-canvas .${EDGE_LABEL_CLASS}[data-edge-id="${esc(id)}"]`);
     const rules = [
       trans,
       // Dim everything except the focus-region backdrop, then restore + emphasize the highlighted set.
       `.hyphae-canvas .react-flow__node:not(.react-flow__node-region):not(.react-flow__node-ghostGroup){opacity:${dimNode}}`,
       `.hyphae-canvas .react-flow__edge{opacity:${dimEdge}}`,
+      `.hyphae-canvas .${EDGE_LABEL_CLASS}{opacity:${dimEdge}}`,
     ];
     // !important: the dim rule's two :not() pseudo-classes give it specificity (0,4,0), which
     // outranks this [data-id] restore (0,3,0) — without !important the active node would stay dimmed.
     if (nodeSel.length) rules.push(`${nodeSel.join(',')}{opacity:1!important;box-shadow:0 0 0 2px ${accent};border-radius:4px}`);
+    if (labelSel.length) rules.push(`${labelSel.join(',')}{opacity:1}`);
     if (edgeSel.length) {
       rules.push(`${edgeSel.join(',')}{opacity:1}`);
       // !important beats the derived edge's inline stroke-width.
@@ -151,10 +157,14 @@ export function Canvas() {
     return rules.join('');
   }, [activeId, flowActive, hi, strong, accent, dimEdge, dimNode, patternFlow]);
 
-  // Drill in: an external ghost, or a node with children, becomes the new focus.
+  // Drill in: any real node becomes the new focus, children or not. A childless focus renders as
+  // the node itself surrounded by its connected nodes as externals (see focusView) — a useful
+  // "what touches this?" view, so a leaf Component is not a dead end.
+  // Pattern member boxes are keyed by member NAME rather than a node id, and they ride the same
+  // click stream, so a focus id must be confirmed against the model before it is set.
   const drill = (node: FlowNode) => {
     if (node.type === 'ghost') { setFocus(node.id); return; }
-    if (!model.nodes.some((n) => n.parentId === node.id)) return;
+    if (!model.nodes.some((n) => n.id === node.id)) return;
     setFocus(node.id);
   };
 

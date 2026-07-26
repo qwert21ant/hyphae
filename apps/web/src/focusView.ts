@@ -169,15 +169,15 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
     for (const childId of c.realizedBy) absorbed.add(childId);
   }
 
-  // Aggregate the surviving connections per *unordered* mapped pair, so a connection and its
-  // reverse between the same two shown nodes collapse into one edge instead of two overlapping
-  // arrows. `a`/`b` are the canonical (id-sorted) endpoints; `ab`/`ba` record which orientations
-  // actually occur, which is what decides the merged edge's arrow direction.
-  type Pair = {
-    a: string; b: string; count: number; connIds: string[];
-    ab: boolean; ba: boolean; bidir: boolean;
-    direct?: { id: string; kind: string; from: string; to: string; direction: string; verb: string; object: string };
-  };
+  // Group the surviving connections per *unordered* mapped pair. A connection is DIRECT when both
+  // of its endpoints map to themselves — nothing about it is being summarised, so it keeps its own
+  // solid edge with its own verb and arrow (FloatingEdge fans several apart). Only ROLLED-UP
+  // connections, whose endpoints stand in for deeper nodes, aggregate into one dashed count edge:
+  // there the count is the whole point, and the underlying verbs differ anyway.
+  // `a`/`b` are the canonical (id-sorted) endpoints; `ab`/`ba` record which orientations occur
+  // among the rolled-up ones, which is what decides the merged edge's arrow direction.
+  type Entry = { id: string; kind: string; from: string; to: string; direction: string; verb: string; object: string; direct: boolean };
+  type Pair = { a: string; b: string; entries: Entry[] };
   const pairs = new Map<string, Pair>(); // key `${a}|${b}` with a <= b
 
   for (const c of conns) {
@@ -187,35 +187,45 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
     const [a, b] = from <= to ? [from, to] : [to, from];
     const key = `${a}|${b}`;
     let p = pairs.get(key);
-    if (!p) { p = { a, b, count: 0, connIds: [], ab: false, ba: false, bidir: false }; pairs.set(key, p); }
-    p.count++;
-    p.connIds.push(c.id);
-    if (from === a) p.ab = true; else p.ba = true;
-    if (c.direction === 'Bidirectional') p.bidir = true;
-    // An authored connection drawn directly between two shown nodes (not rolled up).
-    if (from === c.from && to === c.to) p.direct = { id: c.id, kind: c.type, from, to, direction: c.direction, verb: c.verb, object: c.object };
+    if (!p) { p = { a, b, entries: [] }; pairs.set(key, p); }
+    // Direct = both endpoints map to themselves, so nothing about this connection is summarised.
+    p.entries.push({ id: c.id, kind: c.type, from, to, direction: c.direction, verb: c.verb, object: c.object, direct: from === c.from && to === c.to });
   }
 
-  // A solid "real" edge when a single authored connection joins two nodes shown in this view
-  // directly (neither endpoint rolled up — `direct` means both map to themselves). Everything else
-  // (rolled-up, or several connections collapsed onto one pair) is a dashed derived edge with a count.
-  // The merged edge keeps its arrow only when every underlying connection points the same way;
-  // conflicting directions render as undirected ('None'), and any Bidirectional makes it bidirectional.
-  const edges: FocusEdge[] = [];
-  for (const p of pairs.values()) {
-    if (p.count === 1 && p.direct) {
-      edges.push({ id: p.direct.id, from: p.direct.from, to: p.direct.to, kind: p.direct.kind, count: 1, derived: false, realizedBy: p.connIds, direction: p.direct.direction, verb: p.direct.verb, object: p.direct.object });
-      continue;
+  const realEdgeOf = (d: Entry): FocusEdge => ({
+    id: d.id, from: d.from, to: d.to, kind: d.kind, count: 1, derived: false,
+    realizedBy: [d.id], direction: d.direction, verb: d.verb, object: d.object,
+  });
+  /** One dashed summary edge over `items`. It keeps an arrow only when every underlying connection
+   *  points the same way; conflicting directions render undirected ('None'), any Bidirectional wins. */
+  const aggregateEdgeOf = (p: Pair, items: Entry[]): FocusEdge => {
+    let ab = false, ba = false, bidir = false;
+    for (const it of items) {
+      if (it.from === p.a) ab = true; else ba = true;
+      if (it.direction === 'Bidirectional') bidir = true;
     }
     let from: string, to: string, direction: string;
-    if (p.bidir || (p.ab && p.ba)) {
-      from = p.a; to = p.b; direction = p.bidir ? 'Bidirectional' : 'None';
-    } else if (p.ba) {
-      from = p.b; to = p.a; direction = 'Unidirectional';
+    if (bidir || (ab && ba)) { from = p.a; to = p.b; direction = bidir ? 'Bidirectional' : 'None'; }
+    else if (ba) { from = p.b; to = p.a; direction = 'Unidirectional'; }
+    else { from = p.a; to = p.b; direction = 'Unidirectional'; }
+    return { id: `agg:${p.a}->${p.b}`, from, to, kind: null, count: items.length, derived: true, realizedBy: items.map((i) => i.id), direction };
+  };
+
+  const edges: FocusEdge[] = [];
+  for (const p of pairs.values()) {
+    const directs = p.entries.filter((x) => x.direct);
+    if (directs.length > 1) {
+      // SEVERAL authored connections between two directly-shown nodes. Collapsing them would throw
+      // away every verb and both arrowheads to say only "2" — draw each one and let FloatingEdge
+      // fan them apart. Anything rolled up onto the same pair still summarises into one dashed edge.
+      for (const d of directs) edges.push(realEdgeOf(d));
+      const rolled = p.entries.filter((x) => !x.direct);
+      if (rolled.length) edges.push(aggregateEdgeOf(p, rolled));
+    } else if (p.entries.length === 1 && directs.length === 1) {
+      edges.push(realEdgeOf(directs[0]));
     } else {
-      from = p.a; to = p.b; direction = 'Unidirectional';
+      edges.push(aggregateEdgeOf(p, p.entries));
     }
-    edges.push({ id: `agg:${p.a}->${p.b}`, from, to, kind: null, count: p.count, derived: true, realizedBy: p.connIds, direction });
   }
 
   const shownEdges = stakeholder ? edges.filter((ed) => !ed.derived) : edges;

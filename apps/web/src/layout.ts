@@ -1,15 +1,23 @@
 import dagre from '@dagrejs/dagre';
 import type { FocusView } from './focusView';
 
-export const NODE_W = 190;
-export const NODE_H = 64;
+// Node box size. Sized to fit a name line, a TWO-line summary, and the technology chip at the
+// font sizes NodeBox uses (12/10/9px at line-height 1.25, 6px vertical padding, 2px gaps):
+// 15 + 2*12.5 + 11.25 + 2*2 + 12 ≈ 67, plus slack so a descender or a wider chip never clips.
+// dagre, the minimap and region sizing all derive from these constants, so they follow along.
+export const NODE_W = 220;
+export const NODE_H = 92;
+/** Summary lines shown on a node box before ellipsis. NODE_H is sized around this. */
+export const SUMMARY_LINES = 2;
 export const PAD = 24;
 export const LABEL_H = 22;
 
 export type XY = { x: number; y: number };
 
 const COL_GAP = 120;  // horizontal gap between the children cluster and an external column
-export const ROW_GAP = 70;   // vertical pitch between stacked externals
+// Vertical PITCH (not gap) between stacked external boxes, so it must stay larger than NODE_H or
+// the boxes overlap — derived from NODE_H rather than hardcoded so growing the box can't break it.
+export const ROW_GAP = NODE_H + 12;
 export const MEMBER_PITCH = ROW_GAP; // expanded-group members stack at the same pitch as externals
 
 /** The rendered height of an expanded group's box wrapping `n` members. */

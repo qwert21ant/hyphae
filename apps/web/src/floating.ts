@@ -37,6 +37,31 @@ export function getEdgeParams(source: Box, target: Box): EdgeParams {
   return { sx: sp.x, sy: sp.y, tx: tp.x, ty: tp.y, sourcePos: side(source, sp), targetPos: side(target, tp) };
 }
 
+/** Perpendicular gap between two edges drawn between the same node pair. */
+export const EDGE_FAN_SPREAD = 22;
+
+/**
+ * Fan the `index`-th of `count` edges that share a node pair: shift both endpoints perpendicular
+ * to the source→target line so they no longer resolve to the same bezier (and their labels no
+ * longer stack). Offsets are centered on zero, so the group stays balanced on the true line and a
+ * lone edge is returned untouched.
+ *
+ * `reversed` marks an edge traversing the pair against the group's canonical endpoint order. Its
+ * source→target vector is negated, which negates the perpendicular too — so without flipping the
+ * offset back, A→B and B→A land on the SAME side and overlap exactly.
+ */
+export function fanEdgeParams(p: EdgeParams, index: number, count: number, spread = EDGE_FAN_SPREAD, reversed = false): EdgeParams {
+  if (count <= 1) return p;
+  const dx = p.tx - p.sx;
+  const dy = p.ty - p.sy;
+  const len = Math.hypot(dx, dy);
+  if (!len) return p; // coincident endpoints have no perpendicular to shift along
+  const off = (index - (count - 1) / 2) * spread * (reversed ? -1 : 1);
+  const nx = (-dy / len) * off;
+  const ny = (dx / len) * off;
+  return { ...p, sx: p.sx + nx, sy: p.sy + ny, tx: p.tx + nx, ty: p.ty + ny };
+}
+
 /** Absolute bounding box of a React Flow internal node. */
 export function boxOf(n: InternalNode): Box {
   return {

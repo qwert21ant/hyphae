@@ -80,6 +80,34 @@ describe('focusViewToFlow', () => {
     expect(edge.markerStart).toBeFalsy();
   });
 
+  it('indexes edges sharing a node pair so they can be fanned apart', () => {
+    // a1↔a2 has an edge each way plus a second forward edge; a1→a3 is alone. Antiparallel counts
+    // as the same visual pair — both directions draw the identical bezier.
+    const v: FocusView = {
+      focusId: 'ca', focusNode: node('ca', 'Container'),
+      children: [node('a1'), node('a2'), node('a3')], externals: [],
+      edges: [
+        { id: 'f1', from: 'a1', to: 'a2', kind: 'Dependency', count: 1, derived: false, realizedBy: ['f1'] },
+        { id: 'r1', from: 'a2', to: 'a1', kind: 'Dependency', count: 1, derived: false, realizedBy: ['r1'] },
+        { id: 'f2', from: 'a1', to: 'a2', kind: 'DataFlow', count: 1, derived: false, realizedBy: ['f2'] },
+        { id: 'solo', from: 'a1', to: 'a3', kind: 'Dependency', count: 1, derived: false, realizedBy: ['solo'] },
+      ],
+    };
+    const { edges } = focusViewToFlow(v, { a1: { x: 0, y: 0 }, a2: { x: 0, y: 100 }, a3: { x: 0, y: 200 } });
+    const off = (id: string) => edges.find((e) => e.id === id)!.data as { offsetIndex: number; offsetCount: number };
+    expect(off('f1').offsetCount).toBe(3);
+    expect(off('r1').offsetCount).toBe(3);
+    expect(off('f2').offsetCount).toBe(3);
+    expect([off('f1').offsetIndex, off('r1').offsetIndex, off('f2').offsetIndex].sort()).toEqual([0, 1, 2]);
+    expect(off('solo')).toMatchObject({ offsetIndex: 0, offsetCount: 1 });
+  });
+
+  it('keeps derived-edge data intact when indexing pairs', () => {
+    const { edges } = focusViewToFlow(view, pos);
+    const derived = edges.find((e) => e.id === 'ext:a1->cb')!;
+    expect(derived.data).toMatchObject({ derived: true, count: 3, offsetIndex: 0, offsetCount: 1 });
+  });
+
   it('omits the region at the root view (no focus node)', () => {
     const root: FocusView = { focusId: null, focusNode: null, children: [node('sys', 'System')], externals: [], edges: [] };
     const { nodes } = focusViewToFlow(root, { sys: { x: 0, y: 0 } });

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, fireEvent, act } from '@testing-library/react';
 import { Canvas } from '../src/Canvas';
+import { EDGE_LABEL_CLASS } from '../src/FloatingEdge';
 import { useStore } from '../src/store';
 import { emptyModel } from '@hyphae/schema';
 
@@ -57,12 +58,20 @@ describe('Canvas navigation (real React Flow)', () => {
     expect(useStore.getState().focusId).toBe('ca');
   });
 
-  it('double-clicking a leaf only selects (focus unchanged)', () => {
+  it('double-clicking a childless Component drills into it (focus shows it with its neighbors)', () => {
+    // focusView already supports a childless focus node — it renders the node itself plus its
+    // connected nodes as externals — so there is no reason to refuse the drill.
     useStore.setState({ model: model(), focusId: 'ca', selectedId: null });
     const { container } = render(<Canvas />);
     dblclick(container, 'a1');
-    expect(useStore.getState().focusId).toBe('ca');
-    expect(useStore.getState().selectedId).toBe('a1');
+    expect(useStore.getState().focusId).toBe('a1');
+  });
+
+  it('a drilled-into leaf renders itself plus its connected neighbor', () => {
+    useStore.setState({ model: model(), focusId: 'a1', selectedId: null });
+    const { container } = render(<Canvas />);
+    expect(node(container, 'a1')).toBeTruthy();   // the focus node itself
+    expect(node(container, 'b1')).toBeTruthy();   // its neighbor across the x connection
   });
 
   it('double-clicking an external ghost drills into it', () => {
@@ -159,6 +168,19 @@ describe('Canvas navigation (real React Flow)', () => {
     const css = hlCss(container);
     expect(css).toContain('[data-id="ca"]');              // ca is the highlighted (active) node
     expect(css).toMatch(/opacity:1\s*!important/);         // its restore rule must override the dim rule
+  });
+
+  it('dims non-neighbor edge LABELS too, and restores the highlighted edge\'s label', () => {
+    // Labels portal into .react-flow__edgelabel-renderer, outside the .react-flow__edge group the
+    // dim rule targets — so without their own rule they stay crisp over a faded canvas.
+    // EDGE_LABEL_CLASS is imported from the component that emits it, so the selector cannot drift
+    // from the markup. (The label elements themselves are not assertable here: React Flow renders
+    // no edges at all in jsdom, which never measures nodes.)
+    useStore.setState({ model: model(), focusId: 'sys', selectedId: 'ca' });
+    const { container } = render(<Canvas />);
+    const css = hlCss(container);
+    expect(css).toContain(`.${EDGE_LABEL_CLASS}{opacity:0.12}`);                             // dimmed with the edges
+    expect(css).toMatch(new RegExp(`\\.${EDGE_LABEL_CLASS}\\[data-edge-id="[^"]+"\\]\\{opacity:1\\}`)); // neighbor restored
   });
 
   it('in full mode, double-clicking a node with children still drills', () => {
@@ -308,5 +330,19 @@ describe('Canvas flow overlay', () => {
     const { container } = render(<Canvas />);
     expect(node(container, 'Idle')).toBeTruthy();
     expect(node(container, 'Recording')).toBeTruthy();
+  });
+
+  it('double-clicking a pattern member does NOT set focus to it', () => {
+    // Pattern member boxes are keyed by member NAME, not by a node id — focusing one would point
+    // the canvas at an id no node has. Only real model nodes are drillable.
+    const m = emptyModel();
+    m.nodes.push({ id: 'comp', name: 'Ingest', type: 'Component', parentId: null, root: null, role: null, description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } } as never);
+    m.patterns.push({ id: 'p1', name: 'Recorder', kind: 'state-machine', description: '', anchor: null,
+      members: [{ name: 'Idle', description: '' }, { name: 'Recording', description: '' }],
+      transitions: [{ from: 'Idle', to: 'Recording', trigger: 'start', description: '' }] });
+    useStore.setState({ model: m, selectedPatternId: 'p1', selectedFlowId: null, focusId: null });
+    const { container } = render(<Canvas />);
+    dblclick(container, 'Idle');
+    expect(useStore.getState().focusId).toBeNull();
   });
 });
