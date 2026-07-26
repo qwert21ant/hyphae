@@ -1,8 +1,9 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { useStore } from './store';
 import type { NodeBoxData } from './NodeBox';
-import { shapeStyle } from './shapes';
-import { NODE_W, NODE_H } from './layout';
+import { shapePadding } from './shapes';
+import { NodeShape } from './NodeShape';
+import { NODE_W, NODE_H, SUMMARY_LINES } from './layout';
 
 // Invisible, non-interactive side handles kept only so floating edges can anchor to the node
 // (React Flow drops edges whose endpoint exposes no handle). Connection-by-dragging is disabled,
@@ -22,24 +23,18 @@ export function GhostNode({ id, data }: NodeProps) {
   const d = data as GhostNodeData;
   const color = d.color ?? { bg: '#f1f5f9', border: '#94a3b8' };
   const toggle = useStore((s) => s.toggleExternal);
-  const shape = shapeStyle(d.shape ?? 'rectangle');
-  // clip-path (used by the hexagon shape) clips the whole border box, so the dashed border that
-  // signals "borrowed from another layer" survives only on the flat top/bottom segments and
-  // vanishes along the diagonal/side edges. A background hatch is clipped the same way as the
-  // shape's fill, so — unlike the border — it stays visible across the entire outline and keeps
-  // the ghost cue legible regardless of shape.
-  const isClipped = !!shape.clipPath;
+  const shape = d.shape ?? 'rectangle';
+  // The dashed outline is stroked along the shape's own path, so it survives on every edge —
+  // including a hexagon's diagonals, where a CSS border used to be clipped away. That is what the
+  // old background hatch existed to compensate for; it is no longer needed.
   return (
     <div
       style={{
         position: 'relative',
         width: NODE_W,
         height: NODE_H,
-        padding: '6px 10px',
+        padding: shapePadding(shape, NODE_W, NODE_H),
         boxSizing: 'border-box',
-        border: `1.5px dashed ${color.border}`,
-        background: color.bg,
-        ...(isClipped ? { backgroundImage: `repeating-linear-gradient(45deg, ${color.border}40 0, ${color.border}40 3px, transparent 3px, transparent 8px)` } : {}),
         color: '#475569',
         fontSize: 12,
         lineHeight: 1.25,
@@ -50,9 +45,9 @@ export function GhostNode({ id, data }: NodeProps) {
         justifyContent: 'center',
         gap: 2,
         overflow: 'hidden',
-        ...shape,
       }}
     >
+      <NodeShape shape={shape} w={NODE_W} h={NODE_H} bg={color.bg} border={color.border} stroke={1.5} dashed />
       {sides.map((s) => (
         <Handle key={s.id} id={s.id} type="source" position={s.position} style={{ opacity: 0, pointerEvents: 'none' }} />
       ))}
@@ -63,14 +58,19 @@ export function GhostNode({ id, data }: NodeProps) {
           style={{ position: 'absolute', top: 2, right: 4, cursor: 'pointer', border: 'none', background: 'transparent', fontSize: 14, lineHeight: 1, padding: 0, fontStyle: 'normal' }}
         >＋</button>
       )}
-      <div style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name ?? ''}</div>
+      <div style={{ position: 'relative', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name ?? ''}</div>
       {d.summary && (
-        <div style={{ fontSize: 10, color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        // Same two-line clamp as NodeBox — a ghost is the same size box and should read the same.
+        <div style={{
+          position: 'relative',
+          fontSize: 10, color: '#475569', overflow: 'hidden',
+          display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: SUMMARY_LINES,
+        }}>
           {d.summary}
         </div>
       )}
       {d.technology && (
-        <div style={{ fontSize: 9, color: '#334155', background: 'rgba(0,0,0,0.06)', borderRadius: 3, padding: '0 4px', alignSelf: 'center', maxWidth: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ position: 'relative', fontSize: 9, color: '#334155', background: 'rgba(0,0,0,0.06)', borderRadius: 3, padding: '0 4px', alignSelf: 'center', maxWidth: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {d.technology}
         </div>
       )}

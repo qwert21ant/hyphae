@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import { c4Backend } from '@hyphae/schema';
 import { LAYER_COLOR, VERB_CLASS_COLOR } from './reactflow';
-import { shapeStyle, SHAPE_LABEL } from './shapes';
+import { SHAPE_LABEL } from './shapes';
+import { NodeShape } from './NodeShape';
+
+// Swatch box. Wide-ish rather than square so a hexagon or cylinder reads at a glance; the geometry
+// comes from the same generator the canvas uses, so the two agree whatever size this is.
+const SWATCH_W = 20;
+const SWATCH_H = 14;
 
 const box = (bg: string, border: string) => ({
   display: 'inline-block', width: 12, height: 12, background: bg,
@@ -37,7 +43,9 @@ export function Legend() {
           <div style={{ fontWeight: 600, margin: '6px 0 2px' }}>Roles</div>
           {c4Backend.roles.map((r) => (
             <div key={r.id} title={r.description}>
-              <span style={{ display: 'inline-block', width: 14, height: 12, marginRight: 6, verticalAlign: 'middle', background: '#f8fafc', border: '1px solid #64748b', ...shapeStyle(r.shape) }} />
+              <span style={{ position: 'relative', display: 'inline-block', width: SWATCH_W, height: SWATCH_H, marginRight: 6, verticalAlign: 'middle' }}>
+                <NodeShape shape={r.shape} w={SWATCH_W} h={SWATCH_H} bg="#f8fafc" border="#64748b" />
+              </span>
               {SHAPE_LABEL[r.shape]}
             </div>
           ))}

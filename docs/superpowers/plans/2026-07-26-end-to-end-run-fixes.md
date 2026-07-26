@@ -216,15 +216,15 @@ in this plan.
 the 190×64 aspect ratio (legend box is ~square, so they disagree), and `clip-path` clips the border
 off the diagonal edges of the hexagon.
 
-- [ ] **Step 1:** Replace `shapeStyle` with an SVG archetype per non-rectangular `Shape`
+- [x] **Step 1:** Replace `shapeStyle` with an SVG archetype per non-rectangular `Shape`
   (person, cylinder, bar, hexagon, titled-rectangle), rendered as an absolutely-positioned `<svg>`
   filling the NODE_W×NODE_H div (`preserveAspectRatio="none"` or geometry computed from the box),
   with `stroke` = border color and `fill` = bg. Text sits on top. The div keeps its rectangular box,
   so `floating.ts` anchoring and the invisible handles are untouched. `rectangle` stays a plain div.
-- [ ] **Step 2:** Point `NodeBox.tsx` and `GhostNode.tsx` at the new renderer.
-- [ ] **Step 3:** `Legend.tsx` reuses the same renderer at small size → legend and canvas match by
+- [x] **Step 2:** Point `NodeBox.tsx` and `GhostNode.tsx` at the new renderer.
+- [x] **Step 3:** `Legend.tsx` reuses the same renderer at small size → legend and canvas match by
   construction.
-- [ ] Verify: actor and external system look identical in legend and on canvas, with a visible border
+- [x] Verify: actor and external system look identical in legend and on canvas, with a visible border
   on every edge including the hexagon's diagonals.
 
 ---

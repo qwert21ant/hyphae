@@ -47,4 +47,32 @@ describe('NodeBox', () => {
     expect(box.style.width).toBe(`${NODE_W}px`);
     expect(box.style.height).toBe(`${NODE_H}px`);
   });
+
+  it('draws its role shape as SVG, not as CSS on the div', () => {
+    const { container } = renderBox({ name: 'Store', summary: 's', shape: 'cylinder' });
+    expect(container.querySelector('svg[data-shape="cylinder"]')).toBeTruthy();
+    const box = container.querySelector('div') as HTMLElement;
+    // The div must stay a plain rectangle: floating.ts anchors edges to its bounding box, and a
+    // clip-path here would cut the border off any diagonal edge.
+    expect(box.style.clipPath).toBe('');
+    expect(box.style.border).toBe('');
+  });
+
+  it('keeps the box rectangular at NODE_W x NODE_H whatever the shape', () => {
+    for (const shape of ['hexagon', 'person', 'bar', 'titled-rectangle'] as const) {
+      const { container } = renderBox({ name: 'X', shape });
+      const box = container.querySelector('div') as HTMLElement;
+      expect(box.style.width, shape).toBe(`${NODE_W}px`);
+      expect(box.style.height, shape).toBe(`${NODE_H}px`);
+      expect(box.style.clipPath, shape).toBe('');
+    }
+  });
+
+  it('pads text clear of a hexagon\'s notch', () => {
+    const { container: plain } = renderBox({ name: 'X' });
+    const { container: hex } = renderBox({ name: 'X', shape: 'hexagon' });
+    const pad = (c: HTMLElement) => (c.querySelector('div') as HTMLElement).style.padding;
+    expect(hex.querySelector('svg')).toBeTruthy();
+    expect(pad(hex)).not.toBe(pad(plain));
+  });
 });
