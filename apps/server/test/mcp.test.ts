@@ -204,7 +204,7 @@ function graphModel(): HyphaeModel {
   m.connections.push(
     { id: 'e1', from: 'n1', to: 'n2', type: 'Dependency', ...e },
     { id: 'e2', from: 'n1', to: 'n3', type: 'Dependency', ...e },
-    { id: 'e3', from: 'n2', to: 'n1', type: 'Realization', ...e },
+    { id: 'e3', from: 'n2', to: 'n1', type: 'Realization', ...e, verb: 'publishes' },
     { id: 'e4', from: 'n4', to: 'n1', type: 'Dependency', ...e },
     { id: 'e5', from: 'n3', to: 'n4', type: 'Dependency', ...e },
   );
@@ -267,8 +267,8 @@ describe('MCP query tools', () => {
     expect(both.nodes.map((n) => n.id).sort()).toEqual(['n1', 'n2', 'n3', 'n4']);
   });
 
-  it('get_subgraph filters by connection type', async () => {
-    const r = (await buildTools(api()).get_subgraph({ nodeId: 'n1', depth: 1, type: 'Realization' })) as { nodes: Array<{ id: string }>; connections: unknown[] };
+  it('get_subgraph filters by verb class', async () => {
+    const r = (await buildTools(api()).get_subgraph({ nodeId: 'n1', depth: 1, verbClass: 'messaging' })) as { nodes: Array<{ id: string }>; connections: unknown[] };
     expect(r.nodes.map((n) => n.id).sort()).toEqual(['n1', 'n2']);
     expect(r.connections).toHaveLength(1);
   });
@@ -328,10 +328,10 @@ function connModel(): HyphaeModel {
   );
   const e = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [] };
   m.connections.push(
-    { id: 'x1', from: 'a1', to: 'b1', type: 'Dependency', fields: { transport: 'Sync' }, ...e },
-    { id: 'x2', from: 'a1', to: 'ext', type: 'DataFlow', fields: { transport: 'Async' }, ...e },
-    { id: 'x3', from: 'b1', to: 'ext', type: 'Dependency', fields: { transport: 'Sync' }, ...e },
-    { id: 'x4', from: 'a1', to: 'a2', type: 'Dependency', fields: { transport: 'InProcess' }, ...e },
+    { id: 'x1', from: 'a1', to: 'b1', type: 'Dependency', fields: { transport: 'Sync' }, ...e, verb: 'reads' },       // dataAccess
+    { id: 'x2', from: 'a1', to: 'ext', type: 'DataFlow', fields: { transport: 'Async' }, ...e, verb: 'publishes' },  // messaging
+    { id: 'x3', from: 'b1', to: 'ext', type: 'Dependency', fields: { transport: 'Sync' }, ...e, verb: 'invokes' },    // control
+    { id: 'x4', from: 'a1', to: 'a2', type: 'Dependency', fields: { transport: 'InProcess' }, ...e, verb: 'reads' },       // dataAccess
   );
   return m;
 }
@@ -344,9 +344,15 @@ describe('list_connections', () => {
     expect(ids(await buildTools(api()).list_connections({}))).toEqual(['x1', 'x2', 'x3', 'x4']);
   });
 
-  it('filters by type and transport', async () => {
-    expect(ids(await buildTools(api()).list_connections({ type: 'Dependency' }))).toEqual(['x1', 'x3', 'x4']);
-    expect(ids(await buildTools(api()).list_connections({ transport: 'Sync' }))).toEqual(['x1', 'x3']);
+  it('filters by verb and verbClass', async () => {
+    expect(ids(await buildTools(api()).list_connections({ verbClass: 'dataAccess' }))).toEqual(['x1', 'x4']);
+    expect(ids(await buildTools(api()).list_connections({ verb: 'invokes' }))).toEqual(['x3']);
+  });
+
+  it('never returns the retired type/transport fields', async () => {
+    const [first] = (await buildTools(api()).list_connections({})) as Array<Record<string, unknown>>;
+    expect('type' in first).toBe(false);
+    expect('transport' in first).toBe(false);
   });
 
   it('filters by involvingExternal', async () => {
@@ -398,10 +404,10 @@ describe('rollup_connections', () => {
   const api = () => fakeApi({ getModel: async () => connModel() });
 
   it('layer:Container returns derived container edges with realizedBy expanded', async () => {
-    const r = (await buildTools(api()).rollup_connections({ layer: 'Container' })) as Array<{ from: string; to: string; realizedBy: Array<{ id: string; type: string }> }>;
+    const r = (await buildTools(api()).rollup_connections({ layer: 'Container' })) as Array<{ from: string; to: string; realizedBy: Array<{ id: string; verb: string }> }>;
     expect(r.map((e) => `${e.from}->${e.to}`).sort()).toEqual(['ca->cb', 'ca->ext', 'cb->ext']);
     const caCb = r.find((e) => e.from === 'ca' && e.to === 'cb')!;
-    expect(caCb.realizedBy).toEqual([{ id: 'x1', fromName: 'A1', toName: 'B1', type: 'Dependency', transport: 'Sync', verb: 'uses', object: '', description: '' }]);
+    expect(caCb.realizedBy).toEqual([{ id: 'x1', fromName: 'A1', toName: 'B1', verb: 'reads', object: '', description: '' }]);
   });
 
   it('layer:Context collapses internal edges to the System, keeping external edges', async () => {
