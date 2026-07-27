@@ -42,6 +42,8 @@ export const c4Backend: Profile = {
     { id: 'views', class: 'user', description: 'A person looks at information presented by the target.' },
     { id: 'submits', class: 'user', description: 'A person sends input to the target.' },
     { id: 'navigates', class: 'user', description: 'A person moves to the target surface.' },
+    { id: 'implements', class: 'traceability', description: 'Implements a functional requirement or a declared interface.' },
+    { id: 'satisfies', class: 'traceability', description: 'Meets a quality requirement (performance, security, availability).' },
   ],
   patternKinds: [
     { id: 'pipeline', renderer: 'pipeline', ordered: true, description: 'Ordered stages data flows through in sequence (e.g. decode → normalize → persist). Members are the stages, in array order.' },

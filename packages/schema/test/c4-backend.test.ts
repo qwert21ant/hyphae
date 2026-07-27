@@ -79,9 +79,9 @@ describe('c4-backend visual vocabulary', () => {
     expect(c4Backend.verbs.some((v) => v.id === 'uses')).toBe(true);
   });
 
-  it('covers all four verb classes', () => {
+  it('covers all five verb classes', () => {
     expect(new Set(c4Backend.verbs.map((v) => v.class)))
-      .toEqual(new Set(['dataAccess', 'messaging', 'control', 'user']));
+      .toEqual(new Set(['dataAccess', 'messaging', 'control', 'user', 'traceability']));
   });
 
   it('has retired intent', () => {
@@ -105,5 +105,16 @@ describe('c4-backend visual vocabulary', () => {
   it('marks pipeline and middleware as ordered', () => {
     const ordered = new Set(c4Backend.patternKinds.filter((k) => k.ordered).map((k) => k.id));
     expect(ordered).toEqual(new Set(['pipeline', 'middleware']));
+  });
+});
+
+describe('traceability verbs', () => {
+  it('offers a traceability class for non-runtime links', () => {
+    const trace = c4Backend.verbs.filter((v) => v.class === 'traceability').map((v) => v.id);
+    expect(trace.sort()).toEqual(['implements', 'satisfies']);
+  });
+
+  it('gives every verb a class the schema knows', () => {
+    expect(() => ProfileSchema.parse(c4Backend)).not.toThrow();
   });
 });

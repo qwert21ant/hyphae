@@ -37,7 +37,7 @@ export function Legend() {
             <div key={l}><span style={box(LAYER_COLOR[l].bg, LAYER_COLOR[l].border)} />{l}</div>
           ))}
           <div style={{ fontWeight: 600, margin: '6px 0 2px' }}>Edges</div>
-          <div><span style={line(false)} />solid — one authored connection (label = kind)</div>
+          <div><span style={line(false)} />solid — one authored connection (label = verb + object)</div>
           <div><span style={line(true)} />dashed purple — derived rollup (label = count)</div>
           <div><span style={{ ...line(false), borderColor: '#94a3b8' }} />no arrowhead — mixed directions</div>
           <div style={{ fontWeight: 600, margin: '6px 0 2px' }}>Roles</div>
@@ -50,7 +50,7 @@ export function Legend() {
             </div>
           ))}
           <div style={{ fontWeight: 600, margin: '6px 0 2px' }}>Edge verbs</div>
-          {(['dataAccess', 'messaging', 'control', 'user'] as const).map((cls) => {
+          {[...new Set(c4Backend.verbs.map((v) => v.class))].map((cls) => {
             const verbs = c4Backend.verbs.filter((v) => v.class === cls).map((v) => v.id);
             return (
               <div key={cls}>

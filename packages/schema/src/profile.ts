@@ -25,7 +25,7 @@ export const RoleDefSchema = z.object({
   shape: ShapeSchema,
 });
 
-export const VerbClassSchema = z.enum(['dataAccess', 'messaging', 'control', 'user']);
+export const VerbClassSchema = z.enum(['dataAccess', 'messaging', 'control', 'user', 'traceability']);
 
 export const VerbDefSchema = z.object({
   id: z.string(),

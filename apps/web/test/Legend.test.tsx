@@ -43,3 +43,12 @@ describe('Legend role swatches', () => {
     expect(getByText(/datastore/)).toBeTruthy();
   });
 });
+
+describe('Legend verb classes', () => {
+  it('lists every verb class in the profile, derived not hardcoded', () => {
+    const { getByText } = openLegend();
+    for (const cls of new Set(c4Backend.verbs.map((v) => v.class))) {
+      expect(getByText(new RegExp(cls)), cls).toBeTruthy();
+    }
+  });
+});

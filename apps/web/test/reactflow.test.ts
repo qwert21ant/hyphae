@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { focusViewToFlow, highlightSets, layerColorOf, LAYER_COLOR } from '../src/reactflow';
+import { focusViewToFlow, highlightSets, layerColorOf, LAYER_COLOR, VERB_CLASS_COLOR } from '../src/reactflow';
 import type { FocusView } from '../src/focusView';
 import type { Edge as FlowEdge } from '@xyflow/react';
+import { c4Backend } from '@hyphae/schema';
 
 const node = (id: string, type = 'Component') =>
   ({ id, name: id, type, parentId: null, description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} }) as any;
@@ -214,4 +215,13 @@ describe('highlightSets', () => {
     expect([...h.nodes].sort()).toEqual(['a', 'b', 'ca']);
     expect([...h.edges].sort()).toEqual(['e1', 'e2']);
   });
+});
+
+it('gives every profile verb class a distinct colour', () => {
+  const classes = [...new Set(c4Backend.verbs.map((v) => v.class))];
+  const colors = classes.map((c) => VERB_CLASS_COLOR[c]);
+  expect(colors.every(Boolean)).toBe(true);
+  expect(new Set(colors).size).toBe(classes.length);
+  // Violet means "derived rollup edge" everywhere else; one colour, one meaning.
+  expect(colors).not.toContain('#7c3aed');
 });
