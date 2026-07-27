@@ -1,11 +1,11 @@
 import { useStore } from './store';
-import { c4Backend, type FieldDef } from '@hyphae/schema';
+import { c4Backend, connectionFields, verbClasses, type FieldDef } from '@hyphae/schema';
 import { VERB_CLASS_COLOR } from './reactflow';
 
 function VerbClassGroup() {
   const selected = useStore((s) => s.connFilter.verbClasses);
   const toggle = useStore((s) => s.toggleConnVerbClass);
-  const classes = [...new Set(c4Backend.verbs.map((v) => v.class))];
+  const classes = verbClasses(c4Backend);
   return (
     <div style={{ marginTop: 6 }}>
       <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.4, color: '#888' }}>Verb class</div>
@@ -39,7 +39,7 @@ export function FilterPanel() {
   const filter = useStore((s) => s.connFilter);
   const clear = useStore((s) => s.clearConnFilter);
   const active = filter.verbClasses.length + Object.values(filter.fields).reduce((a, v) => a + v.length, 0);
-  const enumFields = c4Backend.commonConnectionFields.filter((f) => f.type === 'enum');
+  const enumFields = connectionFields(c4Backend).filter((f) => f.type === 'enum');
   return (
     <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: 6, padding: '8px 10px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', minWidth: 130 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

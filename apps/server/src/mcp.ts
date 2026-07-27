@@ -4,7 +4,7 @@ import { z } from 'zod';
 import {
   modelOverview, rollupConnections, validateModel, modelGaps, resolveProfile, HyphaeModelSchema, c4Backend,
   nodeFields, connectionFields, nodeAtOrAboveLayer, refOwners, resolveRoot, resolveRef,
-  verbClassOf, VerbClassSchema,
+  verbClassOf, verbClasses,
   type HyphaeModel, type FieldDef,
 } from '@hyphae/schema';
 
@@ -422,7 +422,7 @@ async function main() {
       description: 'Query raw connections across the model. Filters (all optional, AND-combined): verb (an exact verb id), verbClass (dataAccess/messaging/control/user/traceability), nodeId (edges touching exactly this node — use to inspect one node\'s edges), containerId (edges touching that container or any of its descendants), crossingBoundary (true = endpoints in different owning containers — i.e. inter-container / external edges; false = intra-container only), involvingExternal (an endpoint is an ExternalSystem). Supports offset/limit. Each result is enriched with fromName/toName and fromContainer/toContainer. By default edges among Component-and-above nodes are returned; pass maxLayer to cap at a shallower layer. For DERIVED higher-level edges (component edges aggregated to Container/Context level) use rollup_connections.',
       inputSchema: {
         verb: z.enum(c4Backend.verbs.map((v) => v.id) as [string, ...string[]]).optional().describe('Only connections with this exact verb.'),
-        verbClass: z.enum(VerbClassSchema.options as [string, ...string[]]).optional().describe('Only connections whose verb belongs to this class.'),
+        verbClass: z.enum(verbClasses(c4Backend) as [string, ...string[]]).optional().describe('Only connections whose verb belongs to this class.'),
         nodeId: z.string().optional().describe('A node id; keep only edges whose from or to is exactly this node.'),
         containerId: z.string().optional().describe('A container node id; keep only edges touching it or one of its descendants.'),
         crossingBoundary: z.boolean().optional().describe('true = only edges whose endpoints belong to different containers (inter-container/external); false = only intra-container edges.'),
@@ -454,7 +454,7 @@ async function main() {
         nodeId: z.string(),
         depth: z.number().optional().describe('Max hops from the root, default 1. Containment and connection steps both count.'),
         direction: z.enum(['in', 'out', 'both']).optional().describe('Which connection edges to follow: out (from→to), in (to→from), or both (default).'),
-        verbClass: z.enum(VerbClassSchema.options as [string, ...string[]]).optional().describe('Only traverse connections whose verb belongs to this class.'),
+        verbClass: z.enum(verbClasses(c4Backend) as [string, ...string[]]).optional().describe('Only traverse connections whose verb belongs to this class.'),
         containment: z.enum(['down', 'up', 'both', 'none']).optional().describe('Follow parentId links: down = into children (default), up = to parents, both, or none. Default down means a Container returns its Components.'),
         maxLayer: z.enum(c4Backend.layers as [string, ...string[]]).optional().describe('Deepest layer to traverse/return (default Component, the deepest layer). Nodes below it are not visited.'),
       },
@@ -493,7 +493,7 @@ async function main() {
   };
   const connItem = z.object({ from: z.string(), to: z.string(), ...coreConnFields });
   server.registerTool('create_connections', {
-    description: "Create one OR MANY connections in a single call (single write = one-element array). Each item: from, to (existing node ids), verb + object (what the edge does and to what — this is the diagram label), domain values in `fields`, and optional realizedBy to bind lower-layer edges. Best-effort: {created:[{id,from,to},...]} in input order on full success, else {results:[{id,from,to}|{issues}]}. Use the echoed ids to fill `realizedBy` on a higher-layer edge without re-listing.",
+    description: "Create one OR MANY connections in a single call (single write = one-element array). Each item: from, to (existing node ids), verb + object (what the edge does and to what — this is the diagram label), and optional realizedBy to bind lower-layer edges. Best-effort: {created:[{id,from,to},...]} in input order on full success, else {results:[{id,from,to}|{issues}]}. Use the echoed ids to fill `realizedBy` on a higher-layer edge without re-listing.",
     inputSchema: { connections: z.array(connItem) },
   }, async (a) => text(await tools.create_connections(a)));
 
@@ -505,7 +505,7 @@ async function main() {
 
   const connUpdate = z.object({ id: z.string(), from: z.string().optional(), to: z.string().optional(), ...coreConnFields });
   server.registerTool('update_connections', {
-    description: 'Update one OR MANY connections by id (single update = one-element array). Each item: id + fields to change (e.g. realizedBy to bind lower-layer edges); domain values in `fields`. Best-effort: {ok:true} on full success, else {results:[{ok}|{issues}]}.',
+    description: 'Update one OR MANY connections by id (single update = one-element array). Each item: id + fields to change (e.g. realizedBy to bind lower-layer edges). Best-effort: {ok:true} on full success, else {results:[{ok}|{issues}]}.',
     inputSchema: { updates: z.array(connUpdate) },
   }, async (a) => text(await tools.update_connections(a)));
 

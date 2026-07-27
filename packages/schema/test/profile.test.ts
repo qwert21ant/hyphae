@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { c4Backend, allowedChildTypes, topLevelTypes, nodeAtOrAboveLayer } from '../src/index';
-import { roleOfNode, roleDefOf, verbDefOf, verbClassOf, patternKindDefOf } from '../src/profile';
+import { roleOfNode, roleDefOf, verbDefOf, verbClassOf, verbClasses, patternKindDefOf } from '../src/profile';
 
 describe('profile child/top-level helpers', () => {
   it('returns the allowed child types for a kind', () => {
@@ -64,6 +64,21 @@ describe('role and verb lookup', () => {
 
   it('exposes the verb description for the LLM and tooltips', () => {
     expect(verbDefOf(c4Backend, 'reads')?.description).toMatch(/\S/);
+  });
+});
+
+describe('verbClasses', () => {
+  it('returns the distinct classes that actually have verbs, in profile order', () => {
+    expect(verbClasses(c4Backend)).toEqual(['dataAccess', 'messaging', 'control', 'user', 'traceability']);
+  });
+
+  it('omits a class the schema knows but no verb in the profile uses', () => {
+    const profile = { ...c4Backend, verbs: c4Backend.verbs.filter((v) => v.class !== 'traceability') };
+    expect(verbClasses(profile)).not.toContain('traceability');
+  });
+
+  it('returns an empty array for a profile with no verbs', () => {
+    expect(verbClasses({ ...c4Backend, verbs: [] })).toEqual([]);
   });
 });
 

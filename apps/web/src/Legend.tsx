@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { c4Backend } from '@hyphae/schema';
+import { c4Backend, verbClasses } from '@hyphae/schema';
 import { LAYER_COLOR, VERB_CLASS_COLOR } from './reactflow';
 import { SHAPE_LABEL } from './shapes';
 import { NodeShape } from './NodeShape';
@@ -50,7 +50,7 @@ export function Legend() {
             </div>
           ))}
           <div style={{ fontWeight: 600, margin: '6px 0 2px' }}>Edge verbs</div>
-          {[...new Set(c4Backend.verbs.map((v) => v.class))].map((cls) => {
+          {verbClasses(c4Backend).map((cls) => {
             const verbs = c4Backend.verbs.filter((v) => v.class === cls).map((v) => v.id);
             return (
               <div key={cls}>

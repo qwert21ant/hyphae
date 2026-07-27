@@ -100,6 +100,12 @@ export const verbDefOf = (profile: Profile, verbId: string): VerbDef | undefined
 export const verbClassOf = (profile: Profile, verbId: string): VerbClass | undefined =>
   verbDefOf(profile, verbId)?.class;
 
+/** The distinct verb classes actually in use by this profile's verbs, in profile order. This is
+ *  the single authority for "which classes exist" — deriving it from the verbs (rather than from
+ *  `VerbClassSchema.options`) means a class added to the schema without a verb never shows up in
+ *  a filter or legend where it would match nothing. */
+export const verbClasses = (profile: Profile): VerbClass[] => [...new Set(profile.verbs.map((v) => v.class))];
+
 export const patternKindDefOf = (profile: Profile, kindId: string): PatternKindDef | undefined =>
   profile.patternKinds.find((k) => k.id === kindId);
 

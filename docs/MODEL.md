@@ -88,7 +88,10 @@ A first-class edge, and the main carrier of on-diagram meaning. Core:
   *messaging* (publishes / subscribes / notifies …), *control* (invokes / triggers /
   requests), *user* (views / submits / navigates), *traceability* (implements / satisfies,
   §6). It replaces the former low-signal `intent` field, and the connection `type` (kind)
-  and `transport` field it once overlapped with — both retired.
+  and `transport` field it once overlapped with — both retired. `implements` is not only
+  the reserved requirement-traceability link (§6): it is also how a Component or Container
+  connection records that it realizes a declared interface — the honest half of the retired
+  `Realization` kind.
 - **`object`** is what the action acts on: a short noun, or a reference to a `DataEntity`
   (§3.5), linking the edge into the data model ("reads → Camera").
 
