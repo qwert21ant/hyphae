@@ -108,8 +108,11 @@ was found — synthetic fixtures agreed with the buggy code, the real model did 
 - **`superpowers:brainstorming`** — before designing any feature or new UI surface. Comes *before* planning.
 - **`superpowers:writing-plans`** — turn an agreed design into `docs/superpowers/plans/YYYY-MM-DD-<name>.md`
   with checkboxed tasks. Plans are tracked in git; tick the boxes as you implement.
-- **`superpowers:executing-plans`** — implement a written plan task by task. Confirm any "open design decisions"
-  section with the user *before* writing code.
+- **`superpowers:subagent-driven-development`** — the default way to implement a written plan: a fresh
+  subagent per task, reviewed between tasks. Confirm any "open design decisions" section with the user
+  *before* writing code.
+- **`superpowers:executing-plans`** — implement a plan inline instead, when the tasks are too coupled to
+  hand off one at a time.
 - **`superpowers:test-driven-development`** — red first, especially for the pure functions (`focusView`,
   `hashRoute`, `flowOverlay`, `layout`, `patternView`) and for every bugfix.
 - **`superpowers:systematic-debugging`** — for **any** bug or test failure, before proposing a fix. Find the root
@@ -119,7 +122,7 @@ was found — synthetic fixtures agreed with the buggy code, the real model did 
 - **`superpowers:requesting-code-review`** / **`superpowers:receiving-code-review`** — on a substantial feature.
 - **`superpowers:finishing-a-development-branch`** — when a branch is complete and needs integrating.
 
-Do **not** spawn subagents unless the user asks for them.
+Spawn subagents freely — no need to ask first. Plan execution is subagent-driven by default.
 
 ## Git conventions
 
