@@ -48,7 +48,7 @@ axes at once.
 | **Structure** | what it is made of | node `parentId`, node `role` | containment map, UI-tree, module-tree |
 | **Dependencies / Collaboration** | who does what to whom | connections `type` + **verb** + object | dependency graph, collaboration diagram |
 | **Behavior** | what happens over time | `flows`, state-machine `patterns` | numbered flow overlay, sequence, state chart |
-| **Data** | what data it operates on | `dataEntities` + connection `carries` | ERD, data-flow |
+| **Data** | what data it operates on | `dataTypes` + connection `carries` *(reserved)* | ERD, data-flow |
 | **Intent** | why, which requirements/decisions | `requirements`, `decisions` + `Trace` connections | traceability matrix, decision map |
 | **Presentation** | how to view it | `views` | layouts, filters, saved views |
 
@@ -105,10 +105,13 @@ handles branching. The Behavior axis, "horizontal" time. Flows are **built**, no
 ### 3.4 Pattern
 A first-class **overlay** that annotates a set of members with a recognized *architectural
 shape* and draws it specially. A `Pattern` has a `kind` (from the profile —
-`pipeline` / `middleware` / `state-machine` / `layered` / `event-bus` …) and a set of
-**members**; array order is the stage order for ordered kinds, so no separate order field is
-needed. Pipeline and middleware render as an ordered row of stages, state-machine lays out
-states and transitions, and layered/event-bus currently fall back to an unordered member list.
+`pipeline` / `middleware` / `state-machine` / `layered` / `event-bus` …), an **`anchor`** (the node
+the pattern describes — the way back to the model, since a pattern replaces the canvas while shown,
+and what a member `ref` resolves against), a set of **members**, and `transitions`
+(`{ from, to, trigger, description }`, referencing members **by name**). Member array order is the
+stage order for ordered kinds, so no separate order field is needed. Pipeline and middleware render
+as an ordered row of stages, state-machine lays out states by their transitions, and
+layered/event-bus currently fall back to an unordered member list.
 
 A member is `{ name, nodeId? | ref?, description? }` — it binds to **at most one** of a node id
 or a code Ref (§3.7), or **neither** (a pure name, e.g. a state in a state-machine Pattern). This
@@ -124,10 +127,11 @@ Pattern vs Flow: **Pattern is a static arrangement; Flow is a temporal traversal
 Pattern shows the stages; a Flow animates one request through them.
 
 ### 3.5 DataEntity
-A named data object (Clip, Camera, User) — the Data axis, now real. Nodes **own / store** data
+A named data object (Clip, Camera, User) — the Data axis. Nodes **own / store** data
 entities; connections **carry** them (via the connection's `object`/`carries`). An ERD is a
 projection of ownership + carriage. A data type is first-class because it is reused by many
-nodes and connections.
+nodes and connections. *(Reserved: the `dataTypes` collection exists in the schema, but the axis
+has no MCP tool or editor yet — a connection's `object` is free text. Phase D.)*
 
 ### 3.6 View
 A saved viewing configuration: layer, filter, manual layout. The Presentation axis. Truth is
@@ -322,18 +326,19 @@ HyphaeModel {
   activeProfile                 // profile id
   nodes:         [Node]         // Structure + Dependencies (role drives shape)
   connections:   [Connection]   // Dependencies / Data / Intent (verb + object)
-  flows:         [Flow]         // Behavior (horizontal) — built
+  flows:         [Flow]         // Behavior (horizontal)  — built
   patterns:      [Pattern]      // overlay shapes (absorbs state machines) — built
-  dataEntities:  [DataEntity]   // Data — built
+  dataTypes:     [DataType]     // Data                   — reserved
   requirements:  [Requirement]  // Intent                 — reserved
   decisions:     [Decision]     // Intent                 — reserved
   views:         [View]         // Presentation
 }
 ```
 
-"Reserved" = the collection exists in the schema (an empty array) but has no editor/reader
-yet. `requirements`/`decisions` remain reserved in this rethink; `flows`/`patterns`/
-`dataEntities` move from reserved to built. See the roadmap in [SPEC.md](./SPEC.md).
+"Reserved" = the collection exists in the schema (an empty array) but has no editor, MCP tool, or
+reader yet. `flows` and `patterns` moved from reserved to built (MCP + editor); the Data axis is
+still reserved — the key is `dataTypes`, and a connection's `object` is free text until Phase D
+lands. `requirements`/`decisions` remain reserved. See the roadmap in [SPEC.md](./SPEC.md).
 
 ---
 

@@ -173,14 +173,15 @@ A Pattern is a first-class **overlay** that annotates a set of members with a re
 architectural shape and renders it specially.
 
 **Structure:** `id`, `name`, `kind` (profile pattern kind: `pipeline` | `middleware` |
-`state-machine` | `layered` | `event-bus` | …), `members`, optional `order` (for ordered kinds
-like pipeline), and kind-specific detail (e.g. a `state-machine`'s states + transitions
-`{ from, to, trigger, guard, effect }`).
+`state-machine` | `layered` | `event-bus` | …), `description`, **`anchor`** (the node this pattern
+describes, nullable), `members`, and `transitions` — `{ from, to, trigger, description }`, where
+`from`/`to` are **member names**, used by the `state-machine` renderer. There is no separate order
+field: **member array order is the stage order** for ordered kinds.
 
-A member is `{ name, nodeId? | ref?, description? }` — it points at **either a node id or a
-code Ref** (§6.10), and must carry exactly one of the two. Code-level patterns need the `ref`
-form: with classes no longer modeled as nodes, a pipeline's stages are named members pointing
-into the source. Higher-altitude patterns use `nodeId`.
+A member is `{ name, nodeId? | ref?, description? }` — it binds to **at most one** of a node id or a
+code Ref (§6.10), or to **neither** (a pure name, e.g. a state in a state-machine). Code-level
+patterns need the `ref` form: with classes no longer modeled as nodes, a pipeline's stages are named
+members pointing into the source. Higher-altitude patterns use `nodeId`.
 
 Patterns are how a Component's internal shape appears **without** code-as-nodes. The former
 standalone `StateMachine` is the `state-machine` pattern kind.
@@ -189,7 +190,11 @@ standalone `StateMachine` is the `state-machine` pattern kind.
 
 A DataEntity is a named data object (Entity | Value | Event | DTO) with optional fields. Nodes
 **own/store** entities; connections **carry** them (via `object`/`carries`). An ERD is a
-projection of ownership + carriage. The Data axis is **built**, not reserved.
+projection of ownership + carriage.
+
+**Status: not built yet.** The collection exists in the schema as `dataTypes` (an empty array) with
+no MCP tools and no editor — a connection's `object` is free text today. This is Phase D (§11);
+Flows and Patterns shipped first.
 
 ### 6.7 Code layer removal
 
@@ -294,9 +299,10 @@ Built into the core, and unchanged by the visual repositioning:
   code" and "flow → connections → data" to verify implementation and find gaps.
 - **Text export.** Render the graph into compact plain text for a prompt.
 - **MCP server (read + write).** Read: `describe_profile`, `model_overview`, `get_node`,
-  `list_nodes`, `list_connections`, `rollup_connections`, `get_subgraph`, `validate_model`,
-  `model_gaps`. Write: `create/update/delete` for nodes and connections; extended to flows,
-  patterns, and data entities as those axes are built.
+  `list_nodes`, `list_connections`, `rollup_connections`, `get_subgraph`, `list_flows`, `get_flow`,
+  `list_patterns`, `get_pattern`, `resolve_refs`, `validate_model`, `model_gaps`. Write:
+  `create/update/delete` for nodes, connections, flows, and patterns — creates are batched and echo
+  `{id, name}` per item. Data entities follow when Phase D is built.
 
 ---
 
@@ -312,10 +318,15 @@ Built into the core, and unchanged by the visual repositioning:
   and solid-vs-derived edges.
 - **One step — one model operation.** Dragging a component into a container = a `parentId`
   change; deleting a node invalidates and highlights affected connections/flows.
-- **Zoom navigation between layers.** Double-click to drill; breadcrumbs on top; each layer
-  keeps its own pan/zoom.
-- **Flow as an overlay; Pattern as a shape.** Turn on a Flow → steps light in order. Open a
-  Component with a Pattern → its internal shape renders (stages / onion / state chart).
+- **Zoom navigation between altitudes.** Double-click to drill into any node; breadcrumbs on top;
+  a left outline of the whole model for orientation. Layout is automatic and stable — filtering,
+  the audience toggle, and expanding an external never reflow the graph. The current view lives in
+  the URL hash (`#node/…`, `#flow/…`, `#pattern/…`), so it is shareable and Back-able.
+- **Flow as an overlay; Pattern as a shape.** Select a Flow → it jumps to step 1 and lights the
+  steps in order; each step is clickable and navigates to a view that shows it, and a step with no
+  authored connection still draws (as an ephemeral edge). Select a Pattern → its internal shape
+  renders in place of the canvas (stages / state chart / member stack), with its anchor and bound
+  members linking back into the model.
 
 ---
 
@@ -326,7 +337,7 @@ Built into the core, and unchanged by the visual repositioning:
 - **@xyflow/react** (React Flow) — node-based editor; custom nodes for role shapes, pattern
   renderers, and flow overlays
 - **Zustand** — editor state
-- **Tailwind CSS** — styling
+- Plain CSS (`apps/web/src/styles.css`) + inline styles — no CSS framework
 - **dagre** — auto-layout
 
 ### Backend
@@ -354,32 +365,41 @@ Package manager: **pnpm workspaces**.
 
 Each phase is a projection of the axes already laid down in the schema.
 
-### Phase A0 — Refs and roots (foundation)
+| Phase | | Status |
+|-------|---|--------|
+| A0 | Refs and roots | **shipped** |
+| A | Visual language (roles/shapes, verb + object) | **shipped** |
+| B | Flows | **shipped** |
+| C | Patterns | **shipped** |
+| E | Retire the Code node layer | **shipped** |
+| D | Data axis | not started |
+
+### Phase A0 — Refs and roots (foundation) — shipped
 - Formalize the **Ref** string syntax (dir / file / symbol / lines / glob) + a shape validator.
 - Add optional `root` to the node core; resolution by nearest ancestor via `parentId`.
 - Report unanchored / ambiguous / missing-on-disk refs through `validate_model` + `model_gaps`;
   backfill roots on the existing model.
 - Cheap, and a prerequisite for Phase C (Pattern member refs) and Phase E (Component `codeRefs`).
 
-### Phase A — Visual language
+### Phase A — Visual language — shipped
 - Node **roles** → shapes/icons (profile-declared); render name + one-line purpose + tech chip.
 - Connection **verb + object** on the edge; color by verb class; retire `intent`.
 - On-diagram-label vs side-panel-detail split; legend.
 - Reuses the existing focus view, floating edges, containment regions, side panel.
 
-### Phase B — Flows
+### Phase B — Flows — shipped
 - Build the Behavior axis: create flows (nodes + connections + ordered steps, control
   structures), numbered overlay on the view, an optional sequence-style mode. MCP + editor.
 
-### Phase C — Patterns
+### Phase C — Patterns — shipped
 - The `Pattern` overlay entity + renderers: pipeline, middleware/interceptor, state-machine
   (absorbs the old StateMachine), layered, event-bus. Profile-driven `patternKinds`. MCP + editor.
 
-### Phase D — Data axis
+### Phase D — Data axis — not started
 - `DataEntity` model; connection `carries`/`object` refs; node `owns/stores`; an ERD-style
   data projection. MCP + editor.
 
-### Phase E — Retire the Code node layer
+### Phase E — Retire the Code node layer — shipped
 - Drop Code kinds from profiles; a Component's code presence becomes `codeRefs` + an optional
   Pattern. Keep `realizedBy` aggregation between surviving altitudes. No migration ships —
   an existing model is recreated, not folded — and `schemaVersion` stays `1`.
