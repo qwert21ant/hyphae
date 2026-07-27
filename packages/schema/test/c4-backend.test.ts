@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { c4Backend, layerOfType, allowedParentTypes } from '../src/profiles/c4-backend';
-import { ProfileSchema, effectiveFields, connectionKindIds } from '../src/profile';
+import { ProfileSchema, nodeFields, connectionFields } from '../src/profile';
 
 describe('c4-backend profile', () => {
   it('is a valid Profile', () => {
@@ -31,21 +31,22 @@ describe('c4-backend profile', () => {
 });
 
 describe('profile meta-schema', () => {
-  it('exposes connection kinds', () => {
-    expect(connectionKindIds(c4Backend).sort()).toEqual(['DataFlow', 'Dependency', 'Realization', 'Trace']);
+  it('no longer defines connection kinds', () => {
+    expect('connectionKinds' in c4Backend).toBe(false);
   });
 
   it('effective node fields = common (responsibilities, invariants) then per-kind (summary, technology)', () => {
-    const keys = effectiveFields(c4Backend, 'Component', 'node').map((f) => f.key);
+    const keys = nodeFields(c4Backend, 'Component').map((f) => f.key);
     expect(keys).toEqual(['responsibilities', 'invariants', 'summary', 'technology']);
   });
 
   it('a node kind with no own fields beyond summary gets the common fields plus summary', () => {
-    expect(effectiveFields(c4Backend, 'System', 'node').map((f) => f.key)).toEqual(['responsibilities', 'invariants', 'summary']);
+    expect(nodeFields(c4Backend, 'System').map((f) => f.key)).toEqual(['responsibilities', 'invariants', 'summary']);
   });
 
   it('ships no connection fields — verb and object carry the meaning', () => {
     expect(c4Backend.commonConnectionFields).toEqual([]);
+    expect(connectionFields(c4Backend)).toEqual([]);
   });
 
   it('common fields win on key collision', () => {
@@ -55,7 +56,7 @@ describe('profile meta-schema', () => {
       nodeKinds: c4Backend.nodeKinds.map((k) =>
         k.id === 'Component' ? { ...k, fields: [{ key: 'technology', type: 'text' as const, description: 'per-kind one' }] } : k),
     };
-    const tech = effectiveFields(profile, 'Component', 'node').filter((f) => f.key === 'technology');
+    const tech = nodeFields(profile, 'Component').filter((f) => f.key === 'technology');
     expect(tech).toHaveLength(1);
     expect(tech[0].description).toBe('common one');
   });
@@ -90,7 +91,7 @@ describe('c4-backend visual vocabulary', () => {
 
   it('requires summary on the five structural kinds', () => {
     const summaryOf = (kindId: string) =>
-      effectiveFields(c4Backend, kindId, 'node').find((f) => f.key === 'summary');
+      nodeFields(c4Backend, kindId).find((f) => f.key === 'summary');
     for (const k of ['System', 'Actor', 'ExternalSystem', 'Container', 'Component']) {
       expect(summaryOf(k)?.required, `${k} should require summary`).toBe(true);
     }

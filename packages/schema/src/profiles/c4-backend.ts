@@ -66,12 +66,6 @@ export const c4Backend: Profile = {
     { id: 'Container', category: 'Structure', layer: 'Container', role: 'service', allowedParents: ['System'], allowedChildren: ['Component'], fields: [summary, technology] },
     { id: 'Component', category: 'Structure', layer: 'Component', role: 'service', allowedParents: ['Container'], allowedChildren: [], fields: [summary, technology] },
   ],
-  connectionKinds: [
-    { id: 'Dependency', description: 'A depends on / uses B.', fields: [] },
-    { id: 'DataFlow', description: 'Data flows from A to B.', fields: [] },
-    { id: 'Realization', description: 'A realizes/implements an interface defined by B.', fields: [] },
-    { id: 'Trace', description: 'Traceability link (e.g. a requirement traced to its implementation).', fields: [] },
-  ],
 };
 
 export { layerOfType, allowedParentTypes, allowedChildTypes, topLevelTypes, typesForLayer } from '../profile';

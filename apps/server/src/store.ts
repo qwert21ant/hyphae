@@ -9,7 +9,7 @@ import { ValidationError, NotFoundError } from './errors';
 const DEBOUNCE_MS = 500;
 
 export type NodeInput = Partial<Node> & { name: string; type: string };
-export type ConnectionInput = Partial<Connection> & { from: string; to: string; type: string };
+export type ConnectionInput = Partial<Connection> & { from: string; to: string };
 export type FlowInput = Partial<Flow> & { name: string };
 // `members`/`transitions` entries carry zod-defaulted fields (e.g. `description`) that need not be
 // supplied by callers — only the name-bearing keys are required; the rest fill in at parse time.

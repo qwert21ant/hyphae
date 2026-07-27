@@ -10,7 +10,7 @@ const mkNode = (over: Partial<Node>): Node => ({
 });
 
 const conns: Connection[] = [
-  { id: 'x', from: 'a1', to: 'b1', type: 'Dependency', verb: 'reads', object: 'camera list', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: { transport: 'Sync' } },
+  { id: 'x', from: 'a1', to: 'b1', verb: 'reads', object: 'camera list', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} },
 ];
 
 beforeEach(() => {

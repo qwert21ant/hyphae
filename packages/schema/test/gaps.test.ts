@@ -20,8 +20,8 @@ function model(): HyphaeModel {
     { id: 'a3', name: 'A3', type: 'Component', parentId: 'ca', description: 'Standalone', ...nodeBase }, // orphan
   );
   m.connections.push(
-    { id: 'e1', from: 'a1', to: 'b1', type: 'Dependency', ...edgeBase }, // component edge a1->b1
-    { id: 'e2', from: 'a1', to: 'a2', type: 'Dependency', ...edgeBase }, // component edge a1->a2 (keeps a2 non-orphan)
+    { id: 'e1', from: 'a1', to: 'b1', ...edgeBase }, // component edge a1->b1
+    { id: 'e2', from: 'a1', to: 'a2', ...edgeBase }, // component edge a1->a2 (keeps a2 non-orphan)
   );
   return m;
 }

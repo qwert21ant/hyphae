@@ -3,7 +3,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import {
   modelOverview, rollupConnections, validateModel, modelGaps, resolveProfile, HyphaeModelSchema, c4Backend,
-  effectiveFields, connectionKindIds, nodeAtOrAboveLayer, refOwners, resolveRoot, resolveRef,
+  nodeFields, connectionFields, nodeAtOrAboveLayer, refOwners, resolveRoot, resolveRef,
   verbClassOf, VerbClassSchema,
   type HyphaeModel, type FieldDef,
 } from '@hyphae/schema';
@@ -69,12 +69,12 @@ export const patternItemSchema = z.object({
 /** What a create echoes back so the caller never has to re-look-up what it just wrote:
  *  the id plus enough identity to match it to the input — the name for a named entity
  *  (node/flow/pattern), the endpoints for a connection. */
-type Identity = { id: string; name?: string; from?: string; to?: string; type?: string };
+type Identity = { id: string; name?: string; from?: string; to?: string };
 function identityOf(e: CreatedEntity): Identity {
   return e.name !== undefined
     ? { id: e.id, name: e.name }
     : e.from !== undefined || e.to !== undefined
-      ? { id: e.id, from: e.from, to: e.to, type: e.type }
+      ? { id: e.id, from: e.from, to: e.to }
       : { id: e.id };
 }
 
@@ -376,9 +376,11 @@ function fieldToZod(d: FieldDef) {
   return base.optional().describe(fieldDesc(d));
 }
 function fieldsShape(scope: 'node' | 'connection'): Record<string, z.ZodTypeAny> {
-  const kinds = scope === 'node' ? c4Backend.nodeKinds.map((k) => k.id) : connectionKindIds(c4Backend);
+  const defs = scope === 'node'
+    ? c4Backend.nodeKinds.flatMap((k) => nodeFields(c4Backend, k.id))
+    : connectionFields(c4Backend);
   const byKey = new Map<string, FieldDef>();
-  for (const id of kinds) for (const f of effectiveFields(c4Backend, id, scope)) if (!byKey.has(f.key)) byKey.set(f.key, f);
+  for (const f of defs) if (!byKey.has(f.key)) byKey.set(f.key, f);
   const shape: Record<string, z.ZodTypeAny> = {};
   for (const [key, def] of byKey) shape[key] = fieldToZod(def);
   return shape;
@@ -489,9 +491,9 @@ async function main() {
       .describe('Ids of lower-layer connections this edge aggregates/describes (e.g. a Container↔Container edge realizedBy the Component↔Component edges that explain it). Bound edges are excluded from rollup.'),
     fields: z.object(fieldsShape('connection')).partial().optional(),
   };
-  const connItem = z.object({ from: z.string(), to: z.string(), type: z.enum(connectionKindIds(c4Backend) as [string, ...string[]]), ...coreConnFields });
+  const connItem = z.object({ from: z.string(), to: z.string(), ...coreConnFields });
   server.registerTool('create_connections', {
-    description: "Create one OR MANY connections in a single call (single write = one-element array). Each item: from, to (existing node ids), type (a profile connection kind), domain values in `fields`, and optional realizedBy to bind lower-layer edges. Best-effort: {created:[{id,from,to,type},...]} in input order on full success, else {results:[{id,from,to,type}|{issues}]}. Use the echoed ids to fill `realizedBy` on a higher-layer edge without re-listing.",
+    description: "Create one OR MANY connections in a single call (single write = one-element array). Each item: from, to (existing node ids), verb + object (what the edge does and to what — this is the diagram label), domain values in `fields`, and optional realizedBy to bind lower-layer edges. Best-effort: {created:[{id,from,to},...]} in input order on full success, else {results:[{id,from,to}|{issues}]}. Use the echoed ids to fill `realizedBy` on a higher-layer edge without re-listing.",
     inputSchema: { connections: z.array(connItem) },
   }, async (a) => text(await tools.create_connections(a)));
 
@@ -501,7 +503,7 @@ async function main() {
     inputSchema: { updates: z.array(nodeUpdate) },
   }, async (a) => text(await tools.update_nodes(a)));
 
-  const connUpdate = z.object({ id: z.string(), from: z.string().optional(), to: z.string().optional(), type: z.string().optional(), ...coreConnFields });
+  const connUpdate = z.object({ id: z.string(), from: z.string().optional(), to: z.string().optional(), ...coreConnFields });
   server.registerTool('update_connections', {
     description: 'Update one OR MANY connections by id (single update = one-element array). Each item: id + fields to change (e.g. realizedBy to bind lower-layer edges); domain values in `fields`. Best-effort: {ok:true} on full success, else {results:[{ok}|{issues}]}.',
     inputSchema: { updates: z.array(connUpdate) },
@@ -518,7 +520,7 @@ async function main() {
   }, async (a) => text(await tools.delete_connections(a)));
 
   server.registerTool('describe_profile', {
-    description: 'The active profile: its layers, node kinds, connection kinds, and the documented custom fields (with enum values and descriptions) valid for each. Call this to learn what `type` values and `fields` are available before creating nodes/connections.',
+    description: 'The active profile: its layers, node kinds, roles, verbs (with their classes), pattern kinds, and the documented custom fields (with enum values and descriptions) valid for each. Call this to learn what `type`, `role` and `verb` values are available before creating nodes/connections.',
     inputSchema: {},
   }, async () => text(await tools.describe_profile({})));
 

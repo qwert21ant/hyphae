@@ -37,7 +37,7 @@ describe('buildFocusView', () => {
 
   it('keeps an inner edge between two children as a real edge', () => {
     const m = model();
-    m.connections.push({ id: 'i', from: 'a1', to: 'a2', type: 'Dependency', ...e });
+    m.connections.push({ id: 'i', from: 'a1', to: 'a2', ...e });
     const v = buildFocusView(m, 'ca');
     const inner = v.edges.find((x) => x.id === 'i');
     expect(inner).toMatchObject({ from: 'a1', to: 'a2', derived: false, count: 1 });
@@ -47,8 +47,8 @@ describe('buildFocusView', () => {
     const m = model();
     // two components inside cb both depended on by a1 (focus ca): collapse cb-side to one box "cb"
     m.connections.push(
-      { id: 'x1', from: 'a1', to: 'b1', type: 'Dependency', ...e },
-      { id: 'x2', from: 'a2', to: 'b1', type: 'Dependency', ...e },
+      { id: 'x1', from: 'a1', to: 'b1', ...e },
+      { id: 'x2', from: 'a2', to: 'b1', ...e },
     );
     const v = buildFocusView(m, 'ca');
     // external box is cb (the Container peer of focus ca), not b1
@@ -65,8 +65,8 @@ describe('buildFocusView', () => {
     // fanned apart by FloatingEdge instead.
     const m = model();
     m.connections.push(
-      { id: 'fwd', from: 'a1', to: 'a2', type: 'Dependency', ...e, verb: 'reads', object: 'palette' },
-      { id: 'rev', from: 'a2', to: 'a1', type: 'Dependency', ...e, verb: 'invokes', object: 'access' },
+      { id: 'fwd', from: 'a1', to: 'a2', ...e, verb: 'reads', object: 'palette' },
+      { id: 'rev', from: 'a2', to: 'a1', ...e, verb: 'invokes', object: 'access' },
     );
     const v = buildFocusView(m, 'ca');
     const between = v.edges.filter((x) => [x.from, x.to].sort().join() === 'a1,a2');
@@ -81,8 +81,8 @@ describe('buildFocusView', () => {
     // is impossible, so assert the mixed case at the ca focus with an expanded external instead.
     const m = model();
     m.connections.push(
-      { id: 'd1', from: 'a1', to: 'a2', type: 'Dependency', ...e },
-      { id: 'd2', from: 'a1', to: 'a2', type: 'DataFlow', ...e },
+      { id: 'd1', from: 'a1', to: 'a2', ...e },
+      { id: 'd2', from: 'a1', to: 'a2', ...e },
     );
     const v = buildFocusView(m, 'ca');
     const between = v.edges.filter((x) => [x.from, x.to].sort().join() === 'a1,a2');
@@ -94,8 +94,8 @@ describe('buildFocusView', () => {
     // They must collapse to a single edge (count 2) with no direction, not two overlapping arrows.
     const m = model();
     m.connections.push(
-      { id: 'f', from: 'a1', to: 'b1', type: 'Dependency', ...e },
-      { id: 'b', from: 'b1', to: 'a1', type: 'Dependency', ...e },
+      { id: 'f', from: 'a1', to: 'b1', ...e },
+      { id: 'b', from: 'b1', to: 'a1', ...e },
     );
     const v = buildFocusView(m, 'ca');
     const between = v.edges.filter(
@@ -109,8 +109,8 @@ describe('buildFocusView', () => {
   it('keeps the arrow direction when all rollups between a pair point the same way', () => {
     const m = model();
     m.connections.push(
-      { id: 'f1', from: 'a1', to: 'b1', type: 'Dependency', ...e },
-      { id: 'f2', from: 'a1', to: 'b1', type: 'Dependency', ...e },
+      { id: 'f1', from: 'a1', to: 'b1', ...e },
+      { id: 'f2', from: 'a1', to: 'b1', ...e },
     );
     const v = buildFocusView(m, 'ca');
     const edge = v.edges.find((x) => x.from === 'a1' && x.to === 'cb')!;
@@ -119,7 +119,7 @@ describe('buildFocusView', () => {
 
   it('shows a higher-layer neighbor (external system) as itself', () => {
     const m = model();
-    m.connections.push({ id: 'x', from: 'a1', to: 'ext', type: 'Dependency', ...e });
+    m.connections.push({ id: 'x', from: 'a1', to: 'ext', ...e });
     const v = buildFocusView(m, 'ca');
     expect(v.externals.map((n) => n.id)).toEqual(['ext']);
     expect(v.edges.find((x) => x.to === 'ext')).toMatchObject({ from: 'a1', to: 'ext' });
@@ -129,7 +129,7 @@ describe('buildFocusView', () => {
     // a1 (a shown child) → ext (a shown external box) is one authored connection between two nodes
     // visible in this view — it must be a real edge, not a dashed rollup.
     const m = model();
-    m.connections.push({ id: 'x', from: 'a1', to: 'ext', type: 'Dependency', ...e });
+    m.connections.push({ id: 'x', from: 'a1', to: 'ext', ...e });
     const v = buildFocusView(m, 'ca');
     const edge = v.edges.find((x) => x.to === 'ext')!;
     expect(edge).toMatchObject({ id: 'x', from: 'a1', to: 'ext', derived: false, count: 1 });
@@ -137,7 +137,7 @@ describe('buildFocusView', () => {
 
   it('rolls cross-subtree edges up to root↔root at the root view', () => {
     const m = model();
-    m.connections.push({ id: 'x', from: 'a1', to: 'ext', type: 'Dependency', ...e });
+    m.connections.push({ id: 'x', from: 'a1', to: 'ext', ...e });
     const v = buildFocusView(m, null);
     // a1 lives under sys → maps to sys; ext is a root → sys→ext edge
     const edge = v.edges.find((x) => x.from === 'sys' && x.to === 'ext');
@@ -146,7 +146,7 @@ describe('buildFocusView', () => {
 
   it('drops dangling connections', () => {
     const m = model();
-    m.connections.push({ id: 'd', from: 'a1', to: 'nope', type: 'Dependency', ...e });
+    m.connections.push({ id: 'd', from: 'a1', to: 'nope', ...e });
     const v = buildFocusView(m, 'ca');
     expect(v.edges.find((x) => x.id === 'd')).toBeUndefined();
   });
@@ -154,8 +154,8 @@ describe('buildFocusView', () => {
   it('honors the connection filter', () => {
     const m = model();
     m.connections.push(
-      { id: 'i1', from: 'a1', to: 'a2', type: 'Dependency', ...e },                        // uses → control
-      { id: 'i2', from: 'a2', to: 'a1', type: 'DataFlow', ...e, verb: 'reads' },            // dataAccess
+      { id: 'i1', from: 'a1', to: 'a2', ...e },                        // uses → control
+      { id: 'i2', from: 'a2', to: 'a1', ...e, verb: 'reads' },            // dataAccess
     );
     const v = buildFocusView(m, 'ca', { verbClasses: ['control'], fields: {} });
     expect(v.edges.map((x) => x.id)).toEqual(['i1']);
@@ -167,7 +167,7 @@ describe('buildFocusView — rolling connections up to the children level', () =
     // a1 (in ca) → b1 (in cb): Component-level connection under a focused System whose children
     // are Containers. It must surface as a ca → cb edge, not collapse onto the System.
     const m = model();
-    m.connections.push({ id: 'x', from: 'a1', to: 'b1', type: 'Dependency', ...e });
+    m.connections.push({ id: 'x', from: 'a1', to: 'b1', ...e });
     const v = buildFocusView(m, 'sys');
     expect(v.edges).toHaveLength(1);
     expect(v.edges[0]).toMatchObject({ from: 'ca', to: 'cb', derived: true, count: 1 });
@@ -178,8 +178,8 @@ describe('buildFocusView — rolling connections up to the children level', () =
     // collapse to a single ca → cb edge (count 2), not two parallel edges.
     const m = model();
     m.connections.push(
-      { id: 'authored', from: 'ca', to: 'cb', type: 'Dependency', ...e },
-      { id: 'realize', from: 'a1', to: 'b1', type: 'Dependency', ...e },
+      { id: 'authored', from: 'ca', to: 'cb', ...e },
+      { id: 'realize', from: 'a1', to: 'b1', ...e },
     );
     const v = buildFocusView(m, 'sys');
     const caCb = v.edges.filter((x) => x.from === 'ca' && x.to === 'cb');
@@ -200,8 +200,8 @@ describe('buildFocusView — rolling connections up to the children level', () =
       { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
     );
     m.connections.push(
-      { id: 'parent', from: 'ca', to: 'cb', type: 'Dependency', ...e, realizedBy: ['child'] },
-      { id: 'child', from: 'a1', to: 'b1', type: 'DataFlow', ...e },
+      { id: 'parent', from: 'ca', to: 'cb', ...e, realizedBy: ['child'] },
+      { id: 'child', from: 'a1', to: 'b1', ...e },
     );
     const v = buildFocusView(m, 'sys');
     const caCb = v.edges.filter((x) => x.from === 'ca' && x.to === 'cb');
@@ -224,9 +224,9 @@ describe('buildFocusView — rolling connections up to the children level', () =
       { id: 'ext', name: 'Ext', type: 'ExternalSystem', parentId: null, ...base },
     );
     m.connections.push(
-      { id: 'pc', from: 'other', to: 'cont', type: 'Dependency', ...e, realizedBy: ['cc'] },
-      { id: 'cc', from: 'm1', to: 'x', type: 'Dependency', ...e },
-      { id: 'q', from: 'cont', to: 'ext', type: 'DataFlow', ...e },
+      { id: 'pc', from: 'other', to: 'cont', ...e, realizedBy: ['cc'] },
+      { id: 'cc', from: 'm1', to: 'x', ...e },
+      { id: 'q', from: 'cont', to: 'ext', ...e },
     );
     const v = buildFocusView(m, 'cont');
     expect(v.edges.find((edge) => edge.from === 'other' && edge.to === 'x')).toBeTruthy(); // child-anchored
@@ -237,7 +237,7 @@ describe('buildFocusView — rolling connections up to the children level', () =
 
   it('a real edge carries realizedBy with its single connection id', () => {
     const m = model();
-    m.connections.push({ id: 'r', from: 'a1', to: 'a2', type: 'Dependency', ...e });
+    m.connections.push({ id: 'r', from: 'a1', to: 'a2', ...e });
     const v = buildFocusView(m, 'ca');
     const edge = v.edges.find((x) => x.id === 'r')!;
     expect(edge.derived).toBe(false);
@@ -248,8 +248,8 @@ describe('buildFocusView — rolling connections up to the children level', () =
   it('a derived edge carries realizedBy with every aggregated connection id', () => {
     const m = model();
     m.connections.push(
-      { id: 'authored', from: 'ca', to: 'cb', type: 'Dependency', ...e },
-      { id: 'realize', from: 'a1', to: 'b1', type: 'Dependency', ...e },
+      { id: 'authored', from: 'ca', to: 'cb', ...e },
+      { id: 'realize', from: 'a1', to: 'b1', ...e },
     );
     const v = buildFocusView(m, 'sys');
     const caCb = v.edges.find((x) => x.from === 'ca' && x.to === 'cb')!;
@@ -262,7 +262,7 @@ describe('buildFocusView — rolling connections up to the children level', () =
 describe('buildFocusView — stakeholder audience', () => {
   it('drops derived edges and their orphan externals', () => {
     const m = model();
-    m.connections.push({ id: 'x', from: 'a1', to: 'b1', type: 'Dependency', ...e }); // rolls up to ca->cb (derived) at sys focus
+    m.connections.push({ id: 'x', from: 'a1', to: 'b1', ...e }); // rolls up to ca->cb (derived) at sys focus
     const full = buildFocusView(m, 'sys', undefined, 'full');
     expect(full.edges.some((x) => x.derived)).toBe(true);
     const stake = buildFocusView(m, 'sys', undefined, 'stakeholder');
@@ -271,7 +271,7 @@ describe('buildFocusView — stakeholder audience', () => {
 
   it('keeps a solid authored edge in stakeholder mode', () => {
     const m = model();
-    m.connections.push({ id: 'r', from: 'a1', to: 'a2', type: 'Dependency', ...e });
+    m.connections.push({ id: 'r', from: 'a1', to: 'a2', ...e });
     const stake = buildFocusView(m, 'ca', undefined, 'stakeholder');
     expect(stake.edges.map((x) => x.id)).toEqual(['r']);
     expect(stake.edges[0].derived).toBe(false);
@@ -279,7 +279,7 @@ describe('buildFocusView — stakeholder audience', () => {
 
   it('keeps a solid external edge but drops a derived one', () => {
     const m = model();
-    m.connections.push({ id: 's', from: 'a1', to: 'ext', type: 'Dependency', ...e }); // solid a1->ext
+    m.connections.push({ id: 's', from: 'a1', to: 'ext', ...e }); // solid a1->ext
     const stake = buildFocusView(m, 'ca', undefined, 'stakeholder');
     expect(stake.externals.map((n) => n.id)).toEqual(['ext']);
     expect(stake.edges.map((x) => x.id)).toEqual(['s']);
@@ -289,7 +289,7 @@ describe('buildFocusView — stakeholder audience', () => {
 describe('buildFocusView — expandable externals', () => {
   it('collapsed: a peer container external that aggregates a participating child is flagged expandable', () => {
     const m = model();
-    m.connections.push({ id: 'x', from: 'a1', to: 'b1', type: 'Dependency', ...e }); // a1(in ca) -> b1(in cb)
+    m.connections.push({ id: 'x', from: 'a1', to: 'b1', ...e }); // a1(in ca) -> b1(in cb)
     const v = buildFocusView(m, 'ca'); // focus ca; cb is the external peer
     expect(v.externals.map((n) => n.id)).toEqual(['cb']);
     expect([...(v.expandableExternalIds ?? [])]).toEqual(['cb']); // cb aggregates b1
@@ -298,7 +298,7 @@ describe('buildFocusView — expandable externals', () => {
 
   it('expanding a peer container remaps its edge to the specific participating child and emits a group', () => {
     const m = model();
-    m.connections.push({ id: 'x', from: 'a1', to: 'b1', type: 'Dependency', ...e });
+    m.connections.push({ id: 'x', from: 'a1', to: 'b1', ...e });
     const v = buildFocusView(m, 'ca', undefined, 'full', new Set(['cb']));
     // edge now lands on b1 (the participating child of cb), not on cb
     expect(v.edges.find((ed) => ed.to === 'b1')).toBeTruthy();
@@ -310,7 +310,7 @@ describe('buildFocusView — expandable externals', () => {
 
   it('a leaf ExternalSystem (no children) is never flagged expandable', () => {
     const m = model();
-    m.connections.push({ id: 'x', from: 'a1', to: 'ext', type: 'Dependency', ...e });
+    m.connections.push({ id: 'x', from: 'a1', to: 'ext', ...e });
     const v = buildFocusView(m, 'ca');
     expect(v.externals.map((n) => n.id)).toEqual(['ext']);
     expect([...(v.expandableExternalIds ?? [])]).toEqual([]);
@@ -319,8 +319,8 @@ describe('buildFocusView — expandable externals', () => {
   it('flags a peer external as expandable even when the finer child is absorbed into a coarse edge realizedBy', () => {
     const m = model(); // sys > ca(a1,a2), cb(b1); ext
     m.connections.push(
-      { id: 'P', from: 'a1', to: 'cb', type: 'Dependency', ...e, realizedBy: ['C'] },
-      { id: 'C', from: 'a1', to: 'b1', type: 'Dependency', ...e },
+      { id: 'P', from: 'a1', to: 'cb', ...e, realizedBy: ['C'] },
+      { id: 'C', from: 'a1', to: 'b1', ...e },
     );
     const v = buildFocusView(m, 'ca');
     expect(v.externals.map((n) => n.id)).toEqual(['cb']);
@@ -338,8 +338,8 @@ describe('buildFocusView — expandable externals', () => {
       { id: 'c1', name: 'C1', type: 'Component', parentId: 'cc', ...base },
     );
     m.connections.push(
-      { id: 'Q', from: 'a1', to: 'cb', type: 'Dependency', ...e }, // direct edge → cb is shown
-      { id: 'R', from: 'c1', to: 'b1', type: 'Dependency', ...e }, // unrelated to focus ca
+      { id: 'Q', from: 'a1', to: 'cb', ...e }, // direct edge → cb is shown
+      { id: 'R', from: 'c1', to: 'b1', ...e }, // unrelated to focus ca
     );
     const v = buildFocusView(m, 'ca');
     expect(v.externals.map((n) => n.id)).toContain('cb');
@@ -371,9 +371,9 @@ describe('externalConnections', () => {
   it('returns only connections that cross the subtree boundary (exactly one endpoint inside)', () => {
     const m = model(); // sys › ca › (a1, a2); cb › b1; ext
     m.connections.push(
-      { id: 'c1', from: 'a1', to: 'b1', type: 'Dependency', ...e },   // a1 in, b1 out → crosses
-      { id: 'c2', from: 'a2', to: 'ext', type: 'Dependency', ...e },  // a2 in, ext out → crosses
-      { id: 'c3', from: 'b1', to: 'ext', type: 'Dependency', ...e },  // both outside ca
+      { id: 'c1', from: 'a1', to: 'b1', ...e },   // a1 in, b1 out → crosses
+      { id: 'c2', from: 'a2', to: 'ext', ...e },  // a2 in, ext out → crosses
+      { id: 'c3', from: 'b1', to: 'ext', ...e },  // both outside ca
     );
     expect(externalConnections(m, 'ca').map((c) => c.id).sort()).toEqual(['c1', 'c2']);
   });
@@ -381,9 +381,9 @@ describe('externalConnections', () => {
   it('excludes inner connections (both endpoints inside the subtree)', () => {
     const m = model();
     m.connections.push(
-      { id: 'kid', from: 'a1', to: 'a2', type: 'Dependency', ...e },  // child ↔ child
-      { id: 'desc', from: 'a1', to: 'a2', type: 'Dependency', ...e }, // duplicate child ↔ child pair
-      { id: 'out', from: 'a1', to: 'ext', type: 'Dependency', ...e }, // crosses → kept
+      { id: 'kid', from: 'a1', to: 'a2', ...e },  // child ↔ child
+      { id: 'desc', from: 'a1', to: 'a2', ...e }, // duplicate child ↔ child pair
+      { id: 'out', from: 'a1', to: 'ext', ...e }, // crosses → kept
     );
     expect(externalConnections(m, 'ca').map((c) => c.id)).toEqual(['out']);
   });
@@ -394,8 +394,8 @@ describe('externalConnections', () => {
     // wrongly excluding 'out' entirely instead of classifying it as a crossing edge.
     const m = model(); // sys > ca(a1,a2), cb(b1); ext
     m.connections.push(
-      { id: 'grandkid', from: 'a1', to: 'b1', type: 'Dependency', ...e }, // both grandchildren of sys
-      { id: 'out', from: 'a1', to: 'ext', type: 'Dependency', ...e },     // crosses → kept
+      { id: 'grandkid', from: 'a1', to: 'b1', ...e }, // both grandchildren of sys
+      { id: 'out', from: 'a1', to: 'ext', ...e },     // crosses → kept
     );
     expect(externalConnections(m, 'sys').map((c) => c.id)).toEqual(['out']);
   });
@@ -403,8 +403,8 @@ describe('externalConnections', () => {
   it('excludes connections that are realized children of another connection', () => {
     const m = model();
     m.connections.push(
-      { id: 'p', from: 'a1', to: 'ext', type: 'Dependency', ...e, realizedBy: ['x'] },
-      { id: 'x', from: 'a2', to: 'ext', type: 'Dependency', ...e },  // realized under p → hidden
+      { id: 'p', from: 'a1', to: 'ext', ...e, realizedBy: ['x'] },
+      { id: 'x', from: 'a2', to: 'ext', ...e },  // realized under p → hidden
     );
     expect(externalConnections(m, 'ca').map((c) => c.id)).toEqual(['p']);
   });
@@ -414,9 +414,9 @@ describe('partitionConnections', () => {
   it('splits boundary connections into outgoing (from inside) and incoming (to inside)', () => {
     const m = model(); // sys › ca › (a1,a2); cb › b1; ext
     m.connections.push(
-      { id: 'out1', from: 'a1', to: 'ext', type: 'Dependency', ...e },  // from inside ca → outgoing
-      { id: 'out2', from: 'a2', to: 'b1', type: 'Dependency', ...e },   // a2 inside ca → outgoing
-      { id: 'in1', from: 'ext', to: 'a1', type: 'Dependency', ...e },   // to inside ca → incoming
+      { id: 'out1', from: 'a1', to: 'ext', ...e },  // from inside ca → outgoing
+      { id: 'out2', from: 'a2', to: 'b1', ...e },   // a2 inside ca → outgoing
+      { id: 'in1', from: 'ext', to: 'a1', ...e },   // to inside ca → incoming
     );
     const { outgoing, incoming } = partitionConnections(m, 'ca');
     expect(outgoing.map((c) => c.id).sort()).toEqual(['out1', 'out2']);
@@ -426,10 +426,10 @@ describe('partitionConnections', () => {
   it('excludes inner and realizedBy-child connections, and externalConnections is the union', () => {
     const m = model();
     m.connections.push(
-      { id: 'kid', from: 'a1', to: 'a2', type: 'Dependency', ...e },    // both inside → excluded
-      { id: 'p', from: 'a1', to: 'ext', type: 'Dependency', ...e, realizedBy: ['x'] },
-      { id: 'x', from: 'a2', to: 'ext', type: 'Dependency', ...e },     // realized child → excluded
-      { id: 'in', from: 'ext', to: 'b1', type: 'Dependency', ...e },    // b1 not under ca → excluded
+      { id: 'kid', from: 'a1', to: 'a2', ...e },    // both inside → excluded
+      { id: 'p', from: 'a1', to: 'ext', ...e, realizedBy: ['x'] },
+      { id: 'x', from: 'a2', to: 'ext', ...e },     // realized child → excluded
+      { id: 'in', from: 'ext', to: 'b1', ...e },    // b1 not under ca → excluded
     );
     const { outgoing, incoming } = partitionConnections(m, 'ca');
     expect(outgoing.map((c) => c.id)).toEqual(['p']);
@@ -470,7 +470,7 @@ describe('edge labels', () => {
 describe('buildFocusView — verb and object', () => {
   it('carries verb and object onto a 1:1 edge', () => {
     const m = model();
-    m.connections.push({ id: 'x', from: 'sys', to: 'ext', type: 'Dependency', ...e });
+    m.connections.push({ id: 'x', from: 'sys', to: 'ext', ...e });
     m.connections[0].verb = 'reads';
     m.connections[0].object = 'clips';
     const v = buildFocusView(m, null);
@@ -481,8 +481,8 @@ describe('buildFocusView — verb and object', () => {
   it('leaves verb undefined on a derived edge, which aggregates several verbs', () => {
     const m = model();
     m.connections.push(
-      { id: 'authored', from: 'ca', to: 'cb', type: 'Dependency', ...e, verb: 'reads' },
-      { id: 'realize', from: 'a1', to: 'b1', type: 'Dependency', ...e, verb: 'writes' },
+      { id: 'authored', from: 'ca', to: 'cb', ...e, verb: 'reads' },
+      { id: 'realize', from: 'a1', to: 'b1', ...e, verb: 'writes' },
     );
     const v = buildFocusView(m, 'sys');
     const derived = v.edges.filter((x) => x.derived);

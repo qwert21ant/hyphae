@@ -3,19 +3,24 @@ import { ConnectionSchema } from '../src/connection';
 
 describe('ConnectionSchema', () => {
   it('defaults realizedBy to an empty array', () => {
-    const c = ConnectionSchema.parse({ id: 'c1', from: 'a', to: 'b', type: 'Dependency' });
+    const c = ConnectionSchema.parse({ id: 'c1', from: 'a', to: 'b' });
     expect(c.realizedBy).toEqual([]);
   });
 
   it('accepts realizedBy ids and no longer exposes realizes', () => {
-    const c = ConnectionSchema.parse({ id: 'c1', from: 'a', to: 'b', type: 'Dependency', realizedBy: ['x1', 'x2'] });
+    const c = ConnectionSchema.parse({ id: 'c1', from: 'a', to: 'b', realizedBy: ['x1', 'x2'] });
     expect(c.realizedBy).toEqual(['x1', 'x2']);
     expect('realizes' in c).toBe(false);
+  });
+
+  it('strips a legacy type so an old model file needs no migration', () => {
+    const c = ConnectionSchema.parse({ id: 'c1', from: 'a', to: 'b', type: 'Dependency' });
+    expect('type' in c).toBe(false);
   });
 });
 
 describe('ConnectionSchema verb/object', () => {
-  const base = { id: 'c', from: 'a', to: 'b', type: 'Dependency' };
+  const base = { id: 'c', from: 'a', to: 'b' };
 
   it('defaults verb to uses so an old file needs no migration', () => {
     const c = ConnectionSchema.parse(base);

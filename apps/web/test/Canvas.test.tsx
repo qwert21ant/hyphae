@@ -21,7 +21,7 @@ function model() {
     { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
     { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
   );
-  m.connections.push({ id: 'x', from: 'a1', to: 'b1', type: 'Dependency', ...e });
+  m.connections.push({ id: 'x', from: 'a1', to: 'b1', ...e });
   return m;
 }
 
@@ -89,7 +89,7 @@ describe('Canvas navigation (real React Flow)', () => {
     // collapse such connections onto itself and show no inter-container structure). Edge geometry
     // itself needs element measurement that jsdom lacks, so it is asserted in focusView.test.ts.
     const m = model();
-    m.connections.push({ id: 'y', from: 'a1', to: 'b1', type: 'Dependency', ...e });
+    m.connections.push({ id: 'y', from: 'a1', to: 'b1', ...e });
     useStore.setState({ model: m, focusId: 'sys', selectedId: null });
     const { container } = render(<Canvas />);
     expect(node(container, 'ca')).toBeTruthy();
@@ -211,7 +211,7 @@ describe('Canvas navigation (real React Flow)', () => {
 });
 
 // A container whose children form a chain a1 → a2 → a3, where a2 → a3 exists only as a DERIVED edge
-// (two DataFlow connections collapsed, count 2). Filtering to Dependency-only, or switching to
+// (two connections on the same pair collapsed, count 2). Filtering to dataAccess only, or switching to
 // stakeholder (which drops derived edges), hides it — which under the old (unstable) pipeline re-ran
 // dagre and moved a3. The stable-base pipeline must keep a3 put.
 function chainModel() {
@@ -223,9 +223,9 @@ function chainModel() {
     { id: 'a3', name: 'A3', type: 'Component', parentId: 'ca', ...base },
   );
   m.connections.push(
-    { id: 'e1', from: 'a1', to: 'a2', type: 'Dependency', ...e, verb: 'reads' }, // dataAccess
-    { id: 'e2', from: 'a2', to: 'a3', type: 'DataFlow', ...e }, // two DataFlow edges → derived a2 → a3 (control)
-    { id: 'e3', from: 'a2', to: 'a3', type: 'DataFlow', ...e },
+    { id: 'e1', from: 'a1', to: 'a2', ...e, verb: 'reads' }, // dataAccess
+    { id: 'e2', from: 'a2', to: 'a3', ...e }, // two edges on the same pair → derived a2 → a3 (control)
+    { id: 'e3', from: 'a2', to: 'a3', ...e },
   );
   return m;
 }
@@ -237,7 +237,7 @@ describe('Canvas layout stability', () => {
     useStore.setState({ model: chainModel(), focusId: 'ca', selectedId: null, connFilter: { verbClasses: [], fields: {} }, audience: 'full', expandedExternals: new Set() });
     const { container } = render(<Canvas />);
     const before = node(container, 'a3')!.style.transform;
-    act(() => { useStore.getState().toggleConnVerbClass('dataAccess'); }); // hides the DataFlow-derived a2→a3
+    act(() => { useStore.getState().toggleConnVerbClass('dataAccess'); }); // hides the control-class derived a2→a3
     expect(node(container, 'a3')!.style.transform).toBe(before);
   });
 
@@ -270,7 +270,7 @@ function flowModel() {
     { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
     { id: 'a2', name: 'A2', type: 'Component', parentId: 'ca', ...base },
   );
-  m.connections.push({ id: 'x', from: 'a1', to: 'a2', type: 'Dependency', ...e });
+  m.connections.push({ id: 'x', from: 'a1', to: 'a2', ...e });
   m.flows.push({ id: 'f1', name: 'F', description: '', scope: null, steps: [
     { order: 1, from: 'a1', to: 'a2', via: 'x', message: 'go', kind: 'Sync' },
   ] });
@@ -304,7 +304,7 @@ describe('Canvas flow overlay', () => {
       { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
       { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
     );
-    m.connections.push({ id: 'x', from: 'a1', to: 'b1', type: 'Dependency', ...e });
+    m.connections.push({ id: 'x', from: 'a1', to: 'b1', ...e });
     // Step a1 -> b1; focused on 'ca', b1 lives in cb and is not a visible node -> off-view.
     m.flows.push({ id: 'f1', name: 'F', description: '', scope: null, steps: [
       { order: 1, from: 'a1', to: 'b1', message: 'go', kind: 'Sync' },

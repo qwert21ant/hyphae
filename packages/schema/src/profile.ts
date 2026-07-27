@@ -65,19 +65,10 @@ export const NodeKindSchema = z.object({
   fields: z.array(FieldDefSchema).default([]),
 });
 
-export const ConnectionKindSchema = z.object({
-  id: z.string(),            // the connection `type` value
-  description: z.string(),
-  allowedFrom: z.array(z.string()).optional(),
-  allowedTo: z.array(z.string()).optional(),
-  fields: z.array(FieldDefSchema).default([]),
-});
-
 export const ProfileSchema = z.object({
   id: z.string(),
   layers: z.array(z.string()),       // ordered, top -> bottom
   nodeKinds: z.array(NodeKindSchema),
-  connectionKinds: z.array(ConnectionKindSchema),
   roles: z.array(RoleDefSchema).default([]),
   verbs: z.array(VerbDefSchema).default([]),
   patternKinds: z.array(PatternKindDefSchema).default([]),
@@ -90,7 +81,6 @@ export type EnumValue = z.infer<typeof EnumValueSchema>;
 export type FieldDef = z.infer<typeof FieldDefSchema>;
 export type Profile = z.infer<typeof ProfileSchema>;
 export type NodeKind = z.infer<typeof NodeKindSchema>;
-export type ConnectionKind = z.infer<typeof ConnectionKindSchema>;
 export type Shape = z.infer<typeof ShapeSchema>;
 export type RoleDef = z.infer<typeof RoleDefSchema>;
 export type VerbClass = z.infer<typeof VerbClassSchema>;
@@ -143,16 +133,15 @@ export function nodeAtOrAboveLayer(profile: Profile, type: string, maxLayer: str
   return li !== -1 && mi !== -1 && li <= mi;
 }
 
-export const connectionKindIds = (profile: Profile): string[] =>
-  profile.connectionKinds.map((k) => k.id);
-
-/** Common fields then the kind's own fields; common wins on key collision. */
-export function effectiveFields(profile: Profile, kindId: string, scope: 'node' | 'connection'): FieldDef[] {
-  const common = scope === 'node' ? profile.commonNodeFields : profile.commonConnectionFields;
-  const kind = scope === 'node'
-    ? profile.nodeKinds.find((k) => k.id === kindId)
-    : profile.connectionKinds.find((k) => k.id === kindId);
-  const own = kind?.fields ?? [];
+/** Common node fields then the kind's own; common wins on key collision. */
+export function nodeFields(profile: Profile, type: string): FieldDef[] {
+  const common = profile.commonNodeFields;
+  const own = profile.nodeKinds.find((k) => k.id === type)?.fields ?? [];
   const seen = new Set(common.map((f) => f.key));
   return [...common, ...own.filter((f) => !seen.has(f.key))];
+}
+
+/** Connections have no kinds, so their fields are exactly the profile's common ones. */
+export function connectionFields(profile: Profile): FieldDef[] {
+  return profile.commonConnectionFields;
 }

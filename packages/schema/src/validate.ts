@@ -1,14 +1,14 @@
 import type { HyphaeModel } from './model';
 import type { Profile, FieldDef } from './profile';
 import { allowedParentTypes, c4Backend } from './profiles/c4-backend';
-import { effectiveFields, roleDefOf, verbDefOf } from './profile';
+import { nodeFields, connectionFields, roleDefOf, verbDefOf } from './profile';
 import type { Node } from './node';
 import { isDirectoryRef, resolveRoot, resolveRef } from './ref';
 
 export type Issue = {
   kind:
     | 'unknown-type' | 'bad-parent' | 'missing-parent' | 'dangling-endpoint'
-    | 'unknown-connection-kind' | 'bad-endpoint' | 'dangling-realizedBy'
+    | 'dangling-realizedBy'
     | 'unknown-field' | 'bad-field-type' | 'bad-enum-value' | 'missing-required-field' | 'bad-ref'
     | 'unanchored-ref' | 'bad-root'
     | 'unknown-role' | 'unknown-verb'
@@ -92,7 +92,6 @@ export function validateModel(model: HyphaeModel, profile: Profile): Issue[] {
   const issues: Issue[] = [];
   const nodeById = new Map(model.nodes.map((n) => [n.id, n]));
   const knownTypes = new Set(profile.nodeKinds.map((k) => k.id));
-  const connKindById = new Map(profile.connectionKinds.map((k) => [k.id, k]));
 
   for (const n of model.nodes) {
     if (!knownTypes.has(n.type)) {
@@ -114,7 +113,7 @@ export function validateModel(model: HyphaeModel, profile: Profile): Issue[] {
         issues.push({ kind: 'missing-parent', ref: n.id, message: `${n.type} must be a child of ${allowed.join(' or ')} but has no parent` });
       }
     }
-    issues.push(...validateFields(n.fields, effectiveFields(profile, n.type, 'node'), nodeById, n.id));
+    issues.push(...validateFields(n.fields, nodeFields(profile, n.type), nodeById, n.id));
     issues.push(...validateRefs(n, model.nodes));
     if (n.role !== null && !roleDefOf(profile, n.role)) {
       issues.push({ kind: 'unknown-role', ref: n.id, message: `Unknown role "${n.role}"` });
@@ -134,23 +133,10 @@ export function validateModel(model: HyphaeModel, profile: Profile): Issue[] {
         issues.push({ kind: 'dangling-realizedBy', ref: c.id, message: `realizedBy references missing connection "${id}"` });
       }
     }
-    const kind = connKindById.get(c.type);
-    if (!kind) {
-      issues.push({ kind: 'unknown-connection-kind', ref: c.id, message: `Unknown connection type "${c.type}"` });
-      continue;
-    }
     if (!verbDefOf(profile, c.verb)) {
       issues.push({ kind: 'unknown-verb', ref: c.id, message: `Unknown verb "${c.verb}"` });
     }
-    const fromNode = nodeById.get(c.from);
-    const toNode = nodeById.get(c.to);
-    if (kind.allowedFrom && fromNode && !kind.allowedFrom.includes(fromNode.type)) {
-      issues.push({ kind: 'bad-endpoint', ref: c.id, message: `${c.type} cannot start at ${fromNode.type}` });
-    }
-    if (kind.allowedTo && toNode && !kind.allowedTo.includes(toNode.type)) {
-      issues.push({ kind: 'bad-endpoint', ref: c.id, message: `${c.type} cannot end at ${toNode.type}` });
-    }
-    issues.push(...validateFields(c.fields, effectiveFields(profile, c.type, 'connection'), nodeById, c.id));
+    issues.push(...validateFields(c.fields, connectionFields(profile), nodeById, c.id));
   }
 
   const layers = new Set(profile.layers);

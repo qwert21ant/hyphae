@@ -20,7 +20,7 @@ vi.mock('../src/api', () => {
     updateNode: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ node: base({ id, ...patch }), version: ++v })),
     deleteNode: vi.fn(async () => ({ version: ++v })),
     createConnection: vi.fn(async () => ({ connection: {}, version: ++v })),
-    updateConnection: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ connection: { id, from: 'a', to: 'b', type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {}, ...patch }, version: ++v })),
+    updateConnection: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ connection: { id, from: 'a', to: 'b', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {}, ...patch }, version: ++v })),
     deleteConnection: vi.fn(async () => ({ version: ++v })),
     setNodePosition: vi.fn(async () => ({ version: ++v })),
   };
@@ -90,7 +90,7 @@ describe('SidePanel', () => {
     useStore.setState((s) => ({
       model: {
         ...s.model,
-        connections: [{ id: 'conn1', from: a, to: b, type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }],
+        connections: [{ id: 'conn1', from: a, to: b, verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }],
       },
       selectedId: 'conn1',
     }));
@@ -105,7 +105,7 @@ describe('SidePanel', () => {
     useStore.setState((s) => ({
       model: {
         ...s.model,
-        connections: [{ id: 'conn1', from: a, to: b, type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }],
+        connections: [{ id: 'conn1', from: a, to: b, verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }],
       },
       selectedId: 'conn1',
     }));
@@ -129,7 +129,7 @@ describe('SidePanel', () => {
           mk({ id: 'a1', name: 'A1', type: 'Component', parentId: 'ca' }),
           mk({ id: 'b1', name: 'B1', type: 'Component', parentId: 'cb' }),
         ],
-        connections: [{ id: 'x1', from: 'a1', to: 'b1', type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }],
+        connections: [{ id: 'x1', from: 'a1', to: 'b1', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }],
       },
       focusId: 'sys',
       selectedId: 'agg:ca->cb',
@@ -148,7 +148,7 @@ describe('SidePanel', () => {
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     const conn = (over: Partial<Connection>): Connection => ({
-      id: 'c', from: 'a1', to: 'b1', type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional',
+      id: 'c', from: 'a1', to: 'b1', verb: 'uses', object: '', description: '', direction: 'Unidirectional',
       realizedBy: [], codeRefs: [], fields: {}, ...over,
     });
     useStore.setState((s) => ({
@@ -172,7 +172,7 @@ describe('SidePanel', () => {
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     const conn = (over: Partial<Connection>): Connection => ({
-      id: 'c', from: 'a1', to: 'ext', type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional',
+      id: 'c', from: 'a1', to: 'ext', verb: 'uses', object: '', description: '', direction: 'Unidirectional',
       realizedBy: [], codeRefs: [], fields: {}, ...over,
     });
     useStore.setState((s) => ({
@@ -195,7 +195,7 @@ describe('SidePanel', () => {
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     const conn = (over: Partial<Connection>): Connection => ({
-      id: 'c', from: 'a1', to: 'ext', type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional',
+      id: 'c', from: 'a1', to: 'ext', verb: 'uses', object: '', description: '', direction: 'Unidirectional',
       realizedBy: [], codeRefs: [], fields: {}, ...over,
     });
     useStore.setState((s) => ({
@@ -241,7 +241,7 @@ describe('SidePanel', () => {
     useStore.setState((s) => ({
       model: {
         ...s.model,
-        connections: [{ id: 'conn1', from: a, to: b, type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }],
+        connections: [{ id: 'conn1', from: a, to: b, verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }],
       },
       selectedId: 'conn1',
     }));
@@ -258,7 +258,7 @@ describe('SidePanel', () => {
       docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
     });
     const conn = (over: Partial<Connection>): Connection => ({
-      id: 'c', from: 'a1', to: 'b1', type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional',
+      id: 'c', from: 'a1', to: 'b1', verb: 'uses', object: '', description: '', direction: 'Unidirectional',
       realizedBy: [], codeRefs: [], fields: {}, ...over,
     });
     useStore.setState((s) => ({
@@ -267,7 +267,7 @@ describe('SidePanel', () => {
         nodes: [mk({ id: 'ca', name: 'Alpha', type: 'Container' }), mk({ id: 'a1', name: 'A1', parentId: 'ca' }), mk({ id: 'b1', name: 'B1', parentId: 'ca' })],
         connections: [
           conn({ id: 'parent', realizedBy: ['child1', 'missing'] }),
-          conn({ id: 'child1', type: 'DataFlow', fields: {} }),
+          conn({ id: 'child1', fields: {} }),
         ],
       },
       selectedId: 'parent',

@@ -19,10 +19,10 @@ function model(): HyphaeModel {
   );
   const e = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
   m.connections.push(
-    { id: 'x1', from: 'a1', to: 'b1', type: 'Dependency', ...e }, // ca->cb
-    { id: 'x2', from: 'a2', to: 'b1', type: 'DataFlow', ...e }, // ca->cb (same pair)
-    { id: 'x3', from: 'a1', to: 'ext', type: 'Dependency', ...e }, // ca->ext
-    { id: 'x4', from: 'a1', to: 'a2', type: 'Dependency', ...e }, // intra ca
+    { id: 'x1', from: 'a1', to: 'b1', ...e }, // ca->cb
+    { id: 'x2', from: 'a2', to: 'b1', ...e }, // ca->cb (same pair)
+    { id: 'x3', from: 'a1', to: 'ext', ...e }, // ca->ext
+    { id: 'x4', from: 'a1', to: 'a2', ...e }, // intra ca
   );
   return m;
 }
@@ -58,7 +58,7 @@ describe('rollupConnections', () => {
     const m = model();
     // authored parent edge that binds x1; it must replace x1 in the ca->cb rollup
     m.connections.push({
-      id: 'p1', from: 'a1', to: 'b1', type: 'Dependency',
+      id: 'p1', from: 'a1', to: 'b1',
       verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: ['x1'], codeRefs: [], fields: {},
     });
     const r = rollupConnections(m, 'Container');

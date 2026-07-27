@@ -45,7 +45,7 @@ describe('ModelStore', () => {
     const store = new ModelStore(file);
     const a = store.addNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
     const b = store.addNode({ name: 'B', type: 'System', fields: { summary: 'x' } });
-    store.addConnection({ from: a.id, to: b.id, type: 'Dependency' });
+    store.addConnection({ from: a.id, to: b.id });
     store.deleteNode(a.id);
     expect(store.get().nodes.map((n) => n.id)).toEqual([b.id]);
     expect(store.get().connections).toEqual([]);
@@ -66,7 +66,7 @@ describe('ModelStore', () => {
     const store = new ModelStore(file);
     const a = store.addNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
     const b = store.addNode({ name: 'B', type: 'System', fields: { summary: 'x' } });
-    const conn = store.addConnection({ from: a.id, to: b.id, type: 'Dependency' });
+    const conn = store.addConnection({ from: a.id, to: b.id });
     const updated = store.updateConnection(conn.id, { description: 'calls' });
     expect(updated).toMatchObject({ id: conn.id, description: 'calls' });
     expect(store.get().connections[0].description).toBe('calls');
@@ -80,8 +80,8 @@ describe('ModelStore', () => {
     const store = new ModelStore(file);
     const a = store.addNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
     const b = store.addNode({ name: 'B', type: 'System', fields: { summary: 'x' } });
-    const lower = store.addConnection({ from: a.id, to: b.id, type: 'Dependency' });
-    const conn = store.addConnection({ from: a.id, to: b.id, type: 'Dependency', realizedBy: [lower.id] });
+    const lower = store.addConnection({ from: a.id, to: b.id });
+    const conn = store.addConnection({ from: a.id, to: b.id, realizedBy: [lower.id] });
     expect(conn.realizedBy).toEqual([lower.id]);
     expect(store.get().connections.at(-1)!.realizedBy).toEqual([lower.id]);
   });
@@ -90,7 +90,7 @@ describe('ModelStore', () => {
     const store = new ModelStore(file);
     const a = store.addNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
     const b = store.addNode({ name: 'B', type: 'System', fields: { summary: 'x' } });
-    expect(() => store.addConnection({ from: a.id, to: b.id, type: 'Dependency', realizedBy: ['nope'] })).toThrow(ValidationError);
+    expect(() => store.addConnection({ from: a.id, to: b.id, realizedBy: ['nope'] })).toThrow(ValidationError);
     expect(store.get().connections).toEqual([]);
   });
 
@@ -98,8 +98,8 @@ describe('ModelStore', () => {
     const store = new ModelStore(file);
     const a = store.addNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
     const b = store.addNode({ name: 'B', type: 'System', fields: { summary: 'x' } });
-    const lower = store.addConnection({ from: a.id, to: b.id, type: 'Dependency' });
-    const upper = store.addConnection({ from: a.id, to: b.id, type: 'Dependency', realizedBy: [lower.id] });
+    const lower = store.addConnection({ from: a.id, to: b.id });
+    const upper = store.addConnection({ from: a.id, to: b.id, realizedBy: [lower.id] });
     store.deleteConnection(lower.id);
     expect(store.get().connections.map((c) => c.id)).toEqual([upper.id]);
     const kinds = validateModel(store.get(), resolveProfile(store.get())).map((i) => i.kind);
@@ -136,7 +136,7 @@ describe('ModelStore flows', () => {
   function seed(store: ModelStore) {
     const a = store.addNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
     const b = store.addNode({ name: 'B', type: 'System', fields: { summary: 'x' } });
-    const c = store.addConnection({ from: a.id, to: b.id, type: 'Dependency' });
+    const c = store.addConnection({ from: a.id, to: b.id });
     return { a, b, c };
   }
 
@@ -182,7 +182,7 @@ describe('ModelStore patterns', () => {
   function seed(store: ModelStore) {
     const a = store.addNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
     const b = store.addNode({ name: 'B', type: 'System', fields: { summary: 'x' } });
-    const c = store.addConnection({ from: a.id, to: b.id, type: 'Dependency' });
+    const c = store.addConnection({ from: a.id, to: b.id });
     return { a, b, c };
   }
 

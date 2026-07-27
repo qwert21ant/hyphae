@@ -179,7 +179,7 @@ export const useStore = create<State>((set, get) => {
 
     addConnection: async (from, to) => {
       try {
-        const { connection, version } = await api.createConnection({ id: newId(), from, to, type: 'Dependency' });
+        const { connection, version } = await api.createConnection({ id: newId(), from, to });
         set((s) => ({ model: { ...s.model, connections: [...s.model.connections, connection] }, ownVersion: version, error: null }));
       } catch (e) { await recover(e); }
     },

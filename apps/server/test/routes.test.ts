@@ -58,7 +58,7 @@ describe('routes', () => {
   it('DELETE /nodes/:id cascades its connections', async () => {
     const a = await createNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
     const b = await createNode({ name: 'B', type: 'System', fields: { summary: 'x' } });
-    await post('/connections', { from: a.id, to: b.id, type: 'Dependency' });
+    await post('/connections', { from: a.id, to: b.id });
     expect((await app.request(`/nodes/${a.id}`, { method: 'DELETE' })).status).toBe(200);
     const model = await (await app.request('/model')).json();
     expect(model.nodes.map((n: { id: string }) => n.id)).toEqual([b.id]);
@@ -67,7 +67,7 @@ describe('routes', () => {
 
   it('POST /connections rejects a dangling endpoint with 422', async () => {
     const a = await createNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
-    const res = await post('/connections', { from: a.id, to: 'ghost', type: 'Dependency' });
+    const res = await post('/connections', { from: a.id, to: 'ghost' });
     expect(res.status).toBe(422);
     expect((await res.json()).issues[0]).toMatchObject({ kind: 'dangling-endpoint' });
   });
@@ -75,7 +75,7 @@ describe('routes', () => {
   it('PATCH /connections/:id updates a connection', async () => {
     const a = await createNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
     const b = await createNode({ name: 'B', type: 'System', fields: { summary: 'x' } });
-    const conn = (await (await post('/connections', { from: a.id, to: b.id, type: 'Dependency' })).json()).connection;
+    const conn = (await (await post('/connections', { from: a.id, to: b.id })).json()).connection;
     const res = await app.request(`/connections/${conn.id}`, {
       method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ description: 'calls' }),
     });

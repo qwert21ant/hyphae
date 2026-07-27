@@ -10,7 +10,7 @@ const node = (over: Record<string, unknown>): Node => ({
   codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
 } as Node);
 const conn = (over: Record<string, unknown>): Connection => ({
-  id: 'e', from: 'a', to: 'b', type: 'Dependency', verb: 'uses', object: '', description: '',
+  id: 'e', from: 'a', to: 'b', verb: 'uses', object: '', description: '',
   direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {}, ...over,
 } as Connection);
 function model(over: Partial<HyphaeModel> = {}): HyphaeModel {
@@ -26,14 +26,6 @@ describe('validateModel', () => {
   it('flags a bad parent', () => {
     const m = model({ nodes: [node({ id: 's', type: 'System' }), node({ id: 'c', type: 'Component', parentId: 's' })] });
     expect(validateModel(m, c4Backend).map((i) => i.kind)).toContain('bad-parent');
-  });
-
-  it('flags an unknown connection kind', () => {
-    const m = model({
-      nodes: [node({ id: 'a', type: 'System' }), node({ id: 'b', type: 'System' })],
-      connections: [conn({ from: 'a', to: 'b', type: 'Bogus' })],
-    });
-    expect(validateModel(m, c4Backend).map((i) => i.kind)).toContain('unknown-connection-kind');
   });
 
   it('flags an unknown field key', () => {
@@ -201,7 +193,7 @@ describe('role and verb validation', () => {
       { ...base, id: 'k1', name: 'K1', type: 'Component', parentId: 'c', description: 'd' },
       { ...base, id: 'k2', name: 'K2', type: 'Component', parentId: 'c', description: 'd' },
     );
-    m.connections.push({ ...edge, id: 'e1', from: 'k1', to: 'k2', type: 'Dependency' });
+    m.connections.push({ ...edge, id: 'e1', from: 'k1', to: 'k2' });
     return m;
   }
 
@@ -259,8 +251,8 @@ describe('realizedBy validation', () => {
       { ...base, id: 'k2', name: 'K2', type: 'Component', parentId: 'cb', description: 'd' },
     );
     m.connections.push(
-      { ...edge, id: 'e1', from: 'k1', to: 'k2', type: 'Dependency' },
-      { ...edge, id: 'up', from: 'ca', to: 'cb', type: 'Dependency', realizedBy: ['e1'] },
+      { ...edge, id: 'e1', from: 'k1', to: 'k2' },
+      { ...edge, id: 'up', from: 'ca', to: 'cb', realizedBy: ['e1'] },
     );
     return m;
   }
@@ -290,13 +282,6 @@ describe('realizedBy validation', () => {
     const issues = validateModel(m, c4Backend).filter((i) => i.kind === 'dangling-realizedBy');
     expect(issues.map((i) => i.message.match(/"(.+)"/)?.[1])).toEqual(['gone-1', 'gone-2']);
   });
-
-  it('still flags the stale id on a connection whose kind is unknown', () => {
-    const m = model();
-    m.connections[1].type = 'Bogus';
-    m.connections[1].realizedBy = ['ghost'];
-    expect(validateModel(m, c4Backend).map((i) => i.kind)).toContain('dangling-realizedBy');
-  });
 });
 
 describe('flow validation', () => {
@@ -311,7 +296,7 @@ describe('flow validation', () => {
       { ...nbase, id: 'a', name: 'A', type: 'Component', parentId: 'ct', description: 'd' },
       { ...nbase, id: 'b', name: 'B', type: 'Component', parentId: 'ct', description: 'd' },
     );
-    m.connections.push({ ...edge, id: 'c1', from: 'a', to: 'b', type: 'Dependency' });
+    m.connections.push({ ...edge, id: 'c1', from: 'a', to: 'b' });
     m.flows.push({ id: 'f1', name: 'F', description: '', scope: null, steps: [
       { order: 1, from: 'a', to: 'b', via: 'c1', message: 'go', kind: 'Sync' },
     ] });

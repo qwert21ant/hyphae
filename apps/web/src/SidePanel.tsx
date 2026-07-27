@@ -3,7 +3,7 @@ import { useStore } from './store';
 import { buildFocusView, partitionConnections } from './focusView';
 import { ConnectionList } from './ConnectionList';
 import {
-  DirectionSchema, allowedParentTypes, connectionKindIds, effectiveFields, c4Backend,
+  DirectionSchema, allowedParentTypes, nodeFields, connectionFields, c4Backend,
   type Node, type Connection, type FieldDef,
 } from '@hyphae/schema';
 
@@ -80,7 +80,7 @@ export function SidePanel() {
             <option value="">(kind default)</option>
             {c4Backend.roles.map((r) => <option key={r.id} value={r.id} title={r.description}>{r.id}</option>)}
           </select></label>
-        {effectiveFields(c4Backend, node.type, 'node')
+        {nodeFields(c4Backend, node.type)
           .filter((def) => def.key === 'summary' || def.key === 'technology')
           .map((def) => (
             <FieldInput key={def.key} def={def} value={node.fields[def.key]} nodes={nodes} onChange={(v) => setField(def.key, v)} />
@@ -100,7 +100,7 @@ export function SidePanel() {
           <span>docRefs</span>
           <textarea aria-label="docRefs" value={node.docRefs.join('\n')}
             onChange={(e) => updateNode(node.id, { docRefs: lines(e.target.value) })} /></label>
-        {effectiveFields(c4Backend, node.type, 'node')
+        {nodeFields(c4Backend, node.type)
           .filter((def) => def.key !== 'summary' && def.key !== 'technology')
           .map((def) => (
             <FieldInput key={def.key} def={def} value={node.fields[def.key]} nodes={nodes} onChange={(v) => setField(def.key, v)} />
@@ -163,7 +163,7 @@ export function SidePanel() {
         <h3>Detail</h3>
         <label className="field"><span>description</span>
           <textarea aria-label="description" value={conn.description} onChange={(e) => updateConnection(conn.id, { description: e.target.value })} /></label>
-        {effectiveFields(c4Backend, conn.type, 'connection').map((def) => (
+        {connectionFields(c4Backend).map((def) => (
           <FieldInput key={def.key} def={def} value={conn.fields[def.key]} nodes={nodes} onChange={(v) => setField(def.key, v)} />
         ))}
         <button onClick={() => deleteConnection(conn.id)}>Delete connection</button>

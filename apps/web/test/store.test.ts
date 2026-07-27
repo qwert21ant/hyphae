@@ -21,8 +21,8 @@ vi.mock('../src/api', () => {
     createNode: vi.fn(async (input: { id: string; name: string; type: string; parentId?: string | null }) => ({ node: base({ id: input.id, name: input.name, type: input.type, parentId: input.parentId ?? null }), version: ++v })),
     updateNode: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ node: base({ id, ...patch }), version: ++v })),
     deleteNode: vi.fn(async () => ({ version: ++v })),
-    createConnection: vi.fn(async (input: { id: string; from: string; to: string; type: string }) => ({ connection: { id: input.id, from: input.from, to: input.to, type: input.type, description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }, version: ++v })),
-    updateConnection: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ connection: { id, from: 'a', to: 'b', type: 'Dependency', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {}, ...patch }, version: ++v })),
+    createConnection: vi.fn(async (input: { id: string; from: string; to: string }) => ({ connection: { id: input.id, from: input.from, to: input.to, description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }, version: ++v })),
+    updateConnection: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ connection: { id, from: 'a', to: 'b', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {}, ...patch }, version: ++v })),
     deleteConnection: vi.fn(async () => ({ version: ++v })),
   };
 });
@@ -58,14 +58,14 @@ describe('editor store', () => {
     expect(m.connections).toHaveLength(0);
   });
 
-  it('updates a connection field', async () => {
+  it('updates a connection', async () => {
     await useStore.getState().addNode('Component');
     await useStore.getState().addNode('Component');
     const [a, b] = useStore.getState().model.nodes.map((n) => n.id);
     await useStore.getState().addConnection(a, b);
     const cid = useStore.getState().model.connections[0].id;
-    await useStore.getState().updateConnection(cid, { fields: { transport: 'Sync' } });
-    expect(useStore.getState().model.connections[0].fields.transport).toBe('Sync');
+    await useStore.getState().updateConnection(cid, { verb: 'reads', object: 'camera list' });
+    expect(useStore.getState().model.connections[0]).toMatchObject({ verb: 'reads', object: 'camera list' });
   });
 
   it('reparents a node (sets parentId)', async () => {

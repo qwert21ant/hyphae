@@ -6,7 +6,6 @@ export const ConnectionSchema = z.object({
   id: z.string(),
   from: z.string(),
   to: z.string(),
-  type: z.string().min(1), // a ConnectionKind id, validated against active profile
   // The business action this edge performs, shown on the diagram. A verb id from the
   // profile. Defaults so a model written before verbs existed still parses — and so an
   // edge is never unlabeled.
