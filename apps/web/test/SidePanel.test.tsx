@@ -100,6 +100,22 @@ describe('SidePanel', () => {
     await waitFor(() => expect(useStore.getState().model.connections[0].fields.transport).toBe('Sync'));
   });
 
+  it('no longer offers a connection type select', async () => {
+    await useStore.getState().addNode('Component');
+    await useStore.getState().addNode('Component');
+    const [a, b] = useStore.getState().model.nodes.map((n) => n.id);
+    useStore.setState((s) => ({
+      model: {
+        ...s.model,
+        connections: [{ id: 'conn1', from: a, to: b, type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }],
+      },
+      selectedId: 'conn1',
+    }));
+    render(<SidePanel />);
+    expect(screen.queryByLabelText('type')).toBeNull();
+    expect(screen.getByLabelText('verb')).toBeTruthy();
+  });
+
   it('shows a rolled-up connection with its underlying connections and drills on click', () => {
     const mk = (over: Partial<Node>): Node => ({
       id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null, codeRefs: [],
@@ -124,7 +140,6 @@ describe('SidePanel', () => {
     expect(screen.getByRole('heading', { name: /rolled-up connection/i })).toBeTruthy();
     expect(screen.getByText('Alpha → Beta')).toBeTruthy();
     expect(screen.getByText(/1 connection/i)).toBeTruthy();
-    expect(screen.getByText(/Dependency/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'A1' }));
     expect(useStore.getState().focusId).toBe('a1');
   });

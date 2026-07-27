@@ -7,7 +7,6 @@ export type FocusEdge = {
   id: string;
   from: string;
   to: string;
-  kind: string | null; // connection type for a 1:1 real edge; null when aggregated
   count: number;       // underlying connections represented
   derived: boolean;    // aggregated/collapsed (dashed) edge
   realizedBy: string[]; // ids of the model connections this edge represents (length === count)
@@ -185,7 +184,7 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
   // there the count is the whole point, and the underlying verbs differ anyway.
   // `a`/`b` are the canonical (id-sorted) endpoints; `ab`/`ba` record which orientations occur
   // among the rolled-up ones, which is what decides the merged edge's arrow direction.
-  type Entry = { id: string; kind: string; from: string; to: string; direction: string; verb: string; object: string; direct: boolean };
+  type Entry = { id: string; from: string; to: string; direction: string; verb: string; object: string; direct: boolean };
   type Pair = { a: string; b: string; entries: Entry[] };
   const pairs = new Map<string, Pair>(); // key `${a}|${b}` with a <= b
 
@@ -198,11 +197,11 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
     let p = pairs.get(key);
     if (!p) { p = { a, b, entries: [] }; pairs.set(key, p); }
     // Direct = both endpoints map to themselves, so nothing about this connection is summarised.
-    p.entries.push({ id: c.id, kind: c.type, from, to, direction: c.direction, verb: c.verb, object: c.object, direct: from === c.from && to === c.to });
+    p.entries.push({ id: c.id, from, to, direction: c.direction, verb: c.verb, object: c.object, direct: from === c.from && to === c.to });
   }
 
   const realEdgeOf = (d: Entry): FocusEdge => ({
-    id: d.id, from: d.from, to: d.to, kind: d.kind, count: 1, derived: false,
+    id: d.id, from: d.from, to: d.to, count: 1, derived: false,
     realizedBy: [d.id], direction: d.direction, verb: d.verb, object: d.object,
   });
   /** One dashed summary edge over `items`. It keeps an arrow only when every underlying connection
@@ -217,7 +216,7 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
     if (bidir || (ab && ba)) { from = p.a; to = p.b; direction = bidir ? 'Bidirectional' : 'None'; }
     else if (ba) { from = p.b; to = p.a; direction = 'Unidirectional'; }
     else { from = p.a; to = p.b; direction = 'Unidirectional'; }
-    return { id: `agg:${p.a}->${p.b}`, from, to, kind: null, count: items.length, derived: true, realizedBy: items.map((i) => i.id), direction };
+    return { id: `agg:${p.a}->${p.b}`, from, to, count: items.length, derived: true, realizedBy: items.map((i) => i.id), direction };
   };
 
   const edges: FocusEdge[] = [];

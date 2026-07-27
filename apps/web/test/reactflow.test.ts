@@ -13,8 +13,8 @@ const view: FocusView = {
   children: [node('a1'), node('a2')],
   externals: [node('cb', 'Container')],
   edges: [
-    { id: 'i', from: 'a1', to: 'a2', kind: 'Dependency', count: 1, derived: false, realizedBy: ['i'] },
-    { id: 'ext:a1->cb', from: 'a1', to: 'cb', kind: null, count: 3, derived: true, realizedBy: ['e1', 'e2', 'e3'] },
+    { id: 'i', from: 'a1', to: 'a2', count: 1, derived: false, realizedBy: ['i'] },
+    { id: 'ext:a1->cb', from: 'a1', to: 'cb', count: 3, derived: true, realizedBy: ['e1', 'e2', 'e3'] },
   ],
 };
 const pos = { a1: { x: 0, y: 0 }, a2: { x: 0, y: 100 }, cb: { x: 300, y: 50 } };
@@ -51,8 +51,8 @@ describe('focusViewToFlow', () => {
       focusId: 'ca', focusNode: node('ca', 'Container'),
       children: [node('a1'), node('a2'), node('a3')], externals: [],
       edges: [
-        { id: 'u', from: 'a1', to: 'a2', kind: 'Dependency', count: 1, derived: false, realizedBy: ['u'], direction: 'Unidirectional' },
-        { id: 'b', from: 'a1', to: 'a3', kind: 'Dependency', count: 1, derived: false, realizedBy: ['b'], direction: 'Bidirectional' },
+        { id: 'u', from: 'a1', to: 'a2', count: 1, derived: false, realizedBy: ['u'], direction: 'Unidirectional' },
+        { id: 'b', from: 'a1', to: 'a3', count: 1, derived: false, realizedBy: ['b'], direction: 'Bidirectional' },
       ],
     };
     const { edges } = focusViewToFlow(v, { a1: { x: 0, y: 0 }, a2: { x: 0, y: 100 }, a3: { x: 0, y: 200 } });
@@ -73,7 +73,7 @@ describe('focusViewToFlow', () => {
     const v: FocusView = {
       focusId: 'ca', focusNode: node('ca', 'Container'),
       children: [node('a1'), node('a2')], externals: [],
-      edges: [{ id: 'agg:a1->a2', from: 'a1', to: 'a2', kind: null, count: 2, derived: true, realizedBy: ['x', 'y'], direction: 'None' }],
+      edges: [{ id: 'agg:a1->a2', from: 'a1', to: 'a2', count: 2, derived: true, realizedBy: ['x', 'y'], direction: 'None' }],
     };
     const { edges } = focusViewToFlow(v, { a1: { x: 0, y: 0 }, a2: { x: 0, y: 100 } });
     const edge = edges[0];
@@ -88,10 +88,10 @@ describe('focusViewToFlow', () => {
       focusId: 'ca', focusNode: node('ca', 'Container'),
       children: [node('a1'), node('a2'), node('a3')], externals: [],
       edges: [
-        { id: 'f1', from: 'a1', to: 'a2', kind: 'Dependency', count: 1, derived: false, realizedBy: ['f1'] },
-        { id: 'r1', from: 'a2', to: 'a1', kind: 'Dependency', count: 1, derived: false, realizedBy: ['r1'] },
-        { id: 'f2', from: 'a1', to: 'a2', kind: 'DataFlow', count: 1, derived: false, realizedBy: ['f2'] },
-        { id: 'solo', from: 'a1', to: 'a3', kind: 'Dependency', count: 1, derived: false, realizedBy: ['solo'] },
+        { id: 'f1', from: 'a1', to: 'a2', count: 1, derived: false, realizedBy: ['f1'] },
+        { id: 'r1', from: 'a2', to: 'a1', count: 1, derived: false, realizedBy: ['r1'] },
+        { id: 'f2', from: 'a1', to: 'a2', count: 1, derived: false, realizedBy: ['f2'] },
+        { id: 'solo', from: 'a1', to: 'a3', count: 1, derived: false, realizedBy: ['solo'] },
       ],
     };
     const { edges } = focusViewToFlow(v, { a1: { x: 0, y: 0 }, a2: { x: 0, y: 100 }, a3: { x: 0, y: 200 } });
@@ -121,8 +121,8 @@ describe('focusViewToFlow', () => {
       children: [node('a1')],
       externals: [node('b1'), node('solo', 'Container')],
       edges: [
-        { id: 'g1', from: 'a1', to: 'b1', kind: null, count: 1, derived: true, realizedBy: ['x1'] },
-        { id: 's', from: 'a1', to: 'solo', kind: null, count: 1, derived: true, realizedBy: ['x2'] },
+        { id: 'g1', from: 'a1', to: 'b1', count: 1, derived: true, realizedBy: ['x1'] },
+        { id: 's', from: 'a1', to: 'solo', count: 1, derived: true, realizedBy: ['x2'] },
       ],
       externalGroups: [{ id: 'cb', name: 'Beta', childIds: ['b1'] }],
       expandableExternalIds: new Set(['solo']),
@@ -147,7 +147,7 @@ describe('focusViewToFlow', () => {
       focusNode: node('ext', 'ExternalSystem'),
       children: [],
       externals: [node('cb', 'Container')],
-      edges: [{ id: 'ext:ext->cb', from: 'ext', to: 'cb', kind: null, count: 1, derived: true, realizedBy: ['z'] }],
+      edges: [{ id: 'ext:ext->cb', from: 'ext', to: 'cb', count: 1, derived: true, realizedBy: ['z'] }],
     };
     const childlessPos = { ext: { x: 0, y: 0 }, cb: { x: 300, y: 50 } };
     const { nodes, edges } = focusViewToFlow(childless, childlessPos);

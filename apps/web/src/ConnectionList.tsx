@@ -25,7 +25,7 @@ export function ConnectionList({ connections }: { connections: Connection[] }) {
           {' → '}
           <button onClick={(ev) => { ev.stopPropagation(); setFocus(c.to); }}>{nameOf(c.to)}</button>
           {parentNameOf(c.to) && <small> ({parentNameOf(c.to)})</small>}
-          <small> · {c.type}{c.fields.transport ? ` · ${String(c.fields.transport)}` : ''}</small>
+          {c.object && <small> · {c.object}</small>}
         </li>
       ))}
     </ul>

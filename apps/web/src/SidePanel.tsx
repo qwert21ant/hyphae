@@ -156,10 +156,6 @@ export function SidePanel() {
           <span>object</span>
           <input aria-label="object" value={conn.object}
             onChange={(e) => updateConnection(conn.id, { object: e.target.value })} /></label>
-        <label className="field"><span>type</span>
-          <select aria-label="type" value={conn.type} onChange={(e) => updateConnection(conn.id, { type: e.target.value })}>
-            {connectionKindIds(c4Backend).map((k) => <option key={k} value={k}>{k}</option>)}
-          </select></label>
         <label className="field"><span>direction</span>
           <select aria-label="direction" value={conn.direction} onChange={(e) => updateConnection(conn.id, { direction: e.target.value as Connection['direction'] })}>
             {DirectionSchema.options.map((o) => <option key={o} value={o}>{o}</option>)}

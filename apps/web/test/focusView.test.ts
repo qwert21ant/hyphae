@@ -40,7 +40,7 @@ describe('buildFocusView', () => {
     m.connections.push({ id: 'i', from: 'a1', to: 'a2', type: 'Dependency', ...e });
     const v = buildFocusView(m, 'ca');
     const inner = v.edges.find((x) => x.id === 'i');
-    expect(inner).toMatchObject({ from: 'a1', to: 'a2', kind: 'Dependency', derived: false, count: 1 });
+    expect(inner).toMatchObject({ from: 'a1', to: 'a2', derived: false, count: 1 });
   });
 
   it('aggregates external endpoints to a peer-level box and collapses edges with a count', () => {
@@ -55,7 +55,7 @@ describe('buildFocusView', () => {
     expect(v.externals.map((n) => n.id)).toEqual(['cb']);
     const a1cb = v.edges.find((x) => x.from === 'a1' && x.to === 'cb');
     const a2cb = v.edges.find((x) => x.from === 'a2' && x.to === 'cb');
-    expect(a1cb).toMatchObject({ kind: null, derived: true, count: 1 });
+    expect(a1cb).toMatchObject({ derived: true, count: 1 });
     expect(a2cb).toMatchObject({ derived: true, count: 1 });
   });
 
@@ -132,7 +132,7 @@ describe('buildFocusView', () => {
     m.connections.push({ id: 'x', from: 'a1', to: 'ext', type: 'Dependency', ...e });
     const v = buildFocusView(m, 'ca');
     const edge = v.edges.find((x) => x.to === 'ext')!;
-    expect(edge).toMatchObject({ id: 'x', from: 'a1', to: 'ext', kind: 'Dependency', derived: false, count: 1 });
+    expect(edge).toMatchObject({ id: 'x', from: 'a1', to: 'ext', derived: false, count: 1 });
   });
 
   it('rolls cross-subtree edges up to root↔root at the root view', () => {
@@ -206,7 +206,7 @@ describe('buildFocusView — rolling connections up to the children level', () =
     const v = buildFocusView(m, 'sys');
     const caCb = v.edges.filter((x) => x.from === 'ca' && x.to === 'cb');
     expect(caCb).toHaveLength(1);
-    expect(caCb[0]).toMatchObject({ id: 'parent', kind: 'Dependency', derived: false, count: 1 });
+    expect(caCb[0]).toMatchObject({ id: 'parent', derived: false, count: 1 });
   });
 
   it('at a Container focus anchors a realizing edge to the shown child component, not the group-node rollup', () => {
@@ -231,7 +231,7 @@ describe('buildFocusView — rolling connections up to the children level', () =
     const v = buildFocusView(m, 'cont');
     expect(v.edges.find((edge) => edge.from === 'other' && edge.to === 'x')).toBeTruthy(); // child-anchored
     expect(v.edges.find((edge) => edge.to === 'cont')).toBeUndefined();                    // no group-node rollup edge
-    expect(v.edges.find((edge) => edge.from === 'cont' && edge.to === 'ext')).toMatchObject({ kind: 'DataFlow', derived: false });
+    expect(v.edges.find((edge) => edge.from === 'cont' && edge.to === 'ext')).toMatchObject({ derived: false });
     expect(v.externals.map((n) => n.id).sort()).toEqual(['ext', 'other']);
   });
 

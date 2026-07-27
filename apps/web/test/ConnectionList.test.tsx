@@ -10,7 +10,7 @@ const mkNode = (over: Partial<Node>): Node => ({
 });
 
 const conns: Connection[] = [
-  { id: 'x', from: 'a1', to: 'b1', type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: { transport: 'Sync' } },
+  { id: 'x', from: 'a1', to: 'b1', type: 'Dependency', verb: 'reads', object: 'camera list', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: { transport: 'Sync' } },
 ];
 
 beforeEach(() => {
@@ -24,12 +24,13 @@ beforeEach(() => {
 });
 
 describe('ConnectionList', () => {
-  it('renders a row per connection with endpoint names and kind/transport', () => {
+  it('renders a row per connection with endpoint names and the object', () => {
     render(<ConnectionList connections={conns} />);
     expect(screen.getByRole('button', { name: 'A1' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'B1' })).toBeTruthy();
-    expect(screen.getByText(/Dependency/)).toBeTruthy();
-    expect(screen.getByText(/Sync/)).toBeTruthy();
+    expect(screen.getByText(/camera list/)).toBeTruthy();
+    expect(screen.queryByText(/Dependency/)).toBeNull();
+    expect(screen.queryByText(/Sync/)).toBeNull();
   });
 
   it('clicking the row selects the connection', () => {

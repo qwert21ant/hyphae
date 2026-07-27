@@ -11,8 +11,8 @@ const view: FocusView = {
   children: [node('a1'), node('a2')],
   externals: [node('cb', 'Container')],
   edges: [
-    { id: 'i', from: 'a1', to: 'a2', kind: 'Dependency', count: 1, derived: false, realizedBy: ['i'] },
-    { id: 'ext:a1->cb', from: 'a1', to: 'cb', kind: null, count: 1, derived: true, realizedBy: ['x'] },
+    { id: 'i', from: 'a1', to: 'a2', count: 1, derived: false, realizedBy: ['i'] },
+    { id: 'ext:a1->cb', from: 'a1', to: 'cb', count: 1, derived: true, realizedBy: ['x'] },
   ],
 };
 
@@ -43,7 +43,7 @@ describe('layoutFocusView (base structural layout)', () => {
       focusNode: node('ext', 'ExternalSystem'),
       children: [],
       externals: [node('cb', 'Container')],
-      edges: [{ id: 'ext:ext->cb', from: 'ext', to: 'cb', kind: null, count: 1, derived: true, realizedBy: ['z'] }],
+      edges: [{ id: 'ext:ext->cb', from: 'ext', to: 'cb', count: 1, derived: true, realizedBy: ['z'] }],
     };
     const pos = layoutFocusView(childless);
     expect(pos['ext']).toBeDefined();
@@ -57,8 +57,8 @@ describe('layoutFocusView (base structural layout)', () => {
       children: [node('a1')],
       externals: [node('x1', 'Container'), node('x2', 'Container')],
       edges: [
-        { id: 'o1', from: 'a1', to: 'x1', kind: null, count: 1, derived: true, realizedBy: ['p1'] },
-        { id: 'o2', from: 'a1', to: 'x2', kind: null, count: 1, derived: true, realizedBy: ['p2'] },
+        { id: 'o1', from: 'a1', to: 'x1', count: 1, derived: true, realizedBy: ['p1'] },
+        { id: 'o2', from: 'a1', to: 'x2', count: 1, derived: true, realizedBy: ['p2'] },
       ],
     };
     const pos = layoutFocusView(v);
@@ -72,8 +72,8 @@ describe('layoutFocusView (base structural layout)', () => {
       children: [node('a1')],
       externals: [node('zed', 'Container'), node('abe', 'Container')],
       edges: [
-        { id: 'o1', from: 'a1', to: 'zed', kind: null, count: 1, derived: true, realizedBy: ['p1'] },
-        { id: 'o2', from: 'a1', to: 'abe', kind: null, count: 1, derived: true, realizedBy: ['p2'] },
+        { id: 'o1', from: 'a1', to: 'zed', count: 1, derived: true, realizedBy: ['p1'] },
+        { id: 'o2', from: 'a1', to: 'abe', count: 1, derived: true, realizedBy: ['p2'] },
       ],
     };
     const pos = layoutFocusView(v);
@@ -88,7 +88,7 @@ describe('resolveViewPositions', () => {
       focusId: 'ca', focusNode: node('ca', 'Container'),
       children: [node('a1'), node('a2')],
       externals: [node('cb', 'Container')],
-      edges: [{ id: 'x', from: 'a1', to: 'cb', kind: null, count: 1, derived: true, realizedBy: ['e'] }],
+      edges: [{ id: 'x', from: 'a1', to: 'cb', count: 1, derived: true, realizedBy: ['e'] }],
     };
     const pos = resolveViewPositions(v, base);
     expect(pos.a1).toEqual({ x: 0, y: 0 });
@@ -103,7 +103,7 @@ describe('resolveViewPositions', () => {
       focusId: 'ca', focusNode: node('ca', 'Container'),
       children: [node('a1')],
       externals: [node('cb', 'Container')],
-      edges: [{ id: 'x', from: 'a1', to: 'cb', kind: null, count: 1, derived: true, realizedBy: ['e'] }],
+      edges: [{ id: 'x', from: 'a1', to: 'cb', count: 1, derived: true, realizedBy: ['e'] }],
     };
     const pos = resolveViewPositions(v, base);
     expect(pos.cb).toEqual({ x: 500, y: 20 });
@@ -117,8 +117,8 @@ describe('resolveViewPositions', () => {
       children: [node('a1')],
       externals: [node('b1'), node('b2')],
       edges: [
-        { id: 'g1', from: 'a1', to: 'b1', kind: null, count: 1, derived: true, realizedBy: ['x1'] },
-        { id: 'g2', from: 'a1', to: 'b2', kind: null, count: 1, derived: true, realizedBy: ['x2'] },
+        { id: 'g1', from: 'a1', to: 'b1', count: 1, derived: true, realizedBy: ['x1'] },
+        { id: 'g2', from: 'a1', to: 'b2', count: 1, derived: true, realizedBy: ['x2'] },
       ],
       externalGroups: [{ id: 'cb', name: 'Beta', childIds: ['b1', 'b2'] }],
     };
