@@ -42,7 +42,7 @@ Cost ≈ turns × context size. To avoid carrying a huge context across many tur
 - **Reset/compact context between phases.** The skill is resumable — the server is the source of truth — so after each phase you can clear context and re-orient with `model_overview` + scoped `list_nodes`/`get_subgraph`. Nothing is lost.
 - **Batch every multi-write step** (`create_nodes`/`create_connections`/`update_*`) instead of one call per node/edge.
 - **Creates echo identity — keep the response, don't re-read.** Every `create_*` returns
-  `{created:[...]}` in input order: `{id, name}` for nodes/flows/patterns, `{id, from, to, type}`
+  `{created:[...]}` in input order: `{id, name}` for nodes/flows/patterns, `{id, from, to}`
   for connections. That is your name→id map. Never follow a create with a `list_nodes` to recover
   the ids you just wrote, and never build a side file to hold them.
 - **Read subagent reports from their files** (see Phase 2), not from chat history — they survive a context reset.
@@ -117,7 +117,7 @@ Subagents never touch other packages or shared nodes.
 
 Mechanical part (do this before showing the gate, so the human sees only real decisions):
 1. **Resolve** each reported endpoint to a node id by **(container[, component], name)** — never bare name.
-2. **Dedupe** identical resolved edges (same from/to/type) into one.
+2. **Dedupe** identical resolved edges (same from/to/verb) into one.
 3. **Surface only**: amendments that *conflict* between subagents, and new ExternalSystem nodes/edges. Identical or non-overlapping amendments need no human decision — apply them.
 
 Never resolve a conflict by last-write-wins; a genuine disagreement is always a human decision at the gate.
