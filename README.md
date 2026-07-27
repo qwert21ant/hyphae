@@ -31,8 +31,8 @@ colored by verb class; several connections between the same pair fan apart inste
 are dashed violet and carry a count, unless an authored higher-level connection claims them via
 `realizedBy`. Selecting or hovering a node/edge highlights its neighborhood and dims the rest,
 labels included. The **audience toggle** (stakeholder / full) hides derived edges for a clean
-read; the connection filter panel (kind + profile fields) and the legend are generated from the
-profile.
+read; the connection filter panel (verb class + profile fields) and the legend are generated from
+the profile.
 
 **Flows and Patterns.** Selecting a **Flow** in the outline jumps to its first step and lights its
 steps in order, numbered along the edges they run on. Steps are clickable — each navigates to a view
@@ -44,10 +44,11 @@ and any member bound to a real node link back into the model.
 
 **Editing.** Create / edit / delete nodes and connections. The side panel renders the core fields
 plus the **profile-defined fields** for that kind generically (a node's
-`responsibilities`/`invariants`/`technology`, an edge's `transport`, …), a parent selector, and the
-node's incoming/outgoing connections. A connection's kind is its `type` (`Dependency` / `DataFlow` /
-`Realization` / `Trace`). Layout is automatic (dagre) and stable — the connection filter, the
-audience toggle, and expanding an external never reflow the graph.
+`responsibilities`/`invariants`/`technology`, …), a parent selector, and the
+node's incoming/outgoing connections. A connection's meaning is its **verb** + **object** ("reads
+camera list"), and its verb's *class* (`dataAccess` / `messaging` / `control` / `user` /
+`traceability`) decides the edge colour. Layout is automatic (dagre) and stable — the connection
+filter, the audience toggle, and expanding an external never reflow the graph.
 
 **Deep links.** The current view lives in the URL hash — `#node/<id>`, `#flow/<id>`,
 `#pattern/<id>` — so a view survives refresh, is shareable, and the browser Back button walks the
@@ -76,13 +77,13 @@ The MCP server is an HTTP client of the running Hyphae server, so the server mus
     pnpm --filter @hyphae/server dev          # terminal A — owns hyphae.json on :5173
     HYPHAE_SERVER=http://localhost:5173 pnpm --filter @hyphae/server mcp   # terminal B
 
-Read tools: `describe_profile` (the active profile's node/connection/pattern kinds, verbs, and their
-documented fields — call it first), `model_overview`, `get_node`, `list_nodes` (with an optional text
-`query`), `list_connections` (incl. a `nodeId` filter for one node's edges), `rollup_connections`
-(derived higher-layer edges), `get_subgraph`, `list_flows` / `get_flow`, `list_patterns` /
-`get_pattern`, `resolve_refs` (resolve a node's refs against its anchoring `root`),
-`validate_model` (structural/field issues), `model_gaps` (coverage/quality gaps — orphan components,
-thin/name-echoing descriptions).
+Read tools: `describe_profile` (the active profile's node/pattern kinds, roles, verbs (with their
+classes), and their documented fields — call it first), `model_overview`, `get_node`, `list_nodes`
+(with an optional text `query`), `list_connections` (filters incl. `nodeId`, `verb`, and
+`verbClass`), `rollup_connections` (derived higher-layer edges), `get_subgraph`, `list_flows` /
+`get_flow`, `list_patterns` / `get_pattern`, `resolve_refs` (resolve a node's refs against its
+anchoring `root`), `validate_model` (structural/field issues), `model_gaps` (coverage/quality gaps
+— orphan components, thin/name-echoing descriptions).
 
 Write tools: `create_nodes`, `update_nodes`, `delete_nodes`, `create_connections`,
 `update_connections`, `delete_connections`, `create_flows`, `update_flows`, `delete_flows`,

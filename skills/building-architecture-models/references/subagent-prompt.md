@@ -23,7 +23,7 @@ against it, so write refs **relative to that root** — `src/api/Client.ts`, nev
 All hyphae tools use the `mcp__hyphae__` prefix (e.g. `mcp__hyphae__describe_profile`).
 
 Steps:
-0. Call `mcp__hyphae__describe_profile` first to learn the current node kinds, connection kinds, fields, and enum values.
+0. Call `mcp__hyphae__describe_profile` first to learn the current node kinds, verbs (with their classes), fields, and enum values.
 1. Call `mcp__hyphae__model_overview` and `mcp__hyphae__list_nodes` first. Note which Components already exist under your container (match by name + parentId) — reuse them, never duplicate.
 2. Analyze {{PACKAGE_PATH}} to full depth using the analysis loop for a {{ARCHETYPE}}: find its key modules/components, their responsibilities, and their dependencies.
 3. **Components.** Create all your Components in one `mcp__hyphae__create_nodes` call (domain values
@@ -57,9 +57,9 @@ Steps:
    `event-bus` render as a plain member list (no bespoke shape yet), so reach for `pipeline`/
    `state-machine` when one genuinely fits.
 4. Create all intra-container edges in one `mcp__hyphae__create_connections` call, ONLY when BOTH
-   endpoints are your own Components. Set the connection `type`, a `verb` from the profile's verb
-   vocabulary, and a short `object` noun where one applies ("reads camera list"). Do not leave the
-   verb at its `uses` default when a specific verb fits. Put `transport` in the `fields` bag.
+   endpoints are your own Components. Set a `verb` from the profile's verb vocabulary, and a short
+   `object` noun where one applies ("reads camera list"). Do not leave the verb at its `uses`
+   default when a specific verb fits.
    The verb vocabulary is CLOSED: a verb outside `describe_profile`'s list is rejected as an
    `unknown-verb` issue, so pick a declared verb up front rather than inventing one and fixing it
    after a rejection.
@@ -81,7 +81,6 @@ For every cross-package dependency, name the **target's container** (`toContaine
     { "from": "<your component name>",
       "toContainer": "<the container/package that owns the target, or \"external\" for an external system>",
       "to": "<target node name within that container (or the external system name)>",
-      "type": "Dependency|DataFlow|Realization|Trace", "transport": "Sync|Async|InProcess|None",
       "verb": "<verb id from describe_profile, e.g. reads|writes|invokes|publishes>", "object": "<short noun, optional>", "why": "..." }
   ],
   "upwardFindings": {

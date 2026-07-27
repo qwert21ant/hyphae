@@ -105,7 +105,8 @@ A local web application on the Structurizr Lite model:
 
 A node's layer is a derivative of the **profile** + the node's category. A profile is a
 declarative vocabulary: node types (each with a `role`/archetype), containment rules,
-connection kinds, the **verb** vocabulary, and **pattern** kinds.
+the **verb** vocabulary, and **pattern** kinds. There is no separate connection kind — a
+connection's meaning is its `verb` + `object` alone.
 
 The primary profile is `c4-backend`:
 
@@ -140,17 +141,17 @@ the rest is side-panel detail.
 
 A first-class entity and the main carrier of on-diagram meaning.
 
-**Core:** `id`, `from`, `to`, `type` (connection kind: `Dependency` | `DataFlow` |
-`Realization` | `Trace`), **`verb`** (profile business action), **`object`** (short noun or a
+**Core:** `id`, `from`, `to`, **`verb`** (profile business action), **`object`** (short noun or a
 `DataEntity` ref), `description`, `direction`, `realizedBy` (cross-layer aggregation),
-`codeRefs`, and a `fields` bag.
+`codeRefs`, and a `fields` bag. There is no separate connection kind — verb and object alone
+carry an edge's meaning.
 
 - **`verb`** is shown on the edge and colored by class — *data access* (reads / writes /
   stores / modifies / aggregates …), *messaging* (publishes / subscribes / notifies …),
-  *control* (invokes / triggers / requests), *user* (views / submits / navigates). It replaces
-  the former low-signal `intent`.
+  *control* (invokes / triggers / requests), *user* (views / submits / navigates),
+  *traceability* (implements / satisfies — §6.8). It replaces the former low-signal `intent`,
+  and the connection `type` (kind) and `transport` field it once overlapped with — both retired.
 - **`object`** links the action to a `DataEntity` when relevant ("reads → Camera").
-- **`fields`** carry lower-signal detail such as `transport` (Sync | Async | InProcess | None).
 
 > `Composition` is removed — containment is only `parentId`.
 
@@ -213,7 +214,7 @@ authored as **Pattern members** carrying a `ref`, not as a ref list.
 ### 6.8 Reserved axes (schema present, editor later)
 
 - `requirements` — **Intent axis.** Requirement nodes (Functional | Quality | Constraint),
-  traced from nodes/flows via `Trace`.
+  traced from nodes/flows via the `traceability` verb class (`implements` / `satisfies`).
 - `decisions` — **Intent axis.** ADR nodes (context / choice / consequences / status).
 
 ### 6.9 Views
@@ -294,9 +295,9 @@ Built into the core, and unchanged by the visual repositioning:
   `invariants` and the new `verb`/`object`/`carries` are addressable structure.
 - **Closed, described vocabularies.** Node types, roles, verbs, and pattern kinds are finite
   and documented per profile — easy for an LLM to fill correctly and for the editor to tooltip.
-- **Traceability as a graph.** Requirement ↔ Node ↔ Code and Connection ↔ DataEntity via
-  `Trace` / `realizedBy` / `carries` / `codeRefs`. The LLM walks "requirement → component →
-  code" and "flow → connections → data" to verify implementation and find gaps.
+- **Traceability as a graph.** Requirement ↔ Node ↔ Code and Connection ↔ DataEntity via the
+  `traceability` verb class / `realizedBy` / `carries` / `codeRefs`. The LLM walks "requirement →
+  component → code" and "flow → connections → data" to verify implementation and find gaps.
 - **Text export.** Render the graph into compact plain text for a prompt.
 - **MCP server (read + write).** Read: `describe_profile`, `model_overview`, `get_node`,
   `list_nodes`, `list_connections`, `rollup_connections`, `get_subgraph`, `list_flows`, `get_flow`,

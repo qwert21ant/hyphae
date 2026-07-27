@@ -46,10 +46,10 @@ axes at once.
 | Axis | Question | Carriers in the model | Projections (diagrams) |
 |------|----------|-----------------------|------------------------|
 | **Structure** | what it is made of | node `parentId`, node `role` | containment map, UI-tree, module-tree |
-| **Dependencies / Collaboration** | who does what to whom | connections `type` + **verb** + object | dependency graph, collaboration diagram |
+| **Dependencies / Collaboration** | who does what to whom | connection **verb** + object | dependency graph, collaboration diagram |
 | **Behavior** | what happens over time | `flows`, state-machine `patterns` | numbered flow overlay, sequence, state chart |
 | **Data** | what data it operates on | `dataTypes` + connection `carries` *(reserved)* | ERD, data-flow |
-| **Intent** | why, which requirements/decisions | `requirements`, `decisions` + `Trace` connections | traceability matrix, decision map |
+| **Intent** | why, which requirements/decisions | `requirements`, `decisions` *(reserved)* + `traceability`-class connections | traceability matrix, decision map |
 | **Presentation** | how to view it | `views` | layouts, filters, saved views |
 
 The key idea: **many diagrams, few axes.** A numbered flow and a state chart are both the
@@ -79,21 +79,18 @@ and validated against the active profile. The concrete node **types** come from 
 
 ### 3.2 Connection
 A first-class edge, and the main carrier of on-diagram meaning. Core:
-`id` / `from` / `to` / `type` / **`verb`** / **`object`** / `description` / `direction` /
-`realizedBy` (cross-layer) / `codeRefs` and a `fields` bag.
+`id` / `from` / `to` / **`verb`** / **`object`** / `description` / `direction` /
+`realizedBy` (cross-layer) / `codeRefs` and a `fields` bag. There is no separate connection
+*kind* — verb and object alone carry an edge's meaning.
 
-- **`type`** is the connection kind (ConnectionKind) from the profile
-  (`Dependency` | `DataFlow` | `Realization` | `Trace` in `c4-backend`).
 - **`verb`** is a profile-declared business action shown on the edge, grouped into
   colored classes — *data access* (reads / writes / stores / modifies / aggregates …),
   *messaging* (publishes / subscribes / notifies …), *control* (invokes / triggers /
-  requests), *user* (views / submits / navigates). It replaces the former low-signal
-  `intent` field.
+  requests), *user* (views / submits / navigates), *traceability* (implements / satisfies,
+  §6). It replaces the former low-signal `intent` field, and the connection `type` (kind)
+  and `transport` field it once overlapped with — both retired.
 - **`object`** is what the action acts on: a short noun, or a reference to a `DataEntity`
   (§3.5), linking the edge into the data model ("reads → Camera").
-
-The former transport axis becomes a **profile field** in `fields`
-(`transport`: `Sync` / `Async` / `InProcess` / `None`).
 
 > `Composition` was once a separate kind — removed; structure lives only in `parentId`.
 
@@ -188,7 +185,7 @@ An entity is first-class if it is referenced independently (by `id`). The full l
 | **View** | Presentation | a named saved view |
 
 **What is NOT first-class (profile fields, not entities):**
-- `responsibilities`, local `invariants`, `technology`, `transport`, etc. — **profile
+- `responsibilities`, local `invariants`, `technology`, etc. — **profile
   fields** in the node/connection `fields` bag. (A cross-cutting invariant → a Requirement.)
 - containment — `parentId`, not a connection entity.
 - a connection's action — the `verb`/`object` **core fields**, not a separate entity.
@@ -203,12 +200,13 @@ No → a field.
 
 ## 5. Profiles (the type vocabulary)
 
-A profile is a declarative vocabulary of node types, roles, connection kinds, verbs, and
-pattern kinds for a specific class of projects. It changes the vocabulary, not the mechanisms.
+A profile is a declarative vocabulary of node types, roles, verbs, and pattern kinds for a
+specific class of projects. It changes the vocabulary, not the mechanisms.
 
-A profile is a **meta-schema**: it declares node kinds (with a `role`/archetype), connection
-kinds, the **verb** vocabulary (with classes), **pattern** kinds, and their **fields** (with a
-description of each field and each enum value — for the LLM and editor tooltips).
+A profile is a **meta-schema**: it declares node kinds (with a `role`/archetype), the **verb**
+vocabulary (with classes), **pattern** kinds, and their **fields** (with a description of each
+field and each enum value — for the LLM and editor tooltips). There is no separate connection
+kind — a connection's meaning is its `verb` + `object` alone.
 
 ```
 Profile {
@@ -220,11 +218,8 @@ Profile {
       layer, allowedParents:[...], allowedChildren:[...],
       fields: [FieldDef] }               // domain fields of this node kind
   ]
-  connectionKinds: [
-    { id, description, allowedFrom?:[...], allowedTo?:[...], fields:[FieldDef] }
-  ]
   verbs: [
-    { id, class: dataAccess|messaging|control|user, description }
+    { id, class: dataAccess|messaging|control|user|traceability, description }
   ]
   patternKinds: [
     { id, description, renderer,         // pipeline|middleware|state-machine|layered|event-bus|…
@@ -274,18 +269,23 @@ The axes are tied together by end-to-end traceability, turning the model from "p
 a queryable, verifiable knowledge graph:
 
 ```
-Requirement ──Trace──> Node ──codeRefs──> code
-Decision    ──Trace──> Node                (why it is this way)
-Flow.steps  ──via────> Connection          (scenario → connections)
-Connection  ──verb/object──> DataEntity     (what data, what action)
-Connection  ──realizedBy──> Connection     (upper layer → lower)
-Pattern     ──members───> Node | Ref       (recognized shape over structure or code)
-Node        ──parentId──> Node             (structure)
-Node        ──root──────> directory Ref    (anchors all refs in its subtree)
+Requirement ──traceability──> Node ──codeRefs──> code   (reserved: Requirement not built yet)
+Decision    ──traceability──> Node                (why it is this way)  (reserved)
+Flow.steps  ──via────────────> Connection          (scenario → connections)
+Connection  ──verb/object────> DataEntity          (what data, what action)
+Connection  ──realizedBy─────> Connection          (upper layer → lower)
+Pattern     ──members────────> Node | Ref          (recognized shape over structure or code)
+Node        ──parentId───────> Node                (structure)
+Node        ──root───────────> directory Ref       (anchors all refs in its subtree)
 ```
 
+The `traceability` verb class (`implements` / `satisfies`, §3.2) is what a requirement→component or
+decision→component connection would use; the `Requirement`/`Decision` node kinds themselves stay
+reserved (§4) until a later phase.
+
 What it gives an LLM agent:
-- "Which requirements does component X implement, and where in the code" — `Trace` → `codeRefs`.
+- "Which requirements does component X implement, and where in the code" — the `traceability`
+  verb class → `codeRefs`.
 - "What data does this flow move, and who stores it" — connection `verb`/`object`/`carries` → `DataEntity` owners.
 - "What is the internal shape of this component" — its `Pattern` (pipeline/middleware/…).
 - "What breaks if I change connection A→B" — `realizedBy` downward + the flows that use it.
