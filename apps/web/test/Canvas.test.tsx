@@ -223,8 +223,8 @@ function chainModel() {
     { id: 'a3', name: 'A3', type: 'Component', parentId: 'ca', ...base },
   );
   m.connections.push(
-    { id: 'e1', from: 'a1', to: 'a2', type: 'Dependency', ...e },
-    { id: 'e2', from: 'a2', to: 'a3', type: 'DataFlow', ...e }, // two DataFlow edges → derived a2 → a3
+    { id: 'e1', from: 'a1', to: 'a2', type: 'Dependency', ...e, verb: 'reads' }, // dataAccess
+    { id: 'e2', from: 'a2', to: 'a3', type: 'DataFlow', ...e }, // two DataFlow edges → derived a2 → a3 (control)
     { id: 'e3', from: 'a2', to: 'a3', type: 'DataFlow', ...e },
   );
   return m;
@@ -234,15 +234,15 @@ const xOf = (el: HTMLElement) => { const mm = /translate\(([-\d.]+)px/.exec(el.s
 
 describe('Canvas layout stability', () => {
   it('applying a connection filter does not move child node positions', () => {
-    useStore.setState({ model: chainModel(), focusId: 'ca', selectedId: null, connFilter: { kinds: [], fields: {} }, audience: 'full', expandedExternals: new Set() });
+    useStore.setState({ model: chainModel(), focusId: 'ca', selectedId: null, connFilter: { verbClasses: [], fields: {} }, audience: 'full', expandedExternals: new Set() });
     const { container } = render(<Canvas />);
     const before = node(container, 'a3')!.style.transform;
-    act(() => { useStore.getState().toggleConnKind('Dependency'); }); // hides the DataFlow-derived a2→a3
+    act(() => { useStore.getState().toggleConnVerbClass('dataAccess'); }); // hides the DataFlow-derived a2→a3
     expect(node(container, 'a3')!.style.transform).toBe(before);
   });
 
   it('switching audience does not move child node positions', () => {
-    useStore.setState({ model: chainModel(), focusId: 'ca', selectedId: null, connFilter: { kinds: [], fields: {} }, audience: 'full', expandedExternals: new Set() });
+    useStore.setState({ model: chainModel(), focusId: 'ca', selectedId: null, connFilter: { verbClasses: [], fields: {} }, audience: 'full', expandedExternals: new Set() });
     const { container } = render(<Canvas />);
     const before = node(container, 'a3')!.style.transform;
     act(() => { useStore.getState().setAudience('stakeholder'); }); // hides the derived a2→a3
@@ -250,7 +250,7 @@ describe('Canvas layout stability', () => {
   });
 
   it('expanding an external keeps children put and renders the group on the same side', () => {
-    useStore.setState({ model: model(), focusId: 'ca', selectedId: null, connFilter: { kinds: [], fields: {} }, audience: 'full', expandedExternals: new Set() });
+    useStore.setState({ model: model(), focusId: 'ca', selectedId: null, connFilter: { verbClasses: [], fields: {} }, audience: 'full', expandedExternals: new Set() });
     const { container } = render(<Canvas />);
     const a1Before = node(container, 'a1')!.style.transform;
     const a1X = xOf(node(container, 'a1')!);

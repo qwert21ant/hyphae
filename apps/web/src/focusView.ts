@@ -1,6 +1,6 @@
-import { c4Backend, layerOfType, type HyphaeModel, type Node, type Connection, type FlowStep } from '@hyphae/schema';
+import { c4Backend, layerOfType, verbClassOf, type HyphaeModel, type Node, type Connection, type FlowStep } from '@hyphae/schema';
 
-export type ConnFilter = { kinds: string[]; fields: Record<string, string[]> };
+export type ConnFilter = { verbClasses: string[]; fields: Record<string, string[]> };
 export type Audience = 'stakeholder' | 'full';
 
 export type FocusEdge = {
@@ -32,7 +32,7 @@ const indexOfLayer = (layer: string | undefined): number =>
   layer ? c4Backend.layers.indexOf(layer) : -1;
 
 function matchesFilter(c: Connection, f: ConnFilter): boolean {
-  if (f.kinds.length && !f.kinds.includes(c.type)) return false;
+  if (f.verbClasses.length && !f.verbClasses.includes(verbClassOf(c4Backend, c.verb) ?? '')) return false;
   for (const [key, vals] of Object.entries(f.fields)) {
     if (vals.length && !vals.includes(String(c.fields[key] ?? ''))) return false;
   }

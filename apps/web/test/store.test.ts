@@ -219,3 +219,21 @@ describe('revealStep', () => {
     expect(useStore.getState().selectedId).toBe('sys');
   });
 });
+
+describe('connection verb-class filter', () => {
+  beforeEach(() => useStore.setState({ connFilter: { verbClasses: [], fields: {} } }));
+
+  it('toggles a verb class on and off', () => {
+    useStore.getState().toggleConnVerbClass('messaging');
+    expect(useStore.getState().connFilter.verbClasses).toEqual(['messaging']);
+    useStore.getState().toggleConnVerbClass('messaging');
+    expect(useStore.getState().connFilter.verbClasses).toEqual([]);
+  });
+
+  it('clearConnFilter empties both groups', () => {
+    useStore.getState().toggleConnVerbClass('control');
+    useStore.getState().toggleConnField('anything', 'x');
+    useStore.getState().clearConnFilter();
+    expect(useStore.getState().connFilter).toEqual({ verbClasses: [], fields: {} });
+  });
+});

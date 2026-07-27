@@ -154,10 +154,10 @@ describe('buildFocusView', () => {
   it('honors the connection filter', () => {
     const m = model();
     m.connections.push(
-      { id: 'i1', from: 'a1', to: 'a2', type: 'Dependency', ...e },
-      { id: 'i2', from: 'a2', to: 'a1', type: 'DataFlow', ...e },
+      { id: 'i1', from: 'a1', to: 'a2', type: 'Dependency', ...e },                        // uses → control
+      { id: 'i2', from: 'a2', to: 'a1', type: 'DataFlow', ...e, verb: 'reads' },            // dataAccess
     );
-    const v = buildFocusView(m, 'ca', { kinds: ['Dependency'], fields: {} });
+    const v = buildFocusView(m, 'ca', { verbClasses: ['control'], fields: {} });
     expect(v.edges.map((x) => x.id)).toEqual(['i1']);
   });
 });
@@ -533,5 +533,24 @@ describe('stepReveal', () => {
   it('returns null when an endpoint is not in the model', () => {
     expect(stepReveal(model(), step('a1', 'ghost'))).toBeNull();
     expect(stepReveal(model(), step('ghost', 'a1'))).toBeNull();
+  });
+});
+
+describe('connection filter by verb class', () => {
+  it('keeps only edges whose verb belongs to a selected class', () => {
+    const m = model();
+    m.connections.push(
+      { id: 'r', from: 'a1', to: 'a2', ...e, verb: 'reads', object: '' },      // dataAccess
+      { id: 'p', from: 'a1', to: 'a2', ...e, verb: 'publishes', object: '' },  // messaging
+    );
+    const view = buildFocusView(m, 'ca', { verbClasses: ['messaging'], fields: {} });
+    expect(view.edges.flatMap((ed) => ed.realizedBy)).toEqual(['p']);
+  });
+
+  it('an empty verbClasses list filters nothing', () => {
+    const m = model();
+    m.connections.push({ id: 'r', from: 'a1', to: 'a2', ...e, verb: 'reads', object: '' });
+    const view = buildFocusView(m, 'ca', { verbClasses: [], fields: {} });
+    expect(view.edges.flatMap((ed) => ed.realizedBy)).toEqual(['r']);
   });
 });

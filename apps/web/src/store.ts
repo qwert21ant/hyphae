@@ -3,10 +3,10 @@ import {
   emptyModel, newId,
   type HyphaeModel, type Node, type Connection, type FlowStep,
 } from '@hyphae/schema';
-import { stepReveal, type Audience } from './focusView';
+import { stepReveal, type Audience, type ConnFilter } from './focusView';
 import * as api from './api';
 
-export type ConnFilter = { kinds: string[]; fields: Record<string, string[]> };
+export type { ConnFilter };
 
 type State = {
   model: HyphaeModel;
@@ -30,7 +30,7 @@ type State = {
   selectPattern: (id: string | null) => void;
   setOffViewSteps: (orders: number[]) => void;
   setAudience: (a: Audience) => void;
-  toggleConnKind: (value: string) => void;
+  toggleConnVerbClass: (value: string) => void;
   toggleConnField: (key: string, value: string) => void;
   clearConnFilter: () => void;
   toggleExternal: (id: string) => void;
@@ -67,7 +67,7 @@ export const useStore = create<State>((set, get) => {
     selectedPatternId: null,
     ownVersion: 0,
     error: null,
-    connFilter: { kinds: [], fields: {} },
+    connFilter: { verbClasses: [], fields: {} },
     audience: initialAudience,
     expandedExternals: new Set<string>(),
     offViewStepOrders: [],
@@ -121,10 +121,12 @@ export const useStore = create<State>((set, get) => {
       set({ audience });
     },
 
-    toggleConnKind: (value) =>
+    toggleConnVerbClass: (value) =>
       set((s) => {
-        const kinds = s.connFilter.kinds.includes(value) ? s.connFilter.kinds.filter((v) => v !== value) : [...s.connFilter.kinds, value];
-        return { connFilter: { ...s.connFilter, kinds } };
+        const verbClasses = s.connFilter.verbClasses.includes(value)
+          ? s.connFilter.verbClasses.filter((v) => v !== value)
+          : [...s.connFilter.verbClasses, value];
+        return { connFilter: { ...s.connFilter, verbClasses } };
       }),
     toggleConnField: (key, value) =>
       set((s) => {
@@ -132,7 +134,7 @@ export const useStore = create<State>((set, get) => {
         const next = cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value];
         return { connFilter: { ...s.connFilter, fields: { ...s.connFilter.fields, [key]: next } } };
       }),
-    clearConnFilter: () => set({ connFilter: { kinds: [], fields: {} } }),
+    clearConnFilter: () => set({ connFilter: { verbClasses: [], fields: {} } }),
 
     toggleExternal: (id) =>
       set((s) => {
