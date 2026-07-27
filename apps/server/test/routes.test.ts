@@ -77,15 +77,15 @@ describe('routes', () => {
     const b = await createNode({ name: 'B', type: 'System', fields: { summary: 'x' } });
     const conn = (await (await post('/connections', { from: a.id, to: b.id, type: 'Dependency' })).json()).connection;
     const res = await app.request(`/connections/${conn.id}`, {
-      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ fields: { transport: 'Sync' } }),
+      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ description: 'calls' }),
     });
     expect(res.status).toBe(200);
-    expect((await res.json()).connection.fields.transport).toBe('Sync');
+    expect((await res.json()).connection.description).toBe('calls');
   });
 
   it('PATCH /connections/:id returns 404 for a missing id', async () => {
     const res = await app.request('/connections/nope', {
-      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ fields: { transport: 'Sync' } }),
+      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ description: 'x' }),
     });
     expect(res.status).toBe(404);
   });

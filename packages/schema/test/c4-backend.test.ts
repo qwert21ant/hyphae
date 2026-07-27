@@ -44,8 +44,8 @@ describe('profile meta-schema', () => {
     expect(effectiveFields(c4Backend, 'System', 'node').map((f) => f.key)).toEqual(['responsibilities', 'invariants', 'summary']);
   });
 
-  it('effective connection fields = common (transport)', () => {
-    expect(effectiveFields(c4Backend, 'Dependency', 'connection').map((f) => f.key)).toEqual(['transport']);
+  it('ships no connection fields — verb and object carry the meaning', () => {
+    expect(c4Backend.commonConnectionFields).toEqual([]);
   });
 
   it('common fields win on key collision', () => {

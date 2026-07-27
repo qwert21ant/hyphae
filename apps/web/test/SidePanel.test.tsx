@@ -83,7 +83,7 @@ describe('SidePanel', () => {
     await waitFor(() => expect(useStore.getState().model.nodes.find((n) => n.id === 'comp')?.parentId).toBe('cont'));
   });
 
-  it('shows the selected connection and edits its transport', async () => {
+  it('shows the selected connection', async () => {
     await useStore.getState().addNode('Component');
     await useStore.getState().addNode('Component');
     const [a, b] = useStore.getState().model.nodes.map((n) => n.id);
@@ -96,8 +96,6 @@ describe('SidePanel', () => {
     }));
     render(<SidePanel />);
     expect(screen.getByRole('heading', { name: /connection/i })).toBeTruthy();
-    fireEvent.change(screen.getByLabelText('transport'), { target: { value: 'Sync' } });
-    await waitFor(() => expect(useStore.getState().model.connections[0].fields.transport).toBe('Sync'));
   });
 
   it('no longer offers a connection type select', async () => {
@@ -131,7 +129,7 @@ describe('SidePanel', () => {
           mk({ id: 'a1', name: 'A1', type: 'Component', parentId: 'ca' }),
           mk({ id: 'b1', name: 'B1', type: 'Component', parentId: 'cb' }),
         ],
-        connections: [{ id: 'x1', from: 'a1', to: 'b1', type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: { transport: 'Sync' } }],
+        connections: [{ id: 'x1', from: 'a1', to: 'b1', type: 'Dependency', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }],
       },
       focusId: 'sys',
       selectedId: 'agg:ca->cb',
@@ -269,7 +267,7 @@ describe('SidePanel', () => {
         nodes: [mk({ id: 'ca', name: 'Alpha', type: 'Container' }), mk({ id: 'a1', name: 'A1', parentId: 'ca' }), mk({ id: 'b1', name: 'B1', parentId: 'ca' })],
         connections: [
           conn({ id: 'parent', realizedBy: ['child1', 'missing'] }),
-          conn({ id: 'child1', type: 'DataFlow', fields: { transport: 'Async' } }),
+          conn({ id: 'child1', type: 'DataFlow', fields: {} }),
         ],
       },
       selectedId: 'parent',

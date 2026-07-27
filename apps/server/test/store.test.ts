@@ -62,18 +62,18 @@ describe('ModelStore', () => {
     expect(seen).toEqual([1, 2]);
   });
 
-  it('updateConnection updates a field', () => {
+  it('updateConnection updates description', () => {
     const store = new ModelStore(file);
     const a = store.addNode({ name: 'A', type: 'System', fields: { summary: 'x' } });
     const b = store.addNode({ name: 'B', type: 'System', fields: { summary: 'x' } });
     const conn = store.addConnection({ from: a.id, to: b.id, type: 'Dependency' });
-    const updated = store.updateConnection(conn.id, { fields: { transport: 'Sync' }, description: 'calls' });
-    expect(updated).toMatchObject({ id: conn.id, fields: { transport: 'Sync' }, description: 'calls' });
-    expect(store.get().connections[0].fields.transport).toBe('Sync');
+    const updated = store.updateConnection(conn.id, { description: 'calls' });
+    expect(updated).toMatchObject({ id: conn.id, description: 'calls' });
+    expect(store.get().connections[0].description).toBe('calls');
   });
 
   it('updateConnection throws NotFoundError for a missing id', () => {
-    expect(() => new ModelStore(file).updateConnection('nope', { fields: { transport: 'Sync' } })).toThrow(NotFoundError);
+    expect(() => new ModelStore(file).updateConnection('nope', { description: 'x' })).toThrow(NotFoundError);
   });
 
   it('persists realizedBy on a connection', () => {

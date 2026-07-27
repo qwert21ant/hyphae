@@ -56,17 +56,9 @@ export const c4Backend: Profile = {
     { key: 'responsibilities', type: 'list', description: 'What this node is responsible for (one item per line).' },
     { key: 'invariants', type: 'list', description: 'Conditions that always hold true for this node.' },
   ],
-  commonConnectionFields: [
-    {
-      key: 'transport', type: 'enum', description: 'The runtime mechanism of this connection.',
-      values: [
-        { value: 'Sync', description: 'Blocking request/response — the caller waits for a reply.' },
-        { value: 'Async', description: 'Fire-and-forget or queued — the caller does not wait.' },
-        { value: 'InProcess', description: 'Same process — a direct in-memory call, not over a network.' },
-        { value: 'None', description: 'No runtime transport (e.g. a build-time or structural dependency).' },
-      ],
-    },
-  ],
+  // Empty by design: verb + object + description carry a connection's meaning. The array stays
+  // so a custom profile can define its own connection fields.
+  commonConnectionFields: [],
   nodeKinds: [
     { id: 'System', category: 'Structure', layer: 'Context', role: 'service', allowedParents: [], allowedChildren: ['Container'], fields: [summary] },
     { id: 'Actor', category: 'Actor', layer: 'Context', role: 'actor', allowedParents: [], allowedChildren: [], fields: [summary] },

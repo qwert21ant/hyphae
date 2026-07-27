@@ -47,11 +47,18 @@ describe('validateModel', () => {
   });
 
   it('flags a bad enum value on a connection field', () => {
+    const profile = {
+      ...c4Backend,
+      commonConnectionFields: [{
+        key: 'channel', type: 'enum' as const, description: 'test-only enum field',
+        values: [{ value: 'Radio', description: 'over the air' }],
+      }],
+    };
     const m = model({
       nodes: [node({ id: 'a', type: 'System' }), node({ id: 'b', type: 'System' })],
-      connections: [conn({ from: 'a', to: 'b', fields: { transport: 'Telepathy' } })],
+      connections: [conn({ from: 'a', to: 'b', fields: { channel: 'Telepathy' } })],
     });
-    expect(validateModel(m, c4Backend).map((i) => i.kind)).toContain('bad-enum-value');
+    expect(validateModel(m, profile).map((i) => i.kind)).toContain('bad-enum-value');
   });
 
   it('accepts a valid model with fields', () => {
