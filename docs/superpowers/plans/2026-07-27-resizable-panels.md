@@ -24,9 +24,9 @@ Spec: `docs/superpowers/specs/2026-07-27-resizable-panels-design.md`.
 - **Never run bare `pnpm vitest run` from the repo root** — there is no root vitest config and the web
   tests then run without jsdom, producing dozens of bogus failures. Use `pnpm -r test` from the root,
   or `cd apps/web && pnpm test`.
-- **Test baseline before this work: 502 green** (schema 147, server 107, web 248). This plan adds 5
-  web tests (1 in Task 1, 1 in Task 2, 3 in Task 3; Task 2 *replaces* one existing test rather than
-  adding it), so the expected end state is **507 (web 253)**. If the observed count differs, use the
+- **Test baseline before this work: 502 green** (schema 147, server 107, web 248). This plan adds 6
+  web tests (1 in Task 1, 2 in Task 2, 3 in Task 3; Task 2 *replaces* one existing test rather than
+  adding it), so the expected end state is **508 (web 254)**. If the observed count differs, use the
   observed numbers — do not "fix" tests to hit a target.
 - **Roughly 80 `act(...)` warnings in the web suite are pre-existing noise.** Not caused by this work.
 - **jsdom loads no external stylesheet**, so nothing in `styles.css` is observable in the DOM. Pin a
@@ -85,7 +85,7 @@ library and makes the existing suite green with it available.
   guarantees `ResizeObserver`, `window.matchMedia` and `Element.prototype.setPointerCapture` exist in
   every web test.
 
-- [ ] **Step 1: Install the library**
+- [x] **Step 1: Install the library**
 
 ```bash
 cd C:/projects/hyphae && pnpm --filter @hyphae/web add react-resizable-panels@^4.12.2
@@ -94,7 +94,7 @@ cd C:/projects/hyphae && pnpm --filter @hyphae/web add react-resizable-panels@^4
 Expected: `apps/web/package.json` gains `"react-resizable-panels": "^4.12.2"` under `dependencies`,
 and `pnpm-lock.yaml` updates.
 
-- [ ] **Step 2: Write the failing test — the jsdom stubs exist**
+- [x] **Step 2: Write the failing test — the jsdom stubs exist**
 
 This is a setup task, so its test asserts the setup itself. Create
 `apps/web/test/domStubs.test.ts`:
@@ -114,7 +114,7 @@ describe('jsdom stubs for react-resizable-panels', () => {
 });
 ```
 
-- [ ] **Step 3: Run it and watch it fail**
+- [x] **Step 3: Run it and watch it fail**
 
 ```bash
 cd C:/projects/hyphae/apps/web && pnpm test -- domStubs
@@ -122,7 +122,7 @@ cd C:/projects/hyphae/apps/web && pnpm test -- domStubs
 
 Expected: FAIL — `ResizeObserver` is `undefined` and `window.matchMedia` is not a function.
 
-- [ ] **Step 4: Write the setup file**
+- [x] **Step 4: Write the setup file**
 
 Create `apps/web/test/setup.ts`:
 
@@ -159,7 +159,7 @@ if (!Element.prototype.setPointerCapture) {
 }
 ```
 
-- [ ] **Step 5: Wire it into the vitest config**
+- [x] **Step 5: Wire it into the vitest config**
 
 Modify `apps/web/vitest.config.ts` — the `test` block becomes:
 
@@ -170,7 +170,7 @@ Modify `apps/web/vitest.config.ts` — the `test` block becomes:
 (`test/setup.ts` does not match vitest's `*.test.ts` include glob, so it will not be collected as a
 test file.)
 
-- [ ] **Step 6: Run the new test, then the whole suite**
+- [x] **Step 6: Run the new test, then the whole suite**
 
 ```bash
 cd C:/projects/hyphae/apps/web && pnpm test -- domStubs
@@ -180,7 +180,7 @@ cd C:/projects/hyphae && pnpm -r test
 Expected: the stub test PASSES; the full suite is **503 green** (web 249 — baseline 248 plus this
 one). Nothing else changed behaviour yet.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd C:/projects/hyphae && git status --short
@@ -218,7 +218,7 @@ panel width and the collapsed rendering cannot disagree.
   - Panel ids `outline`, `canvas`, `inspector` in group `hyphae-body`; localStorage layout id `hyphae.body`.
   - CSS classes `sep sep--v` on the two vertical separators.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `apps/web/test/App.test.tsx`, add this case at the end of the `describe('App', ...)` block:
 
@@ -264,7 +264,7 @@ Add `import { useState } from 'react';` to that file, and replace **every** rema
 `render(<TreePanel />)` call in it with `renderTree()` (lines 42, 50, 60, 71, 80, 87, 97, 115, 122,
 132, 141, 151, 158, 168 — search for `render(<TreePanel` to be sure none are missed).
 
-- [ ] **Step 2: Run the tests and watch them fail**
+- [x] **Step 2: Run the tests and watch them fail**
 
 ```bash
 cd C:/projects/hyphae/apps/web && pnpm test -- App TreePanel
@@ -273,7 +273,7 @@ cd C:/projects/hyphae/apps/web && pnpm test -- App TreePanel
 Expected: the App case FAILS (`getAllByRole('separator')` finds none) and TreePanel FAILS to compile
 (`TreePanel` takes no props yet).
 
-- [ ] **Step 3: Make `TreePanel` controlled**
+- [x] **Step 3: Make `TreePanel` controlled**
 
 In `apps/web/src/TreePanel.tsx`:
 
@@ -287,7 +287,7 @@ In `apps/web/src/TreePanel.tsx`:
 - in `.tree-panel__head` (line 187) change the button to `onClick={onToggleCollapse}`;
 - `useState` is still used for `override`, so leave the import alone.
 
-- [ ] **Step 4: Build the group in `App.tsx`**
+- [x] **Step 4: Build the group in `App.tsx`**
 
 Add to the imports at the top of `apps/web/src/App.tsx`:
 
@@ -303,8 +303,9 @@ Inside `export function App()`, after the existing store selectors (line 45), ad
 ```tsx
   // The outline panel is collapsible from both ends: the « button drives the panel's imperative
   // API, and dragging the separator to the edge collapses it. onResize syncs the flag back so the
-  // 26px strip renders whichever way the user got there — the mount call (prevSize undefined) is
-  // ignored, since jsdom measures nothing and would report a spurious collapse.
+  // 26px strip renders whichever way the user got there, including a collapse restored from a
+  // persisted layout on mount. isCollapsed() is the panel's own answer, so nothing here can drift
+  // out of step with collapsedSize.
   const outlineRef = usePanelRef();
   const [outlineCollapsed, setOutlineCollapsed] = useState(false);
   const bodyLayout = useDefaultLayout({
@@ -340,9 +341,7 @@ Replace the `<div className="body">…</div>` block (lines 122-126) with:
           collapsedSize={26}
           groupResizeBehavior="preserve-pixel-size"
           style={{ overflow: 'hidden', display: 'flex' }}
-          onResize={(size, _id, prev) => {
-            if (prev !== undefined) setOutlineCollapsed(size.inPixels <= 26);
-          }}
+          onResize={() => setOutlineCollapsed(outlineRef.current?.isCollapsed() ?? false)}
         >
           <TreePanel collapsed={outlineCollapsed} onToggleCollapse={toggleOutline} />
         </Panel>
@@ -366,13 +365,13 @@ Replace the `<div className="body">…</div>` block (lines 122-126) with:
       </Group>
 ```
 
-- [ ] **Step 5: Update the CSS**
+- [x] **Step 5: Update the CSS**
 
 In `apps/web/src/styles.css`, replace lines 4-7 with:
 
 ```css
 .body { flex: 1 1 0; min-height: 0; }
-.panel { height: 100%; box-sizing: border-box; border-left: 1px solid #ddd; padding: 12px; overflow-y: auto; }
+.panel { flex: 1; min-width: 0; height: 100%; box-sizing: border-box; border-left: 1px solid #ddd; padding: 12px; overflow-y: auto; }
 .tree-panel { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; border-right: 1px solid #ddd; font-size: 12px; color: #334155; }
 .tree-panel--collapsed { align-items: center; padding-top: 6px; }
 ```
@@ -392,7 +391,7 @@ Append at the end of the file:
 .sep--h { height: 5px; cursor: row-resize; }
 ```
 
-- [ ] **Step 6: Run the tests**
+- [x] **Step 6: Run the tests**
 
 ```bash
 cd C:/projects/hyphae/apps/web && pnpm test -- App TreePanel
@@ -400,15 +399,15 @@ cd C:/projects/hyphae/apps/web && pnpm test -- App TreePanel
 
 Expected: PASS, including every pre-existing case in both files.
 
-- [ ] **Step 7: Run the whole suite**
+- [x] **Step 7: Run the whole suite**
 
 ```bash
 cd C:/projects/hyphae && pnpm -r test
 ```
 
-Expected: **504 green** (web 250). Ignore the ~80 pre-existing `act(...)` warnings.
+Expected: **505 green** (web 251). Ignore the ~80 pre-existing `act(...)` warnings.
 
-- [ ] **Step 8: Check it in the browser**
+- [x] **Step 8: Check it in the browser**
 
 ```bash
 cd C:/projects/hyphae && pnpm dev
@@ -418,7 +417,7 @@ Open http://localhost:3000 and confirm: dragging the border between the outline 
 resizes it; likewise the inspector; the cursor turns into `col-resize` over each border; « collapses
 the outline to a narrow strip and » restores its previous width; a reload keeps the widths.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 cd C:/projects/hyphae && git status --short
@@ -454,7 +453,7 @@ EOF
 - Consumes: the controlled `TreePanel` props and the `renderTree()` helper from Task 2; the `sep sep--h` CSS class from Task 2's separator rules.
 - Produces: panel ids `nodes`, `detail` in group `hyphae-outline`; localStorage layout id `hyphae.outline`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add to the `describe('TreePanel — chrome', ...)` block in `apps/web/test/TreePanel.test.tsx`:
 
@@ -482,7 +481,7 @@ Add to the `describe('TreePanel — chrome', ...)` block in `apps/web/test/TreeP
   });
 ```
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 ```bash
 cd C:/projects/hyphae/apps/web && pnpm test -- TreePanel
@@ -492,7 +491,7 @@ Expected: the first case FAILS (no separator found), the second PASSES already (
 separator yet), the third FAILS (no `.sep--h` rule yet if Task 2 is not merged — if Task 2 is in, it
 passes).
 
-- [ ] **Step 3: Render the vertical group**
+- [x] **Step 3: Render the vertical group**
 
 In `apps/web/src/TreePanel.tsx`, add the import:
 
@@ -563,7 +562,7 @@ Replace the final `return (...)` block (lines 183-199) with:
   );
 ```
 
-- [ ] **Step 4: Update the CSS**
+- [x] **Step 4: Update the CSS**
 
 In `apps/web/src/styles.css`, replace the `.tree-panel__body` rule (line 9) with:
 
@@ -577,7 +576,7 @@ In `apps/web/src/styles.css`, replace the `.tree-panel__body` rule (line 9) with
 The split body must not scroll — its two panes do, which the library's panel wrapper already handles
 (`overflow: auto` on the inner div a `Panel`'s `className` lands on).
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 ```bash
 cd C:/projects/hyphae/apps/web && pnpm test -- TreePanel
@@ -585,15 +584,15 @@ cd C:/projects/hyphae/apps/web && pnpm test -- TreePanel
 
 Expected: PASS, all cases in the file.
 
-- [ ] **Step 6: Run the whole suite**
+- [x] **Step 6: Run the whole suite**
 
 ```bash
 cd C:/projects/hyphae && pnpm -r test
 ```
 
-Expected: **507 green** (web 253).
+Expected: **508 green** (web 254).
 
-- [ ] **Step 7: Check it against the real model**
+- [x] **Step 7: Check it against the real model**
 
 ```bash
 cd C:/projects/hyphae && HYPHAE_FILE=$PWD/apps/server/hyphae-baritone.json pnpm server
@@ -604,7 +603,7 @@ tree, confirm: the outline shows Nodes above and Flows + Patterns below; each sc
 dragging the handle between them re-proportions and a reload remembers it; selecting a flow expands
 its steps inside the lower pane without pushing anything out of the panel.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 cd C:/projects/hyphae && git status --short   # hyphae-baritone.json must stay untracked
@@ -638,7 +637,7 @@ same branch that changes them. Only `README.md` and `CLAUDE.md` describe anythin
 - Consumes: the finished behaviour from Tasks 2 and 3.
 - Produces: nothing code-facing.
 
-- [ ] **Step 1: Update the README's Navigation paragraph**
+- [x] **Step 1: Update the README's Navigation paragraph**
 
 In `README.md`, replace the sentence beginning "The left **outline** panel lists the whole model"
 (lines 22-24) with:
@@ -652,16 +651,16 @@ focused handle, double-click resets it), and the sizes persist per browser. Sear
 by name.
 ```
 
-- [ ] **Step 2: Update the test baseline in CLAUDE.md**
+- [x] **Step 2: Update the test baseline in CLAUDE.md**
 
 In `CLAUDE.md`, under `## Commands`, change the baseline line to match the number `pnpm -r test`
 actually reports at the end of Task 3:
 
 ```
-    pnpm -r test        # baseline 507 green: schema 147, server 107, web 253
+    pnpm -r test        # baseline 508 green: schema 147, server 107, web 254
 ```
 
-- [ ] **Step 3: Add the jsdom gotcha**
+- [x] **Step 3: Add the jsdom gotcha**
 
 In `CLAUDE.md`, under `## Testing gotchas`, add this bullet after the React Flow one:
 
@@ -672,7 +671,7 @@ In `CLAUDE.md`, under `## Testing gotchas`, add this bullet after the React Flow
   `role="separator"` structure (`aria-orientation` is perpendicular to its group) instead.
 ```
 
-- [ ] **Step 4: Verify the docs match reality**
+- [x] **Step 4: Verify the docs match reality**
 
 ```bash
 cd C:/projects/hyphae && pnpm -r test && pnpm -r build
@@ -681,7 +680,7 @@ cd C:/projects/hyphae && pnpm -r test && pnpm -r build
 Expected: the suite reports exactly the number now written in `CLAUDE.md`, and the build succeeds.
 Re-read the edited README paragraph against what the app actually does.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd C:/projects/hyphae && git status --short
