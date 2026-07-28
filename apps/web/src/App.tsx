@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Group, Panel, Separator, useDefaultLayout, usePanelRef } from 'react-resizable-panels';
 import { useStore } from './store';
 import { loadModel } from './api';
@@ -54,8 +54,25 @@ export function App() {
   // tree clipped inside it. Under jsdom the library's ResizeObserver never fires (test/setup.ts
   // stubs `observe()` as a no-op), so toggleOutline reads isCollapsed() back itself rather than
   // relying on onResize to catch up — that keeps the flag correct in both the browser and tests.
+  //
+  // The library's own expand() only restores the width collapse() last recorded (its
+  // `expandToSize`, verified in dist/), and that bookkeeping is never touched by a drag that
+  // collapses the panel directly — so expand() falls back to minSize after a drag-collapse, and
+  // even after a button-collapse the memory doesn't survive a reload. We keep our own record
+  // instead: onResize's third argument is the size the panel had just before this change, so any
+  // call landing on a real expanded width (never the 26px collapsed strip) updates both a ref and
+  // `localStorage['hyphae.outline.width']`, and expand() is followed by an explicit resize() to
+  // that remembered pixel width.
   const outlineRef = usePanelRef();
   const [outlineCollapsed, setOutlineCollapsed] = useState(false);
+  const lastOutlineWidth = useRef<number | null>(
+    typeof localStorage !== 'undefined' ? Number(localStorage.getItem('hyphae.outline.width')) || null : null,
+  );
+  const rememberOutlineWidth = (px: number) => {
+    if (px <= 26) return; // the collapsed strip is never a width worth restoring to
+    lastOutlineWidth.current = px;
+    if (typeof localStorage !== 'undefined') localStorage.setItem('hyphae.outline.width', String(Math.round(px)));
+  };
   const bodyLayout = useDefaultLayout({
     id: 'hyphae.body',
     storage: localStorage,
@@ -63,8 +80,14 @@ export function App() {
   });
 
   const toggleOutline = () => {
-    if (outlineCollapsed) outlineRef.current?.expand();
-    else outlineRef.current?.collapse();
+    if (outlineCollapsed) {
+      outlineRef.current?.expand();
+      if (lastOutlineWidth.current) outlineRef.current?.resize(lastOutlineWidth.current);
+    } else {
+      const current = outlineRef.current?.getSize().inPixels;
+      if (current) rememberOutlineWidth(current);
+      outlineRef.current?.collapse();
+    }
     setOutlineCollapsed(outlineRef.current?.isCollapsed() ?? !outlineCollapsed);
   };
 
@@ -151,7 +174,7 @@ export function App() {
         onLayoutChanged={bodyLayout.onLayoutChanged}
       >
         <Panel
-          id="outline"
+          id="hyphae-pane-outline"
           panelRef={outlineRef}
           defaultSize={240}
           minSize={160}
@@ -160,19 +183,22 @@ export function App() {
           collapsedSize={26}
           groupResizeBehavior="preserve-pixel-size"
           style={{ overflow: 'hidden', display: 'flex' }}
-          onResize={() => setOutlineCollapsed(outlineRef.current?.isCollapsed() ?? false)}
+          onResize={(_size, _id, prevSize) => {
+            setOutlineCollapsed(outlineRef.current?.isCollapsed() ?? false);
+            if (prevSize) rememberOutlineWidth(prevSize.inPixels);
+          }}
         >
           <TreePanel collapsed={outlineCollapsed} onToggleCollapse={toggleOutline} />
         </Panel>
-        <Separator className="sep sep--v" />
+        <Separator className="sep sep--v" aria-label="resize outline" />
         {/* The canvas is the group's one preserve-relative-size panel, so it absorbs window
             resizes while the side panels keep their pixel width. */}
-        <Panel id="canvas" minSize="20%" style={{ overflow: 'hidden', display: 'flex' }}>
+        <Panel id="hyphae-pane-canvas" minSize="20%" style={{ overflow: 'hidden', display: 'flex' }}>
           <Canvas />
         </Panel>
-        <Separator className="sep sep--v" />
+        <Separator className="sep sep--v" aria-label="resize inspector" />
         <Panel
-          id="inspector"
+          id="hyphae-pane-inspector"
           defaultSize={320}
           minSize={220}
           maxSize="40%"

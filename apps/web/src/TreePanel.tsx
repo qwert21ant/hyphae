@@ -218,11 +218,11 @@ export function TreePanel({ collapsed, onToggleCollapse }: { collapsed: boolean;
             defaultLayout={outlineLayout.defaultLayout}
             onLayoutChanged={outlineLayout.onLayoutChanged}
           >
-            <Panel id="nodes" defaultSize="60" minSize="15" className="tree-split__pane">
+            <Panel id="hyphae-pane-nodes" defaultSize="60" minSize="15" className="tree-split__pane">
               {nodesSection}
             </Panel>
-            <Separator className="sep sep--h" />
-            <Panel id="detail" defaultSize="40" minSize="15" className="tree-split__pane tree-split__pane--detail">
+            <Separator className="sep sep--h" aria-label="resize node list" />
+            <Panel id="hyphae-pane-detail" defaultSize="40" minSize="15" className="tree-split__pane tree-split__pane--detail">
               {detailSections}
             </Panel>
           </Group>

@@ -55,7 +55,7 @@ beforeEach(() => {
   window.history.replaceState(null, '', window.location.pathname);
   useStore.setState({ focusId: null, selectedId: null, selectedFlowId: null, selectedPatternId: null, expandedExternals: new Set<string>() });
   useStore.getState().setModel(emptyModel(), 0);
-  vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
+  localStorage.removeItem('hyphae.outline.width');
   vi.stubGlobal('EventSource', class { addEventListener() {} close() {} });
 });
 
@@ -156,5 +156,31 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'show model outline' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'show model outline' }));
     expect(screen.getByRole('button', { name: 'hide model outline' })).toBeTruthy();
+  });
+
+  it('names the two body separators for accessibility', () => {
+    render(<App />);
+    expect(screen.getByRole('separator', { name: 'resize outline' })).toBeTruthy();
+    expect(screen.getByRole('separator', { name: 'resize inspector' })).toBeTruthy();
+  });
+
+  // The actual pixel restore (getSize()/resize() against real geometry) is untestable under
+  // jsdom — offsetWidth is always 0, so every onResize and getSize() call in this suite reports a
+  // 0px size, and rememberOutlineWidth's guard (`px <= 26`) treats that exactly like the collapsed
+  // strip. These two cases instead pin what jsdom *can* see: the guard stops a 0px reading from
+  // clobbering a real persisted width, and a collapse that jsdom cannot measure never persists a
+  // bogus one to begin with.
+  it('does not persist a width jsdom cannot measure', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'hide model outline' }));
+    expect(localStorage.getItem('hyphae.outline.width')).toBeNull();
+  });
+
+  it('keeps a width persisted from a previous session across a collapse/expand round trip', () => {
+    localStorage.setItem('hyphae.outline.width', '333');
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'hide model outline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'show model outline' }));
+    expect(localStorage.getItem('hyphae.outline.width')).toBe('333');
   });
 });

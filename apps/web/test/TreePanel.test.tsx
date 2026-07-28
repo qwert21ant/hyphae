@@ -185,6 +185,20 @@ describe('TreePanel — chrome', () => {
     const seps = getAllByRole('separator');
     // A vertical group yields a horizontal separator.
     expect(seps.map((s) => s.getAttribute('aria-orientation'))).toEqual(['horizontal']);
+    expect(seps[0].getAttribute('aria-label')).toBe('resize node list');
+  });
+
+  it('puts the node tree in the nodes pane and Flows/Patterns in the detail pane, keyed by their panel ids', () => {
+    // The library sets data-testid to the panel's id, so this pins both which pane holds which
+    // section (nothing else fixes their order) and the ids the persisted layout keys off, which is
+    // why they carry the hyphae-pane- prefix (bare ids would collide with other DOM ids on the page).
+    const { getByTestId } = renderTree();
+    const nodes = getByTestId('hyphae-pane-nodes');
+    const detail = getByTestId('hyphae-pane-detail');
+    expect(nodes.textContent).toContain('Nodes');
+    expect(nodes.textContent).toContain('Sys');
+    expect(detail.textContent).toContain('Flows');
+    expect(detail.textContent).toContain('Patterns');
   });
 
   it('omits the split when the model has neither flows nor patterns', () => {
