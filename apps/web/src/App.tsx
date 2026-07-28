@@ -25,6 +25,12 @@ function applyRoute(route: Route) {
 /** Adopt the URL hash as the current view, validated against the loaded model. A hash naming an
  *  unknown node/flow/pattern (stale, hand-typed, or a pre-Cluster-E bare `#<id>` link) rewrites the
  *  URL to root instead of showing a blank canvas; replaceState (not push) keeps it out of history. */
+/** The outline panel's collapsed strip width and its minimum expanded width — kept as named
+ *  constants (rather than bare literals in the `Panel` props and the `rememberOutlineWidth` guard)
+ *  so the guard can never drift out of sync with what the panel is actually configured with. */
+const OUTLINE_COLLAPSED_SIZE = 26;
+const OUTLINE_MIN_SIZE = 160;
+
 function applyHashRoute() {
   const { model } = useStore.getState();
   const { route, rewrite } = resolveHashRoute(window.location.hash, {
@@ -69,7 +75,11 @@ export function App() {
     typeof localStorage !== 'undefined' ? Number(localStorage.getItem('hyphae.outline.width')) || null : null,
   );
   const rememberOutlineWidth = (px: number) => {
-    if (px <= 26) return; // the collapsed strip is never a width worth restoring to
+    // Below OUTLINE_MIN_SIZE the library itself snaps any requested resize back to
+    // OUTLINE_COLLAPSED_SIZE (anything under (collapsedSize + minSize) / 2 collapses), so a width in
+    // that dead band is never a real expanded width — remembering it would make the next expand()
+    // immediately re-collapse. Reject anything below minSize, not just at-or-below collapsedSize.
+    if (px < OUTLINE_MIN_SIZE) return;
     lastOutlineWidth.current = px;
     if (typeof localStorage !== 'undefined') localStorage.setItem('hyphae.outline.width', String(Math.round(px)));
   };
@@ -177,10 +187,10 @@ export function App() {
           id="hyphae-pane-outline"
           panelRef={outlineRef}
           defaultSize={240}
-          minSize={160}
+          minSize={OUTLINE_MIN_SIZE}
           maxSize="40%"
           collapsible
-          collapsedSize={26}
+          collapsedSize={OUTLINE_COLLAPSED_SIZE}
           groupResizeBehavior="preserve-pixel-size"
           style={{ overflow: 'hidden', display: 'flex' }}
           onResize={(_size, _id, prevSize) => {
