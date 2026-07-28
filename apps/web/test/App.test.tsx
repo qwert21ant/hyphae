@@ -141,4 +141,12 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: /full/i }));
     expect(useStore.getState().audience).toBe('full');
   });
+
+  it('puts a resize separator on each side of the canvas', () => {
+    render(<App />);
+    const seps = screen.getAllByRole('separator');
+    // A horizontal group yields vertical separators; the empty test model has no flows or
+    // patterns, so the outline's own horizontal separator (Task 3) is not rendered here.
+    expect(seps.map((s) => s.getAttribute('aria-orientation'))).toEqual(['vertical', 'vertical']);
+  });
 });

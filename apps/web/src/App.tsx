@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Group, Panel, Separator, useDefaultLayout, usePanelRef } from 'react-resizable-panels';
 import { useStore } from './store';
 import { loadModel } from './api';
 import { breadcrumbPath } from './focusView';
@@ -43,6 +44,24 @@ export function App() {
   const addNode = useStore((s) => s.addNode);
   const audience = useStore((s) => s.audience);
   const setAudience = useStore((s) => s.setAudience);
+
+  // The outline panel is collapsible from both ends: the « button drives the panel's imperative
+  // API, and dragging the separator to the edge collapses it. onResize syncs the flag back so the
+  // 26px strip renders whichever way the user got there — the mount call (prevSize undefined) is
+  // ignored, since jsdom measures nothing and would report a spurious collapse.
+  const outlineRef = usePanelRef();
+  const [outlineCollapsed, setOutlineCollapsed] = useState(false);
+  const bodyLayout = useDefaultLayout({
+    id: 'hyphae.body',
+    storage: localStorage,
+    onlySaveAfterUserInteractions: true,
+  });
+
+  const toggleOutline = () => {
+    if (outlineCollapsed) outlineRef.current?.expand();
+    else outlineRef.current?.collapse();
+    setOutlineCollapsed(!outlineCollapsed);
+  };
 
   useEffect(() => {
     loadModel()
@@ -119,11 +138,47 @@ export function App() {
           ))}
         </div>
       </header>
-      <div className="body">
-        <TreePanel />
-        <Canvas />
-        <SidePanel />
-      </div>
+      <Group
+        className="body"
+        id="hyphae-body"
+        orientation="horizontal"
+        defaultLayout={bodyLayout.defaultLayout}
+        onLayoutChanged={bodyLayout.onLayoutChanged}
+      >
+        <Panel
+          id="outline"
+          panelRef={outlineRef}
+          defaultSize={240}
+          minSize={160}
+          maxSize="40%"
+          collapsible
+          collapsedSize={26}
+          groupResizeBehavior="preserve-pixel-size"
+          style={{ overflow: 'hidden', display: 'flex' }}
+          onResize={(size, _id, prev) => {
+            if (prev !== undefined) setOutlineCollapsed(size.inPixels <= 26);
+          }}
+        >
+          <TreePanel collapsed={outlineCollapsed} onToggleCollapse={toggleOutline} />
+        </Panel>
+        <Separator className="sep sep--v" />
+        {/* The canvas is the group's one preserve-relative-size panel, so it absorbs window
+            resizes while the side panels keep their pixel width. */}
+        <Panel id="canvas" minSize="20%" style={{ overflow: 'hidden', display: 'flex' }}>
+          <Canvas />
+        </Panel>
+        <Separator className="sep sep--v" />
+        <Panel
+          id="inspector"
+          defaultSize={320}
+          minSize={220}
+          maxSize="40%"
+          groupResizeBehavior="preserve-pixel-size"
+          style={{ overflow: 'hidden', display: 'flex' }}
+        >
+          <SidePanel />
+        </Panel>
+      </Group>
     </div>
   );
 }

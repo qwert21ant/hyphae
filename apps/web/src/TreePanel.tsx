@@ -45,7 +45,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-export function TreePanel() {
+export function TreePanel({ collapsed, onToggleCollapse }: { collapsed: boolean; onToggleCollapse: () => void }) {
   const model = useStore((s) => s.model);
   const focusId = useStore((s) => s.focusId);
   const selectedId = useStore((s) => s.selectedId);
@@ -58,7 +58,6 @@ export function TreePanel() {
   const selectFlow = useStore((s) => s.selectFlow);
   const selectPattern = useStore((s) => s.selectPattern);
 
-  const [collapsed, setCollapsed] = useState(false);
   // Explicit twisty clicks, layered over the auto-opened focus branch (so both can be overridden).
   const [override, setOverride] = useState<Record<string, boolean>>({});
 
@@ -77,7 +76,7 @@ export function TreePanel() {
   if (collapsed) {
     return (
       <aside className="tree-panel tree-panel--collapsed">
-        <button className="tree-toggle" onClick={() => setCollapsed(false)} title="Show model outline" aria-label="show model outline">»</button>
+        <button className="tree-toggle" onClick={onToggleCollapse} title="Show model outline" aria-label="show model outline">»</button>
       </aside>
     );
   }
@@ -184,7 +183,7 @@ export function TreePanel() {
     <aside className="tree-panel" aria-label="model outline">
       <div className="tree-panel__head">
         <strong>Outline</strong>
-        <button className="tree-toggle" onClick={() => setCollapsed(true)} title="Hide model outline" aria-label="hide model outline">«</button>
+        <button className="tree-toggle" onClick={onToggleCollapse} title="Hide model outline" aria-label="hide model outline">«</button>
       </div>
       <div className="tree-panel__body">
         <Section title="Nodes">
