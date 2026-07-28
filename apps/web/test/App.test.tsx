@@ -149,4 +149,12 @@ describe('App', () => {
     // patterns, so the outline's own horizontal separator (Task 3) is not rendered here.
     expect(seps.map((s) => s.getAttribute('aria-orientation'))).toEqual(['vertical', 'vertical']);
   });
+
+  it('collapses and restores the outline from the lifted toggle', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'hide model outline' }));
+    expect(screen.getByRole('button', { name: 'show model outline' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'show model outline' }));
+    expect(screen.getByRole('button', { name: 'hide model outline' })).toBeTruthy();
+  });
 });

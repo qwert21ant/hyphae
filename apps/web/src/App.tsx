@@ -46,9 +46,14 @@ export function App() {
   const setAudience = useStore((s) => s.setAudience);
 
   // The outline panel is collapsible from both ends: the « button drives the panel's imperative
-  // API, and dragging the separator to the edge collapses it. onResize syncs the flag back so the
-  // 26px strip renders whichever way the user got there — the mount call (prevSize undefined) is
-  // ignored, since jsdom measures nothing and would report a spurious collapse.
+  // API, and dragging the separator to the edge collapses it too. onResize is the single source of
+  // truth for the flag, read via isCollapsed() rather than a size threshold — a window too narrow
+  // to honour every min size can squeeze the panel under collapsedSize without the panel actually
+  // being collapsed. onResize also fires on the layout the group restores from localStorage at
+  // mount, so a reload landing on a drag-collapsed width renders the 26px strip instead of the full
+  // tree clipped inside it. Under jsdom the library's ResizeObserver never fires (test/setup.ts
+  // stubs `observe()` as a no-op), so toggleOutline reads isCollapsed() back itself rather than
+  // relying on onResize to catch up — that keeps the flag correct in both the browser and tests.
   const outlineRef = usePanelRef();
   const [outlineCollapsed, setOutlineCollapsed] = useState(false);
   const bodyLayout = useDefaultLayout({
@@ -60,7 +65,7 @@ export function App() {
   const toggleOutline = () => {
     if (outlineCollapsed) outlineRef.current?.expand();
     else outlineRef.current?.collapse();
-    setOutlineCollapsed(!outlineCollapsed);
+    setOutlineCollapsed(outlineRef.current?.isCollapsed() ?? !outlineCollapsed);
   };
 
   useEffect(() => {
@@ -155,9 +160,7 @@ export function App() {
           collapsedSize={26}
           groupResizeBehavior="preserve-pixel-size"
           style={{ overflow: 'hidden', display: 'flex' }}
-          onResize={(size, _id, prev) => {
-            if (prev !== undefined) setOutlineCollapsed(size.inPixels <= 26);
-          }}
+          onResize={() => setOutlineCollapsed(outlineRef.current?.isCollapsed() ?? false)}
         >
           <TreePanel collapsed={outlineCollapsed} onToggleCollapse={toggleOutline} />
         </Panel>
