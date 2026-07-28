@@ -24,7 +24,7 @@ schema in `packages/schema` wins any disagreement.
     pnpm server         # API + SSE on :5173, owns ./hyphae.json (override with HYPHAE_FILE)
     pnpm web            # editor on :3000, proxies the API
     pnpm mcp            # MCP server — an HTTP client of the above, so the server must be running
-    pnpm -r test        # baseline 502 green: schema 147, server 107, web 248
+    pnpm -r test        # baseline 508 green: schema 147, server 107, web 254
     pnpm -r build
 
 ## Testing gotchas
@@ -40,6 +40,10 @@ These cost real time when rediscovered:
   or test the pure function underneath.
 - A component rendering React Flow `Handle`s needs a `ReactFlowProvider` wrapper in tests
   (`NodeBox.test.tsx`, `PatternMemberNode.test.tsx`).
+- **The resizable panels need jsdom stubs.** `react-resizable-panels` calls `ResizeObserver`,
+  `matchMedia` and `setPointerCapture`, none of which jsdom implements; `apps/web/test/setup.ts`
+  provides them. Elements are never measured, so panel *sizes* are untestable — assert the
+  `role="separator"` structure (`aria-orientation` is perpendicular to its group) instead.
 - **jsdom loads no external stylesheet**, so nothing in `styles.css` is observable in the DOM. To pin
   a CSS invariant, read the file and assert the rule (`TreePanel.test.tsx` does this for the step
   list marker).
@@ -66,6 +70,9 @@ These cost real time when rediscovered:
   not a route — it rewrites to root. Precedence is pattern > flow > focus.
 - The server rejects a bad write with **422 + the specific issues**; there is no whole-model write
   endpoint. On rejection the store resyncs from the server rather than guessing.
+- **`TreePanel` is controlled by `App`.** `onResize` → `isCollapsed()` is the only authority on
+  `outlineCollapsed`; reintroducing local collapse state in `TreePanel` silently breaks drag-collapse,
+  since a drag past the edge never calls the lifted toggle.
 
 ## Working with a built model
 

@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { useState } from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import { TreePanel } from '../src/TreePanel';
@@ -36,10 +37,18 @@ const reset = (over: Record<string, unknown> = {}) =>
 
 beforeEach(() => reset());
 
+/** TreePanel is controlled by App (which drives the resizable panel's collapse()/expand()), so the
+ *  tests own the flag. Every render goes through here. */
+function Outline() {
+  const [collapsed, setCollapsed] = useState(false);
+  return <TreePanel collapsed={collapsed} onToggleCollapse={() => setCollapsed((c) => !c)} />;
+}
+const renderTree = () => render(<Outline />);
+
 describe('TreePanel — nodes', () => {
   it('nests nodes by containment, opening the branch of the current focus', () => {
     reset({ focusId: 'ca' });
-    const { getByRole, queryByRole } = render(<TreePanel />);
+    const { getByRole, queryByRole } = renderTree();
     expect(getByRole('button', { name: 'Sys' })).toBeTruthy();
     expect(getByRole('button', { name: 'Alpha' })).toBeTruthy();
     expect(getByRole('button', { name: 'A1' })).toBeTruthy();   // inside the focused Alpha
@@ -47,7 +56,7 @@ describe('TreePanel — nodes', () => {
   });
 
   it('expands and collapses a branch from its twisty', () => {
-    const { getByRole, queryByRole } = render(<TreePanel />);
+    const { getByRole, queryByRole } = renderTree();
     expect(queryByRole('button', { name: 'Alpha' })).toBeNull();
     fireEvent.click(getByRole('button', { name: 'expand Sys' }));
     expect(getByRole('button', { name: 'Alpha' })).toBeTruthy();
@@ -57,7 +66,7 @@ describe('TreePanel — nodes', () => {
 
   it('reveals a node on click and drills into it on double-click', () => {
     reset({ focusId: 'ca' });
-    const { getByRole } = render(<TreePanel />);
+    const { getByRole } = renderTree();
     fireEvent.click(getByRole('button', { name: 'A1' }));
     expect(useStore.getState().focusId).toBe('ca');       // A1's parent, with A1 selected
     expect(useStore.getState().selectedId).toBe('a1');
@@ -68,7 +77,7 @@ describe('TreePanel — nodes', () => {
 
 describe('TreePanel — flows', () => {
   it('selects a flow and lists its numbered steps', () => {
-    const { getByRole, getByText } = render(<TreePanel />);
+    const { getByRole, getByText } = renderTree();
     fireEvent.click(getByRole('button', { name: 'Ingest clip' }));
     expect(useStore.getState().selectedFlowId).toBe('f1');
     expect(getByText(/1\. send frame/)).toBeTruthy();
@@ -77,14 +86,14 @@ describe('TreePanel — flows', () => {
 
   it('deselects the flow when its row is clicked again', () => {
     reset({ selectedFlowId: 'f1' });
-    const { getByRole } = render(<TreePanel />);
+    const { getByRole } = renderTree();
     fireEvent.click(getByRole('button', { name: /Ingest clip/ }));
     expect(useStore.getState().selectedFlowId).toBeNull();
   });
 
   it('navigates to a step on click', () => {
     reset({ selectedFlowId: 'f1' });
-    const { getByText } = render(<TreePanel />);
+    const { getByText } = renderTree();
     fireEvent.click(getByText(/2\. ack/));
     const s = useStore.getState();
     expect(s.focusId).toBe('cb');                      // step 2 runs b1 -> a1
@@ -94,7 +103,7 @@ describe('TreePanel — flows', () => {
 
   it('marks the steps the canvas could not draw', () => {
     reset({ selectedFlowId: 'f1', offViewStepOrders: [2] });
-    const { getByText } = render(<TreePanel />);
+    const { getByText } = renderTree();
     expect(getByText(/1\. send frame/).textContent).not.toContain('↗');
     expect(getByText(/2\. ack/).textContent).toContain('↗');
   });
@@ -112,14 +121,14 @@ describe('TreePanel — flows', () => {
     const m = model();
     m.flows[0].steps[0].to = 'ghost';   // dangling -> bad-flow-endpoint
     reset({ model: m });
-    const { getByText } = render(<TreePanel />);
+    const { getByText } = renderTree();
     expect(getByText(/Ingest clip ⚠/)).toBeTruthy();
   });
 });
 
 describe('TreePanel — patterns', () => {
   it('selects a pattern and shows its anchor and members', () => {
-    const { getByRole, getByText } = render(<TreePanel />);
+    const { getByRole, getByText } = renderTree();
     fireEvent.click(getByRole('button', { name: /Recorder/ }));
     expect(useStore.getState().selectedPatternId).toBe('p1');
     expect(getByText('anchor: Alpha')).toBeTruthy();
@@ -129,7 +138,7 @@ describe('TreePanel — patterns', () => {
 
   it('navigates to the anchor node, leaving the pattern view', () => {
     reset({ selectedPatternId: 'p1' });
-    const { getByText } = render(<TreePanel />);
+    const { getByText } = renderTree();
     fireEvent.click(getByText('anchor: Alpha'));
     expect(useStore.getState().focusId).toBe('sys');   // Alpha's parent, Alpha selected
     expect(useStore.getState().selectedId).toBe('ca');
@@ -138,7 +147,7 @@ describe('TreePanel — patterns', () => {
 
   it('navigates from a member bound to a node, but not from a bare one', () => {
     reset({ selectedPatternId: 'p1' });
-    const { getByRole, getByText } = render(<TreePanel />);
+    const { getByRole, getByText } = renderTree();
     expect(getByText('Idle').tagName).toBe('SPAN');    // no binding -> not a link
     fireEvent.click(getByRole('button', { name: 'Writer' }));
     expect(useStore.getState().selectedId).toBe('b1');
@@ -148,14 +157,14 @@ describe('TreePanel — patterns', () => {
     const m = model();
     m.patterns[0].kind = 'octopus';   // unknown kind -> pattern-unknown-kind
     reset({ model: m });
-    const { getByText } = render(<TreePanel />);
+    const { getByText } = renderTree();
     expect(getByText(/Recorder/).textContent).toContain('⚠');
   });
 });
 
 describe('TreePanel — chrome', () => {
   it('hides the sections when collapsed and restores them again', () => {
-    const { getByRole, queryByRole, queryByText } = render(<TreePanel />);
+    const { getByRole, queryByRole, queryByText } = renderTree();
     fireEvent.click(getByRole('button', { name: 'hide model outline' }));
     expect(queryByText('Nodes')).toBeNull();
     expect(queryByRole('button', { name: 'Sys' })).toBeNull();
@@ -165,9 +174,45 @@ describe('TreePanel — chrome', () => {
 
   it('omits the Flows and Patterns sections when the model has none', () => {
     reset({ model: emptyModel() });
-    const { queryByText } = render(<TreePanel />);
+    const { queryByText } = renderTree();
     expect(queryByText('Flows')).toBeNull();
     expect(queryByText('Patterns')).toBeNull();
     expect(queryByText('no nodes yet')).toBeTruthy();
+  });
+
+  it('splits Nodes from Flows and Patterns with a draggable separator', () => {
+    const { getAllByRole } = renderTree();
+    const seps = getAllByRole('separator');
+    // A vertical group yields a horizontal separator.
+    expect(seps.map((s) => s.getAttribute('aria-orientation'))).toEqual(['horizontal']);
+    expect(seps[0].getAttribute('aria-label')).toBe('resize node list');
+  });
+
+  it('puts the node tree in the nodes pane and Flows/Patterns in the detail pane, keyed by their panel ids', () => {
+    // The library sets data-testid to the panel's id, so this pins both which pane holds which
+    // section (nothing else fixes their order) and the ids the persisted layout keys off, which is
+    // why they carry the hyphae-pane- prefix (bare ids would collide with other DOM ids on the page).
+    const { getByTestId } = renderTree();
+    const nodes = getByTestId('hyphae-pane-nodes');
+    const detail = getByTestId('hyphae-pane-detail');
+    expect(nodes.textContent).toContain('Nodes');
+    expect(nodes.textContent).toContain('Sys');
+    expect(detail.textContent).toContain('Flows');
+    expect(detail.textContent).toContain('Patterns');
+  });
+
+  it('omits the split when the model has neither flows nor patterns', () => {
+    reset({ model: emptyModel() });
+    const { queryAllByRole } = renderTree();
+    expect(queryAllByRole('separator')).toEqual([]);
+  });
+
+  it('gives the split separator a row-resize cursor', () => {
+    // jsdom loads no external stylesheet, so the rule is unobservable in the DOM — assert the
+    // source. Without it the handle is invisible and undiscoverable, since the library sets no
+    // cursor of its own.
+    const css = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8');
+    expect(css).toMatch(/\.sep--h\s*\{[^}]*cursor:\s*row-resize/);
+    expect(css).toMatch(/\.sep--v\s*\{[^}]*cursor:\s*col-resize/);
   });
 });

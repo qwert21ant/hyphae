@@ -75,8 +75,11 @@ The existing « / » toggle keeps its behaviour but changes owner. `App` holds t
 
 Toggling calls `collapse()` / `expand()` on the panel handle. Because the panel is `collapsible`,
 dragging the separator to the edge also collapses it; the panel's `onResize` reads `isCollapsed()`
-and syncs the flag, so the 26px strip renders whichever way the user got there. `expand()` restores
-the last size, so width survives a collapse round-trip.
+and syncs the flag, so the 26px strip renders whichever way the user got there. The library's own
+`expand()` only falls back to `minSize` — its `expandToSize` bookkeeping is written by `collapse()`
+alone and never survives a drag-collapse or a reload — so `App` remembers the outline's last expanded
+width itself and resizes back to it after calling `expand()`, persisting the value so it survives a
+reload too.
 
 ### Persistence
 
@@ -90,9 +93,10 @@ zustand singleton would buy nothing.
 
 Separators are styled by attribute selector (`[data-separator]`), which the library documents as the
 supported hook for hover and active states — its `className` cannot override `flex-grow` /
-`flex-shrink`. 5px, `col-resize` / `row-resize` cursor, tinted on hover and while dragging. The
-separators replace the `border-right` on `.tree-panel` and the `border-left` on `.panel`, and those
-two rules lose their fixed `width`.
+`flex-shrink`. 5px, `col-resize` / `row-resize` cursor, tinted on hover and while dragging. `.tree-panel`
+keeps its `border-right` and `.panel` its `border-left` — a separator is `background: transparent`
+until hover, so without those borders there would be no visible divider at rest — but both rules lose
+their fixed `width`, since the `Group` owns width now.
 
 ## Non-goals
 
