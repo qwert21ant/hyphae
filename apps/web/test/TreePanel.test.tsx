@@ -179,4 +179,26 @@ describe('TreePanel — chrome', () => {
     expect(queryByText('Patterns')).toBeNull();
     expect(queryByText('no nodes yet')).toBeTruthy();
   });
+
+  it('splits Nodes from Flows and Patterns with a draggable separator', () => {
+    const { getAllByRole } = renderTree();
+    const seps = getAllByRole('separator');
+    // A vertical group yields a horizontal separator.
+    expect(seps.map((s) => s.getAttribute('aria-orientation'))).toEqual(['horizontal']);
+  });
+
+  it('omits the split when the model has neither flows nor patterns', () => {
+    reset({ model: emptyModel() });
+    const { queryAllByRole } = renderTree();
+    expect(queryAllByRole('separator')).toEqual([]);
+  });
+
+  it('gives the split separator a row-resize cursor', () => {
+    // jsdom loads no external stylesheet, so the rule is unobservable in the DOM — assert the
+    // source. Without it the handle is invisible and undiscoverable, since the library sets no
+    // cursor of its own.
+    const css = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8');
+    expect(css).toMatch(/\.sep--h\s*\{[^}]*cursor:\s*row-resize/);
+    expect(css).toMatch(/\.sep--v\s*\{[^}]*cursor:\s*col-resize/);
+  });
 });

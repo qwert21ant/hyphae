@@ -6,7 +6,10 @@ html, body, #root { height: 100%; margin: 0; font-family: system-ui, sans-serif;
 .tree-panel { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; border-right: 1px solid #ddd; font-size: 12px; color: #334155; }
 .tree-panel--collapsed { align-items: center; padding-top: 6px; }
 .tree-panel__head { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; border-bottom: 1px solid #eee; }
-.tree-panel__body { flex: 1; overflow: auto; padding-bottom: 12px; }
+.tree-panel__body { flex: 1; min-height: 0; overflow: auto; padding-bottom: 12px; }
+.tree-panel__body--split { overflow: hidden; padding-bottom: 0; }
+.tree-split__pane { padding-bottom: 12px; }
+.tree-split__pane--detail { border-top: 1px solid #eee; }
 .tree-toggle { background: none; border: none; color: #64748b; cursor: pointer; font-size: 13px; padding: 0 2px; }
 .tree-section__title { padding: 6px 8px 2px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; }
 .tree-row { display: flex; align-items: center; gap: 2px; border-radius: 4px; }

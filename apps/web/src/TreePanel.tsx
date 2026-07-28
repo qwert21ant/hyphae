@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { validateModel, resolveProfile, type Node, type Flow, type Pattern } from '@hyphae/schema';
+import { Group, Panel, Separator, useDefaultLayout } from 'react-resizable-panels';
 import { useStore } from './store';
 
 /** The whole model as an outline: nodes by containment, then Flows and Patterns. This is the one
@@ -72,6 +73,11 @@ export function TreePanel({ collapsed, onToggleCollapse }: { collapsed: boolean;
     };
   }, [model]);
   const offView = useMemo(() => new Set(offViewStepOrders), [offViewStepOrders]);
+  const outlineLayout = useDefaultLayout({
+    id: 'hyphae.outline',
+    storage: localStorage,
+    onlySaveAfterUserInteractions: true,
+  });
 
   if (collapsed) {
     return (
@@ -179,21 +185,51 @@ export function TreePanel({ collapsed, onToggleCollapse }: { collapsed: boolean;
     );
   };
 
+  const nodesSection = (
+    <Section title="Nodes">
+      {roots.length === 0
+        ? <div className="tree-empty">no nodes yet</div>
+        : roots.map((r) => renderNode(r, 0))}
+    </Section>
+  );
+  const detailSections = (
+    <>
+      {model.flows.length > 0 && <Section title="Flows">{model.flows.map(renderFlow)}</Section>}
+      {model.patterns.length > 0 && <Section title="Patterns">{model.patterns.map(renderPattern)}</Section>}
+    </>
+  );
+  // A long node tree used to push Flows and Patterns below the fold of a single scroll region, so
+  // they get their own. Percentage sizes keep the split proportional as the window height changes.
+  // With neither flows nor patterns there is nothing to split, and a Group of one Panel would only
+  // add a dead handle — so the body renders plainly, as it always did.
+  const hasDetail = model.flows.length > 0 || model.patterns.length > 0;
+
   return (
     <aside className="tree-panel" aria-label="model outline">
       <div className="tree-panel__head">
         <strong>Outline</strong>
         <button className="tree-toggle" onClick={onToggleCollapse} title="Hide model outline" aria-label="hide model outline">«</button>
       </div>
-      <div className="tree-panel__body">
-        <Section title="Nodes">
-          {roots.length === 0
-            ? <div className="tree-empty">no nodes yet</div>
-            : roots.map((r) => renderNode(r, 0))}
-        </Section>
-        {model.flows.length > 0 && <Section title="Flows">{model.flows.map(renderFlow)}</Section>}
-        {model.patterns.length > 0 && <Section title="Patterns">{model.patterns.map(renderPattern)}</Section>}
-      </div>
+      {hasDetail ? (
+        <div className="tree-panel__body tree-panel__body--split">
+          <Group
+            id="hyphae-outline"
+            orientation="vertical"
+            defaultLayout={outlineLayout.defaultLayout}
+            onLayoutChanged={outlineLayout.onLayoutChanged}
+          >
+            <Panel id="nodes" defaultSize="60" minSize="15" className="tree-split__pane">
+              {nodesSection}
+            </Panel>
+            <Separator className="sep sep--h" />
+            <Panel id="detail" defaultSize="40" minSize="15" className="tree-split__pane tree-split__pane--detail">
+              {detailSections}
+            </Panel>
+          </Group>
+        </div>
+      ) : (
+        <div className="tree-panel__body">{nodesSection}</div>
+      )}
     </aside>
   );
 }
