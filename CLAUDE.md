@@ -70,6 +70,9 @@ These cost real time when rediscovered:
   not a route — it rewrites to root. Precedence is pattern > flow > focus.
 - The server rejects a bad write with **422 + the specific issues**; there is no whole-model write
   endpoint. On rejection the store resyncs from the server rather than guessing.
+- **`TreePanel` is controlled by `App`.** `onResize` → `isCollapsed()` is the only authority on
+  `outlineCollapsed`; reintroducing local collapse state in `TreePanel` silently breaks drag-collapse,
+  since a drag past the edge never calls the lifted toggle.
 
 ## Working with a built model
 

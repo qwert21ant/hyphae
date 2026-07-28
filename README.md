@@ -23,8 +23,9 @@ this?" view); the breadcrumbs walk back up. An external that stands in for a dee
 model — nodes by containment above, then Flows and Patterns in their own pane below, each scrolling
 independently — and is collapsible; a click reveals a node in context, a double-click drills in.
 Both side panels and the outline's internal split are **drag-resizable** (arrow keys resize a
-focused handle, double-click resets it), and the sizes persist per browser. Search jumps to a node
-by name.
+focused handle, Enter toggles collapse, double-click resets it), and the sizes persist per browser.
+Dragging the outline's handle to the edge collapses it exactly like the « button, and expanding —
+by either route — restores its previous width. Search jumps to a node by name.
 
 **Reading the diagram.** A node draws as its profile **role archetype** (actor, service, datastore,
 queue, external system, UI surface) in SVG, tinted by C4 layer, showing name + a two-line summary +

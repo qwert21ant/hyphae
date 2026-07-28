@@ -407,7 +407,7 @@ cd C:/projects/hyphae && pnpm -r test
 
 Expected: **505 green** (web 251). Ignore the ~80 pre-existing `act(...)` warnings.
 
-- [x] **Step 8: Check it in the browser**
+- [ ] **Step 8: Check it in the browser — deferred, human verification outstanding**
 
 ```bash
 cd C:/projects/hyphae && pnpm dev
@@ -592,7 +592,7 @@ cd C:/projects/hyphae && pnpm -r test
 
 Expected: **508 green** (web 254).
 
-- [x] **Step 7: Check it against the real model**
+- [ ] **Step 7: Check it against the real model — deferred, human verification outstanding**
 
 ```bash
 cd C:/projects/hyphae && HYPHAE_FILE=$PWD/apps/server/hyphae-baritone.json pnpm server
