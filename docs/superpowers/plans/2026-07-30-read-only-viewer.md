@@ -75,7 +75,7 @@ profile, four of the six field types would be untestable.
   export function FieldRow(props: { def: FieldDef; value: unknown; nodes: Node[]; onNavigate: (id: string) => void }): JSX.Element | null
   ```
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/web/test/FieldRows.test.tsx`:
 
@@ -199,7 +199,7 @@ describe('FieldRow', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 ```bash
 cd apps/web && pnpm vitest run test/FieldRows.test.tsx
@@ -207,7 +207,7 @@ cd apps/web && pnpm vitest run test/FieldRows.test.tsx
 
 Expected: FAIL — `Failed to resolve import "../src/FieldRows"`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `apps/web/src/FieldRows.tsx`:
 
@@ -290,7 +290,7 @@ export function FieldRow({ def, value, nodes, onNavigate }: {
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 ```bash
 cd apps/web && pnpm vitest run test/FieldRows.test.tsx
@@ -298,7 +298,7 @@ cd apps/web && pnpm vitest run test/FieldRows.test.tsx
 
 Expected: PASS, 14 tests.
 
-- [ ] **Step 5: Run the whole web suite — nothing else may move**
+- [x] **Step 5: Run the whole web suite — nothing else may move**
 
 ```bash
 cd apps/web && pnpm test
@@ -306,7 +306,7 @@ cd apps/web && pnpm test
 
 Expected: the existing count plus 14. Nothing consumes `FieldRows` yet, so no other file can change.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/web/src/FieldRows.tsx apps/web/test/FieldRows.test.tsx
@@ -351,7 +351,7 @@ EOF
 splits that list in two so `summary`/`technology` (the two the canvas draws) come first; keep that
 split, just without the `On diagram` / `Detail` `<h3>`s that used to head the two halves.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Replace `apps/web/test/SidePanel.test.tsx` entirely:
 
@@ -563,7 +563,7 @@ describe('inspector CSS', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 ```bash
 cd apps/web && pnpm vitest run test/SidePanel.test.tsx
@@ -573,7 +573,7 @@ Expected: FAIL — several cases, including `container.querySelector('input, sel
 returning the name input rather than `null`, `getByRole('heading', { name: 'Payments' })` not
 matching (the `<h2>` still holds the node *type*), and both CSS assertions.
 
-- [ ] **Step 3: Rewrite `SidePanel.tsx`**
+- [x] **Step 3: Rewrite `SidePanel.tsx`**
 
 Replace the whole file:
 
@@ -710,7 +710,7 @@ Gone from this file: the `lines()` helper, the `FieldInput` component, and the
 `DirectionSchema` / `allowedParentTypes` / `nodeFields`-adjacent editing imports
 (`DirectionSchema`, `allowedParentTypes`, `type Node`, `type FieldDef` are all unused now).
 
-- [ ] **Step 4: Update `styles.css`**
+- [x] **Step 4: Update `styles.css`**
 
 In `apps/web/src/styles.css`, replace lines 35-36:
 
@@ -733,7 +733,7 @@ over its value. `pre-wrap` keeps a multi-line `description` readable; `overflow-
 a long ref path from overflowing the panel. `#2563eb` is the app's existing link blue (`.crumb`).
 `FilterPanel` and `SearchBox` style their own controls inline, so nothing else loses styling.
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 ```bash
 cd apps/web && pnpm vitest run test/SidePanel.test.tsx
@@ -741,7 +741,7 @@ cd apps/web && pnpm vitest run test/SidePanel.test.tsx
 
 Expected: PASS, 15 tests.
 
-- [ ] **Step 6: Run the whole web suite**
+- [x] **Step 6: Run the whole web suite**
 
 ```bash
 cd apps/web && pnpm test
@@ -750,7 +750,7 @@ cd apps/web && pnpm test
 Expected: green. `App.test.tsx` still passes — it never asserted on inspector controls, and the
 store's write actions are still present for its own `add` button test.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/web/src/SidePanel.tsx apps/web/src/styles.css apps/web/test/SidePanel.test.tsx
@@ -794,7 +794,7 @@ EOF
 - Consumes: nothing from earlier tasks.
 - Produces: nothing. This is the last caller of `store.addNode`; Task 4 depends on it landing first.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `apps/web/test/App.test.tsx`, replace the whole test at lines 68-74:
 
@@ -818,7 +818,7 @@ with:
   });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 ```bash
 cd apps/web && pnpm vitest run test/App.test.tsx
@@ -826,7 +826,7 @@ cd apps/web && pnpm vitest run test/App.test.tsx
 
 Expected: FAIL — `offers no create button in the toolbar` finds the `add System` button.
 
-- [ ] **Step 3: Strip the buttons from `App.tsx`**
+- [x] **Step 3: Strip the buttons from `App.tsx`**
 
 Four edits. All three of `c4Backend`, `allowedChildTypes` and `topLevelTypes` are used *only* on line
 148, and `focusNode` (line 147) is read only by line 148 — verified by
@@ -859,7 +859,7 @@ it.
         ))}
 ```
 
-- [ ] **Step 4: Shrink the api mock in `App.test.tsx`**
+- [x] **Step 4: Shrink the api mock in `App.test.tsx`**
 
 Replace the `vi.mock('../src/api', () => {...})` block at lines 4-25 with:
 
@@ -877,7 +877,7 @@ vi.mock('../src/api', () => {
 `fireEvent` and `waitFor` are both still used further down the file (the audience toggle, the outline
 collapse, and the hash-push assertions), so leave the imports on line 2 alone.
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 ```bash
 cd apps/web && pnpm vitest run test/App.test.tsx
@@ -892,7 +892,7 @@ cd apps/web && pnpm build
 Expected: build succeeds. An `'allowedChildTypes' is declared but never read` error here means step 3
 edit 1 was missed; `'model' is declared but never read` means edit 3 removed `crumbs` by mistake.
 
-- [ ] **Step 6: Run the whole web suite**
+- [x] **Step 6: Run the whole web suite**
 
 ```bash
 cd apps/web && pnpm test
@@ -900,7 +900,7 @@ cd apps/web && pnpm test
 
 Expected: green, one test fewer than after Task 2.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/web/src/App.tsx apps/web/test/App.test.tsx
@@ -937,7 +937,7 @@ drag-to-connect line all go.
 - Produces: `api.ts` exporting **only** `loadModel(): Promise<{ model: HyphaeModel; version: number }>`;
   the store's `State` type without `error` or any write action.
 
-- [ ] **Step 1: Verify there is genuinely no caller left**
+- [x] **Step 1: Verify there is genuinely no caller left**
 
 ```bash
 cd /c/projects/hyphae/apps/web && grep -rn "addNode\|addConnection\|reparent\|deleteNode\|deleteConnection\|updateNode\|updateConnection\|ApiError\|s.error\|FloatingConnectionLine" src/
@@ -947,7 +947,7 @@ Expected output: **only** `src/store.ts` and `src/api.ts` lines, plus
 `src/FloatingConnectionLine.tsx` defining itself. Any hit in another `src/` file means Task 2 or 3 is
 incomplete — stop and fix that first.
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 Replace the mock block at `apps/web/test/store.test.ts:4-28` with:
 
@@ -992,7 +992,7 @@ file is unchanged, including the three later `describe` blocks. The comment abov
 `describe('audience init from localStorage')` still applies verbatim — the shrunk `vi.mock` factory
 is still reapplied after `vi.resetModules()`.
 
-- [ ] **Step 3: Run the test to verify it fails**
+- [x] **Step 3: Run the test to verify it fails**
 
 ```bash
 cd apps/web && pnpm vitest run test/store.test.ts
@@ -1000,7 +1000,7 @@ cd apps/web && pnpm vitest run test/store.test.ts
 
 Expected: FAIL on `exposes no write action` — `expected [Function] to be undefined`.
 
-- [ ] **Step 4: Strip `store.ts`**
+- [x] **Step 4: Strip `store.ts`**
 
 Four edits to `apps/web/src/store.ts`:
 
@@ -1057,7 +1057,7 @@ load. Add that as a comment on the field so nobody deletes it as write-only book
   ownVersion: number;
 ```
 
-- [ ] **Step 5: Strip `api.ts`**
+- [x] **Step 5: Strip `api.ts`**
 
 `apps/web/src/api.ts` becomes exactly:
 
@@ -1078,13 +1078,13 @@ export async function loadModel(): Promise<{ model: HyphaeModel; version: number
 `ApiError` goes with `mutate()`: `loadModel` throws a plain `Error`, so nothing constructs or catches
 an `ApiError` any more.
 
-- [ ] **Step 6: Delete the drag-to-connect line**
+- [x] **Step 6: Delete the drag-to-connect line**
 
 ```bash
 git rm apps/web/src/FloatingConnectionLine.tsx
 ```
 
-- [ ] **Step 7: Run the test to verify it passes**
+- [x] **Step 7: Run the test to verify it passes**
 
 ```bash
 cd apps/web && pnpm vitest run test/store.test.ts
@@ -1092,7 +1092,7 @@ cd apps/web && pnpm vitest run test/store.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 8: Verify the whole workspace**
+- [x] **Step 8: Verify the whole workspace**
 
 ```bash
 cd /c/projects/hyphae && pnpm -r test && pnpm -r build
@@ -1104,7 +1104,7 @@ numbers** (schema / server / web) from this output — Task 5 writes them into `
 A TypeScript error in `apps/web` here means a leftover reference; `pnpm build` names the file and
 line.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add apps/web/src/store.ts apps/web/src/api.ts apps/web/test/store.test.ts
@@ -1144,7 +1144,7 @@ alone.
 
 **Interfaces:** consumes the per-package test counts recorded in Task 4 Step 8.
 
-- [ ] **Step 1: `README.md` — the Editing paragraph**
+- [x] **Step 1: `README.md` — the Editing paragraph**
 
 Replace lines 49-55 (the paragraph starting `**Editing.**`) with:
 
@@ -1161,7 +1161,7 @@ thinly described node — use the `model_gaps` MCP tool to audit that properly. 
 connection filter, the audience toggle, and expanding an external never reflow the graph.
 ```
 
-- [ ] **Step 2: `README.md` — the framing lines**
+- [x] **Step 2: `README.md` — the framing lines**
 
 Line 3 becomes:
 
@@ -1179,7 +1179,7 @@ The browser is a read-only client: it loads the model over HTTP and follows SSE.
 from an MCP tool call or a direct edit of the JSON file.
 ```
 
-- [ ] **Step 3: `docs/SPEC.md` — five framing edits**
+- [x] **Step 3: `docs/SPEC.md` — five framing edits**
 
 | Line | Current | Change to |
 |---|---|---|
@@ -1190,13 +1190,13 @@ from an MCP tool call or a direct edit of the JSON file.
 | 77 | `- The developer maintains their project's model by hand through the visual editor and **reads the architecture off the diagram**.` | `- The developer's model is built and maintained by an AI agent over MCP; the developer **reads the architecture off the diagram** and reviews the agent's edits.` |
 | 214 | `### 6.8 Reserved axes (schema present, editor later)` | `### 6.8 Reserved axes (schema present, tools and rendering later)` |
 
-- [ ] **Step 4: `docs/SPEC.md` — the three "MCP + editor" phase entries**
+- [x] **Step 4: `docs/SPEC.md` — the three "MCP + editor" phase entries**
 
 Lines 393, 397 and 401 each end a phase description with `MCP + editor.` In each, that means *MCP
 tools to write it, and rendering to read it*. Replace `MCP + editor.` with `MCP tools + rendering.`
 on all three lines.
 
-- [ ] **Step 5: `docs/MODEL.md` — four edits**
+- [x] **Step 5: `docs/MODEL.md` — four edits**
 
 | Line | Current fragment | Change to |
 |---|---|---|
@@ -1209,7 +1209,7 @@ Lines 26, 211 and 238 mention "an LLM queries and edits", "for the LLM and edito
 "for the LLM/editor" — the LLM does still edit, and the tooltips are still rendered. **Leave all
 three alone.**
 
-- [ ] **Step 6: `CLAUDE.md` — the test baseline**
+- [x] **Step 6: `CLAUDE.md` — the test baseline**
 
 Update the line under `## Commands`:
 
@@ -1223,7 +1223,7 @@ with the numbers recorded in Task 4 Step 8. Do not invent them — if they were 
 The listed invariants all concern the focus-view pipeline and panel layout; none covers writes, so
 they stand unchanged.
 
-- [ ] **Step 7: Verify no stale claim survives**
+- [x] **Step 7: Verify no stale claim survives**
 
 ```bash
 cd /c/projects/hyphae && grep -rn "visual editor\|MCP + editor\|create / edit / delete\|Create / edit / delete" README.md docs/SPEC.md docs/MODEL.md CLAUDE.md skills/
@@ -1233,7 +1233,7 @@ Expected: no output. A hit under `skills/` means the modeling skill also claims 
 read the line, and if it describes the *browser* creating nodes, correct it in the same commit; if it
 describes MCP writes, leave it.
 
-- [ ] **Step 8: Full verification**
+- [x] **Step 8: Full verification**
 
 ```bash
 cd /c/projects/hyphae && pnpm -r test && pnpm -r build
@@ -1241,7 +1241,7 @@ cd /c/projects/hyphae && pnpm -r test && pnpm -r build
 
 Show the output. Confirm the recorded counts match what `CLAUDE.md` now claims.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add README.md docs/SPEC.md docs/MODEL.md CLAUDE.md
