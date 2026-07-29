@@ -1,6 +1,6 @@
 # Hyphae — Specification
 
-> A visual editor for a **business-legible** model of software architecture, and a knowledge
+> A visual **viewer** for a **business-legible** model of software architecture, and a knowledge
 > base for LLM agents — one artifact for both. The long-term goal is bidirectional sync
 > between the model and the code.
 
@@ -42,7 +42,7 @@ connecting code, architectural knowledge, and AI agents.
 
 ## 2. Goals
 
-- A visual editor whose **diagrams are legible on their own**: node roles as shapes/icons,
+- A visual viewer whose **diagrams are legible on their own**: node roles as shapes/icons,
   connections labeled with a business verb + object, detail in the side panel.
 - **Flows** bound to the model — numbered step-sequences overlaid on the diagram for scenarios
   ("user views live feed").
@@ -60,7 +60,7 @@ Explicitly deferred to keep scope focused:
 
 - **Code-as-nodes.** Individual classes/interfaces are **not** modeled as diagram nodes; code
   is `codeRefs` + Patterns. (This is a removal, not a deferral — see §6.7.)
-- **Requirements / Decisions (Intent axis).** Schema-reserved; no editor yet.
+- **Requirements / Decisions (Intent axis).** Schema-reserved; no MCP tools and nothing rendered yet.
 - **Auto-parsing code** (tree-sitter/AST) to populate the model — `codeRefs` are authored/AI-set.
 - **Real-time collaboration** (CRDT, multi-cursor).
 - **Deployment / infra views.**
@@ -74,8 +74,8 @@ Explicitly deferred to keep scope focused:
 
 A solo developer + an AI agent as a co-user. Scenarios:
 
-- The developer maintains their project's model by hand through the visual editor and **reads
-  the architecture off the diagram**.
+- The developer's model is built and maintained by an AI agent over MCP; the developer **reads
+  the architecture off the diagram** and reviews the agent's edits.
 - An AI agent (Claude Code or similar) reads the model as context before changing code, and
   (in later phases) proposes model edits the human reviews.
 
@@ -211,7 +211,7 @@ glob Refs (§6.10) matter for the recreated model: one `src/views/cctv/**` repla
 otherwise be dozens of individual file refs. Code structure worth naming individually is
 authored as **Pattern members** carrying a `ref`, not as a ref list.
 
-### 6.8 Reserved axes (schema present, editor later)
+### 6.8 Reserved axes (schema present, tools and rendering later)
 
 - `requirements` — **Intent axis.** Requirement nodes (Functional | Quality | Constraint),
   traced from nodes/flows via the `traceability` verb class (`implements` / `satisfies`).
@@ -390,15 +390,15 @@ Each phase is a projection of the axes already laid down in the schema.
 
 ### Phase B — Flows — shipped
 - Build the Behavior axis: create flows (nodes + connections + ordered steps, control
-  structures), numbered overlay on the view, an optional sequence-style mode. MCP + editor.
+  structures), numbered overlay on the view, an optional sequence-style mode. MCP tools + rendering.
 
 ### Phase C — Patterns — shipped
 - The `Pattern` overlay entity + renderers: pipeline, middleware/interceptor, state-machine
-  (absorbs the old StateMachine), layered, event-bus. Profile-driven `patternKinds`. MCP + editor.
+  (absorbs the old StateMachine), layered, event-bus. Profile-driven `patternKinds`. MCP tools + rendering.
 
 ### Phase D — Data axis — not started
 - `DataEntity` model; connection `carries`/`object` refs; node `owns/stores`; an ERD-style
-  data projection. MCP + editor.
+  data projection. MCP tools + rendering.
 
 ### Phase E — Retire the Code node layer — shipped
 - Drop Code kinds from profiles; a Component's code presence becomes `codeRefs` + an optional

@@ -1,7 +1,7 @@
 # Hyphae — working notes
 
-Local visual editor for a C4-style architecture model, readable **and writable** by LLM agents over
-MCP. pnpm workspaces: `apps/web` (Vite/React/@xyflow), `apps/server` (Hono API + SSE + MCP),
+Local visual **viewer** for a C4-style architecture model, written by LLM agents over MCP.
+pnpm workspaces: `apps/web` (Vite/React/@xyflow), `apps/server` (Hono API + SSE + MCP),
 `packages/schema` (Zod — the single source of truth for types, the API, and the MCP tool params).
 
 ## Where the documentation lives
@@ -24,7 +24,7 @@ schema in `packages/schema` wins any disagreement.
     pnpm server         # API + SSE on :5173, owns ./hyphae.json (override with HYPHAE_FILE)
     pnpm web            # editor on :3000, proxies the API
     pnpm mcp            # MCP server — an HTTP client of the above, so the server must be running
-    pnpm -r test        # baseline 508 green: schema 147, server 107, web 254
+    pnpm -r test        # baseline 520 green: schema 147, server 107, web 266
     pnpm -r build
 
 ## Testing gotchas

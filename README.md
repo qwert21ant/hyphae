@@ -1,19 +1,21 @@
 # Hyphae
 
-Local visual editor for a C4-style architecture model, readable **and writable** by LLM agents over MCP.
+Local visual **viewer** for a C4-style architecture model, written by LLM agents over MCP.
 See `docs/MODEL.md` for the model concept and `docs/SPEC.md` for the product spec.
 
 ## Develop
 
     pnpm install
     pnpm --filter @hyphae/server dev   # API + SSE on :5173, owns ./hyphae.json
-    pnpm --filter @hyphae/web dev      # editor on :3000, proxies the API
+    pnpm --filter @hyphae/web dev      # viewer on :3000, proxies the API
 
 The server is the single source of truth: it holds the model in memory, validates every write,
 persists `hyphae.json` atomically (debounced), and broadcasts changes over SSE so an open editor
-refreshes live. Set `HYPHAE_FILE=/abs/path/hyphae.json` to choose the model file.
+refreshes live. Set `HYPHAE_FILE=/abs/path/hyphae.json` to choose the model file. The browser is a
+read-only client: it loads the model over HTTP and follows SSE. Every write comes from an MCP tool
+call or a direct edit of the JSON file.
 
-## Editor
+## Viewer
 
 **Navigation.** The canvas shows one **focus** at a time: the focused node as a labeled region with
 its direct children inside, and everything else it connects to as dashed **ghost externals** beside
@@ -46,13 +48,16 @@ outline. Selecting a **Pattern** replaces the canvas with the pattern's own diag
 pipeline row, a state machine laid out by its transitions, or a stacked member list); its `anchor`
 and any member bound to a real node link back into the model.
 
-**Editing.** Create / edit / delete nodes and connections. The side panel renders the core fields
-plus the **profile-defined fields** for that kind generically (a node's
-`responsibilities`/`invariants`/`technology`, …), a parent selector, and the
-node's incoming/outgoing connections. A connection's meaning is its **verb** + **object** ("reads
-camera list"), and its verb's *class* (`dataAccess` / `messaging` / `control` / `user` /
-`traceability`) decides the edge colour. Layout is automatic (dagre) and stable — the connection
-filter, the audience toggle, and expanding an external never reflow the graph.
+**The inspector.** Selecting a node or a connection shows its detail in the right-hand panel, as
+text — the browser does not write the model. A node shows its name, type, role, the fields the
+canvas draws (`summary`, `technology`), description, `root`, `codeRefs`/`docRefs`, the remaining
+**profile-defined fields** for its kind (`responsibilities`, `invariants`, …), its parent, and its
+incoming/outgoing connections. A field with no value renders no row at all, so a short panel means a
+thinly described node — use the `model_gaps` MCP tool to audit that properly. The parent, and any
+`ref`-typed field, are clickable and reveal their target. A connection's meaning is its **verb** +
+**object** ("reads camera list"), and its verb's *class* (`dataAccess` / `messaging` / `control` /
+`user` / `traceability`) decides the edge colour. Layout is automatic (dagre) and stable — the
+connection filter, the audience toggle, and expanding an external never reflow the graph.
 
 **Deep links.** The current view lives in the URL hash — `#node/<id>`, `#flow/<id>`,
 `#pattern/<id>` — so a view survives refresh, is shareable, and the browser Back button walks the

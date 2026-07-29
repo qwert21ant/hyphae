@@ -131,7 +131,7 @@ A named data object (Clip, Camera, User) — the Data axis. Nodes **own / store*
 entities; connections **carry** them (via the connection's `object`/`carries`). An ERD is a
 projection of ownership + carriage. A data type is first-class because it is reused by many
 nodes and connections. *(Reserved: the `dataTypes` collection exists in the schema, but the axis
-has no MCP tool or editor yet — a connection's `object` is free text. Phase D.)*
+has no MCP tool and nothing rendered yet — a connection's `object` is free text. Phase D.)*
 
 ### 3.6 View
 A saved viewing configuration: layer, filter, manual layout. The Presentation axis. Truth is
@@ -338,16 +338,17 @@ HyphaeModel {
 }
 ```
 
-"Reserved" = the collection exists in the schema (an empty array) but has no editor, MCP tool, or
-reader yet. `flows` and `patterns` moved from reserved to built (MCP + editor); the Data axis is
-still reserved — the key is `dataTypes`, and a connection's `object` is free text until Phase D
-lands. `requirements`/`decisions` remain reserved. See the roadmap in [SPEC.md](./SPEC.md).
+"Reserved" = the collection exists in the schema (an empty array) but has no MCP tool and nothing
+that reads or renders it yet. `flows` and `patterns` moved from reserved to built (MCP tools +
+rendering); the Data axis is still reserved — the key is `dataTypes`, and a connection's `object` is
+free text until Phase D lands. `requirements`/`decisions` remain reserved. See the roadmap in
+[SPEC.md](./SPEC.md).
 
 ---
 
 ## 9. Axis-to-phase mapping
 
-| Axis / concept | Entities | When in the editor |
+| Axis / concept | Entities | When rendered |
 |----------------|----------|--------------------|
 | Structure | Node, parentId, role | Phase A |
 | Dependencies / Collaboration | Connection, verb/object | Phase A |
