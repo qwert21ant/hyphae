@@ -10,7 +10,7 @@ See `docs/MODEL.md` for the model concept and `docs/SPEC.md` for the product spe
     pnpm --filter @hyphae/web dev      # viewer on :3000, proxies the API
 
 The server is the single source of truth: it holds the model in memory, validates every write,
-persists `hyphae.json` atomically (debounced), and broadcasts changes over SSE so an open editor
+persists `hyphae.json` atomically (debounced), and broadcasts changes over SSE so an open viewer
 refreshes live. Set `HYPHAE_FILE=/abs/path/hyphae.json` to choose the model file. The browser is a
 read-only client: it loads the model over HTTP and follows SSE. Every write comes from an MCP tool
 call or a direct edit of the JSON file.

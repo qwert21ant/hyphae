@@ -194,8 +194,8 @@ A DataEntity is a named data object (Entity | Value | Event | DTO) with optional
 projection of ownership + carriage.
 
 **Status: not built yet.** The collection exists in the schema as `dataTypes` (an empty array) with
-no MCP tools and no editor — a connection's `object` is free text today. This is Phase D (§11);
-Flows and Patterns shipped first.
+no MCP tools and nothing rendered — a connection's `object` is free text today. This is Phase D
+(§11); Flows and Patterns shipped first.
 
 ### 6.7 Code layer removal
 
@@ -317,8 +317,9 @@ Built into the core, and unchanged by the visual repositioning:
 - **Legibility budget.** Cap what is shown at rest; roll up dense fans; push depth into
   drill-down, Flows, Patterns, and the panel. A legend explains role shapes, verb-class colors,
   and solid-vs-derived edges.
-- **One step — one model operation.** Dragging a component into a container = a `parentId`
-  change; deleting a node invalidates and highlights affected connections/flows.
+- **One tool call — one model operation.** An MCP write is atomic: reparenting a component is a
+  `parentId` change; deleting a node cascades to remove its connections, and any flow step that
+  referenced it is marked ↗ in the outline as undrawable.
 - **Zoom navigation between altitudes.** Double-click to drill into any node; breadcrumbs on top;
   a left outline of the whole model for orientation. Layout is automatic and stable — filtering,
   the audience toggle, and expanding an external never reflow the graph. The current view lives in
@@ -410,7 +411,7 @@ Each phase is a projection of the axes already laid down in the schema.
   new profile, not a new engine. Ship frontend / cli / desktop profiles after the core.
 
 ### Later
-- Intent axis (Requirements / Decisions) in the editor; multi-system Landscape; real-time
+- Intent axis (Requirements / Decisions) — MCP tools + rendering; multi-system Landscape; real-time
   collaboration; deployment/infra views; metrics/drift dashboards.
 
 ---

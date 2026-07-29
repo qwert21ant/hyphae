@@ -8,7 +8,7 @@ pnpm workspaces: `apps/web` (Vite/React/@xyflow), `apps/server` (Hono API + SSE 
 
 | Read this | For |
 |---|---|
-| `README.md` | how to run it, the editor's behaviour, the HTTP API, the full MCP tool list |
+| `README.md` | how to run it, the viewer's behaviour, the HTTP API, the full MCP tool list |
 | `docs/MODEL.md` | the model *concept* — axes, first-class entities, Refs/roots, profiles |
 | `docs/SPEC.md` | the *product* — scope, data model per entity, UX principles, phased roadmap |
 | `skills/building-architecture-models/SKILL.md` | how a model gets built from a repo (phases + gates) |
@@ -22,7 +22,7 @@ schema in `packages/schema` wins any disagreement.
 
     pnpm dev            # server (:5173) + web (:3000) in parallel
     pnpm server         # API + SSE on :5173, owns ./hyphae.json (override with HYPHAE_FILE)
-    pnpm web            # editor on :3000, proxies the API
+    pnpm web            # viewer on :3000, proxies the API
     pnpm mcp            # MCP server — an HTTP client of the above, so the server must be running
     pnpm -r test        # baseline 520 green: schema 147, server 107, web 266
     pnpm -r build
@@ -69,7 +69,8 @@ These cost real time when rediscovered:
 - **URL routes are fully prefixed:** `#node/<id>`, `#flow/<id>`, `#pattern/<id>`. A bare `#<id>` is
   not a route — it rewrites to root. Precedence is pattern > flow > focus.
 - The server rejects a bad write with **422 + the specific issues**; there is no whole-model write
-  endpoint. On rejection the store resyncs from the server rather than guessing.
+  endpoint. This is the MCP tools' contract for a bad write — the issues come back specific enough
+  to fix and retry; the browser has no write path of its own left to resync.
 - **`TreePanel` is controlled by `App`.** `onResize` → `isCollapsed()` is the only authority on
   `outlineCollapsed`; reintroducing local collapse state in `TreePanel` silently breaks drag-collapse,
   since a drag past the edge never calls the lifted toggle.
