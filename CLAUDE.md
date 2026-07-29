@@ -131,11 +131,24 @@ was found — synthetic fixtures agreed with the buggy code, the real model did 
 
 Spawn subagents freely — no need to ask first. Plan execution is subagent-driven by default.
 
+**Run the chain without check-ins.** Once the design is agreed and the open questions are answered,
+go brainstorm → spec → plan → implementation straight through: write the spec, commit it, write the
+plan, commit it, then implement it subagent-driven **without asking which mode to use or whether to
+proceed**. Stop mid-chain only for a question that genuinely needs the user's decision — one where
+different answers produce materially different work, and no sensible default exists. Reporting
+progress between tasks is fine; asking permission to continue is not.
+
 ## Git conventions
 
-- Multi-commit feature work goes on a branch off `master` (`fix/…`, `feat/…`), one commit per
-  coherent cluster, merged when green. Isolated doc/config fixes have gone straight to `master`.
+- **Every new feature gets its own branch off `master`** (`feat/…`, `fix/…`), cut *before* the first
+  commit of the work — the spec commit included. One commit per coherent cluster, merged when green.
+  Isolated doc/config fixes still go straight to `master`.
+- **The spec and the plan are always committed**, each on its own commit as it is finished: the spec
+  (`docs/superpowers/specs/…`) before the plan is written, the plan
+  (`docs/superpowers/plans/…`) before implementation starts. They are the branch's first two commits.
 - Conventional commits with a scope: `feat(web):`, `fix(web):`, `docs:`, `chore:`. Explain *why* in
   the body, not just what.
-- **Ask before committing, and before pushing.** Stage explicit paths — never `git add -A`.
+- **On a feature branch, commit without asking** — the spec, the plan, and each task's commit as the
+  plan specifies. **Ask before pushing, before merging to `master`, and before committing directly to
+  `master`.** Stage explicit paths — never `git add -A`.
 - End commit messages with `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`.
