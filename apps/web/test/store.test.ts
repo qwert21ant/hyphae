@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { emptyModel } from '@hyphae/schema';
 
 vi.mock('../src/api', () => {
@@ -14,15 +16,19 @@ import { useStore } from '../src/store';
 
 beforeEach(() => useStore.getState().setModel(emptyModel(), 0));
 
-describe('editor store', () => {
-  it('exposes no write action — the model is authored over MCP', () => {
-    const s = useStore.getState() as unknown as Record<string, unknown>;
-    for (const name of [
-      'addNode', 'updateNode', 'reparent', 'deleteNode',
-      'addConnection', 'updateConnection', 'deleteConnection',
-    ]) {
-      expect(s[name]).toBeUndefined();
-    }
+describe('viewer store', () => {
+  // A name-based check (asserting the seven old action names are undefined) would pass a write
+  // action re-added under any other name (e.g. `patchNode`). Asserting the full key set instead
+  // pins the store to exactly its navigation/view surface, however a write might be spelled.
+  it('exposes exactly the navigation/view state — no write action under any name', () => {
+    const keys = Object.keys(useStore.getState()).sort();
+    expect(keys).toEqual([
+      'model', 'focusId', 'selectedId', 'selectedFlowId', 'selectedPatternId', 'ownVersion',
+      'connFilter', 'audience', 'expandedExternals', 'offViewStepOrders',
+      'setModel', 'syncFromServer', 'setFocus', 'revealNode', 'revealStep', 'select',
+      'selectFlow', 'selectPattern', 'setOffViewSteps', 'setAudience', 'toggleConnVerbClass',
+      'toggleConnField', 'clearConnFilter', 'toggleExternal',
+    ].sort());
   });
 
   it('toggles audience and persists it to localStorage', () => {
@@ -170,5 +176,16 @@ describe('connection verb-class filter', () => {
     useStore.getState().toggleConnField('anything', 'x');
     useStore.getState().clearConnFilter();
     expect(useStore.getState().connFilter).toEqual({ verbClasses: [], fields: {} });
+  });
+});
+
+// api.ts is the browser's whole conversation with the server; a re-added `mutate()` or similar
+// would not be caught by anything above. Read the source and assert no write verb appears — the
+// same readFileSync trick SidePanel.test.tsx's 'inspector CSS' block uses for invariants jsdom
+// cannot observe. import.meta.url is an http URL under jsdom, so resolve from process.cwd().
+describe('api.ts has no write path', () => {
+  it('contains no fetch call using a write method', () => {
+    const src = readFileSync(join(process.cwd(), 'src/api.ts'), 'utf8');
+    expect(src).not.toMatch(/method:\s*['"]?(POST|PATCH|PUT|DELETE)/i);
   });
 });

@@ -51,11 +51,14 @@ describe('SidePanel', () => {
   });
 
   it('renders a node as text with no form control and no delete button', () => {
-    seed({ nodes: [mk({ id: 'a1', name: 'Payments', description: 'Takes money' })] }, 'a1');
+    seed({ nodes: [mk({ id: 'a1', name: 'Payments', description: 'Takes money', role: 'datastore' })] }, 'a1');
     const { container } = render(<SidePanel />);
     expect(screen.getByRole('heading', { name: 'Payments' })).toBeTruthy();
     expect(screen.getByText('Takes money')).toBeTruthy();
     expect(screen.getByText('Component')).toBeTruthy();
+    // The real model uses roles like `datastore`/`queue`/`ui`, so this row renders in production.
+    expect(screen.getByText('role')).toBeTruthy();
+    expect(screen.getByText('datastore')).toBeTruthy();
     expect(container.querySelector('input, select, textarea')).toBeNull();
     expect(screen.queryByRole('button', { name: /delete/i })).toBeNull();
   });
@@ -68,12 +71,13 @@ describe('SidePanel', () => {
   });
 
   it('omits rows for values the node does not have', () => {
-    seed({ nodes: [mk({ id: 'a1', root: null, fields: {} })] }, 'a1');
+    seed({ nodes: [mk({ id: 'a1', root: null, role: null, fields: {} })] }, 'a1');
     render(<SidePanel />);
     expect(screen.queryByText('root')).toBeNull();
     expect(screen.queryByText('codeRefs')).toBeNull();
     expect(screen.queryByText('summary')).toBeNull();
     expect(screen.queryByText('invariants')).toBeNull();
+    expect(screen.queryByText('role')).toBeNull();
   });
 
   it('renders codeRefs and a list field as list items', () => {
@@ -105,10 +109,37 @@ describe('SidePanel', () => {
     expect(screen.queryByText('parent')).toBeNull();
   });
 
+  // README.md documents this order as inspector behaviour, which makes it a contract. `.field`
+  // rows are `<div className="field"><span>{label}</span>...</div>`, so the first child span of
+  // each `.field` is the row's label. (The connection/rollup panels' `<p className="field">`
+  // summary lines lead with `<strong>`, not a span, so this selector never matches them.)
+  it('renders the field labels in the documented order', () => {
+    seed({
+      nodes: [
+        mk({ id: 'ca', name: 'Alpha', type: 'Container' }),
+        mk({
+          id: 'a1', name: 'A1', type: 'Component', parentId: 'ca',
+          role: 'datastore', description: 'Stores clips on disk', root: 'src/a1/',
+          codeRefs: ['src/a1/index.ts'], docRefs: ['https://example.com/a1'],
+          fields: {
+            summary: 'Stores clips', technology: 'Go',
+            responsibilities: ['persist clips'], invariants: ['never loses a write'],
+          },
+        }),
+      ],
+    }, 'a1');
+    const { container } = render(<SidePanel />);
+    const labels = [...container.querySelectorAll('.field > span:first-child')].map((el) => el.textContent);
+    expect(labels).toEqual([
+      'type', 'role', 'summary', 'technology', 'description', 'root',
+      'codeRefs', 'docRefs', 'responsibilities', 'invariants', 'parent',
+    ]);
+  });
+
   it('renders a connection as text with no form control and no delete button', () => {
     seed({
       nodes: [mk({ id: 'a1', name: 'A1' }), mk({ id: 'b1', name: 'B1' })],
-      connections: [conn({ id: 'conn1', verb: 'reads', object: 'camera list' })],
+      connections: [conn({ id: 'conn1', verb: 'reads', object: 'camera list', description: 'Polls the feed' })],
     }, 'conn1');
     const { container } = render(<SidePanel />);
     expect(screen.getByRole('heading', { name: /connection/i })).toBeTruthy();
@@ -116,8 +147,18 @@ describe('SidePanel', () => {
     expect(screen.getByText('reads')).toBeTruthy();
     expect(screen.getByText('camera list')).toBeTruthy();
     expect(screen.getByText('Unidirectional')).toBeTruthy();
+    expect(screen.getByText('Polls the feed')).toBeTruthy();
     expect(container.querySelector('input, select, textarea')).toBeNull();
     expect(screen.queryByRole('button', { name: /delete/i })).toBeNull();
+  });
+
+  it('omits the description row for a connection with none', () => {
+    seed({
+      nodes: [mk({ id: 'a1', name: 'A1' }), mk({ id: 'b1', name: 'B1' })],
+      connections: [conn({ id: 'conn1', description: '' })],
+    }, 'conn1');
+    render(<SidePanel />);
+    expect(screen.queryByText('description')).toBeNull();
   });
 
   it('shows a rolled-up connection with its underlying connections and drills on click', () => {

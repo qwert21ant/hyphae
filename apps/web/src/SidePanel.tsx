@@ -36,7 +36,7 @@ export function SidePanel() {
         <h2>{node.name}</h2>
         <Row label="type">{node.type}</Row>
         {node.role && (
-          <Row label="role" title="Shape archetype. Empty = this node kind's default.">{node.role}</Row>
+          <Row label="role" title="Shape archetype, overriding this node kind's default.">{node.role}</Row>
         )}
         {fields.filter(onDiagram).map((def) => (
           <FieldRow key={def.key} def={def} value={node.fields[def.key]} nodes={nodes} onNavigate={revealNode} />

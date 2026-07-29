@@ -24,7 +24,7 @@ schema in `packages/schema` wins any disagreement.
     pnpm server         # API + SSE on :5173, owns ./hyphae.json (override with HYPHAE_FILE)
     pnpm web            # viewer on :3000, proxies the API
     pnpm mcp            # MCP server — an HTTP client of the above, so the server must be running
-    pnpm -r test        # baseline 520 green: schema 147, server 107, web 266
+    pnpm -r test        # baseline 523 green: schema 147, server 107, web 269
     pnpm -r build
 
 ## Testing gotchas

@@ -30,7 +30,7 @@ gitnexus MAY be used in any phase when its index is current — see `references/
 - Deepening or re-running an existing model without creating duplicates.
 - Any repo with multiple packages / services / apps.
 
-Not for: trivial single-package repos (a single analyze-and-model pass is fine), or hand-editing a model (use the web editor).
+Not for: trivial single-package repos (a single analyze-and-model pass is fine), or hand-editing a model (edit over MCP, or edit the JSON file directly).
 
 ## The flow
 

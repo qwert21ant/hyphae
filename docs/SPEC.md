@@ -288,7 +288,7 @@ project-root/
 
 Built into the core, and unchanged by the visual repositioning:
 
-- **JSON Schema as the contract.** Zod schemas are the source of truth → editor TS types, JSON
+- **JSON Schema as the contract.** Zod schemas are the source of truth → viewer TS types, JSON
   Schema, the granular API, and the MCP tools.
 - **Stable IDs on everything.** The LLM references a specific node/connection across messages.
 - **Free text + structured fields.** `description` is semantics; `responsibilities` /
@@ -338,7 +338,7 @@ Built into the core, and unchanged by the visual repositioning:
 - **Vite** + **React 18** + **TypeScript**
 - **@xyflow/react** (React Flow) — node-based editor; custom nodes for role shapes, pattern
   renderers, and flow overlays
-- **Zustand** — editor state
+- **Zustand** — viewer state
 - Plain CSS (`apps/web/src/styles.css`) + inline styles — no CSS framework
 - **dagre** — auto-layout
 
