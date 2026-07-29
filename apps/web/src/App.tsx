@@ -4,7 +4,6 @@ import { useStore } from './store';
 import { loadModel } from './api';
 import { breadcrumbPath } from './focusView';
 import { parseHash, routeToHash, routeOfState, resolveHashRoute, ROOT_ROUTE, type Route } from './hashRoute';
-import { c4Backend, allowedChildTypes, topLevelTypes } from '@hyphae/schema';
 import { Canvas } from './Canvas';
 import { SidePanel } from './SidePanel';
 import { TreePanel } from './TreePanel';
@@ -47,7 +46,6 @@ export function App() {
   const focusId = useStore((s) => s.focusId);
   const setFocus = useStore((s) => s.setFocus);
   const setModel = useStore((s) => s.setModel);
-  const addNode = useStore((s) => s.addNode);
   const audience = useStore((s) => s.audience);
   const setAudience = useStore((s) => s.setAudience);
 
@@ -144,8 +142,6 @@ export function App() {
   }, []);
 
   const crumbs = breadcrumbPath(model, focusId);
-  const focusNode = focusId ? model.nodes.find((n) => n.id === focusId) : null;
-  const addable = focusNode ? allowedChildTypes(c4Backend, focusNode.type) : topLevelTypes(c4Backend);
 
   return (
     <div className="app">
@@ -159,9 +155,6 @@ export function App() {
             </span>
           ))}
         </nav>
-        {addable.map((t) => (
-          <button key={t} onClick={() => addNode(t)}>add {t}</button>
-        ))}
         <SearchBox />
         <div className="audience-toggle" role="group" aria-label="detail level" style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
           {(['stakeholder', 'full'] as const).map((a) => (
