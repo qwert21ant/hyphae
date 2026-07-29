@@ -78,6 +78,13 @@ describe('FieldRow', () => {
     expect([...container.querySelectorAll('li')].map((li) => li.textContent)).toEqual(['a', 'b']);
   });
 
+  it('renders a non-array value for a list-typed field as a single item instead of throwing', () => {
+    const { container } = render(
+      <FieldRow def={def({ key: 'invariants', type: 'list' })} value="always x" nodes={nodes} onNavigate={noop} />,
+    );
+    expect([...container.querySelectorAll('li')].map((li) => li.textContent)).toEqual(['always x']);
+  });
+
   it('renders a boolean as yes or no, including false', () => {
     render(<FieldRow def={def({ key: 'cached', type: 'boolean' })} value={false} nodes={nodes} onNavigate={noop} />);
     expect(screen.getByText('no')).toBeTruthy();

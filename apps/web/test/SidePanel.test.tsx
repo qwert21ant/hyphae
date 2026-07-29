@@ -1,36 +1,48 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 vi.mock('../src/api', () => {
-  let v = 0;
-  const base = (over: Record<string, unknown>) => ({
-    id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null, codeRefs: [],
-    docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
-  });
   const blank = () => ({
     schemaVersion: 1, metadata: { name: 'Untitled', description: '', createdAt: 't', updatedAt: 't' },
     activeProfile: 'c4-backend', nodes: [], connections: [], flows: [], patterns: [],
     dataTypes: [], requirements: [], decisions: [], views: [],
   });
-  class ApiError extends Error { constructor(public status: number, public body: unknown) { super('x'); } }
-  return {
-    ApiError,
-    loadModel: vi.fn(async () => ({ model: blank(), version: v })),
-    createNode: vi.fn(async (input: { id: string; name: string; type: string }) => ({ node: base({ id: input.id, name: input.name, type: input.type }), version: ++v })),
-    updateNode: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ node: base({ id, ...patch }), version: ++v })),
-    deleteNode: vi.fn(async () => ({ version: ++v })),
-    createConnection: vi.fn(async () => ({ connection: {}, version: ++v })),
-    updateConnection: vi.fn(async (id: string, patch: Record<string, unknown>) => ({ connection: { id, from: 'a', to: 'b', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {}, ...patch }, version: ++v })),
-    deleteConnection: vi.fn(async () => ({ version: ++v })),
-    setNodePosition: vi.fn(async () => ({ version: ++v })),
-  };
+  return { loadModel: vi.fn(async () => ({ model: blank(), version: 0 })) };
 });
 
 import { SidePanel } from '../src/SidePanel';
 import { useStore } from '../src/store';
 import { emptyModel, type Node, type Connection } from '@hyphae/schema';
 
-beforeEach(() => useStore.getState().setModel(emptyModel(), 0));
+const mk = (over: Partial<Node>): Node => ({
+  id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null,
+  codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
+});
+const conn = (over: Partial<Connection>): Connection => ({
+  id: 'c', from: 'a1', to: 'b1', verb: 'uses', object: '', description: '', direction: 'Unidirectional',
+  realizedBy: [], codeRefs: [], fields: {}, ...over,
+});
+
+/** Seed the model and the selection in one shot. The store has no write action to arrange this with
+ *  any more, and an explicit fixture is clearer than one built by calling the thing under test. */
+function seed(
+  parts: { nodes?: Node[]; connections?: Connection[] },
+  selectedId: string | null,
+  focusId: string | null = null,
+) {
+  useStore.getState().setModel(
+    { ...emptyModel(), nodes: parts.nodes ?? [], connections: parts.connections ?? [] },
+    0,
+  );
+  useStore.setState({ selectedId, focusId });
+}
+
+beforeEach(() => {
+  useStore.getState().setModel(emptyModel(), 0);
+  useStore.setState({ selectedId: null, focusId: null });
+});
 
 describe('SidePanel', () => {
   it('shows a hint when nothing is selected', () => {
@@ -38,102 +50,87 @@ describe('SidePanel', () => {
     expect(screen.getByText(/no node selected/i)).toBeTruthy();
   });
 
-  it('edits the selected node name', async () => {
-    await useStore.getState().addNode('Component');
-    render(<SidePanel />);
-    fireEvent.change(screen.getByLabelText('name') as HTMLInputElement, { target: { value: 'Payments' } });
-    await waitFor(() => expect(useStore.getState().model.nodes[0].name).toBe('Payments'));
+  it('renders a node as text with no form control and no delete button', () => {
+    seed({ nodes: [mk({ id: 'a1', name: 'Payments', description: 'Takes money' })] }, 'a1');
+    const { container } = render(<SidePanel />);
+    expect(screen.getByRole('heading', { name: 'Payments' })).toBeTruthy();
+    expect(screen.getByText('Takes money')).toBeTruthy();
+    expect(screen.getByText('Component')).toBeTruthy();
+    expect(container.querySelector('input, select, textarea')).toBeNull();
+    expect(screen.queryByRole('button', { name: /delete/i })).toBeNull();
   });
 
-  it('edits invariants as a newline-separated list', async () => {
-    await useStore.getState().addNode('Component');
+  it('renders the profile field values a node has', () => {
+    seed({ nodes: [mk({ id: 'a1', fields: { summary: 'Stores clips', technology: 'Go' } })] }, 'a1');
     render(<SidePanel />);
-    fireEvent.change(screen.getByLabelText('invariants') as HTMLTextAreaElement, { target: { value: 'a\nb' } });
-    await waitFor(() => expect(useStore.getState().model.nodes[0].fields.invariants).toEqual(['a', 'b']));
+    expect(screen.getByText('Stores clips')).toBeTruthy();
+    expect(screen.getByText('Go')).toBeTruthy();
   });
 
-  it('edits root, codeRefs, and docRefs', async () => {
-    await useStore.getState().addNode('Component');
+  it('omits rows for values the node does not have', () => {
+    seed({ nodes: [mk({ id: 'a1', root: null, fields: {} })] }, 'a1');
     render(<SidePanel />);
-    fireEvent.change(screen.getByLabelText('root') as HTMLInputElement, { target: { value: 'endpoints/api/' } });
-    await waitFor(() => expect(useStore.getState().model.nodes[0].root).toBe('endpoints/api/'));
-    fireEvent.change(screen.getByLabelText('codeRefs') as HTMLTextAreaElement, { target: { value: 'src/main.ts\nsrc/util.ts' } });
-    await waitFor(() => expect(useStore.getState().model.nodes[0].codeRefs).toEqual(['src/main.ts', 'src/util.ts']));
-    fireEvent.change(screen.getByLabelText('docRefs') as HTMLTextAreaElement, { target: { value: 'https://example.com/doc' } });
-    await waitFor(() => expect(useStore.getState().model.nodes[0].docRefs).toEqual(['https://example.com/doc']));
-    // clearing root back to empty stores null, not an empty string
-    fireEvent.change(screen.getByLabelText('root') as HTMLInputElement, { target: { value: '' } });
-    await waitFor(() => expect(useStore.getState().model.nodes[0].root).toBeNull());
+    expect(screen.queryByText('root')).toBeNull();
+    expect(screen.queryByText('codeRefs')).toBeNull();
+    expect(screen.queryByText('summary')).toBeNull();
+    expect(screen.queryByText('invariants')).toBeNull();
   });
 
-  it('reparents the selected node via the parent dropdown', async () => {
-    const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null, codeRefs: [],
-      docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
-    });
-    useStore.setState((s) => ({
-      model: {
-        ...s.model,
-        nodes: [mk({ id: 'cont', name: 'API', type: 'Container' }), mk({ id: 'comp', name: 'C', type: 'Component' })],
-      },
-      selectedId: 'comp',
-    }));
-    render(<SidePanel />);
-    fireEvent.change(screen.getByLabelText('parent'), { target: { value: 'cont' } });
-    await waitFor(() => expect(useStore.getState().model.nodes.find((n) => n.id === 'comp')?.parentId).toBe('cont'));
+  it('renders codeRefs and a list field as list items', () => {
+    seed({
+      nodes: [mk({ id: 'a1', codeRefs: ['src/main.ts', 'src/util.ts'], fields: { invariants: ['always x'] } })],
+    }, 'a1');
+    const { container } = render(<SidePanel />);
+    const items = [...container.querySelectorAll('li')].map((li) => li.textContent);
+    expect(items).toContain('src/main.ts');
+    expect(items).toContain('src/util.ts');
+    expect(items).toContain('always x');
   });
 
-  it('shows the selected connection', async () => {
-    await useStore.getState().addNode('Component');
-    await useStore.getState().addNode('Component');
-    const [a, b] = useStore.getState().model.nodes.map((n) => n.id);
-    useStore.setState((s) => ({
-      model: {
-        ...s.model,
-        connections: [{ id: 'conn1', from: a, to: b, verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }],
-      },
-      selectedId: 'conn1',
-    }));
+  it('renders the parent as a link that reveals it', () => {
+    seed({
+      nodes: [mk({ id: 'ca', name: 'API', type: 'Container' }), mk({ id: 'comp', name: 'C', parentId: 'ca' })],
+    }, 'comp');
     render(<SidePanel />);
+    expect(screen.getByText('parent')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'API' }));
+    // revealNode focuses the target's parent (root here) and selects the target itself.
+    expect(useStore.getState().selectedId).toBe('ca');
+    expect(useStore.getState().focusId).toBeNull();
+  });
+
+  it('omits the parent row for a top-level node', () => {
+    seed({ nodes: [mk({ id: 'sys', name: 'Sys', type: 'System' })] }, 'sys');
+    render(<SidePanel />);
+    expect(screen.queryByText('parent')).toBeNull();
+  });
+
+  it('renders a connection as text with no form control and no delete button', () => {
+    seed({
+      nodes: [mk({ id: 'a1', name: 'A1' }), mk({ id: 'b1', name: 'B1' })],
+      connections: [conn({ id: 'conn1', verb: 'reads', object: 'camera list' })],
+    }, 'conn1');
+    const { container } = render(<SidePanel />);
     expect(screen.getByRole('heading', { name: /connection/i })).toBeTruthy();
-  });
-
-  it('no longer offers a connection type select', async () => {
-    await useStore.getState().addNode('Component');
-    await useStore.getState().addNode('Component');
-    const [a, b] = useStore.getState().model.nodes.map((n) => n.id);
-    useStore.setState((s) => ({
-      model: {
-        ...s.model,
-        connections: [{ id: 'conn1', from: a, to: b, verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }],
-      },
-      selectedId: 'conn1',
-    }));
-    render(<SidePanel />);
-    expect(screen.queryByLabelText('type')).toBeNull();
-    expect(screen.getByLabelText('verb')).toBeTruthy();
+    expect(screen.getByText('A1 → B1')).toBeTruthy();
+    expect(screen.getByText('reads')).toBeTruthy();
+    expect(screen.getByText('camera list')).toBeTruthy();
+    expect(screen.getByText('Unidirectional')).toBeTruthy();
+    expect(container.querySelector('input, select, textarea')).toBeNull();
+    expect(screen.queryByRole('button', { name: /delete/i })).toBeNull();
   });
 
   it('shows a rolled-up connection with its underlying connections and drills on click', () => {
-    const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null, codeRefs: [],
-      docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
-    });
-    useStore.setState((s) => ({
-      model: {
-        ...s.model,
-        nodes: [
-          mk({ id: 'sys', name: 'Sys', type: 'System' }),
-          mk({ id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys' }),
-          mk({ id: 'cb', name: 'Beta', type: 'Container', parentId: 'sys' }),
-          mk({ id: 'a1', name: 'A1', type: 'Component', parentId: 'ca' }),
-          mk({ id: 'b1', name: 'B1', type: 'Component', parentId: 'cb' }),
-        ],
-        connections: [{ id: 'x1', from: 'a1', to: 'b1', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }],
-      },
-      focusId: 'sys',
-      selectedId: 'agg:ca->cb',
-    }));
+    seed({
+      nodes: [
+        mk({ id: 'sys', name: 'Sys', type: 'System' }),
+        mk({ id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys' }),
+        mk({ id: 'cb', name: 'Beta', type: 'Container', parentId: 'sys' }),
+        mk({ id: 'a1', name: 'A1', parentId: 'ca' }),
+        mk({ id: 'b1', name: 'B1', parentId: 'cb' }),
+      ],
+      connections: [conn({ id: 'x1' })],
+    }, 'agg:ca->cb', 'sys');
     render(<SidePanel />);
     expect(screen.getByRole('heading', { name: /rolled-up connection/i })).toBeTruthy();
     expect(screen.getByText('Alpha → Beta')).toBeTruthy();
@@ -143,22 +140,10 @@ describe('SidePanel', () => {
   });
 
   it('lists connections touching a selected node (and its descendants)', () => {
-    const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null, codeRefs: [],
-      docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
-    });
-    const conn = (over: Partial<Connection>): Connection => ({
-      id: 'c', from: 'a1', to: 'b1', verb: 'uses', object: '', description: '', direction: 'Unidirectional',
-      realizedBy: [], codeRefs: [], fields: {}, ...over,
-    });
-    useStore.setState((s) => ({
-      model: {
-        ...s.model,
-        nodes: [mk({ id: 'ca', name: 'Alpha', type: 'Container' }), mk({ id: 'a1', name: 'A1', parentId: 'ca' }), mk({ id: 'b1', name: 'B1' })],
-        connections: [conn({ id: 'c1', from: 'a1', to: 'b1' })],
-      },
-      selectedId: 'ca', // a Container; its child a1 has a connection to b1
-    }));
+    seed({
+      nodes: [mk({ id: 'ca', name: 'Alpha', type: 'Container' }), mk({ id: 'a1', name: 'A1', parentId: 'ca' }), mk({ id: 'b1', name: 'B1' })],
+      connections: [conn({ id: 'c1' })],
+    }, 'ca'); // a Container; its child a1 has a connection to b1
     render(<SidePanel />);
     expect(screen.getByText(/connections \(1\)/i)).toBeTruthy();
     const list = document.querySelector('.rollup-list')!;
@@ -167,22 +152,10 @@ describe('SidePanel', () => {
   });
 
   it('splits the selected node connections into Outgoing and Incoming sections', () => {
-    const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null, codeRefs: [],
-      docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
-    });
-    const conn = (over: Partial<Connection>): Connection => ({
-      id: 'c', from: 'a1', to: 'ext', verb: 'uses', object: '', description: '', direction: 'Unidirectional',
-      realizedBy: [], codeRefs: [], fields: {}, ...over,
-    });
-    useStore.setState((s) => ({
-      model: {
-        ...s.model,
-        nodes: [mk({ id: 'ca', name: 'Alpha', type: 'Container' }), mk({ id: 'a1', name: 'A1', parentId: 'ca' }), mk({ id: 'ext', name: 'Ext', type: 'System' })],
-        connections: [conn({ id: 'o1', from: 'a1', to: 'ext' }), conn({ id: 'i1', from: 'ext', to: 'a1' })],
-      },
-      selectedId: 'ca',
-    }));
+    seed({
+      nodes: [mk({ id: 'ca', name: 'Alpha', type: 'Container' }), mk({ id: 'a1', name: 'A1', parentId: 'ca' }), mk({ id: 'ext', name: 'Ext', type: 'System' })],
+      connections: [conn({ id: 'o1', from: 'a1', to: 'ext' }), conn({ id: 'i1', from: 'ext', to: 'a1' })],
+    }, 'ca');
     render(<SidePanel />);
     expect(screen.getByText(/connections \(2\)/i)).toBeTruthy();
     expect(screen.getByText(/outgoing \(1\)/i)).toBeTruthy();
@@ -190,93 +163,43 @@ describe('SidePanel', () => {
   });
 
   it('omits a direction subsection when it has no connections', () => {
-    const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null, codeRefs: [],
-      docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
-    });
-    const conn = (over: Partial<Connection>): Connection => ({
-      id: 'c', from: 'a1', to: 'ext', verb: 'uses', object: '', description: '', direction: 'Unidirectional',
-      realizedBy: [], codeRefs: [], fields: {}, ...over,
-    });
-    useStore.setState((s) => ({
-      model: {
-        ...s.model,
-        nodes: [mk({ id: 'ca', name: 'Alpha', type: 'Container' }), mk({ id: 'a1', name: 'A1', parentId: 'ca' }), mk({ id: 'ext', name: 'Ext', type: 'System' })],
-        connections: [conn({ id: 'o1', from: 'a1', to: 'ext' })],
-      },
-      selectedId: 'ca',
-    }));
+    seed({
+      nodes: [mk({ id: 'ca', name: 'Alpha', type: 'Container' }), mk({ id: 'a1', name: 'A1', parentId: 'ca' }), mk({ id: 'ext', name: 'Ext', type: 'System' })],
+      connections: [conn({ id: 'o1', from: 'a1', to: 'ext' })],
+    }, 'ca');
     render(<SidePanel />);
     expect(screen.getByText(/outgoing \(1\)/i)).toBeTruthy();
     expect(screen.queryByText(/incoming/i)).toBeNull();
   });
 
-  it('edits a node role', async () => {
-    await useStore.getState().addNode('Component');
-    render(<SidePanel />);
-    fireEvent.change(screen.getByLabelText('role') as HTMLSelectElement, { target: { value: 'datastore' } });
-    await waitFor(() => expect(useStore.getState().model.nodes[0].role).toBe('datastore'));
-  });
-
-  it('clears a role back to the kind default', async () => {
-    await useStore.getState().addNode('Component');
-    render(<SidePanel />);
-    fireEvent.change(screen.getByLabelText('role') as HTMLSelectElement, { target: { value: 'datastore' } });
-    await waitFor(() => expect(useStore.getState().model.nodes[0].role).toBe('datastore'));
-    fireEvent.change(screen.getByLabelText('role') as HTMLSelectElement, { target: { value: '' } });
-    await waitFor(() => expect(useStore.getState().model.nodes[0].role).toBe(null));
-  });
-
-  it('edits the summary shown on the diagram', async () => {
-    await useStore.getState().addNode('Component');
-    render(<SidePanel />);
-    fireEvent.change(screen.getByLabelText('summary') as HTMLInputElement, { target: { value: 'Stores clips' } });
-    await waitFor(() => expect(useStore.getState().model.nodes[0].fields.summary).toBe('Stores clips'));
-  });
-
-  it('edits a connection verb and object', async () => {
-    await useStore.getState().addNode('Component');
-    await useStore.getState().addNode('Component');
-    const [a, b] = useStore.getState().model.nodes.map((n) => n.id);
-    useStore.setState((s) => ({
-      model: {
-        ...s.model,
-        connections: [{ id: 'conn1', from: a, to: b, verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} }],
-      },
-      selectedId: 'conn1',
-    }));
-    render(<SidePanel />);
-    fireEvent.change(screen.getByLabelText('verb') as HTMLSelectElement, { target: { value: 'reads' } });
-    await waitFor(() => expect(useStore.getState().model.connections[0].verb).toBe('reads'));
-    fireEvent.change(screen.getByLabelText('object') as HTMLInputElement, { target: { value: 'clips' } });
-    await waitFor(() => expect(useStore.getState().model.connections[0].object).toBe('clips'));
-  });
-
-  it('lists a connection\'s realizedBy children and selects a child on row click', () => {
-    const mk = (over: Partial<Node>): Node => ({
-      id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null, codeRefs: [],
-      docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
-    });
-    const conn = (over: Partial<Connection>): Connection => ({
-      id: 'c', from: 'a1', to: 'b1', verb: 'uses', object: '', description: '', direction: 'Unidirectional',
-      realizedBy: [], codeRefs: [], fields: {}, ...over,
-    });
-    useStore.setState((s) => ({
-      model: {
-        ...s.model,
-        nodes: [mk({ id: 'ca', name: 'Alpha', type: 'Container' }), mk({ id: 'a1', name: 'A1', parentId: 'ca' }), mk({ id: 'b1', name: 'B1', parentId: 'ca' })],
-        connections: [
-          conn({ id: 'parent', realizedBy: ['child1', 'missing'] }),
-          conn({ id: 'child1', fields: {} }),
-        ],
-      },
-      selectedId: 'parent',
-    }));
+  it("lists a connection's realizedBy children and selects a child on row click", () => {
+    seed({
+      nodes: [mk({ id: 'ca', name: 'Alpha', type: 'Container' }), mk({ id: 'a1', name: 'A1', parentId: 'ca' }), mk({ id: 'b1', name: 'B1', parentId: 'ca' })],
+      connections: [conn({ id: 'parent', realizedBy: ['child1', 'missing'] }), conn({ id: 'child1' })],
+    }, 'parent');
     render(<SidePanel />);
     // missing child id is skipped → count is 1, not 2
     expect(screen.getByText(/realized by \(1\)/i)).toBeTruthy();
     const list = document.querySelector('.rollup-list')!;
     fireEvent.click(list.querySelector('li')!);
     expect(useStore.getState().selectedId).toBe('child1');
+  });
+});
+
+// jsdom loads no external stylesheet, so nothing in styles.css is observable in the DOM. Read the
+// file and assert the rules instead — the same trick TreePanel.test.tsx uses for the step marker.
+describe('inspector CSS', () => {
+  const css = readFileSync(join(process.cwd(), 'src/styles.css'), 'utf8');
+
+  it('styles the read-only value, list and link', () => {
+    expect(css).toMatch(/\.field__value\s*\{/);
+    expect(css).toMatch(/\.field__list\s*\{/);
+    expect(css).toMatch(/\.field__link\s*\{/);
+  });
+
+  it('no longer styles form controls inside a field', () => {
+    expect(css).not.toMatch(/\.field\s+input/);
+    expect(css).not.toMatch(/\.field\s+textarea/);
+    expect(css).not.toMatch(/\.field\s+select/);
   });
 });

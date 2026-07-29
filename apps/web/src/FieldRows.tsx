@@ -59,7 +59,10 @@ export function FieldRow({ def, value, nodes, onNavigate }: {
   if (isEmptyValue(value)) return null;
   const label = def.label ?? def.key;
   if (def.type === 'list') {
-    return <ListRow label={label} title={def.description} items={(value as unknown[]).map(String)} />;
+    // node.fields is loosely-typed model JSON; an agent can write a bare string into a list-typed
+    // field. Render it as the one item it evidently means, rather than crashing on `.map`.
+    const items = Array.isArray(value) ? value.map(String) : [String(value)];
+    return <ListRow label={label} title={def.description} items={items} />;
   }
   if (def.type === 'ref') {
     return (
