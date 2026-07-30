@@ -40,7 +40,7 @@ function ancestorsOf(nodes: Node[], focusId: string | null): Set<string> {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="tree-section">
-      <div className="tree-section__title">{title}</div>
+      <div className="tree-section__title hy-micro">{title}</div>
       {children}
     </div>
   );
@@ -95,7 +95,8 @@ export function TreePanel({ collapsed, onToggleCollapse }: { collapsed: boolean;
     const open = override[node.id] ?? autoOpen.has(node.id);
     return (
       <div key={node.id}>
-        <div className={rowClass(node.id === selectedId, node.id === focusId)} style={{ paddingLeft: 4 + depth * 12 }}>
+        <div className={rowClass(node.id === selectedId, node.id === focusId)}>
+          {Array.from({ length: depth }, (_, i) => <span key={i} className="tree-guide" />)}
           {children.length > 0 ? (
             <button
               className="tree-twisty"
@@ -125,19 +126,20 @@ export function TreePanel({ collapsed, onToggleCollapse }: { collapsed: boolean;
         <div className={rowClass(selected, false)} style={{ paddingLeft: 4 }}>
           <span className="tree-twisty" />
           <button className="tree-label" aria-pressed={selected} onClick={() => selectFlow(selected ? null : f.id)}>
-            {f.name}{invalid.flows.has(f.id) ? ' ⚠' : ''}
+            {f.name}{invalid.flows.has(f.id) ? <span className="tree-invalid" title="references something missing"> ⚠</span> : ''}
           </button>
         </div>
         {selected && (
           <ol className="tree-steps">
             {[...f.steps].sort((a, b) => a.order - b.order).map((s) => (
-              <li key={s.order} className={s.kind === 'Return' ? 'tree-step--return' : undefined}>
+              <li key={s.order} className={s.kind === 'Return' ? 'tree-step tree-step--return' : 'tree-step'}>
+                <span className="tree-step__order">{s.order}.</span>
                 <button
                   className="tree-label"
                   onClick={() => revealStep(s)}
                   title={`${nodeName.get(s.from) ?? s.from} → ${nodeName.get(s.to) ?? s.to}`}
                 >
-                  {s.order}. {s.message || <em>(no caption)</em>}
+                  {s.message || <em>(no caption)</em>}
                   {/* ↗ = the current view can't draw this step; clicking it moves the view there. */}
                   {offView.has(s.order) ? <span className="tree-offview" title="not drawn in this view"> ↗</span> : null}
                 </button>
@@ -157,7 +159,7 @@ export function TreePanel({ collapsed, onToggleCollapse }: { collapsed: boolean;
         <div className={rowClass(selected, false)} style={{ paddingLeft: 4 }}>
           <span className="tree-twisty" />
           <button className="tree-label" aria-pressed={selected} onClick={() => selectPattern(selected ? null : p.id)}>
-            {p.name} <span className="tree-dim">· {p.kind}</span>{invalid.patterns.has(p.id) ? ' ⚠' : ''}
+            {p.name} <span className="tree-dim">· {p.kind}</span>{invalid.patterns.has(p.id) ? <span className="tree-invalid" title="references something missing"> ⚠</span> : null}
           </button>
         </div>
         {selected && (
@@ -166,7 +168,7 @@ export function TreePanel({ collapsed, onToggleCollapse }: { collapsed: boolean;
                 describes. A dangling anchor still shows, marked, rather than silently vanishing. */}
             {p.anchor && (anchorName
               ? <button className="tree-label tree-anchor" onClick={() => revealNode(p.anchor!)}>anchor: {anchorName}</button>
-              : <div className="tree-anchor tree-dim">anchor: {p.anchor} ⚠</div>)}
+              : <div className="tree-anchor tree-dim">anchor: {p.anchor}<span className="tree-invalid" title="references something missing"> ⚠</span></div>)}
             <ul className="tree-members">
               {p.members.map((m) => {
                 const bound = m.nodeId && nodeName.has(m.nodeId) ? m.nodeId : null;
@@ -207,7 +209,7 @@ export function TreePanel({ collapsed, onToggleCollapse }: { collapsed: boolean;
   return (
     <aside className="tree-panel" aria-label="model outline">
       <div className="tree-panel__head">
-        <strong>Outline</strong>
+        <span className="tree-panel__title">Outline</span>
         <button className="tree-toggle" onClick={onToggleCollapse} title="Hide model outline" aria-label="hide model outline">«</button>
       </div>
       {hasDetail ? (

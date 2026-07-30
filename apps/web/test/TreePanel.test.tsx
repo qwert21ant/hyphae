@@ -73,6 +73,23 @@ describe('TreePanel — nodes', () => {
     fireEvent.doubleClick(getByRole('button', { name: 'A1' }));
     expect(useStore.getState().focusId).toBe('a1');
   });
+
+  // Focus and selection were both colour states and fought each other. Separating "which view am I
+  // in" (a bar) from "what did I click" (a fill) lets a row be both at once and stay legible.
+  it('distinguishes the focused row from the selected row', () => {
+    reset({ focusId: 'ca', selectedId: 'a1' });
+    const { container } = renderTree();
+    expect(container.querySelector('.tree-row--current')).toBeTruthy();
+    expect(container.querySelector('.tree-row--active')).toBeTruthy();
+    expect(container.querySelector('.tree-row--current.tree-row--active')).toBeFalsy();
+  });
+
+  it('renders an indent guide per depth level', () => {
+    reset({ focusId: 'a1' });   // opens sys > ca > a1, so a1's row sits at depth 2
+    const { container } = renderTree();
+    const deepest = container.querySelectorAll('.tree-row')[2];
+    expect(deepest.querySelectorAll('.tree-guide').length).toBeGreaterThan(0);
+  });
 });
 
 describe('TreePanel — flows', () => {
@@ -80,8 +97,10 @@ describe('TreePanel — flows', () => {
     const { getByRole, getByText } = renderTree();
     fireEvent.click(getByRole('button', { name: 'Ingest clip' }));
     expect(useStore.getState().selectedFlowId).toBe('f1');
-    expect(getByText(/1\. send frame/)).toBeTruthy();
-    expect(getByText(/2\. ack/)).toBeTruthy();
+    // The order now lives in its own .tree-step__order column (see the "puts a step order..." test
+    // below), so the label itself carries only the message.
+    expect(getByText(/send frame/)).toBeTruthy();
+    expect(getByText(/ack/)).toBeTruthy();
   });
 
   it('deselects the flow when its row is clicked again', () => {
@@ -94,7 +113,7 @@ describe('TreePanel — flows', () => {
   it('navigates to a step on click', () => {
     reset({ selectedFlowId: 'f1' });
     const { getByText } = renderTree();
-    fireEvent.click(getByText(/2\. ack/));
+    fireEvent.click(getByText(/ack/));
     const s = useStore.getState();
     expect(s.focusId).toBe('cb');                      // step 2 runs b1 -> a1
     expect([...s.expandedExternals]).toEqual(['ca']);
@@ -104,8 +123,8 @@ describe('TreePanel — flows', () => {
   it('marks the steps the canvas could not draw', () => {
     reset({ selectedFlowId: 'f1', offViewStepOrders: [2] });
     const { getByText } = renderTree();
-    expect(getByText(/1\. send frame/).textContent).not.toContain('↗');
-    expect(getByText(/2\. ack/).textContent).toContain('↗');
+    expect(getByText(/send frame/).textContent).not.toContain('↗');
+    expect(getByText(/ack/).textContent).toContain('↗');
   });
 
   it('suppresses the browser list marker, since each row prints its own step order', () => {
@@ -113,7 +132,7 @@ describe('TreePanel — flows', () => {
     // in the DOM — assert the rule itself. The rows print the authored `order`, which need not be a
     // contiguous 1..n, so an <ol> marker would both duplicate and contradict it.
     // (import.meta.url is an http URL under jsdom, so resolve from the package root instead.)
-    const css = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8');
+    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
     expect(css).toMatch(/\.tree-steps\s*\{[^}]*list-style:\s*none/);
   });
 
@@ -122,7 +141,20 @@ describe('TreePanel — flows', () => {
     m.flows[0].steps[0].to = 'ghost';   // dangling -> bad-flow-endpoint
     reset({ model: m });
     const { getByText } = renderTree();
-    expect(getByText(/Ingest clip ⚠/)).toBeTruthy();
+    // The ⚠ now lives in its own span (so it can carry the one warning colour), so it no longer
+    // shares a text node with the label — match on the label and check the marker in .textContent,
+    // the same way the pattern warning test below already does.
+    expect(getByText(/Ingest clip/).textContent).toContain('⚠');
+  });
+
+  it('puts a step order in its own mono column', () => {
+    reset({ selectedFlowId: 'f1' });
+    const { container } = renderTree();
+    const orders = container.querySelectorAll('.tree-step__order');
+    expect(orders.length).toBe(2);
+    // Assert the authored order value itself, not just that the column exists.
+    expect(orders[0].textContent).toBe('1.');
+    expect(orders[1].textContent).toBe('2.');
   });
 });
 
@@ -214,5 +246,10 @@ describe('TreePanel — chrome', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8');
     expect(css).toMatch(/\.sep--h\s*\{[^}]*cursor:\s*row-resize/);
     expect(css).toMatch(/\.sep--v\s*\{[^}]*cursor:\s*col-resize/);
+  });
+
+  it('gives the focused row an accent bar rather than a fill', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+    expect(css).toMatch(/\.tree-row--current\s*\{[^}]*border-left-color:\s*var\(--accent\)/);
   });
 });

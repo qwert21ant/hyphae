@@ -48,3 +48,74 @@
   font: inherit; font-size: var(--t-sm); color: var(--tx-2); text-align: left;
 }
 .altimeter__crumb:hover { color: var(--tx-1); }
+
+.tree-panel {
+  flex: 1; min-width: 0; height: 100%;
+  display: flex; flex-direction: column;
+  background: var(--surface-1);
+  border-right: 1px solid var(--rule);
+  font-size: var(--t-sm); color: var(--tx-2);
+}
+.tree-panel--collapsed { align-items: center; padding-top: var(--s-3); }
+.tree-panel__head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--rule);
+}
+.tree-panel__title {
+  font-size: var(--t-micro); font-weight: 600; font-stretch: 112%;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--tx-1);
+}
+.tree-panel__body { flex: 1; min-height: 0; overflow: auto; padding-bottom: var(--s-5); }
+.tree-panel__body--split { overflow: hidden; padding-bottom: 0; }
+.tree-split__pane { padding-bottom: var(--s-5); }
+.tree-split__pane--detail { border-top: 1px solid var(--rule); }
+.tree-toggle {
+  background: none; border: none; color: var(--tx-3); cursor: pointer;
+  font-size: var(--t-md); padding: 0 var(--s-1);
+}
+.tree-toggle:hover { color: var(--tx-1); }
+.tree-section__title { padding: var(--s-3) var(--s-4) var(--s-1); }
+
+/* A row carries two independent states. --current is "the view you are in" and gets the accent bar;
+ * --active is "the thing you clicked" and gets a luminance lift. Both at once must stay readable. */
+.tree-row {
+  display: flex; align-items: center; gap: var(--s-1);
+  padding: var(--s-1) var(--s-4) var(--s-1) 0;
+  border-left: 2px solid transparent;
+}
+.tree-row--active { background: var(--surface-3); }
+.tree-row--current { background: var(--surface-3); border-left-color: var(--accent); }
+.tree-row--current .tree-label { color: var(--tx-1); font-weight: 600; }
+/* One hairline per depth level: the nesting becomes visible instead of implied by empty space. */
+.tree-guide { flex: none; width: 11px; height: 17px; margin-left: var(--s-3); border-left: 1px solid var(--rule); }
+.tree-twisty {
+  flex: none; width: 14px; background: none; border: none; padding: 0;
+  color: var(--tx-3); cursor: pointer; font-size: var(--t-micro); line-height: 1;
+}
+.tree-label {
+  flex: 1; min-width: 0; text-align: left; background: none; border: none;
+  color: inherit; font: inherit; cursor: pointer;
+  padding: var(--s-1) var(--s-2); border-radius: var(--r-sm);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tree-label:hover { background: var(--surface-3); color: var(--tx-1); }
+
+/* list-style:none — the rows print the step's own `order`, which is authored and need not be a
+   contiguous 1..n, so the browser's decimal marker would both duplicate and contradict it. The
+   order now has its own element, which is also what lets it line up in a column. */
+.tree-steps { list-style: none; margin: 0; padding: var(--s-1) var(--s-3) var(--s-2) var(--s-5); }
+.tree-step { display: flex; align-items: baseline; gap: var(--s-3); line-height: 1.4; }
+.tree-step__order {
+  flex: none; min-width: 16px; text-align: right;
+  font-family: var(--font-mono); font-size: var(--t-micro); color: var(--tx-3);
+}
+.tree-step--return .tree-label { color: var(--tx-3); }
+.tree-offview { color: var(--accent-text); }
+.tree-detail { padding: var(--s-1) var(--s-3) var(--s-2) var(--s-7); }
+.tree-anchor { display: block; color: var(--accent-text); }
+.tree-members { margin: var(--s-1) 0 0; padding-left: var(--s-6); }
+.tree-member--static { color: var(--tx-3); }
+.tree-dim { color: var(--tx-3); font-weight: 400; }
+.tree-empty { padding: var(--s-1) var(--s-5); color: var(--tx-3); }
+.tree-invalid { color: var(--warn); }
