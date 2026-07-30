@@ -5,18 +5,6 @@
 
 .app { display: flex; flex-direction: column; height: 100%; }
 .body { flex: 1 1 0; min-height: 0; }
-.panel { flex: 1; min-width: 0; height: 100%; box-sizing: border-box; border-left: 1px solid #ddd; padding: 12px; overflow-y: auto; }
-.conn-dir { margin: 8px 0 2px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; }
-.field { display: flex; flex-direction: column; margin-bottom: 8px; font-size: 12px; }
-.field__value { font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
-.field__list { margin: 0; padding-left: 16px; font-size: 13px; overflow-wrap: anywhere; }
-.field__link { background: none; border: none; padding: 0; font-size: 13px; color: #2563eb; cursor: pointer; text-align: left; }
-.field__link:hover { text-decoration: underline; }
-.rollup-list { list-style: none; margin: 6px 0 0; padding: 0; max-height: 320px; overflow: auto; }
-.rollup-list li { padding: 4px 0; border-bottom: 1px solid #eee; font-size: 12px; }
-.rollup-list button { background: none; border: none; color: #2563eb; cursor: pointer; padding: 0; font-size: 12px; }
-.rollup-list button:hover { text-decoration: underline; }
-.rollup-list small { color: #777; }
 
 /* Resize separators. The library sets no cursor of its own and its `data-separator` attribute
    (inactive | hover | active | focus | disabled) is the documented styling hook, since a

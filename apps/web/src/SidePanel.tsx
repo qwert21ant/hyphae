@@ -3,6 +3,7 @@ import { useStore } from './store';
 import { buildFocusView, partitionConnections } from './focusView';
 import { ConnectionList } from './ConnectionList';
 import { Row, ListRow, NodeLink, FieldRow } from './FieldRows';
+import { fieldLayout } from './fieldLayout';
 import { nodeFields, connectionFields, c4Backend, type Connection } from '@hyphae/schema';
 
 /** The inspector: a read-only detail view of whatever is selected. The model is authored by agents
@@ -33,17 +34,19 @@ export function SidePanel() {
     const total = outgoing.length + incoming.length;
     return (
       <aside className="panel">
-        <h2>{node.name}</h2>
-        <Row label="type">{node.type}</Row>
-        {node.role && (
-          <Row label="role" title="Shape archetype, overriding this node kind's default.">{node.role}</Row>
-        )}
+        <div className="panel__name">{node.name}</div>
+        <div className="panel__chips">
+          <span className="chip">{node.type}</span>
+          {node.role && <span className="chip" title="Shape archetype, overriding this node kind's default.">{node.role}</span>}
+        </div>
         {fields.filter(onDiagram).map((def) => (
           <FieldRow key={def.key} def={def} value={node.fields[def.key]} nodes={nodes} onNavigate={revealNode} />
         ))}
-        {node.description && <Row label="description">{node.description}</Row>}
+        {node.description && (
+          <Row label="description" layout={fieldLayout('core', node.description)}>{node.description}</Row>
+        )}
         {node.root && (
-          <Row label="root" title='Directory Ref anchoring this subtree on disk, e.g. "endpoints/media_gateway/". Descendants resolve their refs against it.'>
+          <Row label="root" layout="grid" title='Directory Ref anchoring this subtree on disk, e.g. "endpoints/media_gateway/". Descendants resolve their refs against it.'>
             {node.root}
           </Row>
         )}
@@ -53,22 +56,22 @@ export function SidePanel() {
           <FieldRow key={def.key} def={def} value={node.fields[def.key]} nodes={nodes} onNavigate={revealNode} />
         ))}
         {node.parentId && (
-          <Row label="parent">
+          <Row label="parent" layout="grid">
             <NodeLink id={node.parentId} nodes={nodes} onNavigate={revealNode} />
           </Row>
         )}
         {total > 0 && (
           <>
-            <h3>Connections ({total})</h3>
+            <div className="panel__section hy-micro">connections · {total}</div>
             {outgoing.length > 0 && (
               <>
-                <h4 className="conn-dir">Outgoing ({outgoing.length})</h4>
+                <div className="panel__subsection hy-micro">outgoing · {outgoing.length}</div>
                 <ConnectionList connections={outgoing} />
               </>
             )}
             {incoming.length > 0 && (
               <>
-                <h4 className="conn-dir">Incoming ({incoming.length})</h4>
+                <div className="panel__subsection hy-micro">incoming · {incoming.length}</div>
                 <ConnectionList connections={incoming} />
               </>
             )}
@@ -86,20 +89,24 @@ export function SidePanel() {
       .filter((c): c is Connection => !!c);
     return (
       <aside className="panel">
-        <h2>Connection</h2>
-        <p className="field"><strong>{nameOf(conn.from)} → {nameOf(conn.to)}</strong></p>
-        <Row label="verb" title="The business action shown on the edge.">{conn.verb}</Row>
+        <div className="panel__name">Connection</div>
+        <div className="panel__chips">
+          <span className="chip">{nameOf(conn.from)} → {nameOf(conn.to)}</span>
+        </div>
+        <Row label="verb" layout="grid" title="The business action shown on the edge.">{conn.verb}</Row>
         {conn.object && (
-          <Row label="object" title='Short noun the action acts on, e.g. "camera list".'>{conn.object}</Row>
+          <Row label="object" layout="grid" title='Short noun the action acts on, e.g. "camera list".'>{conn.object}</Row>
         )}
-        <Row label="direction">{conn.direction}</Row>
-        {conn.description && <Row label="description">{conn.description}</Row>}
+        <Row label="direction" layout="grid">{conn.direction}</Row>
+        {conn.description && (
+          <Row label="description" layout={fieldLayout('core', conn.description)}>{conn.description}</Row>
+        )}
         {connectionFields(c4Backend).map((def) => (
           <FieldRow key={def.key} def={def} value={conn.fields[def.key]} nodes={nodes} onNavigate={revealNode} />
         ))}
         {realizedChildren.length > 0 && (
           <>
-            <h3>Realized by ({realizedChildren.length})</h3>
+            <div className="panel__section hy-micro">realized by · {realizedChildren.length}</div>
             <ConnectionList connections={realizedChildren} />
           </>
         )}
@@ -114,9 +121,11 @@ export function SidePanel() {
       .filter((c): c is Connection => !!c);
     return (
       <aside className="panel">
-        <h2>Rolled-up connection</h2>
-        <p className="field"><strong>{nameOf(rollup.from)} → {nameOf(rollup.to)}</strong></p>
-        <p className="field">{conns.length} connection{conns.length === 1 ? '' : 's'}</p>
+        <div className="panel__name">Rolled-up connection</div>
+        <div className="panel__chips">
+          <span className="chip">{nameOf(rollup.from)} → {nameOf(rollup.to)}</span>
+        </div>
+        <div className="panel__section hy-micro">{conns.length} connection{conns.length === 1 ? '' : 's'}</div>
         <ConnectionList connections={conns} />
       </aside>
     );

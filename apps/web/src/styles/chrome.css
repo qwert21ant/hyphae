@@ -119,3 +119,71 @@
 .tree-dim { color: var(--tx-3); font-weight: 400; }
 .tree-empty { padding: var(--s-1) var(--s-5); color: var(--tx-3); }
 .tree-invalid { color: var(--warn); }
+
+.panel {
+  flex: 1; min-width: 0; height: 100%; box-sizing: border-box;
+  background: var(--surface-1);
+  border-left: 1px solid var(--rule);
+  padding: var(--s-5); overflow-y: auto;
+}
+.panel__name {
+  font-size: var(--t-lg); font-weight: 600; font-stretch: 112%;
+  letter-spacing: -0.005em; color: var(--tx-1);
+}
+.panel__chips { display: flex; flex-wrap: wrap; gap: var(--s-2); margin: var(--s-3) 0 var(--s-5); }
+.chip {
+  font-family: var(--font-mono); font-size: var(--t-micro);
+  color: var(--tx-2); background: var(--chip);
+  border-radius: var(--r-sm); padding: var(--s-1) var(--s-3);
+}
+.panel__section, .panel__subsection {
+  border-top: 1px solid var(--rule);
+  margin-top: var(--s-5); padding-top: var(--s-4);
+}
+.panel__subsection { border-top: none; margin-top: var(--s-4); padding-top: 0; }
+
+/* Two treatments, one rule. Short scalars grid so they can be scanned; prose stacks so it gets the
+ * panel's full measure. fieldLayout() decides which, from the value's own shape. */
+.field--grid {
+  display: grid; grid-template-columns: 72px 1fr;
+  column-gap: var(--s-4); row-gap: var(--s-1);
+  align-items: baseline; margin-bottom: var(--s-2);
+}
+.field--stack {
+  border-top: 1px solid var(--rule);
+  margin-top: var(--s-5); padding-top: var(--s-4);
+}
+.field--stack .field__value { margin-top: var(--s-2); }
+.field__label { line-height: 1.5; }
+.field__value {
+  font-size: var(--t-md); line-height: 1.45; color: var(--tx-1);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.field__list {
+  margin: var(--s-2) 0 0; padding-left: var(--s-6);
+  font-family: var(--font-mono); font-size: var(--t-sm);
+  color: var(--tx-2); overflow-wrap: anywhere;
+}
+.field__link {
+  background: none; border: none; padding: 0; cursor: pointer; text-align: left;
+  font: inherit; font-size: var(--t-md); color: var(--accent-text);
+}
+.field__link:hover { text-decoration: underline; }
+
+.conn { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-1) 0; }
+/* .rollup-list li keeps its inline flow (buttons/small wrap at narrow widths), so the dot needs its
+ * own margin rather than relying on .conn's flex gap. */
+.conn__dot { display: inline-block; flex: none; width: 6px; height: 6px; margin-right: var(--s-2); border-radius: 50%; }
+.conn__verb { font-family: var(--font-mono); font-size: var(--t-micro); color: var(--tx-2); }
+.conn__name {
+  font-size: var(--t-sm); color: var(--tx-1);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rollup-list { list-style: none; margin: var(--s-3) 0 0; padding: 0; max-height: 320px; overflow: auto; }
+.rollup-list li { padding: var(--s-2) 0; border-bottom: 1px solid var(--rule); font-size: var(--t-sm); }
+.rollup-list button {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font: inherit; font-size: var(--t-sm); color: var(--accent-text);
+}
+.rollup-list button:hover { text-decoration: underline; }
+.rollup-list small { color: var(--tx-3); }
