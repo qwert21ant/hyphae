@@ -1,9 +1,9 @@
 @import './styles/tokens.css';
 @import './styles/base.css';
 @import './styles/canvas.css';
+@import './styles/chrome.css';
 
 .app { display: flex; flex-direction: column; height: 100%; }
-.toolbar { display: flex; gap: 12px; align-items: center; padding: 8px 12px; border-bottom: 1px solid #ddd; }
 .body { flex: 1 1 0; min-height: 0; }
 .panel { flex: 1; min-width: 0; height: 100%; box-sizing: border-box; border-left: 1px solid #ddd; padding: 12px; overflow-y: auto; }
 .tree-panel { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; border-right: 1px solid #ddd; font-size: 12px; color: #334155; }
@@ -39,10 +39,6 @@
 .field__list { margin: 0; padding-left: 16px; font-size: 13px; overflow-wrap: anywhere; }
 .field__link { background: none; border: none; padding: 0; font-size: 13px; color: #2563eb; cursor: pointer; text-align: left; }
 .field__link:hover { text-decoration: underline; }
-.breadcrumbs { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
-.breadcrumbs .crumb { background: none; border: none; color: #2563eb; cursor: pointer; padding: 2px 4px; font-size: 13px; }
-.breadcrumbs .crumb:hover { text-decoration: underline; }
-.breadcrumbs .crumb-sep { color: #94a3b8; }
 .rollup-list { list-style: none; margin: 6px 0 0; padding: 0; max-height: 320px; overflow: auto; }
 .rollup-list li { padding: 4px 0; border-bottom: 1px solid #eee; font-size: 12px; }
 .rollup-list button { background: none; border: none; color: #2563eb; cursor: pointer; padding: 0; font-size: 12px; }

@@ -2,12 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Group, Panel, Separator, useDefaultLayout, usePanelRef } from 'react-resizable-panels';
 import { useStore } from './store';
 import { loadModel } from './api';
-import { breadcrumbPath } from './focusView';
 import { parseHash, routeToHash, routeOfState, resolveHashRoute, ROOT_ROUTE, type Route } from './hashRoute';
 import { Canvas } from './Canvas';
 import { SidePanel } from './SidePanel';
 import { TreePanel } from './TreePanel';
-import { SearchBox } from './SearchBox';
+import { Toolbar } from './Toolbar';
 import './styles.css';
 
 /** Put the store into the state a route describes. A pattern or a flow is a selection (the flow's
@@ -42,12 +41,7 @@ function applyHashRoute() {
 }
 
 export function App() {
-  const model = useStore((s) => s.model);
-  const focusId = useStore((s) => s.focusId);
-  const setFocus = useStore((s) => s.setFocus);
   const setModel = useStore((s) => s.setModel);
-  const audience = useStore((s) => s.audience);
-  const setAudience = useStore((s) => s.setAudience);
 
   // The outline panel is collapsible from both ends: the « button drives the panel's imperative
   // API, and dragging the separator to the edge collapses it too. onResize is the single source of
@@ -141,34 +135,9 @@ export function App() {
     };
   }, []);
 
-  const crumbs = breadcrumbPath(model, focusId);
-
   return (
     <div className="app">
-      <header className="toolbar">
-        <strong>Hyphae</strong>
-        <nav className="breadcrumbs" aria-label="breadcrumbs">
-          {crumbs.map((c, i) => (
-            <span key={c.id ?? '__root__'}>
-              {i > 0 && <span className="crumb-sep"> › </span>}
-              <button className="crumb" onClick={() => setFocus(c.id)}>{c.name}</button>
-            </span>
-          ))}
-        </nav>
-        <SearchBox />
-        <div className="audience-toggle" role="group" aria-label="detail level" style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
-          {(['stakeholder', 'full'] as const).map((a) => (
-            <button
-              key={a}
-              onClick={() => setAudience(a)}
-              aria-pressed={audience === a}
-              style={{ fontWeight: audience === a ? 700 : 400, textTransform: 'capitalize' }}
-            >
-              {a}
-            </button>
-          ))}
-        </div>
-      </header>
+      <Toolbar />
       <Group
         className="body"
         id="hyphae-body"

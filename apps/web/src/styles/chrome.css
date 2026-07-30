@@ -1,0 +1,50 @@
+.toolbar {
+  display: flex; align-items: center; gap: var(--s-5);
+  padding: var(--s-3) var(--s-5);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--rule);
+}
+.toolbar__word {
+  font-size: var(--t-word); font-weight: 700; font-stretch: 125%;
+  letter-spacing: 0.15em; color: var(--tx-1);
+}
+.toolbar__right { margin-left: auto; display: flex; align-items: center; gap: var(--s-3); }
+.toolbar__icon {
+  background: none; border: 1px solid var(--rule); border-radius: var(--r-sm);
+  color: var(--tx-3); cursor: pointer; padding: var(--s-1) var(--s-3); font-size: var(--t-sm);
+}
+.toolbar__icon:hover { color: var(--tx-1); border-color: var(--accent-soft); }
+
+.segmented { display: flex; border: 1px solid var(--rule); border-radius: var(--r-sm); overflow: hidden; }
+.segmented__option {
+  background: none; border: none; cursor: pointer;
+  padding: var(--s-1) var(--s-4);
+  font: inherit; font-size: var(--t-sm); text-transform: capitalize;
+  color: var(--tx-3);
+}
+.segmented__option:hover { color: var(--tx-1); }
+/* aria-pressed is the state, so it drives the styling too — no second source of truth. */
+.segmented__option[aria-pressed='true'] {
+  background: var(--accent); color: var(--accent-on); font-weight: 500;
+}
+
+/* The altimeter. Each band's fill is its layer's altitude step, mapped here rather than in the
+ * component so the ramp lives in exactly one place. */
+.altimeter { display: flex; border: 1px solid var(--rule); border-radius: var(--r-sm); overflow: hidden; }
+.altimeter__band {
+  display: flex; flex-direction: column; justify-content: center;
+  padding: var(--s-1) var(--s-4);
+  border-right: 1px solid var(--rule);
+}
+.altimeter__band:last-child { border-right: none; }
+.altimeter__band[data-layer='Context'] { background: var(--alt-1-bg); }
+.altimeter__band[data-layer='Container'] { background: var(--alt-2-bg); }
+.altimeter__band[data-layer='Component'] { background: var(--alt-3-bg); }
+.altimeter__layer { line-height: 1.1; }
+.altimeter__band--current .altimeter__layer { color: var(--accent-text); }
+.altimeter__band--current .altimeter__crumb { color: var(--tx-1); font-weight: 600; }
+.altimeter__crumb {
+  background: none; border: none; cursor: pointer; padding: 0;
+  font: inherit; font-size: var(--t-sm); color: var(--tx-2); text-align: left;
+}
+.altimeter__crumb:hover { color: var(--tx-1); }
