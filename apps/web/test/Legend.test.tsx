@@ -52,3 +52,13 @@ describe('Legend verb classes', () => {
     }
   });
 });
+
+describe('Legend altitude section', () => {
+  // Brightness is now a deliberate encoding of depth (Context → Container → Component), not
+  // incidental styling, so the key that explains the visual language has to say so explicitly.
+  it('explains that brighter is deeper', () => {
+    const { getByText } = openLegend();
+    expect(getByText('Altitude')).toBeTruthy();
+    expect(getByText(/brighter is deeper/)).toBeTruthy();
+  });
+});

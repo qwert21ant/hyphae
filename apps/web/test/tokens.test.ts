@@ -68,17 +68,14 @@ describe('tokens.css', () => {
   });
 });
 
-// Task 4 owns these files; later tasks widen this list until Task 8 removes the filter entirely.
-const TASK4_FILES = ['reactflow.ts', 'patternView.ts', 'PatternMemberNode.tsx', 'NodeBox.tsx',
-                     'GhostNode.tsx', 'FloatingEdge.tsx', 'styles/canvas.css'];
-
-describe('canvas colour literals (Task 4 scope)', () => {
+describe('colour literals', () => {
   // The whole point of the token layer: one place to change a colour. A literal anywhere else is a
-  // value that cannot be themed and has no home.
-  it('has no colour literal in the files this task owns', () => {
+  // value that cannot be themed and has no home. tokens.css is the one legitimate home for literals
+  // — everything else must reference a var(...) instead.
+  it('has no colour literal anywhere in src', () => {
     const offenders: string[] = [];
     for (const file of walk(SRC)) {
-      if (!TASK4_FILES.some((f) => file.endsWith(join(...f.split('/'))))) continue;
+      if (file === join(SRC, 'styles', 'tokens.css')) continue;
       const text = readFileSync(file, 'utf-8');
       for (const m of text.matchAll(/#[0-9A-Fa-f]{3,8}\b/g)) offenders.push(`${file}: ${m[0]}`);
       for (const m of text.matchAll(/\b(rgba?|hsla?)\(/g)) offenders.push(`${file}: ${m[0]}`);
@@ -98,5 +95,14 @@ describe('base.css', () => {
 
   it('sets a reduced-motion escape hatch', () => {
     expect(BASE).toContain('prefers-reduced-motion');
+  });
+});
+
+describe('styles.css', () => {
+  it('styles.css is only imports', () => {
+    const entry = readFileSync(join(SRC, 'styles.css'), 'utf-8');
+    const meaningful = entry.split('\n').map((l) => l.trim())
+      .filter((l) => l && !l.startsWith('/*') && !l.startsWith('*'));
+    expect(meaningful.every((l) => l.startsWith('@import'))).toBe(true);
   });
 });

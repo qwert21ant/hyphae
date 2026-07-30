@@ -9,52 +9,48 @@ import { NodeShape } from './NodeShape';
 const SWATCH_W = 20;
 const SWATCH_H = 14;
 
-const box = (bg: string, border: string) => ({
-  display: 'inline-block', width: 12, height: 12, background: bg,
-  border: `1px solid ${border}`, borderRadius: 2, marginRight: 6, verticalAlign: 'middle',
-});
-const line = (dashed: boolean) => ({
-  display: 'inline-block', width: 20, height: 0, marginRight: 6, verticalAlign: 'middle',
-  borderTop: dashed ? '2px dashed #7c3aed' : '2px solid #64748b',
-});
+// Per-item data — LAYER_COLOR/VERB_CLASS_COLOR already resolve to var(...) references, so these
+// stay inline, exactly like the connection dot's per-item colour.
+const swatch = (bg: string, border: string) => ({ background: bg, borderColor: border });
 
-/** A small always-on key: what the node tints (C4 layers) and the edge styles mean. */
+/** A small always-on key: what the node tints (C4 layers/altitude), edge styles, and roles mean. */
 export function Legend() {
   const [open, setOpen] = useState(false);
   const layers = c4Backend.layers.filter((l) => LAYER_COLOR[l]);
   return (
-    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 11, color: '#334155', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-      <button
-        onClick={() => setOpen((o) => !o)}
-        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '5px 8px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: '#334155' }}
-      >
+    <div className="float">
+      <button className="float__toggle" onClick={() => setOpen((o) => !o)}>
         {open ? '▾' : '▸'} Legend
       </button>
       {open && (
-        <div style={{ padding: '2px 10px 8px', lineHeight: 1.7 }}>
-          <div style={{ fontWeight: 600, marginBottom: 2 }}>Layers</div>
+        <div className="float__body">
+          <div className="legend__group">Altitude</div>
+          <div className="legend__note">brighter is deeper — Context to Component</div>
           {layers.map((l) => (
-            <div key={l}><span style={box(LAYER_COLOR[l].bg, LAYER_COLOR[l].border)} />{l}</div>
+            <div className="legend__row" key={l}>
+              <span className="legend__box" style={swatch(LAYER_COLOR[l].bg, LAYER_COLOR[l].border)} />
+              {l}
+            </div>
           ))}
-          <div style={{ fontWeight: 600, margin: '6px 0 2px' }}>Edges</div>
-          <div><span style={line(false)} />solid — one authored connection (label = verb + object)</div>
-          <div><span style={line(true)} />dashed purple — derived rollup (label = count)</div>
-          <div><span style={{ ...line(false), borderColor: '#94a3b8' }} />no arrowhead — mixed directions</div>
-          <div style={{ fontWeight: 600, margin: '6px 0 2px' }}>Roles</div>
+          <div className="legend__group">Edges</div>
+          <div className="legend__row"><span className="legend__line" />solid — one authored connection (label = verb + object)</div>
+          <div className="legend__row"><span className="legend__line legend__line--dashed" />dashed purple — derived rollup (label = count)</div>
+          <div className="legend__row"><span className="legend__line" />no arrowhead — mixed directions</div>
+          <div className="legend__group">Roles</div>
           {c4Backend.roles.map((r) => (
-            <div key={r.id} title={r.description}>
-              <span style={{ position: 'relative', display: 'inline-block', width: SWATCH_W, height: SWATCH_H, marginRight: 6, verticalAlign: 'middle' }}>
-                <NodeShape shape={r.shape} w={SWATCH_W} h={SWATCH_H} bg="#f8fafc" border="#64748b" />
+            <div className="legend__row" key={r.id} title={r.description}>
+              <span className="legend__shape">
+                <NodeShape shape={r.shape} w={SWATCH_W} h={SWATCH_H} bg="var(--surface-1)" border="var(--tx-3)" />
               </span>
               {SHAPE_LABEL[r.shape]}
             </div>
           ))}
-          <div style={{ fontWeight: 600, margin: '6px 0 2px' }}>Edge verbs</div>
+          <div className="legend__group">Edge verbs</div>
           {verbClasses(c4Backend).map((cls) => {
             const verbs = c4Backend.verbs.filter((v) => v.class === cls).map((v) => v.id);
             return (
-              <div key={cls}>
-                <span style={{ ...line(false), borderColor: VERB_CLASS_COLOR[cls] }} />
+              <div className="legend__row" key={cls}>
+                <span className="legend__line" style={{ borderTopColor: VERB_CLASS_COLOR[cls] }} />
                 {cls} — {verbs.slice(0, 3).join(', ')}{verbs.length > 3 ? '…' : ''}
               </div>
             );

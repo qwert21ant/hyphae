@@ -243,7 +243,7 @@ describe('TreePanel — chrome', () => {
     // jsdom loads no external stylesheet, so the rule is unobservable in the DOM — assert the
     // source. Without it the handle is invisible and undiscoverable, since the library sets no
     // cursor of its own.
-    const css = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8');
+    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
     expect(css).toMatch(/\.sep--h\s*\{[^}]*cursor:\s*row-resize/);
     expect(css).toMatch(/\.sep--v\s*\{[^}]*cursor:\s*col-resize/);
   });

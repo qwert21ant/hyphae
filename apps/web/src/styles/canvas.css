@@ -18,3 +18,14 @@
   font-size: var(--t-micro); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--tx-3); cursor: grab; pointer-events: auto;
 }
+/* The ghost group's title bar carries both the external's name and a collapse caret, so it needs
+ * its own flex layout on top of .region__handle's absolute positioning. */
+.region__handle--split { display: flex; justify-content: space-between; align-items: center; }
+.region__label { font-style: italic; }
+.region__collapse {
+  cursor: pointer; border: none; background: transparent;
+  font-size: var(--t-md); line-height: 1; padding: 0 var(--s-1);
+}
+/* Invisible connection points on all four sides of a ghost group, so an edge can anchor wherever
+ * the layout needs regardless of which side faces the focus. */
+.region__handle-point { opacity: 0; pointer-events: none; }
