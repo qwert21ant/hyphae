@@ -1,6 +1,6 @@
 # Viewer Visual Design Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Give the viewer a deliberate visual design — a two-theme token system in which luminance carries state (altitude, selection, focus) and hue carries meaning (verb class) — replacing 59 lines of near-default CSS and colour literals spread across eight files.
 
@@ -65,7 +65,7 @@
 - Consumes: nothing.
 - Produces: the token names every later task uses. Exact list is the file written in Step 3.
 
-- [ ] **Step 1: Write the failing token-symmetry test**
+- [x] **Step 1: Write the failing token-symmetry test**
 
 Create `apps/web/test/tokens.test.ts`. jsdom loads no external stylesheet, so this reads the file from disk — the same approach `TreePanel.test.tsx` already uses to pin a CSS invariant. `import.meta.url` is an **http** URL under jsdom, so resolve from `process.cwd()`.
 
@@ -141,12 +141,12 @@ describe('tokens.css', () => {
 });
 ```
 
-- [ ] **Step 2: Run it to make sure it fails**
+- [x] **Step 2: Run it to make sure it fails**
 
 Run: `cd apps/web && pnpm vitest run test/tokens.test.ts`
 Expected: FAIL — `ENOENT` on `src/styles/tokens.css`.
 
-- [ ] **Step 3: Write `tokens.css`**
+- [x] **Step 3: Write `tokens.css`**
 
 Create `apps/web/src/styles/tokens.css` exactly as follows. Every value is from the spec's tables.
 
@@ -244,7 +244,7 @@ Create `apps/web/src/styles/tokens.css` exactly as follows. Every value is from 
 }
 ```
 
-- [ ] **Step 4: Import it from the entry stylesheet**
+- [x] **Step 4: Import it from the entry stylesheet**
 
 Add as the **first line** of `apps/web/src/styles.css` (a CSS `@import` must precede all rules):
 
@@ -252,12 +252,12 @@ Add as the **first line** of `apps/web/src/styles.css` (a CSS `@import` must pre
 @import './styles/tokens.css';
 ```
 
-- [ ] **Step 5: Run the token test to verify it passes**
+- [x] **Step 5: Run the token test to verify it passes**
 
 Run: `cd apps/web && pnpm vitest run test/tokens.test.ts`
 Expected: PASS, 3 tests. The third passes trivially for now (nothing references a token yet) and gets stronger with every later task.
 
-- [ ] **Step 6: Write the failing contrast test**
+- [x] **Step 6: Write the failing contrast test**
 
 Create `apps/web/test/contrast.test.ts`. This is the only mechanism keeping the accessibility floor honest — there is no browser in the loop.
 
@@ -316,17 +316,17 @@ describe.each([['dark', ':root'], ['light', '[data-theme="light"]']])('%s theme 
 });
 ```
 
-- [ ] **Step 7: Run it**
+- [x] **Step 7: Run it**
 
 Run: `cd apps/web && pnpm vitest run test/contrast.test.ts`
 Expected: **PASS**, 52 assertions (26 pairs × 2 themes). The spec's values were chosen against exactly this computation. If any pair fails, do **not** loosen the threshold — darken or lighten the token and note the change in the commit body.
 
-- [ ] **Step 8: Run the whole web suite**
+- [x] **Step 8: Run the whole web suite**
 
 Run: `cd apps/web && pnpm test`
 Expected: 269 pre-existing + 3 + 52 new, all green.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 cd C:/projects/hyphae
@@ -363,7 +363,7 @@ EOF
 - Consumes: `--font-ui`, `--font-mono`, `--t-*`, `--s-*`, `--accent` from Task 1.
 - Produces: `.hy-micro` (the shared micro-label class), and a global focus-ring rule every later task relies on rather than restyling focus itself.
 
-- [ ] **Step 1: Install the font packages**
+- [x] **Step 1: Install the font packages**
 
 `@fontsource-variable/archivo` is published (5.3.0). `@fontsource-variable/ibm-plex-mono` **does not exist** — IBM Plex Mono has no variable release — so the mono role uses the static package at two weights.
 
@@ -372,13 +372,13 @@ cd C:/projects/hyphae/apps/web
 pnpm add @fontsource-variable/archivo @fontsource/ibm-plex-mono
 ```
 
-- [ ] **Step 2: Verify which Archivo axes shipped**
+- [x] **Step 2: Verify which Archivo axes shipped**
 
 Run: `ls node_modules/@fontsource-variable/archivo/*.css`
 
 Fontsource publishes one CSS entry per axis combination. If you see a `wdth.css` or `standard.css`, the width axis is available and Step 4's `font-stretch` declarations work. **If only `index.css` (weight axis) exists, drop every `font-stretch` in this plan** and express the display role with weight and `letter-spacing` alone — note which you found in the commit body. Record the finding; Tasks 5 and 7 both reference `font-stretch`.
 
-- [ ] **Step 3: Write `base.css`**
+- [x] **Step 3: Write `base.css`**
 
 Create `apps/web/src/styles/base.css`. Adjust the two `@import` lines to the filenames Step 2 actually found.
 
@@ -429,7 +429,7 @@ body {
 
 The `!important`s here are the documented exception to the global CSS rule: a reduced-motion override has to beat the declarations it is suppressing, and this is the standard formulation.
 
-- [ ] **Step 4: Import it and drop the old body rule**
+- [x] **Step 4: Import it and drop the old body rule**
 
 In `apps/web/src/styles.css`, the first two lines become:
 
@@ -440,7 +440,7 @@ In `apps/web/src/styles.css`, the first two lines become:
 
 and **delete** the old line 1 (`html, body, #root { height: 100%; margin: 0; font-family: system-ui, sans-serif; }`) — `base.css` now owns it. Leave every other rule in `styles.css` for later tasks.
 
-- [ ] **Step 5: Write a test pinning the offline-font invariant**
+- [x] **Step 5: Write a test pinning the offline-font invariant**
 
 Append to `apps/web/test/tokens.test.ts`:
 
@@ -460,17 +460,17 @@ describe('base.css', () => {
 });
 ```
 
-- [ ] **Step 6: Run the tests**
+- [x] **Step 6: Run the tests**
 
 Run: `cd apps/web && pnpm test`
 Expected: all green, 2 new tests.
 
-- [ ] **Step 7: Verify the build actually bundles the fonts**
+- [x] **Step 7: Verify the build actually bundles the fonts**
 
 Run: `cd apps/web && pnpm build`
 Expected: success, and `dist/assets/` contains `.woff2` files. If the build fails on the `@import` paths, the package's CSS entry names differ from Step 2's finding — fix the import, do not remove it.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 cd C:/projects/hyphae
@@ -515,7 +515,7 @@ EOF
   - `nextTheme(t: Theme): Theme`
   Task 5 wires these to a button.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/web/test/theme.test.ts`:
 
@@ -570,12 +570,12 @@ describe('theme', () => {
 });
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `cd apps/web && pnpm vitest run test/theme.test.ts`
 Expected: FAIL — cannot resolve `../src/theme`.
 
-- [ ] **Step 3: Write `theme.ts`**
+- [x] **Step 3: Write `theme.ts`**
 
 ```ts
 /** Which palette `tokens.css` serves. Dark is the default and is expressed as the ABSENCE of the
@@ -607,12 +607,12 @@ export function applyTheme(theme: Theme): void {
 export const nextTheme = (t: Theme): Theme => (t === 'dark' ? 'light' : 'dark');
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `cd apps/web && pnpm vitest run test/theme.test.ts`
 Expected: PASS, 7 tests.
 
-- [ ] **Step 5: Apply the theme before first paint**
+- [x] **Step 5: Apply the theme before first paint**
 
 React mounts after the first paint, so reading the theme in a component flashes the wrong palette on every load. Add to `apps/web/index.html`, inside `<head>` after `<title>`:
 
@@ -632,7 +632,7 @@ React mounts after the first paint, so reading the theme in a component flashes 
     </script>
 ```
 
-- [ ] **Step 6: Pin the duplication so it cannot drift**
+- [x] **Step 6: Pin the duplication so it cannot drift**
 
 Append to `apps/web/test/theme.test.ts`:
 
@@ -652,12 +652,12 @@ describe('the pre-paint script in index.html', () => {
 
 Add `import { readFileSync } from 'node:fs'; import { join } from 'node:path';` to the top of the file.
 
-- [ ] **Step 7: Run the suite**
+- [x] **Step 7: Run the suite**
 
 Run: `cd apps/web && pnpm test`
 Expected: all green, 8 new tests in this task.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 cd C:/projects/hyphae
@@ -700,7 +700,7 @@ This is the load-bearing task. It also contains the plan's one genuine unknown, 
 - Consumes: every colour token from Task 1.
 - Produces: `LAYER_COLOR` and `VERB_CLASS_COLOR` keep their exact shapes (`Record<string, {bg, border}>` and `Record<VerbClass, string>`) — only the values become `var(--…)` strings. `layerColorOf(type)` keeps its signature. Task 8's `Legend` reads both.
 
-- [ ] **Step 1: Update the two tests that assert hexes**
+- [x] **Step 1: Update the two tests that assert hexes**
 
 In `apps/web/test/reactflow.test.ts`, line 179 becomes:
 
@@ -727,7 +727,7 @@ and line 153:
     expect(before).toContain('var(--accent)');                         // strong selection ring
 ```
 
-- [ ] **Step 2: Verify `var()` resolves at the two risky call sites**
+- [x] **Step 2: Verify `var()` resolves at the two risky call sites**
 
 Two places do not simply set a CSS property, and this is the only thing in the plan that cannot be settled by reading code:
 
@@ -747,7 +747,7 @@ Open `http://localhost:3000`, focus a node with outgoing edges, and check: **are
 - **If both work:** proceed with `var()` everywhere and delete Step 3.
 - **If either renders black/transparent:** implement Step 3's `token()` helper for **only** the failing call site(s), and record in the commit body which one failed.
 
-- [ ] **Step 3: Only if Step 2 showed a failure — add the `token()` fallback**
+- [x] **Step 3: Only if Step 2 showed a failure — add the `token()` fallback**
 
 Add to `apps/web/src/theme.ts`:
 
@@ -773,7 +773,7 @@ const miniMapColor = (n: FlowNode): string => {
 
 Note in a comment that a theme switch will not repaint the minimap until React re-renders it, which is an accepted limitation of the fallback path.
 
-- [ ] **Step 4: Convert `reactflow.ts`**
+- [x] **Step 4: Convert `reactflow.ts`**
 
 Replace lines 7-15:
 
@@ -811,7 +811,7 @@ export const VERB_CLASS_COLOR: Record<VerbClass, string> = {
 
 In `derivedEdge` (lines 80-84), replace the four violet literals with `var(--edge-derived)`, and `labelBgStyle: { background: '#ede9fe' }` with `labelBgStyle: { background: 'var(--surface-2)' }`.
 
-- [ ] **Step 5: Convert `patternView.ts`, `Canvas.tsx`, `PatternMemberNode.tsx`**
+- [x] **Step 5: Convert `patternView.ts`, `Canvas.tsx`, `PatternMemberNode.tsx`**
 
 `patternView.ts:40-45` — replace `'#475569'` (three occurrences) with `'var(--verb-control)'`: a pattern's internal edges are structural, so they take the baseline hue rather than inventing one.
 
@@ -844,7 +844,7 @@ const BIND = {
 
 Keep the existing exported name if `PatternMemberNode.test.tsx` imports it; otherwise rename as above. Check first with `grep -n "BIND\|MEMBER" test/PatternMemberNode.test.tsx`.
 
-- [ ] **Step 6: Move canvas chrome into `canvas.css`**
+- [x] **Step 6: Move canvas chrome into `canvas.css`**
 
 Create `apps/web/src/styles/canvas.css` and **cut** lines 39-42 of `styles.css` (`.region`, `.region--ghost`, `.region--ghost .region__handle`, `.region__handle`) into it, retokenised:
 
@@ -871,7 +871,7 @@ Create `apps/web/src/styles/canvas.css` and **cut** lines 39-42 of `styles.css` 
 
 Add `@import './styles/canvas.css';` to `styles.css` after the `base.css` import.
 
-- [ ] **Step 7: Retokenise the node renderers' inline styles**
+- [x] **Step 7: Retokenise the node renderers' inline styles**
 
 `NodeBox.tsx`: line 27 `const color = d.color ?? { bg: 'var(--alt-2-bg)', border: 'var(--alt-2-bd)' };`; line 60 `color: 'var(--tx-2)'`; line 67 `color: 'var(--tx-2)', background: 'var(--chip)'`.
 
@@ -879,7 +879,7 @@ Add `@import './styles/canvas.css';` to `styles.css` after the `base.css` import
 
 `FloatingEdge.tsx:40-41`: `background: 'var(--surface-2)'`, `color: 'var(--tx-2)'`.
 
-- [ ] **Step 8: Prove no literal survives**
+- [x] **Step 8: Prove no literal survives**
 
 Append to `apps/web/test/tokens.test.ts`:
 
@@ -911,16 +911,16 @@ const TASK4_FILES = ['reactflow.ts', 'patternView.ts', 'PatternMemberNode.tsx', 
 
 filter `walk(SRC)` to those, and widen the list in each later task until Task 8 removes the filter entirely.
 
-- [ ] **Step 9: Run everything**
+- [x] **Step 9: Run everything**
 
 Run: `cd apps/web && pnpm test`
 Expected: all green. `Canvas.test.tsx`'s `hlCss` assertions now match token names; `reactflow.test.ts` matches `var(--alt-2-*)`.
 
-- [ ] **Step 10: Look at it in the browser**
+- [x] **Step 10: Look at it in the browser**
 
 With the servers from Step 2 still running, confirm: node fills step up in brightness as you drill from the root into a container into a component; edges are coloured by verb; the rollup edge is violet-dashed; the theme switch repaints without a reload beyond the one you trigger.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 cd C:/projects/hyphae
@@ -968,7 +968,7 @@ The signature element. Extracting `Toolbar` also takes ~30 lines of unrelated ma
 - Consumes: `breadcrumbPath(model, focusId)` from `./focusView` (returns `Array<{ id: string | null; name: string }>`, root first); `layerOfType(c4Backend, type)` from `@hyphae/schema`; `initialTheme`, `applyTheme`, `nextTheme` from `./theme`.
 - Produces: `<Altimeter />` and `<Toolbar />`, both taking no props (they read the store directly, as `SearchBox` already does).
 
-- [ ] **Step 1: Write the failing Altimeter test**
+- [x] **Step 1: Write the failing Altimeter test**
 
 Create `apps/web/test/Altimeter.test.tsx`:
 
@@ -1027,12 +1027,12 @@ describe('Altimeter', () => {
 
 `userEvent` is not currently a dependency. Check with `grep -rn "user-event" package.json test/`; if absent, use `fireEvent.click` from `@testing-library/react` instead of adding a dependency for one call.
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `cd apps/web && pnpm vitest run test/Altimeter.test.tsx`
 Expected: FAIL — cannot resolve `../src/Altimeter`.
 
-- [ ] **Step 3: Write `Altimeter.tsx`**
+- [x] **Step 3: Write `Altimeter.tsx`**
 
 ```tsx
 import { c4Backend, layerOfType } from '@hyphae/schema';
@@ -1077,12 +1077,12 @@ export function Altimeter() {
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `cd apps/web && pnpm vitest run test/Altimeter.test.tsx`
 Expected: PASS, 4 tests.
 
-- [ ] **Step 5: Write the failing Toolbar test**
+- [x] **Step 5: Write the failing Toolbar test**
 
 Create `apps/web/test/Toolbar.test.tsx`:
 
@@ -1123,12 +1123,12 @@ describe('Toolbar', () => {
 });
 ```
 
-- [ ] **Step 6: Run it to verify it fails**
+- [x] **Step 6: Run it to verify it fails**
 
 Run: `cd apps/web && pnpm vitest run test/Toolbar.test.tsx`
 Expected: FAIL — cannot resolve `../src/Toolbar`.
 
-- [ ] **Step 7: Write `Toolbar.tsx`**
+- [x] **Step 7: Write `Toolbar.tsx`**
 
 ```tsx
 import { useState } from 'react';
@@ -1186,7 +1186,7 @@ export function Toolbar() {
 }
 ```
 
-- [ ] **Step 8: Write `chrome.css`'s toolbar section**
+- [x] **Step 8: Write `chrome.css`'s toolbar section**
 
 Create `apps/web/src/styles/chrome.css`:
 
@@ -1245,16 +1245,16 @@ Create `apps/web/src/styles/chrome.css`:
 
 Add `@import './styles/chrome.css';` to `styles.css`, and **delete** the now-dead `.toolbar`, `.breadcrumbs`, `.breadcrumbs .crumb`, `.breadcrumbs .crumb:hover` and `.breadcrumbs .crumb-sep` rules from it (old lines 3, 43-46).
 
-- [ ] **Step 9: Wire it into `App.tsx`**
+- [x] **Step 9: Wire it into `App.tsx`**
 
 Replace the whole `<header className="toolbar">…</header>` block (lines 148-171) with `<Toolbar />`. Delete the now-unused `audience`, `setAudience`, `crumbs`, `setFocus` reads and the `breadcrumbPath` import if nothing else in `App` uses them — check with `grep -n "setFocus\|crumbs\|audience" src/App.tsx` before deleting; `setFocus` may still be referenced.
 
-- [ ] **Step 10: Run the suite**
+- [x] **Step 10: Run the suite**
 
 Run: `cd apps/web && pnpm test`
 Expected: all green, 7 new tests. `App.test.tsx` may assert on breadcrumb DOM — if it queries `.crumb`, update it to `.altimeter__crumb`; the accessible names are unchanged, so `getByRole('button', { name })` queries keep working.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 cd C:/projects/hyphae
@@ -1295,7 +1295,7 @@ EOF
 - Consumes: tokens; `.hy-micro` from Task 2.
 - Produces: nothing later tasks depend on.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `apps/web/test/TreePanel.test.tsx`. Read the file first for its existing model fixture and render helper, and reuse them.
 
@@ -1332,12 +1332,12 @@ Also assert the CSS invariant the way this file already does for the step marker
   });
 ```
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run: `cd apps/web && pnpm vitest run test/TreePanel.test.tsx`
 Expected: FAIL on the new assertions.
 
-- [ ] **Step 3: Change the markup**
+- [x] **Step 3: Change the markup**
 
 In `renderNode` (line 98), replace the `style={{ paddingLeft: 4 + depth * 12 }}` inline indent with explicit guides, so depth is a visible hairline rather than empty space:
 
@@ -1366,7 +1366,7 @@ Keep the `list-style: none` comment's reasoning intact — it is now doubly true
 
 Replace `<strong>Outline</strong>` (line 210) with `<span className="tree-panel__title">Outline</span>` and each `Section`'s title div with `className="tree-section__title hy-micro"`.
 
-- [ ] **Step 4: Add the outline rules to `chrome.css`**
+- [x] **Step 4: Add the outline rules to `chrome.css`**
 
 Append, and **delete** the corresponding old rules from `styles.css` (old lines 6-32):
 
@@ -1443,7 +1443,7 @@ Append, and **delete** the corresponding old rules from `styles.css` (old lines 
 .tree-invalid { color: var(--warn); }
 ```
 
-- [ ] **Step 5: Use the warning token for `⚠`**
+- [x] **Step 5: Use the warning token for `⚠`**
 
 In `TreePanel.tsx`, wrap both `⚠` occurrences (lines 128, 160, 169) so the one warning colour is applied:
 
@@ -1451,12 +1451,12 @@ In `TreePanel.tsx`, wrap both `⚠` occurrences (lines 128, 160, 169) so the one
 {invalid.flows.has(f.id) ? <span className="tree-invalid" title="references something missing"> ⚠</span> : null}
 ```
 
-- [ ] **Step 6: Run the suite**
+- [x] **Step 6: Run the suite**
 
 Run: `cd apps/web && pnpm test`
 Expected: all green. If an existing test asserts `paddingLeft` on a tree row, it must change — depth is now guides, not padding. Update it to count `.tree-guide` elements and note that in the commit body.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd C:/projects/hyphae
@@ -1496,7 +1496,7 @@ EOF
 - Consumes: `FieldDef` (`{ key, label?, type, description? }`) and `FieldType` (`'text' | 'list' | 'number' | 'boolean' | 'enum' | 'ref'`) from `@hyphae/schema`.
 - Produces: `fieldLayout(type: FieldType | 'core', value: unknown): 'grid' | 'stack'`.
 
-- [ ] **Step 1: Write the failing `fieldLayout` test**
+- [x] **Step 1: Write the failing `fieldLayout` test**
 
 Create `apps/web/test/fieldLayout.test.ts`:
 
@@ -1541,12 +1541,12 @@ describe('fieldLayout', () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `cd apps/web && pnpm vitest run test/fieldLayout.test.ts`
 Expected: FAIL — cannot resolve `../src/fieldLayout`.
 
-- [ ] **Step 3: Write `fieldLayout.ts`**
+- [x] **Step 3: Write `fieldLayout.ts`**
 
 ```ts
 import type { FieldType } from '@hyphae/schema';
@@ -1574,12 +1574,12 @@ export function fieldLayout(type: FieldType | 'core', value: unknown): FieldLayo
 }
 ```
 
-- [ ] **Step 4: Run to verify it passes**
+- [x] **Step 4: Run to verify it passes**
 
 Run: `cd apps/web && pnpm vitest run test/fieldLayout.test.ts`
 Expected: PASS, 8 tests.
 
-- [ ] **Step 5: Apply the two treatments in `FieldRows.tsx`**
+- [x] **Step 5: Apply the two treatments in `FieldRows.tsx`**
 
 `Row` gains a layout prop and renders either a grid row or a stacked block. Keep `ListRow`'s and `NodeLink`'s behaviour exactly as it is — including `ListRow` rendering nothing when empty, and `NodeLink` dimming an id that no longer resolves.
 
@@ -1618,7 +1618,7 @@ In `FieldRow`, pass the computed layout through:
 
 and give `ListRow` `layout="stack"` implicitly by rendering it with the stacked classes.
 
-- [ ] **Step 6: Replace the default headings in `SidePanel.tsx`**
+- [x] **Step 6: Replace the default headings in `SidePanel.tsx`**
 
 Every `<h2>`/`<h3>`/`<h4>` goes. The node branch's header becomes:
 
@@ -1645,7 +1645,7 @@ Every `<h2>`/`<h3>`/`<h4>` goes. The node branch's header becomes:
 
 Apply the same treatment to the connection and rollup branches (`Connection`, `Realized by (n)`, `Rolled-up connection`). Pass `layout={fieldLayout('core', node.description)}` to the `description` `Row`, and `layout="grid"` to `root` and `parent`.
 
-- [ ] **Step 7: Add the inspector rules to `chrome.css`**
+- [x] **Step 7: Add the inspector rules to `chrome.css`**
 
 Append, and delete the old `.panel`, `.conn-dir`, `.field`, `.field__value`, `.field__list`, `.field__link` rules from `styles.css` (old lines 5, 33-38):
 
@@ -1717,7 +1717,7 @@ Append, and delete the old `.panel`, `.conn-dir`, `.field`, `.field__value`, `.f
 .rollup-list small { color: var(--tx-3); }
 ```
 
-- [ ] **Step 8: Give connection rows their verb dot**
+- [x] **Step 8: Give connection rows their verb dot**
 
 In `ConnectionList.tsx`, render each row with the verb-class colour as an inline `background` on the dot — this is the one place a token has to reach a runtime value, since the verb class is per connection:
 
@@ -1737,12 +1737,12 @@ import { VERB_CLASS_COLOR } from './reactflow';
 
 Read the existing `ConnectionList.tsx` first — it already resolves the counterpart name and is only 33 lines; preserve whatever it does for navigation.
 
-- [ ] **Step 9: Run the suite**
+- [x] **Step 9: Run the suite**
 
 Run: `cd apps/web && pnpm test`
 Expected: `SidePanel.test.tsx` will fail wherever it queries `getByRole('heading', …)` or asserts on `type`/`role` `Row`s — those are now `.panel__name` and `.chip`. Update those queries; do not reinstate the headings. Confirm the tests still assert the *behaviour* (a thin node renders a short panel; `codeRefs` render; a dangling ref dims) rather than the markup.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 cd C:/projects/hyphae
@@ -1785,16 +1785,16 @@ EOF
 - Consumes: `LAYER_COLOR`, `VERB_CLASS_COLOR` from Task 4.
 - Produces: nothing later tasks depend on.
 
-- [ ] **Step 1: Widen the no-literals test to the whole tree**
+- [x] **Step 1: Widen the no-literals test to the whole tree**
 
 In `apps/web/test/tokens.test.ts`, delete the `TASK4_FILES` filter added in Task 4 Step 8, so the assertion covers all of `src`.
 
-- [ ] **Step 2: Run it to see exactly what is left**
+- [x] **Step 2: Run it to see exactly what is left**
 
 Run: `cd apps/web && pnpm vitest run test/tokens.test.ts`
 Expected: FAIL, listing every remaining literal with its file. That list is this task's worklist.
 
-- [ ] **Step 3: Move the Legend's inline styles into CSS**
+- [x] **Step 3: Move the Legend's inline styles into CSS**
 
 `Legend.tsx` currently carries 13 inline style objects. Replace them with classes, keeping `LAYER_COLOR[l].bg` / `.border` and `VERB_CLASS_COLOR[cls]` as the only inline values (they are per-item data, exactly like the connection dot). Add a **Layers** section label change: the legend now explains altitude, so title that section `Altitude` and add a one-line note that brightness is depth.
 
@@ -1837,7 +1837,7 @@ Add to `chrome.css`:
 
 `color-mix` needs a Baseline-2023 browser; the app already requires a modern one for `backdrop-filter`. If you would rather not depend on it, use `var(--surface-2)` opaque and drop the blur — note which you chose.
 
-- [ ] **Step 4: Add the altitude row to the Legend**
+- [x] **Step 4: Add the altitude row to the Legend**
 
 The ramp is now a deliberate encoding, so the key has to say so:
 
@@ -1848,7 +1848,7 @@ The ramp is now a deliberate encoding, so the key has to say so:
 
 Update `apps/web/test/Legend.test.tsx` to assert the altitude section exists alongside the existing layer/edge/role/verb assertions.
 
-- [ ] **Step 5: Retokenise `SearchBox` and `GhostGroupNode`**
+- [x] **Step 5: Retokenise `SearchBox` and `GhostGroupNode`**
 
 `SearchBox.tsx:66,73` — the dropdown becomes `className="float search__menu"` with the active item at `background: var(--surface-3)`; add to `chrome.css`:
 
@@ -1863,7 +1863,7 @@ Update `apps/web/test/Legend.test.tsx` to assert the altitude section exists alo
 
 `GhostGroupNode.tsx` — move its 5 inline styles to the existing `.region--ghost` classes in `canvas.css`.
 
-- [ ] **Step 6: Separators**
+- [x] **Step 6: Separators**
 
 Replace the separator rules in `styles.css` (old lines 56-59) — move them into `chrome.css`, keeping the comment about `data-separator` being the documented styling hook:
 
@@ -1879,7 +1879,7 @@ Replace the separator rules in `styles.css` (old lines 56-59) — move them into
 .sep--h { height: 5px; cursor: row-resize; }
 ```
 
-- [ ] **Step 7: `styles.css` is now only imports**
+- [x] **Step 7: `styles.css` is now only imports**
 
 It should contain exactly four lines:
 
@@ -1901,12 +1901,12 @@ it('styles.css is only imports', () => {
 });
 ```
 
-- [ ] **Step 8: Run everything**
+- [x] **Step 8: Run everything**
 
 Run: `cd apps/web && pnpm test`
 Expected: all green, including the now-unfiltered no-literals assertion.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 cd C:/projects/hyphae
@@ -1946,7 +1946,7 @@ EOF
 - Consumes: `overlay.participatingEdges` and `overlay.edgeSteps` from `computeFlowOverlay`, already computed in `Canvas`.
 - Produces: nothing.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `apps/web/test/Canvas.test.tsx`, following the existing `hlCss(container)` pattern — React Flow renders zero edges in jsdom, so the generated stylesheet is the only observable thing.
 
@@ -1966,12 +1966,12 @@ Append to `apps/web/test/Canvas.test.tsx`, following the existing `hlCss(contain
   });
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `cd apps/web && pnpm vitest run test/Canvas.test.tsx`
 Expected: FAIL — `hyphae-pulse` not found.
 
-- [ ] **Step 3: Define the keyframes in `canvas.css`**
+- [x] **Step 3: Define the keyframes in `canvas.css`**
 
 ```css
 /* The design's one orchestrated animation: a dash travelling along a selected flow's edges. The
@@ -1983,7 +1983,7 @@ Expected: FAIL — `hyphae-pulse` not found.
 }
 ```
 
-- [ ] **Step 4: Emit the rule for participating edges only**
+- [x] **Step 4: Emit the rule for participating edges only**
 
 In `Canvas.tsx`'s `highlightCss`, inside the `if (edgeSel.length)` branch, add the animation to the participating edge paths — only when a flow is what is driving the highlight:
 
@@ -1996,16 +1996,16 @@ In `Canvas.tsx`'s `highlightCss`, inside the `if (edgeSel.length)` branch, add t
       }
 ```
 
-- [ ] **Step 5: Run to verify it passes**
+- [x] **Step 5: Run to verify it passes**
 
 Run: `cd apps/web && pnpm vitest run test/Canvas.test.tsx`
 Expected: PASS.
 
-- [ ] **Step 6: Check it in the browser and against reduced motion**
+- [x] **Step 6: Check it in the browser and against reduced motion**
 
 With the servers running, select a flow from the outline and confirm the participating edges pulse in step order. Then enable the OS "reduce motion" setting (or emulate it in DevTools: Rendering → Emulate CSS `prefers-reduced-motion`) and confirm the dashes remain but stop moving.
 
-- [ ] **Step 7: Run the full suite and commit**
+- [x] **Step 7: Run the full suite and commit**
 
 ```bash
 cd C:/projects/hyphae/apps/web && pnpm test
@@ -2039,11 +2039,11 @@ CLAUDE.md requires the living docs to change in the same branch as the behaviour
 - Modify: `README.md`, `docs/SPEC.md`
 - Modify: `docs/superpowers/plans/2026-07-30-viewer-visual-design.md` (tick every box)
 
-- [ ] **Step 1: Update `README.md`**
+- [x] **Step 1: Update `README.md`**
 
 Find the section describing the viewer's behaviour and add: the theme toggle (dark default, light available, remembered per browser), the altimeter breadcrumb and what its bands mean, and the fact that brightness encodes altitude. Keep the existing tone — short declarative sentences about what the viewer does.
 
-- [ ] **Step 2: Update `docs/SPEC.md` §9**
+- [x] **Step 2: Update `docs/SPEC.md` §9**
 
 Add to the UX principles list, next to the existing "Legibility budget" bullet:
 
@@ -2055,13 +2055,13 @@ Add to the UX principles list, next to the existing "Legibility budget" bullet:
   `apps/web/src/styles/tokens.css`.
 ```
 
-- [ ] **Step 3: Check §6.3's colour claim is still accurate**
+- [x] **Step 3: Check §6.3's colour claim is still accurate**
 
 `docs/SPEC.md:149` says `verb` is "shown on the edge and colored by class". Still true. Confirm no sentence elsewhere in SPEC.md or MODEL.md claims a *specific* colour for a layer or verb class — `grep -n "blue\|green\|violet\|purple\|tint" docs/SPEC.md docs/MODEL.md README.md` — and fix any that do.
 
-- [ ] **Step 4: Tick every checkbox in this plan**
+- [x] **Step 4: Tick every checkbox in this plan**
 
-- [ ] **Step 5: Full verification**
+- [x] **Step 5: Full verification**
 
 Run, and paste the output into the final report rather than summarising it:
 
@@ -2074,7 +2074,9 @@ git status --short          # must show only hyphae-baritone.json as untracked
 
 Expected: 523 baseline + the tests added by Tasks 1-9, all green. Build clean.
 
-- [ ] **Step 6: Look at the finished thing in both themes**
+- [ ] **Step 6: Look at the finished thing in both themes** (outstanding — no browser/screenshot tool
+  in the agent's environment; requires a human to walk the real model and confirm the five points
+  below)
 
 ```bash
 HYPHAE_FILE=$(pwd)/apps/server/hyphae-baritone.json pnpm server   # terminal 1
@@ -2089,7 +2091,7 @@ Walk the real Baritone model in both themes and check the five things this desig
 4. A focused-and-selected outline row is legible as both.
 5. Selecting a flow pulses its edges in order, and long descriptions in the inspector are stacked while short scalars are gridded.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd C:/projects/hyphae

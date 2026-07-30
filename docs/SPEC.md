@@ -317,6 +317,11 @@ Built into the core, and unchanged by the visual repositioning:
 - **Legibility budget.** Cap what is shown at rest; roll up dense fans; push depth into
   drill-down, Flows, Patterns, and the panel. A legend explains role shapes, verb-class colors,
   and solid-vs-derived edges.
+- **Luminance is state, hue is meaning.** Altitude (Context → Container → Component), selection and
+  focus are expressed as light level; the chromatic budget belongs to the five verb classes, which
+  are the one thing on the canvas that needs colour to be told apart. Dark is the default; the light
+  theme is warm paper rather than an inversion. Every value comes from
+  `apps/web/src/styles/tokens.css`.
 - **One tool call — one model operation.** An MCP write is atomic: reparenting a component is a
   `parentId` change; deleting a node cascades to remove its connections, and any flow step that
   referenced it is marked ↗ in the outline as undrawable.

@@ -20,14 +20,19 @@ call or a direct edit of the JSON file.
 **Navigation.** The canvas shows one **focus** at a time: the focused node as a labeled region with
 its direct children inside, and everything else it connects to as dashed **ghost externals** beside
 it. Double-click any node to drill into it (a childless one included — you get a "what touches
-this?" view); the breadcrumbs walk back up. An external that stands in for a deeper node can be
-**expanded** to reveal the child actually taking part. The left **outline** panel lists the whole
-model — nodes by containment above, then Flows and Patterns in their own pane below, each scrolling
-independently — and is collapsible; a click reveals a node in context, a double-click drills in.
-Both side panels and the outline's internal split are **drag-resizable** (arrow keys resize a
-focused handle, Enter toggles collapse, double-click resets it), and the sizes persist per browser.
-Dragging the outline's handle to the edge collapses it exactly like the « button, and expanding —
-by either route — restores its previous width. Search jumps to a node by name.
+this?" view); the breadcrumbs walk back up. The breadcrumb is an **altimeter**: each crumb sits in a
+band tinted with its own C4 layer's altitude step and only the deepest is lit, so how deep you are
+in the model — Context, Container, or Component — reads before you read the names. An external that
+stands in for a deeper node can be **expanded** to reveal the child actually taking part. The left
+**outline** panel lists the whole model — nodes by containment above, then Flows and Patterns in
+their own pane below, each scrolling independently — and is collapsible; a click reveals a node in
+context, a double-click drills in. Both side panels and the outline's internal split are
+**drag-resizable** (arrow keys resize a focused handle, Enter toggles collapse, double-click resets
+it), and the sizes persist per browser. Dragging the outline's handle to the edge collapses it
+exactly like the « button, and expanding — by either route — restores its previous width. Search
+jumps to a node by name. A toolbar toggle switches between the dark theme (the default) and a light
+one; the choice persists per browser. Brightness carries meaning throughout: altitude, selection and
+focus are all expressed as light level, not just the altimeter.
 
 **Reading the diagram.** A node draws as its profile **role archetype** (actor, service, datastore,
 queue, external system, UI surface) in SVG, tinted by C4 layer, showing name + a two-line summary +
