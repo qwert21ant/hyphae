@@ -85,12 +85,17 @@ A node whose type maps to no layer falls back to `--alt-2-*` (today's fallback i
 
 | Token | Dark | Light | Meaning |
 |---|---|---|---|
-| `--verb-dataAccess` | `#5B9DD9` | `#2E6FA8` | reads / writes / stores |
-| `--verb-messaging` | `#D9944E` | `#A8631E` | publishes / subscribes |
+| `--verb-dataAccess` | `#5B9DD9` | `#265C8C` | reads / writes / stores |
+| `--verb-messaging` | `#D9944E` | `#8F5214` | publishes / subscribes |
 | `--verb-control` | `#8896A3` | `#5A6570` | invokes / triggers — deliberately the least chromatic, it is the baseline |
-| `--verb-user` | `#D6789F` | `#A8437A` | views / submits |
-| `--verb-traceability` | `#4FB6A0` | `#1E7F6E` | implements / satisfies |
+| `--verb-user` | `#D6789F` | `#8F3566` | views / submits |
+| `--verb-traceability` | `#4FB6A0` | `#176356` | implements / satisfies |
 | `--edge-derived` | `#9B7EDB` | `#6D4FB0` | rolled-up edge (violet keeps its existing exclusive meaning) |
+
+The light column is darker than a naive tint of the dark one because these hues are used as **edge
+label text** on `--surface-2`. The first draft of this table used `#2E6FA8` / `#A8631E` / `#A8437A` /
+`#1E7F6E`, which measure 4.12 / 3.62 / 4.35 / 3.78 : 1 — all below the floor this spec sets. The values
+above measure 5.42 / 4.77 / 4.54 / 5.68 / 5.45 : 1.
 
 ### Interaction and status
 
@@ -100,19 +105,30 @@ hairlines.
 
 | Token | Dark | Light | Use |
 |---|---|---|---|
-| `--accent` | `#F2C14E` | `#B98A12` | selection, focus, active step, links |
+| `--accent` | `#F2C14E` | `#B98A12` | fills and rings: selection ring, focus ring, pressed segment, lit altimeter band |
+| `--accent-text` | `#F2C14E` | `#7A5A06` | the accent used *as text*: links, the active flow step, the `↗` marker |
+| `--accent-soft` | `#8A6F2A` | `#DCC98F` | the weaker hover ring, replacing `#93c5fd` |
 | `--accent-on` | `#231A02` | `#FFF8E6` | text on an accent fill |
 | `--warn` | `#E0603F` | `#B4321A` | invalid flow / pattern `⚠` only |
+
+`--accent` and `--accent-text` are the same value in dark and diverge in light: a gold bright enough to
+work as a fill on paper measures only 2.44:1 as text, so link-coloured text needs its own darker token.
+Splitting them is what keeps "one accent means interaction" true without failing the contrast floor.
 
 ### Type
 
 Bundled via `@fontsource`, so the viewer stays offline-capable per `SPEC.md` §2 ("Local execution
 without a cloud or accounts").
 
-- `--font-ui`: **Archivo Variable**, `system-ui` fallback. Weight 400/500/600; the `wdth` axis at
+- `--font-ui`: **Archivo Variable** (`@fontsource-variable/archivo`, verified published at 5.3.0),
+  `system-ui` fallback. Weight 400/500/600; the `wdth` axis at
   112–125% supplies the *display* role (wordmark, panel titles, node names) without a second file.
-- `--font-mono`: **IBM Plex Mono Variable**, `ui-monospace` fallback. Ids, refs, technology chips,
-  verb labels, step numbers, micro-labels.
+  If that package ships the weight axis only, the display role falls back to weight plus
+  letter-spacing and `font-stretch` is dropped; the plan verifies which at install time.
+- `--font-mono`: **IBM Plex Mono**, `ui-monospace` fallback. Ids, refs, technology chips,
+  verb labels, step numbers, micro-labels. There is **no** `@fontsource-variable/ibm-plex-mono` —
+  IBM Plex Mono has no variable release — so this is the static `@fontsource/ibm-plex-mono` at
+  weights 400 and 500 only.
 
 | Token | Size | Treatment |
 |---|---|---|
