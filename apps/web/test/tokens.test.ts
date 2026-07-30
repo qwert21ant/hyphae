@@ -67,3 +67,17 @@ describe('tokens.css', () => {
     expect(missing, `undefined tokens referenced: ${missing.join(', ')}`).toEqual([]);
   });
 });
+
+describe('base.css', () => {
+  const BASE = readFileSync(join(SRC, 'styles/base.css'), 'utf-8');
+
+  // A CDN <link> would be smaller to write and would break the air-gapped case SPEC.md promises.
+  it('imports fonts from the bundled packages, never over the network', () => {
+    expect(BASE).toContain('@fontsource');
+    expect(BASE).not.toMatch(/https?:\/\//);
+  });
+
+  it('sets a reduced-motion escape hatch', () => {
+    expect(BASE).toContain('prefers-reduced-motion');
+  });
+});

@@ -1,0 +1,42 @@
+/* Fonts are bundled, not fetched: SPEC.md's "local execution without a cloud or accounts" means the
+ * viewer has to render correctly on an air-gapped machine. Vite emits the woff2 files into the
+ * bundle. Archivo is variable (weight, and width where published); IBM Plex Mono has no variable
+ * release, so it is the static package at exactly the two weights used. */
+@import '@fontsource-variable/archivo/wdth.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+
+html, body, #root { height: 100%; margin: 0; }
+body {
+  font-family: var(--font-ui);
+  font-size: var(--t-base);
+  color: var(--tx-1);
+  background: var(--surface-1);
+}
+
+/* One focus rule for the whole app. Every interactive element inherits it, so no later stylesheet
+ * needs to think about focus — and :focus-visible means a mouse click never draws it. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+/* The shared micro-label: mono, uppercase, tracked. 10px is a floor, not a suggestion — at 8px
+ * these fall under 3.5:1 against their surface and stop being readable. */
+.hy-micro {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tx-3);
+}
+
+/* Motion is opt-out at the root, so no individual animation has to remember to check. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
