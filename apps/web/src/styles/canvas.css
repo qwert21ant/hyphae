@@ -29,3 +29,11 @@
 /* Invisible connection points on all four sides of a ghost group, so an edge can anchor wherever
  * the layout needs regardless of which side faces the focus. */
 .region__handle-point { opacity: 0; pointer-events: none; }
+
+/* The design's one orchestrated animation: a dash travelling along a selected flow's edges. The
+ * dash pattern is set here rather than inline so a reduced-motion user still gets the dashes
+ * (which distinguish the flow's edges) without the movement. base.css neutralises the duration. */
+@keyframes hyphae-pulse {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}

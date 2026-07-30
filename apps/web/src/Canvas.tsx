@@ -176,6 +176,15 @@ export function Canvas() {
       rules.push(`${edgeSel.join(',')}{opacity:1}`);
       // !important beats the derived edge's inline stroke-width.
       rules.push(`${edgeSel.map((s) => `${s} .react-flow__edge-path`).join(',')}{stroke-width:${strong ? 3.5 : 3}px!important}`);
+      // The design's one animated moment: a flow is a sequence, and a dash travelling along its
+      // participating edges says so in a way a static highlight cannot. Only when a flow (not a
+      // hover/selection) is driving the highlight.
+      if (flowActive) {
+        rules.push(
+          `${edgeSel.map((s) => `${s} .react-flow__edge-path`).join(',')}`
+          + '{stroke-dasharray:6 6;animation:hyphae-pulse 1.2s linear infinite}',
+        );
+      }
     }
     return rules.join('');
   }, [activeId, flowActive, hi, strong, accent, dimEdge, dimNode, patternFlow]);

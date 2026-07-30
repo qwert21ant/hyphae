@@ -358,6 +358,20 @@ describe('Canvas flow overlay', () => {
     expect(node(container, 'Recording')).toBeTruthy();
   });
 
+  // The single orchestrated moment in the design: a flow's participating edges pulse, which reads
+  // as movement through the graph. Everything else only transitions on hover.
+  it('animates the participating edges when a flow is selected', () => {
+    useStore.setState({ model: flowModel(), focusId: 'ca', selectedId: null, selectedFlowId: 'f1' });
+    const { container } = render(<Canvas />);
+    expect(hlCss(container)).toContain('hyphae-pulse');
+  });
+
+  it('does not animate when no flow is selected', () => {
+    useStore.setState({ model: flowModel(), focusId: 'ca', selectedId: null, selectedFlowId: null });
+    const { container } = render(<Canvas />);
+    expect(hlCss(container)).not.toContain('hyphae-pulse');
+  });
+
   it('double-clicking a pattern member does NOT set focus to it', () => {
     // Pattern member boxes are keyed by member NAME, not by a node id — focusing one would point
     // the canvas at an id no node has. Only real model nodes are drillable.
