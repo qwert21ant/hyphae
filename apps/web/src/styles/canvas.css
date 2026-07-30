@@ -7,9 +7,11 @@
   background: var(--alt-2-bg);
   pointer-events: none;
 }
-/* An external, dashed because it is outside the focus and drawn for context only. */
+/* An external, dashed because it is outside the focus and drawn for context only. Its handle text
+ * needs no separate override — .region__handle already sits at --tx-3, the same step the brief's
+ * ghost variant asked for, so a second (compound-selector) rule here would be a no-op; omitted to
+ * keep this file single-class selectors only, per this task's CSS discipline constraint. */
 .region--ghost { border: 1.5px dashed var(--rule); background: var(--surface-2); }
-.region--ghost .region__handle { color: var(--tx-3); }
 .region__handle {
   position: absolute; top: 0; left: 0; right: 0; height: 22px;
   padding: var(--s-1) var(--s-5); box-sizing: border-box;
