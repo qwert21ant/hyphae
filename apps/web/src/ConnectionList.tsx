@@ -24,14 +24,14 @@ export function ConnectionList({ connections }: { connections: Connection[] }) {
         // runtime value rather than living in chrome.css directly.
         const cls = verbClassOf(c4Backend, c.verb) ?? 'control';
         return (
-          <li key={c.id} onClick={() => select(c.id)} style={{ cursor: 'pointer' }}>
+          <li className="rollup-item" key={c.id} onClick={() => select(c.id)} style={{ cursor: 'pointer' }}>
             <span className="conn__dot" style={{ background: VERB_CLASS_COLOR[cls] }} />
-            <button onClick={(ev) => { ev.stopPropagation(); setFocus(c.from); }}>{nameOf(c.from)}</button>
-            {parentNameOf(c.from) && <small> ({parentNameOf(c.from)})</small>}
+            <button className="rollup-link" onClick={(ev) => { ev.stopPropagation(); setFocus(c.from); }}>{nameOf(c.from)}</button>
+            {parentNameOf(c.from) && <small className="rollup-meta"> ({parentNameOf(c.from)})</small>}
             {' → '}
-            <button onClick={(ev) => { ev.stopPropagation(); setFocus(c.to); }}>{nameOf(c.to)}</button>
-            {parentNameOf(c.to) && <small> ({parentNameOf(c.to)})</small>}
-            {c.object && <small> · {c.object}</small>}
+            <button className="rollup-link" onClick={(ev) => { ev.stopPropagation(); setFocus(c.to); }}>{nameOf(c.to)}</button>
+            {parentNameOf(c.to) && <small className="rollup-meta"> ({parentNameOf(c.to)})</small>}
+            {c.object && <small className="rollup-meta"> · {c.object}</small>}
           </li>
         );
       })}

@@ -170,20 +170,14 @@
 }
 .field__link:hover { text-decoration: underline; }
 
-.conn { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-1) 0; }
-/* .rollup-list li keeps its inline flow (buttons/small wrap at narrow widths), so the dot needs its
- * own margin rather than relying on .conn's flex gap. */
+/* .rollup-item is not a flex container (it keeps its inline flow so buttons/meta text can wrap at
+ * narrow widths), so the dot needs its own margin rather than a flex gap from a wrapping row. */
 .conn__dot { display: inline-block; flex: none; width: 6px; height: 6px; margin-right: var(--s-2); border-radius: 50%; }
-.conn__verb { font-family: var(--font-mono); font-size: var(--t-micro); color: var(--tx-2); }
-.conn__name {
-  font-size: var(--t-sm); color: var(--tx-1);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
 .rollup-list { list-style: none; margin: var(--s-3) 0 0; padding: 0; max-height: 320px; overflow: auto; }
-.rollup-list li { padding: var(--s-2) 0; border-bottom: 1px solid var(--rule); font-size: var(--t-sm); }
-.rollup-list button {
+.rollup-item { padding: var(--s-2) 0; border-bottom: 1px solid var(--rule); font-size: var(--t-sm); }
+.rollup-link {
   background: none; border: none; padding: 0; cursor: pointer;
   font: inherit; font-size: var(--t-sm); color: var(--accent-text);
 }
-.rollup-list button:hover { text-decoration: underline; }
-.rollup-list small { color: var(--tx-3); }
+.rollup-link:hover { text-decoration: underline; }
+.rollup-meta { color: var(--tx-3); }
