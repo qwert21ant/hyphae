@@ -1,0 +1,105 @@
+/* The single source of every design value. Nothing but custom properties belongs in this file.
+ *
+ * The system has one rule: LUMINANCE IS STATE, HUE IS MEANING. Altitude (--alt-*), selection and
+ * focus are expressed as light level, which leaves the whole chromatic budget for the five verb
+ * classes — the one thing on the canvas that genuinely needs colour to be told apart. Adding a
+ * hue to anything structural breaks the system, not just the palette.
+ *
+ * Dark is the default. The light theme is warm paper rather than an inversion, so the two do not
+ * read as the same design with the lamp turned off. */
+:root {
+  /* surfaces */
+  --sub: #101214;              /* canvas substrate */
+  --surface-1: #141719;        /* outline and inspector panels */
+  --surface-2: #171A1C;        /* toolbar, floating legend/filter, edge labels */
+  --surface-3: #1D2124;        /* row hover, selected-row lift */
+  --rule: #262A2E;             /* every hairline divider */
+  --chip: #282D31;             /* technology / type chips */
+
+  /* text */
+  --tx-1: #E7E9EA;
+  --tx-2: #98A0A6;
+  --tx-3: #7C858B;             /* micro-labels; 10px minimum, never smaller */
+
+  /* altitude — no hue, by design. 1 = Context, 3 = Component. */
+  --alt-1-bg: #1A1D20;
+  --alt-1-bd: #3A4046;
+  --alt-2-bg: #22262A;
+  --alt-2-bd: #4E555C;
+  --alt-3-bg: #2C3136;
+  --alt-3-bd: #6B747C;
+
+  /* hue — meaning only */
+  --verb-dataAccess: #5B9DD9;
+  --verb-messaging: #D9944E;
+  --verb-control: #8896A3;     /* the baseline: deliberately the least chromatic */
+  --verb-user: #D6789F;
+  --verb-traceability: #4FB6A0;
+  --edge-derived: #9B7EDB;     /* violet keeps its existing exclusive meaning */
+
+  /* interaction and status */
+  --accent: #F2C14E;           /* fills and rings only */
+  --accent-text: #F2C14E;      /* the accent used as text; diverges in light */
+  --accent-soft: #8A6F2A;      /* the weaker hover ring */
+  --accent-on: #231A02;        /* text on an accent fill */
+  --warn: #E0603F;             /* invalid flow / pattern only */
+
+  /* type */
+  --font-ui: 'Archivo Variable', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --t-micro: 10px;
+  --t-sm: 11px;
+  --t-base: 12px;
+  --t-md: 13px;
+  --t-lg: 15px;
+  --t-word: 12px;
+
+  /* space and radius */
+  --s-1: 2px;
+  --s-2: 4px;
+  --s-3: 6px;
+  --s-4: 8px;
+  --s-5: 12px;
+  --s-6: 16px;
+  --s-7: 24px;
+  --r-sm: 3px;
+  --r-md: 5px;
+  --r-lg: 9px;
+}
+
+/* Warm paper. The altitude ramp densifies with depth here instead of brightening — the same
+ * reading of "closer to you", not an inversion of it. The verb hues are markedly darker than a
+ * tint of their dark counterparts because they are used as edge-label TEXT on --surface-2, where
+ * a naive tint measures 3.6-4.3:1. See contrast.test.ts. */
+[data-theme="light"] {
+  --sub: #F5F2EC;
+  --surface-1: #EDEAE3;
+  --surface-2: #E7E3DB;
+  --surface-3: #DFDAD1;
+  --rule: #D2CCC2;
+  --chip: #DFDAD1;
+
+  --tx-1: #22201C;
+  --tx-2: #5C564D;
+  --tx-3: #64594C;
+
+  --alt-1-bg: #E9E5DC;
+  --alt-1-bd: #B9B2A5;
+  --alt-2-bg: #E2DDD2;
+  --alt-2-bd: #9A9284;
+  --alt-3-bg: #DAD4C7;
+  --alt-3-bd: #7A7264;
+
+  --verb-dataAccess: #265C8C;
+  --verb-messaging: #8F5214;
+  --verb-control: #5A6570;
+  --verb-user: #8F3566;
+  --verb-traceability: #176356;
+  --edge-derived: #6D4FB0;
+
+  --accent: #B98A12;
+  --accent-text: #7A5A06;      /* --accent measures 2.44:1 as text on paper; this is 4.85:1 */
+  --accent-soft: #DCC98F;
+  --accent-on: #2A1F14;
+  --warn: #B4321A;
+}
