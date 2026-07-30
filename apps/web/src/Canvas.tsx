@@ -25,11 +25,13 @@ const edgeTypes = { floating: FloatingEdge };
 const STEP_NUM = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩', '⑪', '⑫'];
 const stepBadge = (order: number) => STEP_NUM[order - 1] ?? `(${order})`;
 
-// Colour minimap dots by layer (regions muted) so the overview reads like the canvas.
+// Colour minimap dots by layer (regions muted) so the overview reads like the canvas. The MiniMap
+// renders each node as an SVG <rect style={{fill}}> (not a canvas 2D context), so a var() reference
+// resolves exactly like any other inline CSS style — no JS-side lookup needed.
 const miniMapColor = (n: FlowNode): string => {
-  if (n.type === 'region') return '#e2e8f0';
+  if (n.type === 'region') return 'var(--alt-2-bd)';
   const c = (n.data as { color?: { border: string } }).color;
-  return c?.border ?? '#94a3b8';
+  return c?.border ?? 'var(--tx-3)';
 };
 
 export function Canvas() {
@@ -111,9 +113,9 @@ export function Canvas() {
       data: { ephemeral: true },
       selectable: false,
       deletable: false,
-      style: { stroke: '#2563eb', strokeDasharray: '2 5', strokeWidth: 2 },
-      labelStyle: { fill: '#1d4ed8', fontWeight: 700 },
-      markerEnd: { type: MarkerType.ArrowClosed, color: '#2563eb' },
+      style: { stroke: 'var(--accent)', strokeDasharray: '2 5', strokeWidth: 2 },
+      labelStyle: { fill: 'var(--accent-text)', fontWeight: 700 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--accent)' },
     }));
     return [...labelled, ...ephemeral];
   }, [edges, overlay]);
@@ -134,7 +136,7 @@ export function Canvas() {
     (hoveredId && present.has(hoveredId) && hoveredId) ||
     null;
   const strong = flowActive || !!(selectedId && present.has(selectedId));
-  const accent = strong ? '#2563eb' : '#93c5fd';
+  const accent = strong ? 'var(--accent)' : 'var(--accent-soft)';
   const dimEdge = strong ? 0.12 : 0.4;
   const dimNode = strong ? 0.4 : 0.65;
   const childIds = useMemo(

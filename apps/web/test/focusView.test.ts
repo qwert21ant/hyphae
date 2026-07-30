@@ -462,7 +462,7 @@ describe('edge labels', () => {
 
   it('has a colour for every verb class', () => {
     for (const c of ['dataAccess', 'messaging', 'control', 'user'] as const) {
-      expect(VERB_CLASS_COLOR[c]).toMatch(/^#/);
+      expect(VERB_CLASS_COLOR[c]).toMatch(/^var\(--/);
     }
   });
 });

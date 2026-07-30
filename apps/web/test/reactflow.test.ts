@@ -176,7 +176,8 @@ describe('layerColorOf', () => {
     expect(layerColorOf('System')).toEqual(LAYER_COLOR.Context);
   });
   it('falls back to a neutral colour for an unknown type', () => {
-    expect(layerColorOf('Nonsense')).toEqual({ bg: '#fff', border: '#b1b1b7' });
+    // A type outside the profile's layers gets the mid step rather than a bare white box.
+    expect(layerColorOf('Nonsense')).toEqual({ bg: 'var(--alt-2-bg)', border: 'var(--alt-2-bd)' });
   });
   it('tints child nodes by layer in the flow output', () => {
     const { nodes } = focusViewToFlow(view, pos);
@@ -223,5 +224,5 @@ it('gives every profile verb class a distinct colour', () => {
   expect(colors.every(Boolean)).toBe(true);
   expect(new Set(colors).size).toBe(classes.length);
   // Violet means "derived rollup edge" everywhere else; one colour, one meaning.
-  expect(colors).not.toContain('#7c3aed');
+  expect(colors).not.toContain('var(--edge-derived)');
 });

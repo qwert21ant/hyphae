@@ -68,6 +68,25 @@ describe('tokens.css', () => {
   });
 });
 
+// Task 4 owns these files; later tasks widen this list until Task 8 removes the filter entirely.
+const TASK4_FILES = ['reactflow.ts', 'patternView.ts', 'PatternMemberNode.tsx', 'NodeBox.tsx',
+                     'GhostNode.tsx', 'FloatingEdge.tsx', 'styles/canvas.css'];
+
+describe('canvas colour literals (Task 4 scope)', () => {
+  // The whole point of the token layer: one place to change a colour. A literal anywhere else is a
+  // value that cannot be themed and has no home.
+  it('has no colour literal in the files this task owns', () => {
+    const offenders: string[] = [];
+    for (const file of walk(SRC)) {
+      if (!TASK4_FILES.some((f) => file.endsWith(join(...f.split('/'))))) continue;
+      const text = readFileSync(file, 'utf-8');
+      for (const m of text.matchAll(/#[0-9A-Fa-f]{3,8}\b/g)) offenders.push(`${file}: ${m[0]}`);
+      for (const m of text.matchAll(/\b(rgba?|hsla?)\(/g)) offenders.push(`${file}: ${m[0]}`);
+    }
+    expect(offenders, `colour literals outside tokens.css:\n${offenders.join('\n')}`).toEqual([]);
+  });
+});
+
 describe('base.css', () => {
   const BASE = readFileSync(join(SRC, 'styles/base.css'), 'utf-8');
 

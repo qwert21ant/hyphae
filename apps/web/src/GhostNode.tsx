@@ -21,7 +21,7 @@ export type GhostNodeData = NodeBoxData & { expandable?: boolean };
 // connection is visible). Tinted by its own C4 layer, but dashed + italic to read as "not native".
 export function GhostNode({ id, data }: NodeProps) {
   const d = data as GhostNodeData;
-  const color = d.color ?? { bg: '#f1f5f9', border: '#94a3b8' };
+  const color = d.color ?? { bg: 'var(--surface-2)', border: 'var(--rule)' };
   const toggle = useStore((s) => s.toggleExternal);
   const shape = d.shape ?? 'rectangle';
   // The dashed outline is stroked along the shape's own path, so it survives on every edge —
@@ -35,7 +35,7 @@ export function GhostNode({ id, data }: NodeProps) {
         height: NODE_H,
         padding: shapePadding(shape, NODE_W, NODE_H),
         boxSizing: 'border-box',
-        color: '#475569',
+        color: 'var(--tx-2)',
         fontSize: 12,
         lineHeight: 1.25,
         textAlign: 'center',
@@ -63,14 +63,14 @@ export function GhostNode({ id, data }: NodeProps) {
         // Same two-line clamp as NodeBox — a ghost is the same size box and should read the same.
         <div style={{
           position: 'relative',
-          fontSize: 10, color: '#475569', overflow: 'hidden',
+          fontSize: 10, color: 'var(--tx-2)', overflow: 'hidden',
           display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: SUMMARY_LINES,
         }}>
           {d.summary}
         </div>
       )}
       {d.technology && (
-        <div style={{ position: 'relative', fontSize: 9, color: '#334155', background: 'rgba(0,0,0,0.06)', borderRadius: 3, padding: '0 4px', alignSelf: 'center', maxWidth: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ position: 'relative', fontSize: 9, color: 'var(--tx-2)', background: 'var(--chip)', borderRadius: 3, padding: '0 4px', alignSelf: 'center', maxWidth: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {d.technology}
         </div>
       )}

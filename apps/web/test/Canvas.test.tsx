@@ -137,7 +137,7 @@ describe('Canvas navigation (real React Flow)', () => {
     const css = hlCss(container);
     expect(css).toContain('opacity:0.65');                              // soft dim (selection dim is 0.4)
     expect(css).toContain('.react-flow__node[data-id="ca"]');          // ca is highlighted
-    expect(css).toContain('#93c5fd');                                  // soft hover accent
+    expect(css).toContain('var(--accent-soft)');                       // soft hover ring
     expect(useStore.getState().selectedId).toBeNull();
     // Node objects must NOT carry per-hover inline opacity (that churn is the bug we fixed).
     expect(node(container, 'cb')!.style.opacity).toBe('');
@@ -150,7 +150,7 @@ describe('Canvas navigation (real React Flow)', () => {
     const { container } = render(<Canvas />);
     const before = hlCss(container);
     expect(before).toContain('opacity:0.4');                           // strong selection dim
-    expect(before).toContain('#2563eb');                               // strong selection accent
+    expect(before).toContain('var(--accent)');                         // strong selection ring
     expect(before).toContain('.react-flow__node[data-id="ca"]');      // ca (selected) is highlighted
     // Hovering cb must not steal the highlight — selection wins, CSS is unchanged.
     fireEvent.mouseEnter(node(container, 'cb')!);

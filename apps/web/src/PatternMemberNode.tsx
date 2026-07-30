@@ -3,15 +3,18 @@ import type { PatternMemberData } from './patternView';
 import { NODE_W, NODE_H } from './layout';
 import { useStore } from './store';
 
-const BINDING_COLOR: Record<PatternMemberData['binding'], { bg: string; border: string; tag: string }> = {
-  node: { bg: '#f0fdf4', border: '#16a34a', tag: 'node' },
-  ref: { bg: '#fefce8', border: '#ca8a04', tag: 'ref' },
-  none: { bg: '#f8fafc', border: '#94a3b8', tag: '' },
+// Binding strength as luminance, not hue: a bound member is more present than a ref-only one, which
+// is more present than an unbound one. Giving these three their own colours (as this map used to)
+// spent chromatic budget that belongs to the verb classes.
+const BIND: Record<PatternMemberData['binding'], { bg: string; border: string; tag: string }> = {
+  node: { bg: 'var(--alt-3-bg)', border: 'var(--alt-3-bd)', tag: 'node' },
+  ref: { bg: 'var(--alt-2-bg)', border: 'var(--alt-2-bd)', tag: 'ref' },
+  none: { bg: 'var(--alt-1-bg)', border: 'var(--rule)', tag: '' },
 };
 
 export function PatternMemberNode({ data }: NodeProps) {
   const d = data as PatternMemberData;
-  const c = BINDING_COLOR[d.binding] ?? BINDING_COLOR.none;
+  const c = BIND[d.binding] ?? BIND.none;
   const revealNode = useStore((s) => s.revealNode);
   // Only a member bound to a node that exists is navigable. Navigate by nodeId: this box's React
   // Flow id is the MEMBER NAME, so it is never a valid focus target.
@@ -38,12 +41,12 @@ export function PatternMemberNode({ data }: NodeProps) {
       <Handle id="b" type="source" position={Position.Bottom} style={{ opacity: 0, pointerEvents: 'none' }} />
       <div style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</div>
       {d.detail && (
-        <div style={{ fontSize: 10, color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ fontSize: 10, color: 'var(--tx-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {c.tag ? `${c.tag}: ` : ''}{d.detail}
         </div>
       )}
       {d.description && (
-        <div style={{ fontSize: 9, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.description}</div>
+        <div style={{ fontSize: 9, color: 'var(--tx-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.description}</div>
       )}
     </div>
   );
