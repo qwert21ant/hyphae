@@ -179,10 +179,12 @@ export function Canvas() {
       // The design's one animated moment: a flow is a sequence, and a dash travelling along its
       // participating edges says so in a way a static highlight cannot. Only when a flow (not a
       // hover/selection) is driving the highlight.
+      // Duration 4.2s pairs with the keyframe's 84px offset (see canvas.css) to keep the loop
+      // seamless for both this rule's 6 6 dashes and an ephemeral edge's inline 2 5 dashes.
       if (flowActive) {
         rules.push(
           `${edgeSel.map((s) => `${s} .react-flow__edge-path`).join(',')}`
-          + '{stroke-dasharray:6 6;animation:hyphae-pulse 1.2s linear infinite}',
+          + '{stroke-dasharray:6 6;animation:hyphae-pulse 4.2s linear infinite}',
         );
       }
     }

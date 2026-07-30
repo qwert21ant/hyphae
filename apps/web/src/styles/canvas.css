@@ -30,10 +30,17 @@
  * the layout needs regardless of which side faces the focus. */
 .region__handle-point { opacity: 0; pointer-events: none; }
 
-/* The design's one orchestrated animation: a dash travelling along a selected flow's edges. The
- * dash pattern is set here rather than inline so a reduced-motion user still gets the dashes
- * (which distinguish the flow's edges) without the movement. base.css neutralises the duration. */
+/* The design's one orchestrated animation: a dash travelling along a selected flow's edges. Only
+ * the movement (stroke-dashoffset) lives here — the dash pattern itself is set in Canvas.tsx's
+ * generated stylesheet (structural edges: 6 6; ephemeral flow-step edges keep their own inline
+ * 2 5, which — being inline — outranks the non-!important rule there, and is deliberately distinct
+ * so a step with no authored connection behind it still reads as such). base.css neutralises the
+ * duration for reduced-motion, leaving the (static) dashes without the sweep.
+ *
+ * The offset must be a whole number of periods for BOTH dash patterns, or the loop visibly jumps
+ * on restart: period(6 6) = 12, period(2 5) = 7, lcm(12, 7) = 84. Duration is scaled to keep the
+ * same ~20px/s sweep rate the original 24px/1.2s had: 84 / 20 = 4.2s. */
 @keyframes hyphae-pulse {
-  from { stroke-dashoffset: 24; }
+  from { stroke-dashoffset: 84; }
   to { stroke-dashoffset: 0; }
 }

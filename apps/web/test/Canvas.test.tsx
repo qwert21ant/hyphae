@@ -372,6 +372,17 @@ describe('Canvas flow overlay', () => {
     expect(hlCss(container)).not.toContain('hyphae-pulse');
   });
 
+  // The discriminating case: a plain node selection (no flow) also populates edgeSel — a1 has an
+  // adjacent edge to a2 — so this reaches the same `if (edgeSel.length)` branch the flow case does.
+  // Without the `if (flowActive)` gate inside that branch, this would pulse too.
+  it('does not animate a selected node\'s adjacent edge when no flow is active', () => {
+    useStore.setState({ model: flowModel(), focusId: 'ca', selectedId: 'a1', selectedFlowId: null });
+    const { container } = render(<Canvas />);
+    const css = hlCss(container);
+    expect(css).toContain('.react-flow__edge[data-id="x"]');   // confirms edgeSel is non-empty
+    expect(css).not.toContain('hyphae-pulse');
+  });
+
   it('double-clicking a pattern member does NOT set focus to it', () => {
     // Pattern member boxes are keyed by member NAME, not by a node id — focusing one would point
     // the canvas at an id no node has. Only real model nodes are drillable.
