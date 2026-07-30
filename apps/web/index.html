@@ -3,6 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <title>Hyphae</title>
+    <!-- Set the theme before first paint. React mounts too late: reading it in a component
+         flashes the dark default at anyone who chose light. Inlined and duplicated from
+         src/theme.ts on purpose — an imported module would itself be a deferred fetch. -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('hyphae.theme');
+          var light = stored === 'light'
+            || (stored !== 'dark' && window.matchMedia('(prefers-color-scheme: light)').matches);
+          if (light) document.documentElement.setAttribute('data-theme', 'light');
+        } catch (e) { /* private mode: fall through to the dark default */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
