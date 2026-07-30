@@ -62,3 +62,15 @@ describe('Legend altitude section', () => {
     expect(getByText(/brighter is deeper/)).toBeTruthy();
   });
 });
+
+describe('Legend edge line variants', () => {
+  // The "no arrowhead — mixed directions" row means something different from the plain solid row
+  // above it; sharing the base .legend__line colour would render two different meanings with an
+  // identical swatch. This pins the modifier class that keeps them visually distinct.
+  it('gives the mixed-directions row its own line colour, distinct from the plain solid row', () => {
+    const { container } = openLegend();
+    expect(container.querySelector('.legend__line--mixed')).toBeTruthy();
+    // Exactly one row carries the modifier — the plain solid row must not also pick it up.
+    expect(container.querySelectorAll('.legend__line--mixed').length).toBe(1);
+  });
+});

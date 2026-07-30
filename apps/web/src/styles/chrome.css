@@ -203,6 +203,10 @@
 .legend__box { flex: none; width: 12px; height: 12px; border: 1px solid; border-radius: 2px; }
 .legend__line { flex: none; width: 20px; height: 0; border-top: 2px solid var(--tx-3); }
 .legend__line--dashed { border-top-style: dashed; border-top-color: var(--edge-derived); }
+/* The "no arrowhead" row means something different from the plain solid row above it, so it needs
+ * its own colour rather than sharing .legend__line's default — a lighter step reproduces the old
+ * lighter/darker relationship (--tx-2 is brighter than the --tx-3 the base rule uses). */
+.legend__line--mixed { border-top-color: var(--tx-2); }
 .legend__shape { position: relative; display: inline-block; width: 20px; height: 14px; }
 
 .filter { min-width: 130px; padding: var(--s-4) var(--s-5); }

@@ -35,7 +35,7 @@ export function Legend() {
           <div className="legend__group">Edges</div>
           <div className="legend__row"><span className="legend__line" />solid — one authored connection (label = verb + object)</div>
           <div className="legend__row"><span className="legend__line legend__line--dashed" />dashed purple — derived rollup (label = count)</div>
-          <div className="legend__row"><span className="legend__line" />no arrowhead — mixed directions</div>
+          <div className="legend__row"><span className="legend__line legend__line--mixed" />no arrowhead — mixed directions</div>
           <div className="legend__group">Roles</div>
           {c4Backend.roles.map((r) => (
             <div className="legend__row" key={r.id} title={r.description}>
