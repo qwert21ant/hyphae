@@ -47,16 +47,76 @@ describe('theme', () => {
     expect(nextTheme('dark')).toBe('light');
     expect(nextTheme('light')).toBe('dark');
   });
+
+  it('falls back to the preference when reading localStorage throws', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('SecurityError');
+    });
+    vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: true } as MediaQueryList);
+    expect(initialTheme()).toBe('light');
+  });
+
+  it('still applies the theme when writing localStorage throws', () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('SecurityError');
+    });
+    applyTheme('light');
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    // The write failed, but the attribute was still applied.
+  });
 });
 
 describe('the pre-paint script in index.html', () => {
-  const html = readFileSync(join(process.cwd(), 'index.html'), 'utf-8');
-
   // It duplicates theme.ts by necessity (an imported module would be a deferred fetch, which is
-  // the flash we are avoiding). This test is what stops the two drifting apart.
-  it('reads the same storage key and preference query as theme.ts', () => {
+  // the flash we are avoiding). This test is what stops the two drifting apart by actually
+  // executing the script's logic and asserting the outcomes.
+
+  /** Run index.html's pre-paint script against stubbed globals and report what it set. */
+  function runPrePaintScript(stored: string | null, prefersLight: boolean): string | null {
+    const html = readFileSync(join(process.cwd(), 'index.html'), 'utf-8');
+    const source = /<script>([\s\S]*?)<\/script>/.exec(html)?.[1];
+    expect(source, 'pre-paint script not found in index.html').toBeTruthy();
+
+    let set: string | null = null;
+    const fakeDocument = {
+      documentElement: {
+        setAttribute: (name: string, value: string) => { if (name === 'data-theme') set = value; },
+      },
+    };
+    const fakeLocalStorage = { getItem: (k: string) => (k === 'hyphae.theme' ? stored : null) };
+    const fakeWindow = { matchMedia: () => ({ matches: prefersLight }) };
+
+    // eslint-disable-next-line no-new-func
+    new Function('document', 'localStorage', 'window', source!)(fakeDocument, fakeLocalStorage, fakeWindow);
+    return set;
+  }
+
+  it('script sets data-theme="light" when stored is light', () => {
+    expect(runPrePaintScript('light', false)).toBe('light');
+  });
+
+  it('script leaves data-theme unset (returns null) when stored is dark', () => {
+    expect(runPrePaintScript('dark', true)).toBe(null);
+  });
+
+  it('script sets data-theme="light" when junk stored and prefers light', () => {
+    expect(runPrePaintScript('chartreuse', true)).toBe('light');
+  });
+
+  it('script leaves data-theme unset when junk stored and prefers dark', () => {
+    expect(runPrePaintScript('chartreuse', false)).toBe(null);
+  });
+
+  it('script sets data-theme="light" when nothing stored and prefers light', () => {
+    expect(runPrePaintScript(null, true)).toBe('light');
+  });
+
+  it('script leaves data-theme unset when nothing stored and prefers dark', () => {
+    expect(runPrePaintScript(null, false)).toBe(null);
+  });
+
+  it('uses the same storage key as theme.ts', () => {
+    const html = readFileSync(join(process.cwd(), 'index.html'), 'utf-8');
     expect(html).toContain(THEME_KEY);
-    expect(html).toContain('prefers-color-scheme: light');
-    expect(html).toContain('data-theme');
   });
 });
