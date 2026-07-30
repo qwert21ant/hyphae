@@ -727,7 +727,11 @@ and line 153:
     expect(before).toContain('var(--accent)');                         // strong selection ring
 ```
 
-- [x] **Step 2: Verify `var()` resolves at the two risky call sites**
+- [ ] **Step 2: Verify `var()` resolves at the two risky call sites** (the browser check below was
+  never run — no browser tool in this environment. The commit body for e19a8d5 substitutes a source
+  read of `@xyflow/react`'s bundled output instead, and concludes both call sites resolve `var()`
+  fine, but that is not the same thing as opening the app and looking. Confirming this at runtime is
+  folded into the outstanding Task 10 Step 6 walkthrough)
 
 Two places do not simply set a CSS property, and this is the only thing in the plan that cannot be settled by reading code:
 
@@ -916,7 +920,9 @@ filter `walk(SRC)` to those, and widen the list in each later task until Task 8 
 Run: `cd apps/web && pnpm test`
 Expected: all green. `Canvas.test.tsx`'s `hlCss` assertions now match token names; `reactflow.test.ts` matches `var(--alt-2-*)`.
 
-- [x] **Step 10: Look at it in the browser**
+- [ ] **Step 10: Look at it in the browser** (outstanding — no browser/screenshot tool in the agent's
+  environment; no dev server has been started on this branch. Deferred to the human walkthrough in
+  Task 10 Step 6)
 
 With the servers from Step 2 still running, confirm: node fills step up in brightness as you drill from the root into a container into a component; edges are coloured by verb; the rollup edge is violet-dashed; the theme switch repaints without a reload beyond the one you trigger.
 
@@ -2001,7 +2007,11 @@ In `Canvas.tsx`'s `highlightCss`, inside the `if (edgeSel.length)` branch, add t
 Run: `cd apps/web && pnpm vitest run test/Canvas.test.tsx`
 Expected: PASS.
 
-- [x] **Step 6: Check it in the browser and against reduced motion**
+- [ ] **Step 6: Check it in the browser and against reduced motion** (outstanding — no browser/
+  screenshot tool in the agent's environment; no dev server has been started on this branch. The
+  commit body for the pulse feature verifies the animation and the reduced-motion rule through
+  generated-CSS-string assertions and dash-period arithmetic instead, which is not the same as
+  watching it move. Deferred to the human walkthrough in Task 10 Step 6)
 
 With the servers running, select a flow from the outline and confirm the participating edges pulse in step order. Then enable the OS "reduce motion" setting (or emulate it in DevTools: Rendering → Emulate CSS `prefers-reduced-motion`) and confirm the dashes remain but stop moving.
 
