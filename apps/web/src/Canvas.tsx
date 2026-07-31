@@ -173,7 +173,10 @@ export function Canvas() {
     ];
     // !important: the dim rule's two :not() pseudo-classes give it specificity (0,4,0), which
     // outranks this [data-id] restore (0,3,0) — without !important the active node would stay dimmed.
-    if (nodeSel.length) rules.push(`${nodeSel.join(',')}{opacity:1!important;box-shadow:0 0 0 2px ${accent};border-radius:4px}`);
+    // No border-radius here: the ring's corners are the node wrapper's corners, and a radius that
+    // only exists while highlighted snaps back to 0 while the shadow is still fading out. It is a
+    // permanent, per-node-type rule in canvas.css instead.
+    if (nodeSel.length) rules.push(`${nodeSel.join(',')}{opacity:1!important;box-shadow:0 0 0 2px ${accent}}`);
     if (labelSel.length) rules.push(`${labelSel.join(',')}{opacity:1}`);
     if (edgeSel.length) {
       rules.push(`${edgeSel.join(',')}{opacity:1}`);

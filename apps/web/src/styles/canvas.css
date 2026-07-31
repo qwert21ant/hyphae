@@ -23,10 +23,28 @@
   --xy-background-pattern-color: var(--rule);
 }
 
+/* The highlight ring is a box-shadow injected on React Flow's own node wrapper (see Canvas.tsx), so
+ * the ring's corners are the WRAPPER's corners. That radius therefore has to live here and be
+ * permanent: declared only inside the highlight rule, it snapped 0 -> r on hover-in and r -> 0 on
+ * hover-out while the shadow was still fading through its 150ms transition, which showed as a
+ * square ring for a moment every time. A wrapper has no background or border of its own, so a
+ * radius on it is invisible except for the shape it gives the ring. */
+.react-flow__node { border-radius: 4px; }   /* the corner shapes.ts draws: roundedRect(…, 4) */
+.react-flow__node-region { border-radius: var(--r-lg); }      /* matches .region below */
+.react-flow__node-ghostGroup { border-radius: var(--r-lg); }
+
 /* A containment boundary. It takes the altitude of the node it represents (--alt-2-* is the
  * fallback for a region whose layer could not be resolved), so the box you are inside is as
  * bright as the nodes inside it. */
 .region {
+  /* border-box, or the box outgrows the node it fills. React Flow's .react-flow__node wrapper is
+   * itself border-box and takes its size from the inline width/height focusViewToFlow computes;
+   * width:100% + a border under the default content-box renders 2px wider and taller than that
+   * (3px for --ghost's 1.5px border), overflowing right and bottom. The highlight ring is a
+   * box-shadow on the WRAPPER, so the overflow put the ring inside the boundary's own border on
+   * exactly those two sides. NodeBox already sets this on itself, which is why plain nodes were
+   * never affected. */
+  box-sizing: border-box;
   width: 100%; height: 100%;
   border: 1px solid var(--alt-2-bd);
   border-radius: var(--r-lg);
