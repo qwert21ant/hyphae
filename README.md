@@ -54,8 +54,9 @@ steps in order, numbered along the edges they run on. Steps are clickable — ea
 where its endpoints are visible. A step with no authored connection behind it is drawn as a dotted
 **ephemeral edge** rather than vanishing; a step this view genuinely cannot draw is marked ↗ in the
 outline. Selecting a **Pattern** replaces the canvas with the pattern's own diagram (an ordered
-pipeline row, a state machine laid out by its transitions, or a stacked member list); its `anchor`
-and any member bound to a real node link back into the model.
+pipeline row, a state machine laid out by its transitions, or a stacked member list); any member
+bound to a real node links back into the model. A pattern's row carries its **kind** as a chip and
+its `anchor` — the node it describes — as a link beside the name, so both read without opening it.
 
 **The inspector.** Selecting a node or a connection shows its detail in the right-hand panel, as
 text — the browser does not write the model. A node shows its name, type, role, the fields the

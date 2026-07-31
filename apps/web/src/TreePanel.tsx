@@ -168,34 +168,48 @@ export function TreePanel({ collapsed, onToggleCollapse }: { collapsed: boolean;
         <div className={rowClass(selected, false)} style={{ paddingLeft: 4 }} onClick={() => selectPattern(selected ? null : p.id)}>
           <span className="tree-twisty" />
           <button className="tree-label" aria-pressed={selected}>
-            {p.name} <span className="tree-dim">· {p.kind}</span>{invalid.patterns.has(p.id) ? <span className="tree-invalid" title="references something missing"> ⚠</span> : null}
+            {p.name}{invalid.patterns.has(p.id) ? <span className="tree-invalid" title="references something missing"> ⚠</span> : null}
           </button>
+          <span className="chip tree-kind" title={`${p.kind} pattern`}>{p.kind}</span>
+          {/* The pattern view replaces the canvas, so the anchor is the way back to the node it
+              describes — and knowing WHICH node a pattern is about should not require opening it, so
+              it sits on the row. stopPropagation because the row toggles the pattern and this
+              navigates away from it; without it one click would do both. A dangling anchor still
+              shows, marked, rather than silently vanishing. */}
+          {p.anchor && (anchorName
+            ? (
+              <button
+                className="tree-anchor"
+                onClick={(ev) => { ev.stopPropagation(); revealNode(p.anchor!); }}
+                title={`Go to ${anchorName} — the node this pattern describes`}
+              >
+                → {anchorName}
+              </button>
+            )
+            : (
+              <span className="tree-anchor tree-dim" title="references something missing">
+                → {p.anchor}<span className="tree-invalid"> ⚠</span>
+              </span>
+            ))}
         </div>
         {selected && (
-          <div className="tree-detail">
-            {/* The pattern view replaces the canvas, so the anchor is the way back to the node it
-                describes. A dangling anchor still shows, marked, rather than silently vanishing. */}
-            {p.anchor && (anchorName
-              ? <button className="tree-label tree-anchor" onClick={() => revealNode(p.anchor!)}>anchor: {anchorName}</button>
-              : <div className="tree-anchor tree-dim">anchor: {p.anchor}<span className="tree-invalid" title="references something missing"> ⚠</span></div>)}
-            <ul className="tree-members">
-              {p.members.map((m) => {
-                const bound = m.nodeId && nodeName.has(m.nodeId) ? m.nodeId : null;
-                return (
-                  <li
-                    key={m.name}
-                    className={bound ? 'tree-member tree-member--link' : 'tree-member'}
-                    onClick={bound ? () => revealNode(bound) : undefined}
-                    title={bound ? `Go to ${nodeName.get(bound)}` : undefined}
-                  >
-                    {bound
-                      ? <button className="tree-label">{m.name}</button>
-                      : <span className="tree-member--static">{m.name}</span>}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+          <ul className="tree-members">
+            {p.members.map((m) => {
+              const bound = m.nodeId && nodeName.has(m.nodeId) ? m.nodeId : null;
+              return (
+                <li
+                  key={m.name}
+                  className={bound ? 'tree-member tree-member--link' : 'tree-member'}
+                  onClick={bound ? () => revealNode(bound) : undefined}
+                  title={bound ? `Go to ${nodeName.get(bound)}` : undefined}
+                >
+                  {bound
+                    ? <button className="tree-label">{m.name}</button>
+                    : <span className="tree-member--static">{m.name}</span>}
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
     );

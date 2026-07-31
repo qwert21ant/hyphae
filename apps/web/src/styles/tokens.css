@@ -78,6 +78,9 @@
    * agreed and the altimeter — two stacked lines, one of which only exists below the root view —
    * changed the height of the whole bar as you navigated. A role token, not a step on the scale. */
   --s-ctl: 34px;
+  /* The square a bare glyph control (a twisty, a panel toggle) has to fill. A ▸ is a 6px-wide mark;
+   * without a declared box around it the hit target is the mark itself. Also a role token. */
+  --s-hit: 26px;
   --r-sm: 3px;
   --r-md: 5px;
   --r-lg: 9px;

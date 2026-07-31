@@ -195,22 +195,51 @@ describe('TreePanel — flows', () => {
 });
 
 describe('TreePanel — patterns', () => {
+  // Queried by class, not by name: the anchor points AT the node called Alpha, so a name query would
+  // also match Alpha's own row the moment the node tree happens to be open around it.
+  const anchorIn = (container: HTMLElement) => container.querySelector('.tree-anchor')!;
+
   it('selects a pattern and shows its anchor and members', () => {
-    const { getByRole, getByText } = renderTree();
+    const { getByRole, getByText, container } = renderTree();
     fireEvent.click(getByRole('button', { name: /Recorder/ }));
     expect(useStore.getState().selectedPatternId).toBe('p1');
-    expect(getByText('anchor: Alpha')).toBeTruthy();
+    expect(anchorIn(container).textContent).toContain('Alpha');
     expect(getByText('Writer')).toBeTruthy();
     expect(getByText('Idle')).toBeTruthy();
   });
 
+  // The anchor rides on the pattern's own row, so you can see what a pattern describes — and jump
+  // to it — without opening the pattern first.
+  it('shows the anchor on the pattern row itself, whether or not the pattern is selected', () => {
+    const { getByRole, container } = renderTree();
+    expect(anchorIn(container).closest('.tree-row'))
+      .toBe(getByRole('button', { name: /Recorder/ }).closest('.tree-row'));
+    expect(useStore.getState().selectedPatternId).toBeNull();   // still closed
+  });
+
   it('navigates to the anchor node, leaving the pattern view', () => {
     reset({ selectedPatternId: 'p1' });
-    const { getByText } = renderTree();
-    fireEvent.click(getByText('anchor: Alpha'));
+    const { container } = renderTree();
+    fireEvent.click(anchorIn(container));
     expect(useStore.getState().focusId).toBe('sys');   // Alpha's parent, Alpha selected
     expect(useStore.getState().selectedId).toBe('ca');
     expect(useStore.getState().selectedPatternId).toBeNull();
+  });
+
+  // The row toggles the pattern and the anchor navigates away from it; without stopPropagation one
+  // click would do both, and which won would depend on the order the handlers happened to run in.
+  it('does not toggle the pattern when its anchor is clicked', () => {
+    const { container } = renderTree();
+    fireEvent.click(anchorIn(container));
+    expect(useStore.getState().selectedPatternId).toBeNull();
+    expect(useStore.getState().selectedId).toBe('ca');
+  });
+
+  it('tags a pattern with its kind as a chip, not as a colour', () => {
+    const { getByRole } = renderTree();
+    const chip = getByRole('button', { name: /Recorder/ }).closest('.tree-row')!.querySelector('.tree-kind')!;
+    expect(chip.textContent).toBe('state-machine');
+    expect(chip.classList.contains('chip')).toBe(true);
   });
 
   it('navigates from a member bound to a node, but not from a bare one', () => {
@@ -282,6 +311,27 @@ describe('TreePanel — chrome', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
     expect(css).toMatch(/\.sep--h\s*\{[^}]*cursor:\s*row-resize/);
     expect(css).toMatch(/\.sep--v\s*\{[^}]*cursor:\s*col-resize/);
+  });
+
+  // The twisty and the collapse caret were ~14px glyphs in an 18px column — the two controls in the
+  // panel you are most likely to aim at, and the two hardest to hit. jsdom measures nothing, so this
+  // pins the declared size rather than the rendered one.
+  it('gives the twisty and the collapse caret a real hit target', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+    const twisty = /\.tree-twisty\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(twisty).toMatch(/width:\s*var\(--s-hit\)/);
+    expect(twisty).toMatch(/align-self:\s*stretch/);   // full row height, without growing the row
+    const toggle = /\.tree-toggle\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(toggle).toMatch(/width:\s*var\(--s-hit\)/);
+    expect(toggle).toMatch(/height:\s*var\(--s-hit\)/);
+  });
+
+  it('indents a pattern member clear of the row that owns it', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+    const member = /\.tree-member\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    // One nesting level past the step list, which is itself one level past its flow's row.
+    expect(member).toMatch(/padding-left:\s*calc\(var\(--s-7\)\s*\+\s*var\(--s-4\)\)/);
+    expect(/\.tree-step\s*\{([^}]*)\}/.exec(css)?.[1] ?? '').toMatch(/padding-left:\s*var\(--s-7\)/);
   });
 
   it('gives the focused row an accent bar rather than a fill', () => {

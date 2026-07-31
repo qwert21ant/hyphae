@@ -36,15 +36,20 @@ export function Altimeter() {
         const layer = node ? layerOfType(c4Backend, node.type) : undefined;
         const current = i === crumbs.length - 1;
         return (
+          // The BAND is the target, not the name inside it — its tag line, its padding and the
+          // tinted fill that makes the altitude readable were all dead to the pointer. The crumb
+          // stays a <button> so the band is still reachable and operable from the keyboard; its
+          // click simply bubbles here, the same arrangement the outline rows use.
           <span
             key={c.id ?? '__root__'}
             className={`altimeter__band${current ? ' altimeter__band--current' : ''}`}
             data-layer={layer ?? ''}
+            onClick={() => setFocus(c.id)}
           >
             <span className="hy-micro altimeter__layer" title={node ? node.type : 'the whole model'}>
               {node ? typeTag(node.type) : ROOT_LABEL}
             </span>
-            <button className="altimeter__crumb" onClick={() => setFocus(c.id)}>{c.name}</button>
+            <button className="altimeter__crumb">{c.name}</button>
           </span>
         );
       })}

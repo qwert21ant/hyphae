@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { Altimeter } from '../src/Altimeter';
@@ -69,5 +71,25 @@ describe('Altimeter', () => {
     render(<Altimeter />);
     fireEvent.click(screen.getByRole('button', { name: 'bot core' }));
     expect(useStore.getState().focusId).toBe('ctr');
+  });
+
+  // The band is the target, not the name inside it. Its tag line, its padding and the tinted fill
+  // that makes it readable as an altitude were all dead to the pointer.
+  it('ascends from anywhere in the band, not just the crumb text', () => {
+    render(<Altimeter />);
+    const band = screen.getByRole('button', { name: 'bot core' }).closest('.altimeter__band')!;
+    fireEvent.click(band);
+    expect(useStore.getState().focusId).toBe('ctr');
+  });
+
+  // The hover cue is an accent ring, not a fill: a fill would have to overwrite the altitude tint,
+  // which is the one thing the band exists to show. --accent is the interaction token, so an inset
+  // ring says "clickable" in the vocabulary the rest of the design already uses.
+  it('shows the whole band as the target without overwriting its altitude tint', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+    expect(/\.altimeter__band\s*\{([^}]*)\}/.exec(css)?.[1] ?? '').toMatch(/cursor:\s*pointer/);
+    const hover = /\.altimeter__band:hover\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(hover).toMatch(/box-shadow:\s*inset[^;]*var\(--accent-soft\)/);
+    expect(hover).not.toMatch(/background/);
   });
 });
