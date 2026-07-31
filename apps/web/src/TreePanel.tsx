@@ -131,7 +131,7 @@ export function TreePanel({ collapsed, onToggleCollapse }: { collapsed: boolean;
     const selected = f.id === selectedFlowId;
     return (
       <div key={f.id}>
-        <div className={rowClass(selected, false)} style={{ paddingLeft: 4 }} onClick={() => selectFlow(selected ? null : f.id)}>
+        <div className={`${rowClass(selected, false)} tree-row--detail`} onClick={() => selectFlow(selected ? null : f.id)}>
           <span className="tree-twisty" />
           <button className="tree-label" aria-pressed={selected}>
             {f.name}{invalid.flows.has(f.id) ? <span className="tree-invalid" title="references something missing"> ⚠</span> : ''}
@@ -165,7 +165,7 @@ export function TreePanel({ collapsed, onToggleCollapse }: { collapsed: boolean;
     const anchorName = p.anchor ? nodeName.get(p.anchor) : undefined;
     return (
       <div key={p.id}>
-        <div className={rowClass(selected, false)} style={{ paddingLeft: 4 }} onClick={() => selectPattern(selected ? null : p.id)}>
+        <div className={`${rowClass(selected, false)} tree-row--detail`} onClick={() => selectPattern(selected ? null : p.id)}>
           <span className="tree-twisty" />
           <button className="tree-label" aria-pressed={selected}>
             {p.name}{invalid.patterns.has(p.id) ? <span className="tree-invalid" title="references something missing"> ⚠</span> : null}

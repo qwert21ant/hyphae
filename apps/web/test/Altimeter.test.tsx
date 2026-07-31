@@ -91,5 +91,9 @@ describe('Altimeter', () => {
     const hover = /\.altimeter__band:hover\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
     expect(hover).toMatch(/box-shadow:\s*inset[^;]*var\(--accent-soft\)/);
     expect(hover).not.toMatch(/background/);
+    // The crumb brightens with its band, never on its own — a text-only :hover made half the band
+    // feel inert even though the whole of it answers the click.
+    expect(css).toMatch(/\.altimeter__band:hover\s+\.altimeter__crumb\s*\{[^}]*color:\s*var\(--tx-1\)/);
+    expect(css).not.toMatch(/\.altimeter__crumb:hover\s*\{/);
   });
 });

@@ -73,7 +73,6 @@
   --s-4: 12px;
   --s-5: 16px;
   --s-6: 20px;
-  --s-7: 28px;
   /* One height for every control in the header. They used to be sized by their own text, so no two
    * agreed and the altimeter — two stacked lines, one of which only exists below the root view —
    * changed the height of the whole bar as you navigated. A role token, not a step on the scale. */

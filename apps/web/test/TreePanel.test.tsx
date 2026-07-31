@@ -9,6 +9,17 @@ import { emptyModel } from '@hyphae/schema';
 
 const base = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
 
+const chromeCss = () => readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+
+/** The declarations of one rule, matched at the START of a line, and asserted to exist.
+ *  Unanchored, `.tree-label {` also matches inside `.tree-row:hover .tree-label {` — so a search for
+ *  a class's own rule silently returned a descendant rule that happened to be declared earlier. */
+function rule(css: string, selector: string): string {
+  const m = new RegExp(`^\\${selector}\\s*\\{([^}]*)\\}`, 'm').exec(css);
+  expect(m, `${selector} has no rule of its own in chrome.css`).toBeTruthy();
+  return m![1];
+}
+
 /** sys › (ca › a1, cb › b1), one cross-container flow, one pattern anchored on ca. */
 function model() {
   const m = emptyModel();
@@ -112,12 +123,20 @@ describe('TreePanel — nodes', () => {
     expect(useStore.getState().selectedPatternId).toBe('p1');
   });
 
-  // The hover feedback has to match the hit target, or the row lies about what is clickable.
-  it('highlights the whole row on hover, not the label alone', () => {
+  // The hover feedback has to match the hit target, or the row lies about what is clickable. Nothing
+  // inside the row may carry a :hover of its own — the label and the twisty each lighting up under
+  // their own pointer made one row look like two separate controls.
+  it('highlights the whole row on hover, from the row alone', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
     expect(css).toMatch(/\.tree-row:hover\s*\{[^}]*background:\s*var\(--surface-3\)/);
-    const label = /\.tree-label:hover\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
-    expect(label).not.toMatch(/background/);
+    expect(css).toMatch(/\.tree-row:hover\s+\.tree-label\s*\{[^}]*color:\s*var\(--tx-1\)/);
+    expect(css).toMatch(/\.tree-row:hover\s+\.tree-twisty\s*\{[^}]*color:\s*var\(--tx-1\)/);
+    // Steps and members are items in their own right, so their whole line drives their own label.
+    expect(css).toMatch(/\.tree-step:hover\s+\.tree-label\s*\{[^}]*color:\s*var\(--tx-1\)/);
+    expect(css).toMatch(/\.tree-member--link:hover\s+\.tree-label\s*\{[^}]*color:\s*var\(--tx-1\)/);
+    for (const own of [/\.tree-label:hover\s*\{/, /\.tree-twisty:hover\s*\{/]) {
+      expect(css, `${own} must not light up independently of its row`).not.toMatch(own);
+    }
   });
 
   it('renders an indent guide per depth level', () => {
@@ -317,21 +336,34 @@ describe('TreePanel — chrome', () => {
   // panel you are most likely to aim at, and the two hardest to hit. jsdom measures nothing, so this
   // pins the declared size rather than the rendered one.
   it('gives the twisty and the collapse caret a real hit target', () => {
-    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
-    const twisty = /\.tree-twisty\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    const css = chromeCss();
+    const twisty = rule(css, '.tree-twisty');
     expect(twisty).toMatch(/width:\s*var\(--s-hit\)/);
     expect(twisty).toMatch(/align-self:\s*stretch/);   // full row height, without growing the row
-    const toggle = /\.tree-toggle\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    const toggle = rule(css, '.tree-toggle');
     expect(toggle).toMatch(/width:\s*var\(--s-hit\)/);
     expect(toggle).toMatch(/height:\s*var\(--s-hit\)/);
   });
 
-  it('indents a pattern member clear of the row that owns it', () => {
-    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
-    const member = /\.tree-member\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
-    // One nesting level past the step list, which is itself one level past its flow's row.
-    expect(member).toMatch(/padding-left:\s*calc\(var\(--s-7\)\s*\+\s*var\(--s-4\)\)/);
-    expect(/\.tree-step\s*\{([^}]*)\}/.exec(css)?.[1] ?? '').toMatch(/padding-left:\s*var\(--s-7\)/);
+  // Derived from the owning row's own structure — its own indent plus its twisty column — rather
+  // than guessed, so a step or a member cannot end up sitting LEFT of the name it belongs to.
+  it('indents a step and a member past the row that owns them', () => {
+    const css = chromeCss();
+    expect(rule(css, '.tree-row--detail')).toMatch(/padding-left:\s*var\(--s-2\)/);
+    expect(rule(css, '.tree-step')).toMatch(/padding-left:\s*calc\(var\(--s-2\)\s*\+\s*var\(--s-hit\)/);
+    // A member has no order column to mark the nesting, so it takes a full extra level.
+    expect(rule(css, '.tree-member'))
+      .toMatch(/padding-left:\s*calc\(var\(--s-2\)\s*\+\s*var\(--s-hit\)\s*\+\s*var\(--s-6\)\)/);
+  });
+
+  // A member bound to a node is a .tree-label <button>; a bare one is a .tree-member--static <span>.
+  // The button carries the label's horizontal padding and the span carried none, so the indent of a
+  // pattern's member list silently depended on whether its members happened to bind to nodes.
+  it('aligns bound and unbound pattern members to the same left edge', () => {
+    const css = chromeCss();
+    const pad = /padding:\s*0 var\(--s-2\)/;
+    expect(rule(css, '.tree-label')).toMatch(pad);
+    expect(rule(css, '.tree-member--static')).toMatch(pad);
   });
 
   it('gives the focused row an accent bar rather than a fill', () => {
