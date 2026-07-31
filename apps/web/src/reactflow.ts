@@ -183,7 +183,7 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nod
   // pair is UNORDERED: A→B and B→A occupy the same curve, so they must share one group.
   const byPair = new Map<string, FlowEdge[]>();
   for (const e of edges) {
-    const key = e.source < e.target ? `${e.source} ${e.target}` : `${e.target} ${e.source}`;
+    const key = e.source < e.target ? `${e.source}\0${e.target}` : `${e.target}\0${e.source}`;
     const group = byPair.get(key);
     if (group) group.push(e);
     else byPair.set(key, [e]);
