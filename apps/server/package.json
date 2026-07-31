@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "node --import tsx src/index.ts",
-    "mcp": "tsx src/mcp.ts",
+    "mcp": "tsx src/mcp/index.ts",
     "build": "tsc -p tsconfig.json",
     "test": "vitest run"
   },

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTools, type HyphaeApi } from '../src/mcp';
+import { buildTools, type HyphaeApi } from '../src/mcp/index';
 import { emptyModel, type HyphaeModel } from '@hyphae/schema';
 
 function model(): HyphaeModel {
@@ -452,7 +452,7 @@ describe('role/verb/object reach the API', () => {
   });
 });
 
-import { flowItemSchema } from '../src/mcp';
+import { flowItemSchema } from '../src/mcp/index';
 
 describe('MCP flow tools', () => {
   const flowModel = (): HyphaeModel => {
@@ -509,7 +509,7 @@ describe('MCP flow write shape', () => {
   });
 });
 
-import { patternItemSchema } from '../src/mcp';
+import { patternItemSchema } from '../src/mcp/index';
 
 describe('MCP pattern tools', () => {
   const patternModel = (): HyphaeModel => {
