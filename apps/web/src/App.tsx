@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Group, Panel, Separator, useDefaultLayout, usePanelRef } from 'react-resizable-panels';
-import { useStore } from './store';
-import { loadModel } from './api';
-import { parseHash, routeToHash, routeOfState, resolveHashRoute, ROOT_ROUTE, type Route } from './hashRoute';
-import { Canvas } from './Canvas';
-import { SidePanel } from './SidePanel';
-import { TreePanel } from './TreePanel';
-import { Toolbar } from './Toolbar';
+import { useStore } from '@/state/store';
+import { loadModel } from '@/state/api';
+import { parseHash, routeToHash, routeOfState, resolveHashRoute, ROOT_ROUTE, type Route } from '@/core/hashRoute';
+import { Canvas } from '@/features/canvas/Canvas';
+import { SidePanel } from '@/features/inspector/SidePanel';
+import { TreePanel } from '@/features/outline/TreePanel';
+import { Toolbar } from '@/features/toolbar/Toolbar';
 import './styles.css';
 
 /** Put the store into the state a route describes. A pattern or a flow is a selection (the flow's

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
-vi.mock('../src/api', () => {
+vi.mock('@/state/api', () => {
   const blank = () => ({
     schemaVersion: 1, metadata: { name: 'Untitled', description: '', createdAt: 't', updatedAt: 't' },
     activeProfile: 'c4-backend', nodes: [], connections: [], flows: [], patterns: [],
@@ -11,7 +11,7 @@ vi.mock('../src/api', () => {
 });
 
 import { App } from '../src/App';
-import { useStore } from '../src/store';
+import { useStore } from '@/state/store';
 import { emptyModel } from '@hyphae/schema';
 
 const nodeBase = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
