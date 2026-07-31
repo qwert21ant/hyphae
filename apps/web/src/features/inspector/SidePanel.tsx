@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useStore } from '@/state/store';
-import { buildFocusView, partitionConnections } from '@/core/focusView';
+import { buildFocusView } from '@/core/focusView';
+import { partitionConnections } from '@/core/connections';
 import { ConnectionList } from '@/features/inspector/ConnectionList';
 import { Row, ListRow, NodeLink, FieldRow } from '@/features/inspector/FieldRows';
 import { fieldLayout } from '@/features/inspector/fieldLayout';

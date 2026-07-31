@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { c4Backend, layerOfType } from '@hyphae/schema';
 import { useStore } from '@/state/store';
-import { breadcrumbPath } from '@/core/focusView';
+import { breadcrumbPath } from '@/core/breadcrumb';
 
 /** The root band stands for the whole model — the one crumb with no node, and so no type, behind
  *  it. It still gets a label: a band without one is a line shorter than its neighbours, which made

@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { buildFocusView, breadcrumbPath, representative, externalConnections, partitionConnections, stepReveal } from '@/core/focusView';
+import { buildFocusView, representative } from '@/core/focusView';
+import { breadcrumbPath } from '@/core/breadcrumb';
+import { externalConnections, partitionConnections } from '@/core/connections';
+import { stepReveal } from '@/core/stepReveal';
 import { emptyModel } from '@hyphae/schema';
 import { edgeLabel } from '@/features/canvas/reactflow';
 import { VERB_CLASS_COLOR } from '@/core/verbColors';

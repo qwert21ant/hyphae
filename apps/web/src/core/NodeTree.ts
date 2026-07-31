@@ -87,12 +87,6 @@ export class NodeTree {
     return null;
   }
 
-  /** The profile layer a node sits on, or '' when the node or its type is unknown. */
-  layerOf(id: string): string {
-    const node = this.byId.get(id);
-    return node ? layerOfType(c4Backend, node.type) ?? '' : '';
-  }
-
   /** The layer external endpoints roll up to at `focusId`: the focus node's own layer (its peers),
    *  or the top layer at the root view. */
   focusLayerOf(focusId: string | null): string {
