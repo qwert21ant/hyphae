@@ -12,7 +12,11 @@
 
 ## Global Constraints
 
-- **`pnpm -r test` must end every task at 662 green** — 147 schema, 107 server, 408 web, 44 test files. Baseline verified on `master` at `20a74f4`.
+- **`pnpm -r test` must be green at the end of every task**, at the expected count for that task:
+  **662 for Tasks 1–4** (147 schema, 107 server, 408 web, 44 test files — baseline verified on
+  `master` at `20a74f4`), and **669 for Tasks 5–10** (web rises to 415, 45 test files) because
+  Task 5 adds 7 `NodeTree` tests. A count *below* the expected number means tests were lost in a
+  move — find them rather than accepting the lower number.
 - **No test's assertions may change.** Only import paths, file locations, and two `readFileSync` paths (Task 7). **If a test needs its assertions rewritten, behaviour moved — stop and report rather than adjusting the test.** This is the only guard on a large mechanical diff.
 - **Never run bare `pnpm vitest run` from the repo root** — there is no root vitest config, so web tests run without jsdom and report dozens of bogus failures. Use `pnpm -r test`, or `cd apps/web` first.
 - **`apps/server/hyphae-baritone.json` is permanently untracked — never `git add` it.** Stage explicit paths, never `git add -A`. Verify with `git status --short` before every commit.
@@ -1192,4 +1196,6 @@ EOF
 
 **Additions beyond the spec**, both justified inline: the NUL-byte fix (Task 1) and the Task 3 checkpoint.
 
-**Known deviation:** the spec's §8 says "662 green" throughout. Tasks 5–10 expect **669**, because Task 5 adds 7 `NodeTree` tests. The constraint's intent — no existing test's assertions change — holds unchanged.
+**Known deviation from the spec:** §8 says "662 green" throughout. Tasks 5–10 expect **669**, because Task 5 adds 7 `NodeTree` tests. This is reflected in Global Constraints above. The constraint's intent — no *existing* test's assertions change — holds unchanged.
+
+**Task 3 produces no commit.** It is a verification gate over Task 2's diff, so it has no diff of its own to review; its output is a pass/fail report, recorded in the ledger.
