@@ -39,10 +39,10 @@ describe('Toolbar', () => {
   // whole bar grew and shrank as the crumb chain gained a layer label. jsdom loads no external
   // stylesheet and measures nothing, so this pins the rule rather than the pixels.
   it('gives every header control the same explicit height', () => {
-    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+    const css = readFileSync(resolve(process.cwd(), 'src/features/toolbar/toolbar.css'), 'utf8');
     for (const sel of ['.altimeter', '.segmented', '.search__input', '.toolbar__icon']) {
       const rule = new RegExp(`\\${sel}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
-      expect(rule, `${sel} has no rule in chrome.css`).not.toBe('');
+      expect(rule, `${sel} has no rule in toolbar.css`).not.toBe('');
       expect(rule, `${sel} must be var(--s-ctl) tall`).toMatch(/height:\s*var\(--s-ctl\)/);
       expect(rule, `${sel} needs border-box or its border breaks the shared height`).toMatch(/box-sizing:\s*border-box/);
     }

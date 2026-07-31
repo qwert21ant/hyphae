@@ -9,14 +9,14 @@ import { emptyModel } from '@hyphae/schema';
 
 const base = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
 
-const chromeCss = () => readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+const outlineCss = () => readFileSync(resolve(process.cwd(), 'src/features/outline/outline.css'), 'utf8');
 
 /** The declarations of one rule, matched at the START of a line, and asserted to exist.
  *  Unanchored, `.tree-label {` also matches inside `.tree-row:hover .tree-label {` — so a search for
  *  a class's own rule silently returned a descendant rule that happened to be declared earlier. */
 function rule(css: string, selector: string): string {
   const m = new RegExp(`^\\${selector}\\s*\\{([^}]*)\\}`, 'm').exec(css);
-  expect(m, `${selector} has no rule of its own in chrome.css`).toBeTruthy();
+  expect(m, `${selector} has no rule of its own in outline.css`).toBeTruthy();
   return m![1];
 }
 
@@ -127,7 +127,7 @@ describe('TreePanel — nodes', () => {
   // inside the row may carry a :hover of its own — the label and the twisty each lighting up under
   // their own pointer made one row look like two separate controls.
   it('highlights the whole row on hover, from the row alone', () => {
-    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+    const css = readFileSync(resolve(process.cwd(), 'src/features/outline/outline.css'), 'utf8');
     expect(css).toMatch(/\.tree-row:hover\s*\{[^}]*background:\s*var\(--surface-3\)/);
     expect(css).toMatch(/\.tree-row:hover\s+\.tree-label\s*\{[^}]*color:\s*var\(--tx-1\)/);
     expect(css).toMatch(/\.tree-row:hover\s+\.tree-twisty\s*\{[^}]*color:\s*var\(--tx-1\)/);
@@ -187,7 +187,7 @@ describe('TreePanel — flows', () => {
     // in the DOM — assert the rule itself. The rows print the authored `order`, which need not be a
     // contiguous 1..n, so an <ol> marker would both duplicate and contradict it.
     // (import.meta.url is an http URL under jsdom, so resolve from the package root instead.)
-    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+    const css = readFileSync(resolve(process.cwd(), 'src/features/outline/outline.css'), 'utf8');
     expect(css).toMatch(/\.tree-steps\s*\{[^}]*list-style:\s*none/);
   });
 
@@ -327,7 +327,7 @@ describe('TreePanel — chrome', () => {
     // jsdom loads no external stylesheet, so the rule is unobservable in the DOM — assert the
     // source. Without it the handle is invisible and undiscoverable, since the library sets no
     // cursor of its own.
-    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+    const css = readFileSync(resolve(process.cwd(), 'src/app.css'), 'utf8');
     expect(css).toMatch(/\.sep--h\s*\{[^}]*cursor:\s*row-resize/);
     expect(css).toMatch(/\.sep--v\s*\{[^}]*cursor:\s*col-resize/);
   });
@@ -336,7 +336,7 @@ describe('TreePanel — chrome', () => {
   // panel you are most likely to aim at, and the two hardest to hit. jsdom measures nothing, so this
   // pins the declared size rather than the rendered one.
   it('gives the twisty and the collapse caret a real hit target', () => {
-    const css = chromeCss();
+    const css = outlineCss();
     const twisty = rule(css, '.tree-twisty');
     expect(twisty).toMatch(/width:\s*var\(--s-hit\)/);
     expect(twisty).toMatch(/align-self:\s*stretch/);   // full row height, without growing the row
@@ -348,7 +348,7 @@ describe('TreePanel — chrome', () => {
   // Derived from the owning row's own structure — its own indent plus its twisty column — rather
   // than guessed, so a step or a member cannot end up sitting LEFT of the name it belongs to.
   it('indents a step and a member past the row that owns them', () => {
-    const css = chromeCss();
+    const css = outlineCss();
     expect(rule(css, '.tree-row--detail')).toMatch(/padding-left:\s*var\(--s-2\)/);
     expect(rule(css, '.tree-step')).toMatch(/padding-left:\s*calc\(var\(--s-2\)\s*\+\s*var\(--s-hit\)/);
     // A member has no order column to mark the nesting, so it takes a full extra level.
@@ -360,23 +360,23 @@ describe('TreePanel — chrome', () => {
   // The button carries the label's horizontal padding and the span carried none, so the indent of a
   // pattern's member list silently depended on whether its members happened to bind to nodes.
   it('aligns bound and unbound pattern members to the same left edge', () => {
-    const css = chromeCss();
+    const css = outlineCss();
     const pad = /padding:\s*0 var\(--s-2\)/;
     expect(rule(css, '.tree-label')).toMatch(pad);
     expect(rule(css, '.tree-member--static')).toMatch(pad);
   });
 
   it('gives the focused row an accent bar rather than a fill', () => {
-    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+    const css = readFileSync(resolve(process.cwd(), 'src/features/outline/outline.css'), 'utf8');
     expect(css).toMatch(/\.tree-row--current\s*\{[^}]*border-left-color:\s*var\(--accent\)/);
   });
 
   // The bug this guards: --current used to also set background:var(--surface-3), which is exactly
   // what --active sets — so a row carrying both classes was pixel-identical to one carrying only
-  // --current, contradicting the two-independent-states comment above .tree-row in chrome.css.
+  // --current, contradicting the two-independent-states comment above .tree-row in outline.css.
   // jsdom applies no external stylesheet, so this reads the rule rather than rendered pixels.
   it('does not give --current its own background, so combining it with --active stays distinguishable', () => {
-    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+    const css = readFileSync(resolve(process.cwd(), 'src/features/outline/outline.css'), 'utf8');
     const currentRule = /\.tree-row--current\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
     expect(currentRule).not.toMatch(/background/);
     expect(css).toMatch(/\.tree-row--active\s*\{[^}]*background:\s*var\(--surface-3\)/);

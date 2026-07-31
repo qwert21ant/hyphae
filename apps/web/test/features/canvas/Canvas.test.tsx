@@ -403,7 +403,7 @@ describe('Canvas flow overlay', () => {
 // The highlight ring is a box-shadow on React Flow's own .react-flow__node WRAPPER, so it traces the
 // wrapper's box and is clipped by the wrapper's radius — neither of which the boundary boxes matched.
 describe('Canvas — the highlight ring traces the box it wraps', () => {
-  const canvasCss = () => readFileSync(resolve(process.cwd(), 'src/styles/canvas.css'), 'utf8');
+  const canvasCss = () => readFileSync(resolve(process.cwd(), 'src/features/canvas/canvas.css'), 'utf8');
   const rule = (css: string, selector: string) => {
     const m = new RegExp(`^\\${selector}\\s*\\{([^}]*)\\}`, 'm').exec(css);
     expect(m, `${selector} has no rule of its own in canvas.css`).toBeTruthy();

@@ -1,0 +1,126 @@
+.tree-panel {
+  flex: 1; min-width: 0; height: 100%;
+  display: flex; flex-direction: column;
+  background: var(--surface-1);
+  border-right: 1px solid var(--rule);
+  font-size: var(--t-sm); color: var(--tx-2);
+}
+.tree-panel--collapsed { align-items: center; padding-top: var(--s-3); }
+.tree-panel__head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--rule);
+}
+.tree-panel__title {
+  font-size: var(--t-micro); font-weight: 600; font-stretch: 112%;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--tx-1);
+}
+.tree-panel__body { flex: 1; min-height: 0; overflow: auto; padding-bottom: var(--s-5); }
+.tree-panel__body--split { overflow: hidden; padding-bottom: 0; }
+.tree-split__pane { padding-bottom: var(--s-5); }
+.tree-split__pane--detail { border-top: 1px solid var(--rule); }
+.tree-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: var(--s-hit); height: var(--s-hit); padding: 0;
+  background: none; border: none; color: var(--tx-3); cursor: pointer;
+  font-size: var(--t-lg);
+}
+.tree-toggle:hover { color: var(--tx-1); }
+.tree-section__title { padding: var(--s-3) var(--s-4) var(--s-1); }
+
+/* A row carries two independent states. --current is "the view you are in" and gets the accent bar;
+ * --active is "the thing you clicked" and gets a luminance lift. Both at once must stay readable.
+ *
+ * The ROW is the item, not the label inside it: it owns the click (see TreePanel), so it owns the
+ * hover and the cursor too. Feedback that stops at the end of the text tells the reader the indent,
+ * the twisty column and the space past a short name are dead, when all three now act. */
+.tree-row {
+  display: flex; align-items: center; gap: var(--s-1);
+  padding: var(--s-2) var(--s-4) var(--s-2) 0;
+  border-left: 2px solid transparent;
+  /* Explicit, so every row is the same height whatever it contains — the twisty sets its own
+     line-height, and a row of only guides would otherwise collapse. */
+  line-height: 1.4;
+  cursor: pointer;
+}
+/* Flow and pattern rows have no depth guides, so they carry their indent directly. It is a token,
+ * not an inline literal, because the step and member lists derive their own indent from it. */
+.tree-row--detail { padding-left: var(--s-2); }
+.tree-row:hover { background: var(--surface-3); }
+/* Everything in the row brightens together, driven by the row. Each part carrying its own :hover
+ * made a single item look like two separate controls — the name lit up under the pointer, the
+ * twisty lit up under the pointer, and neither ever lit up with the row it belongs to. */
+.tree-row:hover .tree-label { color: var(--tx-1); }
+.tree-row:hover .tree-twisty { color: var(--tx-1); }
+.tree-row--active { background: var(--surface-3); }
+/* Hover and selection share --surface-3, so selection needs a second signal or hovering an
+ * unselected row is indistinguishable from the selected one. */
+.tree-row--active .tree-label { color: var(--tx-1); }
+/* --current gets ONLY the accent bar, deliberately no luminance lift — --active already owns
+ * --surface-3, and a row that is both must stay visually distinguishable from one that is only
+ * --current. (It used to also set --surface-3, making the two indistinguishable when combined.) */
+.tree-row--current { border-left-color: var(--accent); }
+.tree-row--current .tree-label { color: var(--tx-1); font-weight: 600; }
+/* One hairline per depth level: the nesting becomes visible instead of implied by empty space.
+ * Stretched rather than given a fixed height, so the hairlines of consecutive rows join into one
+ * continuous rule down the branch — and so the row's height stays free to follow its type. */
+.tree-guide { flex: none; width: 12px; align-self: stretch; margin-left: var(--s-3); border-left: 1px solid var(--rule); }
+/* Stretched to the row rather than given a height of its own: the column becomes as tall as the row
+ * it sits in — a real target — without the row getting any taller to accommodate it. */
+.tree-twisty {
+  flex: none; width: var(--s-hit); align-self: stretch;
+  background: none; border: none; padding: 0;
+  color: var(--tx-3); cursor: pointer; font-size: var(--t-md);
+}
+.tree-label {
+  flex: 1; min-width: 0; text-align: left; background: none; border: none;
+  color: inherit; font: inherit; cursor: pointer;
+  padding: 0 var(--s-2); border-radius: var(--r-sm);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* list-style:none — the rows print the step's own `order`, which is authored and need not be a
+   contiguous 1..n, so the browser's decimal marker would both duplicate and contradict it. The
+   order now has its own element, which is also what lets it line up in a column.
+
+   A step and a pattern member are list items too, so they act like the rows above: the indent lives
+   on the item, not on the list, which is what lets the hover band run the full width of the panel. */
+.tree-steps { list-style: none; margin: 0; padding: var(--s-1) 0 var(--s-2); }
+/* The indent is DERIVED, not guessed: --s-2 is the detail row's own left padding and --s-hit is its
+ * twisty column, so a step's order column starts exactly where its flow's name does. Guessed values
+ * had both lists sitting left of the row they belong to, which read as no nesting at all. */
+.tree-step {
+  display: flex; align-items: baseline; gap: var(--s-3); line-height: 1.5; cursor: pointer;
+  padding: var(--s-1) var(--s-4); padding-left: calc(var(--s-2) + var(--s-hit));
+}
+.tree-step:hover { background: var(--surface-3); }
+.tree-step:hover .tree-label { color: var(--tx-1); }
+.tree-step__order {
+  flex: none; min-width: 18px; text-align: right;
+  font-family: var(--font-mono); font-size: var(--t-micro); color: var(--tx-3);
+}
+.tree-step--return .tree-label { color: var(--tx-3); }
+.tree-offview { color: var(--accent-text); }
+/* The anchor rides on the pattern's own row: it is what the pattern is ABOUT, so it belongs beside
+ * the name rather than hidden until the pattern is opened. --accent-text marks it as the one thing
+ * in the row that navigates somewhere else. */
+.tree-anchor {
+  flex: none; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: none; border: none; padding: 0 var(--s-2); cursor: pointer;
+  font: inherit; color: var(--accent-text);
+}
+.tree-anchor:hover { text-decoration: underline; }
+.tree-members { list-style: none; margin: 0; padding: var(--s-1) 0 var(--s-2); }
+/* Its pattern's row, plus one full nesting level (--s-6, the step the node tree's guides use). A
+ * step gets its order column to mark the nesting; a member has nothing, so it takes the level. */
+.tree-member { padding: var(--s-1) var(--s-4); padding-left: calc(var(--s-2) + var(--s-hit) + var(--s-6)); }
+.tree-member--link { cursor: pointer; }
+.tree-member--link:hover { background: var(--surface-3); }
+.tree-member--link:hover .tree-label { color: var(--tx-1); }
+/* Same horizontal padding as .tree-label. A member bound to a node renders as a .tree-label button
+ * and a bare one as this span, so without it the list's left edge moved by --s-2 depending on
+ * whether the pattern's members happened to bind to anything — visible as a per-pattern indent. */
+.tree-member--static { color: var(--tx-3); padding: 0 var(--s-2); }
+.tree-dim { color: var(--tx-3); font-weight: 400; }
+.tree-empty { padding: var(--s-1) var(--s-5); color: var(--tx-3); }
+.tree-invalid { color: var(--warn); }

@@ -1,0 +1,84 @@
+/* Every control in here is exactly --s-ctl tall and border-box, so the bar has one baseline and a
+ * height that does not depend on what the model happens to be showing. */
+.toolbar {
+  display: flex; align-items: center; gap: var(--s-5);
+  padding: var(--s-3) var(--s-5);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--rule);
+}
+.toolbar__word {
+  font-size: var(--t-word); font-weight: 700; font-stretch: 125%;
+  letter-spacing: 0.15em; color: var(--tx-1);
+}
+.toolbar__right { margin-left: auto; display: flex; align-items: center; gap: var(--s-4); }
+.toolbar__icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: var(--s-ctl); min-width: var(--s-ctl); box-sizing: border-box;
+  background: none; border: 1px solid var(--rule); border-radius: var(--r-sm);
+  color: var(--tx-3); cursor: pointer; padding: 0 var(--s-3); font-size: var(--t-md);
+}
+.toolbar__icon:hover { color: var(--tx-1); border-color: var(--accent-soft); }
+
+.segmented {
+  display: flex; height: var(--s-ctl); box-sizing: border-box;
+  border: 1px solid var(--rule); border-radius: var(--r-sm); overflow: hidden;
+}
+.segmented__option {
+  background: none; border: none; cursor: pointer;
+  padding: 0 var(--s-5);
+  font: inherit; font-size: var(--t-sm); text-transform: capitalize;
+  color: var(--tx-3);
+}
+.segmented__option:hover { color: var(--tx-1); }
+/* aria-pressed is the state, so it drives the styling too — no second source of truth. */
+.segmented__option[aria-pressed='true'] {
+  background: var(--accent); color: var(--accent-on); font-weight: 500;
+}
+
+/* The altimeter. Each band's fill is its layer's altitude step, mapped here rather than in the
+ * component so the ramp lives in exactly one place. */
+.altimeter {
+  display: flex; height: var(--s-ctl); box-sizing: border-box;
+  border: 1px solid var(--rule); border-radius: var(--r-sm); overflow: hidden;
+}
+/* Every band carries a tag line AND a name line — including the root band, whose tag is ALL. A band
+ * that rendered only one of the two was a line shorter than its neighbours, and since the altimeter
+ * is the tallest thing in the toolbar, that resized the whole header on every drill. */
+.altimeter__band {
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 0 var(--s-4);
+  border-right: 1px solid var(--rule);
+  cursor: pointer;
+}
+.altimeter__band:last-child { border-right: none; }
+.altimeter__band[data-layer='Context'] { background: var(--alt-1-bg); }
+.altimeter__band[data-layer='Container'] { background: var(--alt-2-bg); }
+.altimeter__band[data-layer='Component'] { background: var(--alt-3-bg); }
+/* An inset ring, not a fill: a fill would have to overwrite the altitude tint, which is the one
+ * thing the band exists to show. --accent is the interaction token, so a ring says "clickable" in
+ * the vocabulary the rest of the design already uses. Declared after the [data-layer] rules — they
+ * carry the same specificity (0,2,0), so source order is what decides. */
+.altimeter__band:hover { box-shadow: inset 0 0 0 1px var(--accent-soft); }
+.altimeter__layer { line-height: 1.1; }
+.altimeter__band--current .altimeter__layer { color: var(--accent-text); }
+.altimeter__band--current .altimeter__crumb { color: var(--tx-1); font-weight: 600; }
+.altimeter__crumb {
+  background: none; border: none; cursor: pointer; padding: 0;
+  font: inherit; font-size: var(--t-sm); line-height: 1.3; color: var(--tx-2); text-align: left;
+}
+/* Driven by the BAND, never by the crumb itself: the band is what answers the click, and a :hover on
+ * the text alone left the tag line and the padding — most of the band — feeling inert. */
+.altimeter__band:hover .altimeter__crumb { color: var(--tx-1); }
+
+.search { position: relative; }
+.search__input {
+  height: var(--s-ctl); box-sizing: border-box; min-width: 240px;
+  background: var(--surface-1); border: 1px solid var(--rule); color: var(--tx-1);
+  font-size: var(--t-sm); border-radius: var(--r-sm); padding: 0 var(--s-4);
+}
+.search__menu {
+  position: absolute; z-index: 10; margin: var(--s-2) 0 0; padding: var(--s-1) 0; list-style: none;
+  max-height: 280px; overflow-y: auto; min-width: 240px;
+}
+.search__option { padding: var(--s-2) var(--s-4); cursor: pointer; }
+.search__option--active { background: var(--surface-3); color: var(--tx-1); }

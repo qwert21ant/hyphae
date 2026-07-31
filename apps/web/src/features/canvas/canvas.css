@@ -100,3 +100,53 @@
   from { stroke-dashoffset: 84; }
   to { stroke-dashoffset: 0; }
 }
+
+/* Floating canvas surfaces. Translucent with a blur so the diagram stays visible behind them,
+ * rather than the opaque white cards with drop shadows these used to be. */
+.float {
+  background: color-mix(in srgb, var(--surface-2) 86%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--rule); border-radius: var(--r-md);
+  font-size: var(--t-sm); color: var(--tx-2);
+}
+.float__toggle {
+  display: block; width: 100%; text-align: left;
+  background: none; border: none; cursor: pointer;
+  padding: var(--s-2) var(--s-4);
+  font: inherit; font-size: var(--t-sm); font-weight: 600; color: var(--tx-1);
+}
+.float__body { padding: var(--s-1) var(--s-5) var(--s-4); line-height: 1.7; }
+.legend__group { font-weight: 600; color: var(--tx-1); margin: var(--s-3) 0 var(--s-1); }
+.legend__note { color: var(--tx-3); }
+.legend__row { display: flex; align-items: center; gap: var(--s-3); }
+.legend__box { flex: none; width: 12px; height: 12px; border: 1px solid; border-radius: 2px; }
+/* The plain-solid row and the "no arrowhead — mixed directions" row used to differ only by a
+ * luminance step (--tx-3 vs --tx-2), which measures 1.42:1 in dark and 1.06:1 in light — invisible
+ * to roughly half of users. A semantic distinction (arrowhead vs none) needs a FORM difference, not
+ * a hue/luminance one, and one that is theme-independent by construction: both rows now sit at
+ * --tx-3, and only the plain row draws an arrowhead — the same thing that distinguishes them on the
+ * canvas itself (a real edge always has one; a direction:'None' rollup has none, see markers() in
+ * reactflow.ts). */
+.legend__line { flex: none; width: 20px; height: 0; border-top: 2px solid var(--tx-3); position: relative; }
+.legend__line::after {
+  content: ''; position: absolute; top: -4px; right: -6px;
+  border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 6px solid var(--tx-3);
+}
+.legend__line--dashed { border-top-style: dashed; border-top-color: var(--edge-derived); }
+.legend__line--dashed::after { border-left-color: var(--edge-derived); }
+.legend__line--mixed::after { display: none; }
+.legend__shape { position: relative; display: inline-block; width: 20px; height: 14px; }
+
+.filter { min-width: 150px; padding: var(--s-4) var(--s-5); }
+.filter__head { display: flex; justify-content: space-between; align-items: center; }
+/* --t-base, not --t-word: the wordmark's token is the wordmark's alone, and they only looked
+ * interchangeable while the two happened to hold the same value. */
+.filter__title { font-size: var(--t-base); font-weight: 600; color: var(--tx-1); }
+.filter__clear { font-size: var(--t-sm); cursor: pointer; background: none; border: none; color: var(--tx-2); }
+.filter__clear:hover { color: var(--tx-1); }
+.filter__group { margin-top: var(--s-4); }
+.filter__label { font-size: var(--t-micro); text-transform: uppercase; letter-spacing: 0.08em; color: var(--tx-3); }
+/* The filter and the legend are one component seen twice, so their rows are one size — they were
+ * --t-md against the legend's inherited --t-sm, which read as two unrelated cards. */
+.filter__option { display: flex; align-items: center; gap: var(--s-3); font-size: var(--t-sm); line-height: 1.7; cursor: pointer; }
+.filter__swatch { display: inline-block; width: 10px; height: 2px; }

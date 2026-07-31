@@ -1,0 +1,12 @@
+.app { display: flex; flex-direction: column; height: 100%; }
+.body { flex: 1 1 0; min-height: 0; }
+
+/* Resize separators. The library sets no cursor of its own and its `data-separator` attribute
+   (inactive | hover | active | focus | disabled) is the documented styling hook, since a
+   Separator's className cannot override its flex-grow/flex-shrink. */
+[data-separator] { background: transparent; transition: background 120ms ease; }
+[data-separator]:hover,
+[data-separator='active'],
+[data-separator='focus'] { background: var(--accent-soft); }
+.sep--v { width: 5px; cursor: col-resize; }
+.sep--h { height: 5px; cursor: row-resize; }

@@ -79,7 +79,7 @@ describe('Legend edge line variants', () => {
   });
 
   it('distinguishes the rows by an arrowhead, not by colour, and both sit at the same text step', () => {
-    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+    const css = readFileSync(resolve(process.cwd(), 'src/features/canvas/canvas.css'), 'utf8');
     // Base row: an arrowhead drawn via ::after, coloured the same --tx-3 the line itself uses.
     expect(css).toMatch(/\.legend__line\s*\{[^}]*border-top:\s*2px solid var\(--tx-3\)/);
     expect(css).toMatch(/\.legend__line::after\s*\{[^}]*border-left:\s*6px solid var\(--tx-3\)/);

@@ -86,7 +86,7 @@ describe('Altimeter', () => {
   // which is the one thing the band exists to show. --accent is the interaction token, so an inset
   // ring says "clickable" in the vocabulary the rest of the design already uses.
   it('shows the whole band as the target without overwriting its altitude tint', () => {
-    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+    const css = readFileSync(resolve(process.cwd(), 'src/features/toolbar/toolbar.css'), 'utf8');
     expect(/\.altimeter__band\s*\{([^}]*)\}/.exec(css)?.[1] ?? '').toMatch(/cursor:\s*pointer/);
     const hover = /\.altimeter__band:hover\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
     expect(hover).toMatch(/box-shadow:\s*inset[^;]*var\(--accent-soft\)/);

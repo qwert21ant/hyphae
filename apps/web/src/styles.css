@@ -1,4 +1,11 @@
+/* The order of these imports IS the cascade. Outside base.css every rule uses class and attribute
+ * selectors only, so they all have equal specificity and source order is the only thing deciding
+ * which one wins. A modifier that must beat a class belongs BELOW the file declaring that class —
+ * this is why .tree-kind sits in inspector.css next to .chip, not in outline.css with the tree. */
 @import './styles/tokens.css';
 @import './styles/base.css';
-@import './styles/chrome.css';
-@import './styles/canvas.css';
+@import './features/canvas/canvas.css';
+@import './features/outline/outline.css';
+@import './features/inspector/inspector.css';
+@import './features/toolbar/toolbar.css';
+@import './app.css';

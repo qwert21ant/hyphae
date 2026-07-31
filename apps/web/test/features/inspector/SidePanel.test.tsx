@@ -236,9 +236,10 @@ describe('SidePanel', () => {
 
 // jsdom loads no external stylesheet, so nothing in styles.css is observable in the DOM. Read the
 // file and assert the rules instead — the same trick TreePanel.test.tsx uses for the step marker.
-// The inspector's rules moved from styles.css to styles/chrome.css in Task 7 (the component layer).
+// The inspector's rules moved from styles.css to styles/chrome.css in Task 7 (the component layer),
+// then to features/inspector/inspector.css in Task 8 (the CSS split).
 describe('inspector CSS', () => {
-  const css = readFileSync(join(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+  const css = readFileSync(join(process.cwd(), 'src/features/inspector/inspector.css'), 'utf8');
 
   it('styles the read-only value, list and link', () => {
     expect(css).toMatch(/\.field__value\s*\{/);
