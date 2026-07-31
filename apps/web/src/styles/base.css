@@ -22,8 +22,9 @@ body {
   border-radius: var(--r-sm);
 }
 
-/* The shared micro-label: mono, uppercase, tracked. 10px is a floor, not a suggestion — at 8px
- * these fall under 3.5:1 against their surface and stop being readable. */
+/* The shared micro-label: mono, uppercase, tracked. --t-micro is a floor, not a suggestion — these
+ * are already the smallest type in the app, and below ~10px they fall under 3.5:1 against their
+ * surface and stop being readable at all. */
 .hy-micro {
   font-family: var(--font-mono);
   font-size: var(--t-micro);

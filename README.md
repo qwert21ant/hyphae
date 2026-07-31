@@ -22,11 +22,15 @@ its direct children inside, and everything else it connects to as dashed **ghost
 it. Double-click any node to drill into it (a childless one included — you get a "what touches
 this?" view); the breadcrumbs walk back up. The breadcrumb is an **altimeter**: each crumb sits in a
 band tinted with its own C4 layer's altitude step and only the deepest is lit, so how deep you are
-in the model — Context, Container, or Component — reads before you read the names. An external that
+in the model — Context, Container, or Component — reads before you read the names. Each band also
+tags its crumb with the node's kind (`SYS`, `ACT`, `EXT`, `CON`, `COM`; the root band is `ALL`), and
+every band is the same height, so the toolbar does not resize as you navigate. An external that
 stands in for a deeper node can be **expanded** to reveal the child actually taking part. The left
 **outline** panel lists the whole model — nodes by containment above, then Flows and Patterns in
 their own pane below, each scrolling independently — and is collapsible; a click reveals a node in
-context, a double-click drills in. Both side panels and the outline's internal split are
+context, a double-click drills in. The whole row is the target — indent, twisty column and the space
+past a short name included — except the twisty itself, which only opens the branch. Both side panels
+and the outline's internal split are
 **drag-resizable** (arrow keys resize a focused handle, Enter toggles collapse, double-click resets
 it), and the sizes persist per browser. Dragging the outline's handle to the edge collapses it
 exactly like the « button, and expanding — by either route — restores its previous width. Search

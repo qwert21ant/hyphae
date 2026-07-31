@@ -43,6 +43,28 @@ describe('Altimeter', () => {
       .getAttribute('data-layer')).toBe('Component');
   });
 
+  // The band label used to be the LAYER name sliced to three letters, which prints "CON" for both
+  // Context (a System) and Container — two different altitudes, identical text. The node's own type
+  // is what the reader can act on and is unique across the profile's kinds.
+  it('labels each band with its node type, not an ambiguous layer abbreviation', () => {
+    render(<Altimeter />);
+    const labelOf = (crumb: string) =>
+      screen.getByRole('button', { name: crumb }).closest('.altimeter__band')!
+        .querySelector('.altimeter__layer')!.textContent;
+    expect(labelOf('Baritone')).toBe('SYS');
+    expect(labelOf('bot core')).toBe('CON');
+    expect(labelOf('pathing')).toBe('COM');
+  });
+
+  // Every band carries a label, so the altimeter is the same height at every depth. Without one on
+  // the root band the whole toolbar grew a line the moment you drilled in.
+  it('labels the root band too, so no band is shorter than another', () => {
+    const { container } = render(<Altimeter />);
+    const bands = container.querySelectorAll('.altimeter__band');
+    expect(bands.length).toBe(4);
+    for (const band of bands) expect(band.querySelector('.altimeter__layer')!.textContent).toBeTruthy();
+  });
+
   it('ascends when an ancestor crumb is clicked', () => {
     render(<Altimeter />);
     fireEvent.click(screen.getByRole('button', { name: 'bot core' }));

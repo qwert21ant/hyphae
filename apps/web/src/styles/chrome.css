@@ -1,3 +1,5 @@
+/* Every control in here is exactly --s-ctl tall and border-box, so the bar has one baseline and a
+ * height that does not depend on what the model happens to be showing. */
 .toolbar {
   display: flex; align-items: center; gap: var(--s-5);
   padding: var(--s-3) var(--s-5);
@@ -8,17 +10,22 @@
   font-size: var(--t-word); font-weight: 700; font-stretch: 125%;
   letter-spacing: 0.15em; color: var(--tx-1);
 }
-.toolbar__right { margin-left: auto; display: flex; align-items: center; gap: var(--s-3); }
+.toolbar__right { margin-left: auto; display: flex; align-items: center; gap: var(--s-4); }
 .toolbar__icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: var(--s-ctl); min-width: var(--s-ctl); box-sizing: border-box;
   background: none; border: 1px solid var(--rule); border-radius: var(--r-sm);
-  color: var(--tx-3); cursor: pointer; padding: var(--s-1) var(--s-3); font-size: var(--t-sm);
+  color: var(--tx-3); cursor: pointer; padding: 0 var(--s-3); font-size: var(--t-md);
 }
 .toolbar__icon:hover { color: var(--tx-1); border-color: var(--accent-soft); }
 
-.segmented { display: flex; border: 1px solid var(--rule); border-radius: var(--r-sm); overflow: hidden; }
+.segmented {
+  display: flex; height: var(--s-ctl); box-sizing: border-box;
+  border: 1px solid var(--rule); border-radius: var(--r-sm); overflow: hidden;
+}
 .segmented__option {
   background: none; border: none; cursor: pointer;
-  padding: var(--s-1) var(--s-4);
+  padding: 0 var(--s-5);
   font: inherit; font-size: var(--t-sm); text-transform: capitalize;
   color: var(--tx-3);
 }
@@ -30,10 +37,16 @@
 
 /* The altimeter. Each band's fill is its layer's altitude step, mapped here rather than in the
  * component so the ramp lives in exactly one place. */
-.altimeter { display: flex; border: 1px solid var(--rule); border-radius: var(--r-sm); overflow: hidden; }
+.altimeter {
+  display: flex; height: var(--s-ctl); box-sizing: border-box;
+  border: 1px solid var(--rule); border-radius: var(--r-sm); overflow: hidden;
+}
+/* Every band carries a tag line AND a name line — including the root band, whose tag is ALL. A band
+ * that rendered only one of the two was a line shorter than its neighbours, and since the altimeter
+ * is the tallest thing in the toolbar, that resized the whole header on every drill. */
 .altimeter__band {
   display: flex; flex-direction: column; justify-content: center;
-  padding: var(--s-1) var(--s-4);
+  padding: 0 var(--s-4);
   border-right: 1px solid var(--rule);
 }
 .altimeter__band:last-child { border-right: none; }
@@ -45,7 +58,7 @@
 .altimeter__band--current .altimeter__crumb { color: var(--tx-1); font-weight: 600; }
 .altimeter__crumb {
   background: none; border: none; cursor: pointer; padding: 0;
-  font: inherit; font-size: var(--t-sm); color: var(--tx-2); text-align: left;
+  font: inherit; font-size: var(--t-sm); line-height: 1.3; color: var(--tx-2); text-align: left;
 }
 .altimeter__crumb:hover { color: var(--tx-1); }
 
@@ -78,46 +91,74 @@
 .tree-section__title { padding: var(--s-3) var(--s-4) var(--s-1); }
 
 /* A row carries two independent states. --current is "the view you are in" and gets the accent bar;
- * --active is "the thing you clicked" and gets a luminance lift. Both at once must stay readable. */
+ * --active is "the thing you clicked" and gets a luminance lift. Both at once must stay readable.
+ *
+ * The ROW is the item, not the label inside it: it owns the click (see TreePanel), so it owns the
+ * hover and the cursor too. Feedback that stops at the end of the text tells the reader the indent,
+ * the twisty column and the space past a short name are dead, when all three now act. */
 .tree-row {
   display: flex; align-items: center; gap: var(--s-1);
-  padding: var(--s-1) var(--s-4) var(--s-1) 0;
+  padding: var(--s-2) var(--s-4) var(--s-2) 0;
   border-left: 2px solid transparent;
+  /* Explicit, so every row is the same height whatever it contains — the twisty sets its own
+     line-height, and a row of only guides would otherwise collapse. */
+  line-height: 1.4;
+  cursor: pointer;
 }
+.tree-row:hover { background: var(--surface-3); }
 .tree-row--active { background: var(--surface-3); }
+/* Hover and selection share --surface-3, so selection needs a second signal or hovering an
+ * unselected row is indistinguishable from the selected one. */
+.tree-row--active .tree-label { color: var(--tx-1); }
 /* --current gets ONLY the accent bar, deliberately no luminance lift — --active already owns
  * --surface-3, and a row that is both must stay visually distinguishable from one that is only
  * --current. (It used to also set --surface-3, making the two indistinguishable when combined.) */
 .tree-row--current { border-left-color: var(--accent); }
 .tree-row--current .tree-label { color: var(--tx-1); font-weight: 600; }
-/* One hairline per depth level: the nesting becomes visible instead of implied by empty space. */
-.tree-guide { flex: none; width: 11px; height: 17px; margin-left: var(--s-3); border-left: 1px solid var(--rule); }
+/* One hairline per depth level: the nesting becomes visible instead of implied by empty space.
+ * Stretched rather than given a fixed height, so the hairlines of consecutive rows join into one
+ * continuous rule down the branch — and so the row's height stays free to follow its type. */
+.tree-guide { flex: none; width: 12px; align-self: stretch; margin-left: var(--s-3); border-left: 1px solid var(--rule); }
 .tree-twisty {
-  flex: none; width: 14px; background: none; border: none; padding: 0;
-  color: var(--tx-3); cursor: pointer; font-size: var(--t-micro); line-height: 1;
+  flex: none; width: 18px; background: none; border: none; padding: 0;
+  color: var(--tx-3); cursor: pointer; font-size: var(--t-sm); line-height: 1;
 }
 .tree-label {
   flex: 1; min-width: 0; text-align: left; background: none; border: none;
   color: inherit; font: inherit; cursor: pointer;
-  padding: var(--s-1) var(--s-2); border-radius: var(--r-sm);
+  padding: 0 var(--s-2); border-radius: var(--r-sm);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.tree-label:hover { background: var(--surface-3); color: var(--tx-1); }
+.tree-label:hover { color: var(--tx-1); }
 
 /* list-style:none — the rows print the step's own `order`, which is authored and need not be a
    contiguous 1..n, so the browser's decimal marker would both duplicate and contradict it. The
-   order now has its own element, which is also what lets it line up in a column. */
-.tree-steps { list-style: none; margin: 0; padding: var(--s-1) var(--s-3) var(--s-2) var(--s-5); }
-.tree-step { display: flex; align-items: baseline; gap: var(--s-3); line-height: 1.4; }
+   order now has its own element, which is also what lets it line up in a column.
+
+   A step and a pattern member are list items too, so they act like the rows above: the indent lives
+   on the item, not on the list, which is what lets the hover band run the full width of the panel. */
+.tree-steps { list-style: none; margin: 0; padding: var(--s-1) 0 var(--s-2); }
+.tree-step {
+  display: flex; align-items: baseline; gap: var(--s-3); line-height: 1.5; cursor: pointer;
+  padding: var(--s-1) var(--s-4) var(--s-1) var(--s-6);
+}
+.tree-step:hover { background: var(--surface-3); }
 .tree-step__order {
-  flex: none; min-width: 16px; text-align: right;
+  flex: none; min-width: 18px; text-align: right;
   font-family: var(--font-mono); font-size: var(--t-micro); color: var(--tx-3);
 }
 .tree-step--return .tree-label { color: var(--tx-3); }
 .tree-offview { color: var(--accent-text); }
-.tree-detail { padding: var(--s-1) var(--s-3) var(--s-2) var(--s-7); }
-.tree-anchor { display: block; color: var(--accent-text); }
-.tree-members { margin: var(--s-1) 0 0; padding-left: var(--s-6); }
+.tree-detail { padding: var(--s-1) 0 var(--s-2); }
+.tree-anchor {
+  display: block; color: var(--accent-text);
+  padding: var(--s-1) var(--s-4) var(--s-1) var(--s-6);
+}
+.tree-anchor:hover { background: var(--surface-3); }
+.tree-members { list-style: none; margin: 0; padding: 0; }
+.tree-member { padding: var(--s-1) var(--s-4) var(--s-1) var(--s-7); }
+.tree-member--link { cursor: pointer; }
+.tree-member--link:hover { background: var(--surface-3); }
 .tree-member--static { color: var(--tx-3); }
 .tree-dim { color: var(--tx-3); font-weight: 400; }
 .tree-empty { padding: var(--s-1) var(--s-5); color: var(--tx-3); }
@@ -148,7 +189,7 @@
 /* Two treatments, one rule. Short scalars grid so they can be scanned; prose stacks so it gets the
  * panel's full measure. fieldLayout() decides which, from the value's own shape. */
 .field--grid {
-  display: grid; grid-template-columns: 72px 1fr;
+  display: grid; grid-template-columns: 88px 1fr;
   column-gap: var(--s-4); row-gap: var(--s-1);
   align-items: baseline; margin-bottom: var(--s-2);
 }
@@ -221,26 +262,31 @@
 .legend__line--mixed::after { display: none; }
 .legend__shape { position: relative; display: inline-block; width: 20px; height: 14px; }
 
-.filter { min-width: 130px; padding: var(--s-4) var(--s-5); }
+.filter { min-width: 150px; padding: var(--s-4) var(--s-5); }
 .filter__head { display: flex; justify-content: space-between; align-items: center; }
-.filter__title { font-size: var(--t-word); }
+/* --t-base, not --t-word: the wordmark's token is the wordmark's alone, and they only looked
+ * interchangeable while the two happened to hold the same value. */
+.filter__title { font-size: var(--t-base); font-weight: 600; color: var(--tx-1); }
 .filter__clear { font-size: var(--t-sm); cursor: pointer; background: none; border: none; color: var(--tx-2); }
 .filter__clear:hover { color: var(--tx-1); }
-.filter__group { margin-top: var(--s-3); }
+.filter__group { margin-top: var(--s-4); }
 .filter__label { font-size: var(--t-micro); text-transform: uppercase; letter-spacing: 0.08em; color: var(--tx-3); }
-.filter__option { display: flex; align-items: center; gap: var(--s-2); font-size: var(--t-md); cursor: pointer; }
+/* The filter and the legend are one component seen twice, so their rows are one size — they were
+ * --t-md against the legend's inherited --t-sm, which read as two unrelated cards. */
+.filter__option { display: flex; align-items: center; gap: var(--s-3); font-size: var(--t-sm); line-height: 1.7; cursor: pointer; }
 .filter__swatch { display: inline-block; width: 10px; height: 2px; }
 
 .search { position: relative; }
 .search__input {
+  height: var(--s-ctl); box-sizing: border-box; min-width: 240px;
   background: var(--surface-1); border: 1px solid var(--rule); color: var(--tx-1);
-  font-size: var(--t-sm); border-radius: var(--r-sm); padding: var(--s-1) var(--s-3);
+  font-size: var(--t-sm); border-radius: var(--r-sm); padding: 0 var(--s-4);
 }
 .search__menu {
-  position: absolute; z-index: 10; margin: 0; padding: 0; list-style: none;
-  max-height: 280px; overflow-y: auto; min-width: 220px;
+  position: absolute; z-index: 10; margin: var(--s-2) 0 0; padding: var(--s-1) 0; list-style: none;
+  max-height: 280px; overflow-y: auto; min-width: 240px;
 }
-.search__option { padding: var(--s-1) var(--s-4); cursor: pointer; }
+.search__option { padding: var(--s-2) var(--s-4); cursor: pointer; }
 .search__option--active { background: var(--surface-3); color: var(--tx-1); }
 
 .app { display: flex; flex-direction: column; height: 100%; }

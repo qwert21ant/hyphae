@@ -84,6 +84,42 @@ describe('TreePanel — nodes', () => {
     expect(container.querySelector('.tree-row--current.tree-row--active')).toBeFalsy();
   });
 
+  // The label text was the only hit target, so the indent, the twisty column and the empty space to
+  // the right of a short name all did nothing. The row is the item; the whole row acts.
+  it('reveals a node from anywhere on its row, not just the label text', () => {
+    reset({ focusId: 'ca' });
+    const { getByRole } = renderTree();
+    const row = () => getByRole('button', { name: 'A1' }).closest('.tree-row')!;
+    fireEvent.click(row());
+    expect(useStore.getState().selectedId).toBe('a1');
+    fireEvent.doubleClick(row());
+    expect(useStore.getState().focusId).toBe('a1');
+  });
+
+  it('toggles a branch from the twisty without selecting the row', () => {
+    reset({ focusId: null, selectedId: null });
+    const { getByRole } = renderTree();
+    fireEvent.click(getByRole('button', { name: 'expand Sys' }));
+    expect(getByRole('button', { name: 'Alpha' })).toBeTruthy();
+    expect(useStore.getState().selectedId).toBeNull();   // the twisty click must not reach the row
+  });
+
+  it('selects a flow and a pattern from anywhere on their rows', () => {
+    const { getByRole } = renderTree();
+    fireEvent.click(getByRole('button', { name: /Ingest clip/ }).closest('.tree-row')!);
+    expect(useStore.getState().selectedFlowId).toBe('f1');
+    fireEvent.click(getByRole('button', { name: /Recorder/ }).closest('.tree-row')!);
+    expect(useStore.getState().selectedPatternId).toBe('p1');
+  });
+
+  // The hover feedback has to match the hit target, or the row lies about what is clickable.
+  it('highlights the whole row on hover, not the label alone', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+    expect(css).toMatch(/\.tree-row:hover\s*\{[^}]*background:\s*var\(--surface-3\)/);
+    const label = /\.tree-label:hover\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(label).not.toMatch(/background/);
+  });
+
   it('renders an indent guide per depth level', () => {
     reset({ focusId: 'a1' });   // opens sys > ca > a1, so a1's row sits at depth 2
     const { container } = renderTree();

@@ -1,6 +1,17 @@
+import { useMemo } from 'react';
 import { c4Backend, layerOfType } from '@hyphae/schema';
 import { useStore } from './store';
 import { breadcrumbPath } from './focusView';
+
+/** The root band stands for the whole model — the one crumb with no node, and so no type, behind
+ *  it. It still gets a label: a band without one is a line shorter than its neighbours, which made
+ *  the entire toolbar grow the moment you drilled in. */
+const ROOT_LABEL = 'ALL';
+
+/** A band's three-letter tag. This is the node's TYPE, not its layer: the layer names collapse under
+ *  a three-letter slice (Context and Container both give "CON"), so the tag contradicted the tint it
+ *  sat on. The profile's kinds stay distinct — SYS / ACT / EXT / CON / COM. */
+const typeTag = (type: string) => type.slice(0, 3).toUpperCase();
 
 /**
  * The breadcrumb as an altimeter — the design's signature element.
@@ -9,14 +20,14 @@ import { breadcrumbPath } from './focusView';
  * is drawn inside a band tinted with its own layer's altitude step, so how deep you are is readable
  * without reading the names; only the deepest band is lit. `data-layer` carries the layer name and
  * the CSS maps it to a step, which keeps the ramp in one place (styles/chrome.css) rather than
- * duplicating LAYER_COLOR here.
+ * duplicating LAYER_COLOR here — while the visible tag names the kind the reader actually navigates.
  */
 export function Altimeter() {
   const model = useStore((s) => s.model);
   const focusId = useStore((s) => s.focusId);
   const setFocus = useStore((s) => s.setFocus);
   const crumbs = breadcrumbPath(model, focusId);
-  const byId = new Map(model.nodes.map((n) => [n.id, n]));
+  const byId = useMemo(() => new Map(model.nodes.map((n) => [n.id, n])), [model.nodes]);
 
   return (
     <nav className="altimeter" aria-label="breadcrumbs">
@@ -30,7 +41,9 @@ export function Altimeter() {
             className={`altimeter__band${current ? ' altimeter__band--current' : ''}`}
             data-layer={layer ?? ''}
           >
-            {layer && <span className="hy-micro altimeter__layer">{layer.slice(0, 3)}</span>}
+            <span className="hy-micro altimeter__layer" title={node ? node.type : 'the whole model'}>
+              {node ? typeTag(node.type) : ROOT_LABEL}
+            </span>
             <button className="altimeter__crumb" onClick={() => setFocus(c.id)}>{c.name}</button>
           </span>
         );

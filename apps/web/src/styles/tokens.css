@@ -53,24 +53,31 @@
   --accent-on: #231A02;        /* text on an accent fill */
   --warn: #E0603F;             /* invalid flow / pattern only */
 
-  /* type */
+  /* type. The scale runs one step warmer than a code editor's, not two: this is a reading surface —
+   * summaries, descriptions, step captions — and the first pass set it at IDE-chrome density, where
+   * everything was technically legible and nothing invited being read. --t-sm is the workhorse
+   * (outline rows, crumbs, controls); --t-micro is the floor and is only ever a tag or a label. */
   --font-ui: 'Archivo Variable', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
-  --t-micro: 10px;
-  --t-sm: 11px;
-  --t-base: 12px;
-  --t-md: 13px;
-  --t-lg: 15px;
-  --t-word: 12px;
+  --t-micro: 11px;
+  --t-sm: 12px;
+  --t-base: 13px;
+  --t-md: 14px;
+  --t-lg: 18px;
+  --t-word: 15px;             /* the wordmark alone — it anchors the header bar */
 
   /* space and radius */
-  --s-1: 2px;
-  --s-2: 4px;
-  --s-3: 6px;
-  --s-4: 8px;
-  --s-5: 12px;
-  --s-6: 16px;
-  --s-7: 24px;
+  --s-1: 3px;
+  --s-2: 5px;
+  --s-3: 8px;
+  --s-4: 12px;
+  --s-5: 16px;
+  --s-6: 20px;
+  --s-7: 28px;
+  /* One height for every control in the header. They used to be sized by their own text, so no two
+   * agreed and the altimeter — two stacked lines, one of which only exists below the root view —
+   * changed the height of the whole bar as you navigated. A role token, not a step on the scale. */
+  --s-ctl: 34px;
   --r-sm: 3px;
   --r-md: 5px;
   --r-lg: 9px;
