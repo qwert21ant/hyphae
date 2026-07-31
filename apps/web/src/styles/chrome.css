@@ -85,7 +85,10 @@
   border-left: 2px solid transparent;
 }
 .tree-row--active { background: var(--surface-3); }
-.tree-row--current { background: var(--surface-3); border-left-color: var(--accent); }
+/* --current gets ONLY the accent bar, deliberately no luminance lift — --active already owns
+ * --surface-3, and a row that is both must stay visually distinguishable from one that is only
+ * --current. (It used to also set --surface-3, making the two indistinguishable when combined.) */
+.tree-row--current { border-left-color: var(--accent); }
 .tree-row--current .tree-label { color: var(--tx-1); font-weight: 600; }
 /* One hairline per depth level: the nesting becomes visible instead of implied by empty space. */
 .tree-guide { flex: none; width: 11px; height: 17px; margin-left: var(--s-3); border-left: 1px solid var(--rule); }
@@ -201,12 +204,21 @@
 .legend__note { color: var(--tx-3); }
 .legend__row { display: flex; align-items: center; gap: var(--s-3); }
 .legend__box { flex: none; width: 12px; height: 12px; border: 1px solid; border-radius: 2px; }
-.legend__line { flex: none; width: 20px; height: 0; border-top: 2px solid var(--tx-3); }
+/* The plain-solid row and the "no arrowhead — mixed directions" row used to differ only by a
+ * luminance step (--tx-3 vs --tx-2), which measures 1.42:1 in dark and 1.06:1 in light — invisible
+ * to roughly half of users. A semantic distinction (arrowhead vs none) needs a FORM difference, not
+ * a hue/luminance one, and one that is theme-independent by construction: both rows now sit at
+ * --tx-3, and only the plain row draws an arrowhead — the same thing that distinguishes them on the
+ * canvas itself (a real edge always has one; a direction:'None' rollup has none, see markers() in
+ * reactflow.ts). */
+.legend__line { flex: none; width: 20px; height: 0; border-top: 2px solid var(--tx-3); position: relative; }
+.legend__line::after {
+  content: ''; position: absolute; top: -4px; right: -6px;
+  border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 6px solid var(--tx-3);
+}
 .legend__line--dashed { border-top-style: dashed; border-top-color: var(--edge-derived); }
-/* The "no arrowhead" row means something different from the plain solid row above it, so it needs
- * its own colour rather than sharing .legend__line's default — a lighter step reproduces the old
- * lighter/darker relationship (--tx-2 is brighter than the --tx-3 the base rule uses). */
-.legend__line--mixed { border-top-color: var(--tx-2); }
+.legend__line--dashed::after { border-left-color: var(--edge-derived); }
+.legend__line--mixed::after { display: none; }
 .legend__shape { position: relative; display: inline-block; width: 20px; height: 14px; }
 
 .filter { min-width: 130px; padding: var(--s-4) var(--s-5); }
@@ -220,6 +232,10 @@
 .filter__swatch { display: inline-block; width: 10px; height: 2px; }
 
 .search { position: relative; }
+.search__input {
+  background: var(--surface-1); border: 1px solid var(--rule); color: var(--tx-1);
+  font-size: var(--t-sm); border-radius: var(--r-sm); padding: var(--s-1) var(--s-3);
+}
 .search__menu {
   position: absolute; z-index: 10; margin: 0; padding: 0; list-style: none;
   max-height: 280px; overflow-y: auto; min-width: 220px;

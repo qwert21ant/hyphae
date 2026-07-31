@@ -252,4 +252,15 @@ describe('TreePanel — chrome', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
     expect(css).toMatch(/\.tree-row--current\s*\{[^}]*border-left-color:\s*var\(--accent\)/);
   });
+
+  // The bug this guards: --current used to also set background:var(--surface-3), which is exactly
+  // what --active sets — so a row carrying both classes was pixel-identical to one carrying only
+  // --current, contradicting the two-independent-states comment above .tree-row in chrome.css.
+  // jsdom applies no external stylesheet, so this reads the rule rather than rendered pixels.
+  it('does not give --current its own background, so combining it with --active stays distinguishable', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+    const currentRule = /\.tree-row--current\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(currentRule).not.toMatch(/background/);
+    expect(css).toMatch(/\.tree-row--active\s*\{[^}]*background:\s*var\(--surface-3\)/);
+  });
 });

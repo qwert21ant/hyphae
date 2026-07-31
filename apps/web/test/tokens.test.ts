@@ -66,6 +66,32 @@ describe('tokens.css', () => {
     const missing = [...referenced].filter((n) => !dark.has(n));
     expect(missing, `undefined tokens referenced: ${missing.join(', ')}`).toEqual([]);
   });
+
+  // The inverse guard: a token nobody references is dead — CSS silently accepts it, so nothing but
+  // this test would ever catch it. This is what would have caught --sub sitting unused while the
+  // canvas fell through to body's --surface-1. (--font-*/--t-*/--s-*/--r-* are excluded from the
+  // "colour" test above but not from this one — a genuinely unused SPACE/type token is just as dead.)
+  it('references every token declared in :root somewhere in src', () => {
+    const referenced = new Set<string>();
+    for (const file of walk(SRC)) {
+      for (const m of readFileSync(file, 'utf-8').matchAll(/var\((--[\w-]+)/g)) referenced.add(m[1]);
+    }
+    const unused = [...dark.keys()].filter((n) => !referenced.has(n));
+    expect(unused, `tokens declared in :root but never referenced: ${unused.join(', ')}`).toEqual([]);
+  });
+
+  // Two --verb-* tokens sharing a hex would still pass "gives every profile verb class a distinct
+  // colour" in reactflow.test.ts (that test only checks the var() NAMES are distinct, which is
+  // trivially true) — nothing would notice the palette had actually collapsed. Parse the real hex
+  // and compare in both theme blocks.
+  it('gives every verb hue a distinct hex value, in both themes', () => {
+    const VERB_NAMES = ['--verb-dataAccess', '--verb-messaging', '--verb-control', '--verb-user', '--verb-traceability'];
+    for (const [label, t] of [['dark', dark], ['light', light]] as const) {
+      const hexes = VERB_NAMES.map((n) => t.get(n));
+      expect(hexes.every(Boolean), `${label}: a verb token is missing`).toBe(true);
+      expect(new Set(hexes).size, `${label}: two verb hues share a hex`).toBe(hexes.length);
+    }
+  });
 });
 
 describe('colour literals', () => {

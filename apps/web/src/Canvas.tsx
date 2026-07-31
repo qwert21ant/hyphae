@@ -45,6 +45,9 @@ export function Canvas() {
   const expandedExternals = useStore((s) => s.expandedExternals);
   const selectedFlowId = useStore((s) => s.selectedFlowId);
   const selectedPatternId = useStore((s) => s.selectedPatternId);
+  // Only feeds React Flow's colorMode prop below — a CSS class, not a node/edge rebuild — so it is
+  // deliberately read outside of, and absent from, every useMemo dependency array in this file.
+  const theme = useStore((s) => s.theme);
 
   // Transient hover, so a user can trace a node's neighborhood without committing a selection.
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -226,6 +229,7 @@ export function Canvas() {
       <style data-hyphae-hl>{highlightCss}</style>
       <ReactFlow
         key={selectedPatternId ? `pattern:${selectedPatternId}` : (focusId ?? '__root__')}
+        colorMode={theme}
         nodes={rfNodes}
         edges={rfEdges}
         nodeTypes={nodeTypes}

@@ -1,5 +1,31 @@
-/* A containment boundary. It takes the altitude of the node it represents, so the box you are
- * inside is as bright as the nodes inside it. */
+/* The canvas substrate. Its own step in the three-surface ramp (--sub, darker/lighter than
+ * --surface-1/2/3 depending on theme) — without this rule .hyphae-canvas painted through to
+ * body's --surface-1, so the canvas, the outline and the inspector were pixel-identical and the
+ * canvas had no figure/ground separation from the panels either side of it. */
+.hyphae-canvas { background: var(--sub); }
+
+/* React Flow's own chrome (MiniMap, Controls, the attribution pill, Background) ships variables
+ * tuned for its light default and a `dark` block tuned for a plain black canvas — neither reads
+ * against this system's tokens. These --xy-* names are read from
+ * node_modules/@xyflow/react/dist/style.css; they are the library's OWN custom properties, not
+ * ours, so the single-class-selector rule applies to the selector, not to property names it
+ * doesn't own. `colorMode` (see Canvas.tsx) still selects the library's own base tokens for
+ * everything not overridden here (e.g. edge selection colour), which is fine — this only needs to
+ * fix the pieces that were unreadable or the brightest thing on screen. */
+.react-flow {
+  --xy-minimap-background-color: var(--surface-2);
+  --xy-controls-button-background-color: var(--surface-2);
+  --xy-controls-button-background-color-hover: var(--surface-3);
+  --xy-controls-button-border-color: var(--rule);
+  --xy-controls-button-color: var(--tx-3);
+  --xy-controls-button-color-hover: var(--tx-1);
+  --xy-attribution-background-color: var(--surface-2);
+  --xy-background-pattern-color: var(--rule);
+}
+
+/* A containment boundary. It takes the altitude of the node it represents (--alt-2-* is the
+ * fallback for a region whose layer could not be resolved), so the box you are inside is as
+ * bright as the nodes inside it. */
 .region {
   width: 100%; height: 100%;
   border: 1px solid var(--alt-2-bd);
@@ -7,10 +33,22 @@
   background: var(--alt-2-bg);
   pointer-events: none;
 }
+.region[data-layer='Context'] { background: var(--alt-1-bg); border-color: var(--alt-1-bd); }
+.region[data-layer='Container'] { background: var(--alt-2-bg); border-color: var(--alt-2-bd); }
+.region[data-layer='Component'] { background: var(--alt-3-bg); border-color: var(--alt-3-bd); }
 /* An external, dashed because it is outside the focus and drawn for context only. Its handle text
  * needs no separate override — .region__handle already sits at --tx-3, the same step the brief's
  * ghost variant asked for, so a second (compound-selector) rule here would be a no-op; omitted to
- * keep this file single-class selectors only, per this task's CSS discipline constraint. */
+ * keep this file single-class selectors only, per this task's CSS discipline constraint.
+ *
+ * Deliberately NOT given a data-layer/altitude tint even though the external node behind an
+ * expanded group does have a resolvable layer (its own node's C4 layer): a ghost-group div carries
+ * both "region" and "region--ghost", and .region[data-layer=…] (class + attribute, specificity
+ * 0,2,0) would outrank this single-class rule (0,1,0) regardless of source order, silently undoing
+ * the muted/dashed "outside the focus" treatment this rule exists to give it. Scoping the
+ * altitude rule to exclude .region--ghost would need a compound selector, which this file's own
+ * discipline (see above) rules out. So the ghost box stays altitude-neutral by construction — the
+ * focus region is the one thing this task's brightness ramp applies to. */
 .region--ghost { border: 1.5px dashed var(--rule); background: var(--surface-2); }
 .region__handle {
   position: absolute; top: 0; left: 0; right: 0; height: 22px;

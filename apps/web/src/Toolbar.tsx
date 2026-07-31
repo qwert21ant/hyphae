@@ -1,8 +1,7 @@
-import { useState } from 'react';
 import { useStore } from './store';
 import { Altimeter } from './Altimeter';
 import { SearchBox } from './SearchBox';
-import { applyTheme, initialTheme, nextTheme, type Theme } from './theme';
+import { applyTheme, nextTheme } from './theme';
 
 const AUDIENCES = ['stakeholder', 'full'] as const;
 
@@ -11,9 +10,11 @@ const AUDIENCES = ['stakeholder', 'full'] as const;
 export function Toolbar() {
   const audience = useStore((s) => s.audience);
   const setAudience = useStore((s) => s.setAudience);
-  // The attribute is already correct before React mounts (index.html), so this state only mirrors
-  // it for the button's own label.
-  const [theme, setTheme] = useState<Theme>(initialTheme);
+  // Theme lives in the store (not local state) so Canvas can read it too, to drive React Flow's own
+  // colorMode — the attribute is already correct before React mounts (index.html), and the store's
+  // initial value is read the same way, so there is no flash of the wrong theme either way.
+  const theme = useStore((s) => s.theme);
+  const setTheme = useStore((s) => s.setTheme);
 
   const toggleTheme = () => {
     const next = nextTheme(theme);

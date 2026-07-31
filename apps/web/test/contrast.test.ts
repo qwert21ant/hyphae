@@ -26,18 +26,36 @@ function ratio(a: string, b: string): number {
   return (x + 0.05) / (y + 0.05);
 }
 
-/** Every pair the spec's quality floor claims. Text on its own surface, at 4.5:1. */
+/** Every pair the spec's quality floor claims. Text on its own surface, at 4.5:1.
+ *
+ * Checked (by reading the CSS, not just guessing) which text tokens actually render on which
+ * surfaces before adding to this list:
+ *  - --tx-3 on every --alt-*-bg: .region__handle (the focus region's own title bar, now painted at
+ *    the focus node's altitude per canvas.css) and .hy-micro/.altimeter__layer (the non-current
+ *    altimeter band's layer label) both sit at --tx-3, over whichever altitude background their
+ *    layer resolves to.
+ *  - --tx-3 on --surface-3: .tree-twisty, .tree-dim, .tree-step__order and .tree-step--return's
+ *    label all sit at --tx-3, and a selected (--surface-3) tree row can carry any of them.
+ *  - --tx-1 / --tx-2 on --surface-3: .tree-row--current .tree-label (--tx-1), .tree-label:hover
+ *    (--tx-1), .search__option--active (--tx-1), and a merely-active row's default label colour
+ *    (--tx-2, inherited from .tree-panel) all render over --surface-3. Included for completeness;
+ *    both already clear the floor comfortably in each theme.
+ *  - --accent-text on --alt-3-bg: .altimeter__band--current .altimeter__layer, when the deepest
+ *    (Component) band is the current one — the lit altimeter label, the design's signature element.
+ */
 const PAIRS: Array<[string, string]> = [
   ['--tx-1', '--surface-1'], ['--tx-2', '--surface-1'], ['--tx-3', '--surface-1'],
   ['--tx-1', '--surface-2'], ['--tx-2', '--surface-2'], ['--tx-3', '--surface-2'],
+  ['--tx-1', '--surface-3'], ['--tx-2', '--surface-3'], ['--tx-3', '--surface-3'],
   ['--tx-1', '--sub'], ['--tx-2', '--sub'], ['--tx-3', '--sub'],
   ['--tx-1', '--alt-1-bg'], ['--tx-1', '--alt-2-bg'], ['--tx-1', '--alt-3-bg'],
   ['--tx-2', '--alt-1-bg'], ['--tx-2', '--alt-2-bg'], ['--tx-2', '--alt-3-bg'],
+  ['--tx-3', '--alt-1-bg'], ['--tx-3', '--alt-2-bg'], ['--tx-3', '--alt-3-bg'],
   // verb hues are edge-label text, and the label sits on --surface-2
   ['--verb-dataAccess', '--surface-2'], ['--verb-messaging', '--surface-2'],
   ['--verb-control', '--surface-2'], ['--verb-user', '--surface-2'],
   ['--verb-traceability', '--surface-2'], ['--edge-derived', '--surface-2'],
-  ['--accent-text', '--surface-1'], ['--accent-text', '--surface-2'],
+  ['--accent-text', '--surface-1'], ['--accent-text', '--surface-2'], ['--accent-text', '--alt-3-bg'],
   ['--warn', '--surface-1'], ['--warn', '--surface-2'],
   ['--accent-on', '--accent'],
 ];

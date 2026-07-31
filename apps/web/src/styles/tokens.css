@@ -8,6 +8,11 @@
  * Dark is the default. The light theme is warm paper rather than an inversion, so the two do not
  * read as the same design with the lamp turned off. */
 :root {
+  /* The library-native scrollbar/checkbox/form-control theme. Without this the UA paints its LIGHT
+   * defaults regardless of data-theme, which is how a plain <input type="checkbox"> and every
+   * overflow:auto region ended up the brightest thing on a dark screen. */
+  color-scheme: dark;
+
   /* surfaces */
   --sub: #101214;              /* canvas substrate */
   --surface-1: #141719;        /* outline and inspector panels */
@@ -19,7 +24,11 @@
   /* text */
   --tx-1: #E7E9EA;
   --tx-2: #98A0A6;
-  --tx-3: #7C858B;             /* micro-labels; 10px minimum, never smaller */
+  --tx-3: #909AA0;             /* micro-labels; 10px minimum, never smaller. Brightened from #7C858B —
+                                   that value cleared 4.5:1 on --surface-1/2/--sub but fell to 3.49:1 on
+                                   --alt-3-bg (the Component altimeter band label, PatternMemberNode's
+                                   description row) and 4.05:1 / 4.31:1 on --alt-2-bg / --surface-3. See
+                                   contrast.test.ts. */
 
   /* altitude — no hue, by design. 1 = Context, 3 = Component. */
   --alt-1-bg: #1A1D20;
@@ -72,6 +81,8 @@
  * tint of their dark counterparts because they are used as edge-label TEXT on --surface-2, where
  * a naive tint measures 3.6-4.3:1. See contrast.test.ts. */
 [data-theme="light"] {
+  color-scheme: light;
+
   --sub: #F5F2EC;
   --surface-1: #EDEAE3;
   --surface-2: #E7E3DB;
@@ -98,7 +109,11 @@
   --edge-derived: #6D4FB0;
 
   --accent: #B98A12;
-  --accent-text: #7A5A06;      /* --accent measures 2.44:1 as text on paper; this is 4.85:1 */
+  --accent-text: #6E5105;      /* --accent measures 2.44:1 as text on paper. Darkened from #7A5A06
+                                   (5.31:1 on --surface-1) — that value only reached 4.32:1 on
+                                   --alt-3-bg, the LIT altimeter band's layer label, the design's
+                                   signature element. This clears 6.15:1 on --surface-1 and 5.00:1 on
+                                   --alt-3-bg. See contrast.test.ts. */
   --accent-soft: #DCC98F;
   --accent-on: #2A1F14;
   --warn: #B4321A;

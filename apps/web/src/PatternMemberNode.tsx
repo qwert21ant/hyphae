@@ -46,7 +46,7 @@ export function PatternMemberNode({ data }: NodeProps) {
         </div>
       )}
       {d.description && (
-        <div style={{ fontSize: 9, color: 'var(--tx-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.description}</div>
+        <div style={{ fontSize: 'var(--t-micro)', color: 'var(--tx-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.description}</div>
       )}
     </div>
   );

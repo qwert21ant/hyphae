@@ -52,6 +52,7 @@ export function SearchBox() {
   return (
     <div className="search">
       <input
+        className="search__input"
         aria-label="search nodes"
         placeholder="Search nodes…"
         value={query}
