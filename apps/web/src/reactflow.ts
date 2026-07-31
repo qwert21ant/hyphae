@@ -89,6 +89,21 @@ function derivedEdge(e: FocusEdge): FlowEdge {
   };
 }
 
+/**
+ * The z-index of a containment boundary (the focus region and every expanded external group).
+ *
+ * React Flow paints its edge layer BEFORE its node layer — GraphView renders EdgeRenderer ahead of
+ * NodeRenderer inside the viewport — and both default to z-index 0, so at an equal z every node
+ * covers every edge. That was invisible while the boundary was a 6%-opacity wash; the altitude
+ * ramp made it an OPAQUE fill spanning the whole cluster, and it swallowed every edge drawn inside
+ * it. Dropping the boundary below the edge layer restores the stacking the design assumes: fill,
+ * then edges, then the boxes they connect.
+ *
+ * -1 cannot escape behind the canvas background: `.react-flow__viewport` sets both a transform and
+ * a z-index, so it is a stacking context, while `<Background>` is rendered outside it in the pane.
+ */
+const BOUNDARY_Z = -1;
+
 export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nodes: FlowNode[]; edges: FlowEdge[] } {
   const nodes: FlowNode[] = [];
 
@@ -114,6 +129,7 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nod
       style: { width, height, pointerEvents: 'none' as const },
       initialWidth: width,
       initialHeight: height,
+      zIndex: BOUNDARY_Z,
       draggable: false,
       selectable: false,
     });
@@ -147,6 +163,7 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nod
       style: { width, height, pointerEvents: 'none' as const },
       initialWidth: width,
       initialHeight: height,
+      zIndex: BOUNDARY_Z,
       draggable: false,
       selectable: false,
     });

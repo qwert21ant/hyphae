@@ -141,6 +141,27 @@ describe('focusViewToFlow', () => {
     expect((nodes.find((n) => n.id === 'b1')!.data as { expandable?: boolean }).expandable).toBeFalsy();
   });
 
+  // React Flow paints the edge layer BEFORE the node layer (GraphView renders EdgeRenderer ahead of
+  // NodeRenderer inside the viewport), and both default to z-index 0 — so at an equal z every node
+  // covers every edge. A boundary box is a full-size OPAQUE fill over the whole cluster, so at z 0 it
+  // hid every edge drawn inside it. Both boundary boxes must sit below the edge layer's own z of 0,
+  // and the boxes drawn INSIDE them must not.
+  it('paints the boundary boxes below the edge layer, so the edges inside them stay visible', () => {
+    const v: FocusView = {
+      focusId: 'ca', focusNode: node('ca', 'Container'),
+      children: [node('a1')],
+      externals: [node('b1')],
+      edges: [{ id: 'g1', from: 'a1', to: 'b1', count: 1, derived: true, realizedBy: ['x1'] }],
+      externalGroups: [{ id: 'cb', name: 'Beta', childIds: ['b1'] }],
+    };
+    const { nodes } = focusViewToFlow(v, { a1: { x: 0, y: 0 }, b1: { x: 300, y: 40 } });
+    expect(nodes.find((n) => n.id === 'ca')!.zIndex).toBeLessThan(0);
+    expect(nodes.find((n) => n.id === 'cb')!.zIndex).toBeLessThan(0);
+    for (const box of nodes.filter((n) => n.type === 'node' || n.type === 'ghost')) {
+      expect(box.zIndex ?? 0, `${box.id} must stay above the edge layer`).toBeGreaterThanOrEqual(0);
+    }
+  });
+
   it('renders focus node as plain node (not region) when it has no children, anchoring external edges', () => {
     const childless: FocusView = {
       focusId: 'ext',
