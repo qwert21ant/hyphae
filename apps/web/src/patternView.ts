@@ -37,12 +37,14 @@ function memberNode(m: Pattern['members'][number], nodes: ModelNode[], x: number
   };
 }
 
-const arrow = { type: MarkerType.ArrowClosed, color: '#475569' };
+// A pattern's internal edges are structural, so they take the baseline verb hue rather than
+// inventing one of their own.
+const arrow = { type: MarkerType.ArrowClosed, color: 'var(--verb-control)' };
 const seqEdge = (source: string, target: string, id: string, label = ''): FlowEdge => ({
   id, source, target, label,
   sourceHandle: 'r', targetHandle: 'l',
-  style: { stroke: '#475569' },
-  labelStyle: { fill: '#475569', fontWeight: 500 },
+  style: { stroke: 'var(--verb-control)' },
+  labelStyle: { fill: 'var(--verb-control)', fontWeight: 500 },
   markerEnd: arrow,
 });
 

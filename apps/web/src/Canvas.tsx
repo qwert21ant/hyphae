@@ -25,11 +25,13 @@ const edgeTypes = { floating: FloatingEdge };
 const STEP_NUM = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩', '⑪', '⑫'];
 const stepBadge = (order: number) => STEP_NUM[order - 1] ?? `(${order})`;
 
-// Colour minimap dots by layer (regions muted) so the overview reads like the canvas.
+// Colour minimap dots by layer (regions muted) so the overview reads like the canvas. The MiniMap
+// renders each node as an SVG <rect style={{fill}}> (not a canvas 2D context), so a var() reference
+// resolves exactly like any other inline CSS style — no JS-side lookup needed.
 const miniMapColor = (n: FlowNode): string => {
-  if (n.type === 'region') return '#e2e8f0';
+  if (n.type === 'region') return 'var(--alt-2-bd)';
   const c = (n.data as { color?: { border: string } }).color;
-  return c?.border ?? '#94a3b8';
+  return c?.border ?? 'var(--tx-3)';
 };
 
 export function Canvas() {
@@ -43,6 +45,9 @@ export function Canvas() {
   const expandedExternals = useStore((s) => s.expandedExternals);
   const selectedFlowId = useStore((s) => s.selectedFlowId);
   const selectedPatternId = useStore((s) => s.selectedPatternId);
+  // Only feeds React Flow's colorMode prop below — a CSS class, not a node/edge rebuild — so it is
+  // deliberately read outside of, and absent from, every useMemo dependency array in this file.
+  const theme = useStore((s) => s.theme);
 
   // Transient hover, so a user can trace a node's neighborhood without committing a selection.
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -111,9 +116,9 @@ export function Canvas() {
       data: { ephemeral: true },
       selectable: false,
       deletable: false,
-      style: { stroke: '#2563eb', strokeDasharray: '2 5', strokeWidth: 2 },
-      labelStyle: { fill: '#1d4ed8', fontWeight: 700 },
-      markerEnd: { type: MarkerType.ArrowClosed, color: '#2563eb' },
+      style: { stroke: 'var(--accent)', strokeDasharray: '2 5', strokeWidth: 2 },
+      labelStyle: { fill: 'var(--accent-text)', fontWeight: 700 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--accent)' },
     }));
     return [...labelled, ...ephemeral];
   }, [edges, overlay]);
@@ -134,7 +139,7 @@ export function Canvas() {
     (hoveredId && present.has(hoveredId) && hoveredId) ||
     null;
   const strong = flowActive || !!(selectedId && present.has(selectedId));
-  const accent = strong ? '#2563eb' : '#93c5fd';
+  const accent = strong ? 'var(--accent)' : 'var(--accent-soft)';
   const dimEdge = strong ? 0.12 : 0.4;
   const dimNode = strong ? 0.4 : 0.65;
   const childIds = useMemo(
@@ -168,12 +173,26 @@ export function Canvas() {
     ];
     // !important: the dim rule's two :not() pseudo-classes give it specificity (0,4,0), which
     // outranks this [data-id] restore (0,3,0) — without !important the active node would stay dimmed.
-    if (nodeSel.length) rules.push(`${nodeSel.join(',')}{opacity:1!important;box-shadow:0 0 0 2px ${accent};border-radius:4px}`);
+    // No border-radius here: the ring's corners are the node wrapper's corners, and a radius that
+    // only exists while highlighted snaps back to 0 while the shadow is still fading out. It is a
+    // permanent, per-node-type rule in canvas.css instead.
+    if (nodeSel.length) rules.push(`${nodeSel.join(',')}{opacity:1!important;box-shadow:0 0 0 2px ${accent}}`);
     if (labelSel.length) rules.push(`${labelSel.join(',')}{opacity:1}`);
     if (edgeSel.length) {
       rules.push(`${edgeSel.join(',')}{opacity:1}`);
       // !important beats the derived edge's inline stroke-width.
       rules.push(`${edgeSel.map((s) => `${s} .react-flow__edge-path`).join(',')}{stroke-width:${strong ? 3.5 : 3}px!important}`);
+      // The design's one animated moment: a flow is a sequence, and a dash travelling along its
+      // participating edges says so in a way a static highlight cannot. Only when a flow (not a
+      // hover/selection) is driving the highlight.
+      // Duration 4.2s pairs with the keyframe's 84px offset (see canvas.css) to keep the loop
+      // seamless for both this rule's 6 6 dashes and an ephemeral edge's inline 2 5 dashes.
+      if (flowActive) {
+        rules.push(
+          `${edgeSel.map((s) => `${s} .react-flow__edge-path`).join(',')}`
+          + '{stroke-dasharray:6 6;animation:hyphae-pulse 4.2s linear infinite}',
+        );
+      }
     }
     return rules.join('');
   }, [activeId, flowActive, hi, strong, accent, dimEdge, dimNode, patternFlow]);
@@ -213,6 +232,7 @@ export function Canvas() {
       <style data-hyphae-hl>{highlightCss}</style>
       <ReactFlow
         key={selectedPatternId ? `pattern:${selectedPatternId}` : (focusId ?? '__root__')}
+        colorMode={theme}
         nodes={rfNodes}
         edges={rfEdges}
         nodeTypes={nodeTypes}

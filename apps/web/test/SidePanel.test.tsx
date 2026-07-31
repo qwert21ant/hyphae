@@ -53,12 +53,13 @@ describe('SidePanel', () => {
   it('renders a node as text with no form control and no delete button', () => {
     seed({ nodes: [mk({ id: 'a1', name: 'Payments', description: 'Takes money', role: 'datastore' })] }, 'a1');
     const { container } = render(<SidePanel />);
-    expect(screen.getByRole('heading', { name: 'Payments' })).toBeTruthy();
+    // The name and its type/role are no longer a heading and Row labels — they're .panel__name and
+    // chips, so assert the markup that actually carries them now.
+    expect(container.querySelector('.panel__name')?.textContent).toBe('Payments');
     expect(screen.getByText('Takes money')).toBeTruthy();
-    expect(screen.getByText('Component')).toBeTruthy();
-    // The real model uses roles like `datastore`/`queue`/`ui`, so this row renders in production.
-    expect(screen.getByText('role')).toBeTruthy();
-    expect(screen.getByText('datastore')).toBeTruthy();
+    // The real model uses roles like `datastore`/`queue`/`ui`, so this chip renders in production.
+    const chips = [...container.querySelectorAll('.chip')].map((c) => c.textContent);
+    expect(chips).toEqual(['Component', 'datastore']);
     expect(container.querySelector('input, select, textarea')).toBeNull();
     expect(screen.queryByRole('button', { name: /delete/i })).toBeNull();
   });
@@ -109,10 +110,13 @@ describe('SidePanel', () => {
     expect(screen.queryByText('parent')).toBeNull();
   });
 
-  // README.md documents this order as inspector behaviour, which makes it a contract. `.field`
-  // rows are `<div className="field"><span>{label}</span>...</div>`, so the first child span of
-  // each `.field` is the row's label. (The connection/rollup panels' `<p className="field">`
-  // summary lines lead with `<strong>`, not a span, so this selector never matches them.)
+  // README.md documents this order as inspector behaviour, which makes it a contract. `type` and
+  // `role` moved out of `.field` rows into `.panel__chips` (asserted separately, above), so this
+  // list now covers the fields that remain rows. `.field` rows are
+  // `<div className="field ..."><span className="field__label ...">{label}</span>...</div>`, so
+  // the first child span of each `.field` is the row's label. (The connection/rollup panels'
+  // `<div className="panel__chips">` summary lines use a plain span, not `.field`, so this
+  // selector never matches them.)
   it('renders the field labels in the documented order', () => {
     seed({
       nodes: [
@@ -131,7 +135,7 @@ describe('SidePanel', () => {
     const { container } = render(<SidePanel />);
     const labels = [...container.querySelectorAll('.field > span:first-child')].map((el) => el.textContent);
     expect(labels).toEqual([
-      'type', 'role', 'summary', 'technology', 'description', 'root',
+      'summary', 'technology', 'description', 'root',
       'codeRefs', 'docRefs', 'responsibilities', 'invariants', 'parent',
     ]);
   });
@@ -142,7 +146,8 @@ describe('SidePanel', () => {
       connections: [conn({ id: 'conn1', verb: 'reads', object: 'camera list', description: 'Polls the feed' })],
     }, 'conn1');
     const { container } = render(<SidePanel />);
-    expect(screen.getByRole('heading', { name: /connection/i })).toBeTruthy();
+    // "Connection" is .panel__name text now, not a heading.
+    expect(container.querySelector('.panel__name')?.textContent).toBe('Connection');
     expect(screen.getByText('A1 → B1')).toBeTruthy();
     expect(screen.getByText('reads')).toBeTruthy();
     expect(screen.getByText('camera list')).toBeTruthy();
@@ -172,8 +177,9 @@ describe('SidePanel', () => {
       ],
       connections: [conn({ id: 'x1' })],
     }, 'agg:ca->cb', 'sys');
-    render(<SidePanel />);
-    expect(screen.getByRole('heading', { name: /rolled-up connection/i })).toBeTruthy();
+    const { container } = render(<SidePanel />);
+    // "Rolled-up connection" is .panel__name text now, not a heading.
+    expect(container.querySelector('.panel__name')?.textContent).toBe('Rolled-up connection');
     expect(screen.getByText('Alpha → Beta')).toBeTruthy();
     expect(screen.getByText(/1 connection/i)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'A1' }));
@@ -186,7 +192,8 @@ describe('SidePanel', () => {
       connections: [conn({ id: 'c1' })],
     }, 'ca'); // a Container; its child a1 has a connection to b1
     render(<SidePanel />);
-    expect(screen.getByText(/connections \(1\)/i)).toBeTruthy();
+    // "connections (1)" became "connections · 1" (a micro-labelled section, not an <h3>).
+    expect(screen.getByText(/connections · 1/i)).toBeTruthy();
     const list = document.querySelector('.rollup-list')!;
     fireEvent.click(list.querySelector('li')!);
     expect(useStore.getState().selectedId).toBe('c1');
@@ -198,9 +205,9 @@ describe('SidePanel', () => {
       connections: [conn({ id: 'o1', from: 'a1', to: 'ext' }), conn({ id: 'i1', from: 'ext', to: 'a1' })],
     }, 'ca');
     render(<SidePanel />);
-    expect(screen.getByText(/connections \(2\)/i)).toBeTruthy();
-    expect(screen.getByText(/outgoing \(1\)/i)).toBeTruthy();
-    expect(screen.getByText(/incoming \(1\)/i)).toBeTruthy();
+    expect(screen.getByText(/connections · 2/i)).toBeTruthy();
+    expect(screen.getByText(/outgoing · 1/i)).toBeTruthy();
+    expect(screen.getByText(/incoming · 1/i)).toBeTruthy();
   });
 
   it('omits a direction subsection when it has no connections', () => {
@@ -209,7 +216,7 @@ describe('SidePanel', () => {
       connections: [conn({ id: 'o1', from: 'a1', to: 'ext' })],
     }, 'ca');
     render(<SidePanel />);
-    expect(screen.getByText(/outgoing \(1\)/i)).toBeTruthy();
+    expect(screen.getByText(/outgoing · 1/i)).toBeTruthy();
     expect(screen.queryByText(/incoming/i)).toBeNull();
   });
 
@@ -220,7 +227,7 @@ describe('SidePanel', () => {
     }, 'parent');
     render(<SidePanel />);
     // missing child id is skipped → count is 1, not 2
-    expect(screen.getByText(/realized by \(1\)/i)).toBeTruthy();
+    expect(screen.getByText(/realized by · 1/i)).toBeTruthy();
     const list = document.querySelector('.rollup-list')!;
     fireEvent.click(list.querySelector('li')!);
     expect(useStore.getState().selectedId).toBe('child1');
@@ -229,8 +236,9 @@ describe('SidePanel', () => {
 
 // jsdom loads no external stylesheet, so nothing in styles.css is observable in the DOM. Read the
 // file and assert the rules instead — the same trick TreePanel.test.tsx uses for the step marker.
+// The inspector's rules moved from styles.css to styles/chrome.css in Task 7 (the component layer).
 describe('inspector CSS', () => {
-  const css = readFileSync(join(process.cwd(), 'src/styles.css'), 'utf8');
+  const css = readFileSync(join(process.cwd(), 'src/styles/chrome.css'), 'utf8');
 
   it('styles the read-only value, list and link', () => {
     expect(css).toMatch(/\.field__value\s*\{/);

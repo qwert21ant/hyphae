@@ -24,11 +24,21 @@ describe('viewer store', () => {
     const keys = Object.keys(useStore.getState()).sort();
     expect(keys).toEqual([
       'model', 'focusId', 'selectedId', 'selectedFlowId', 'selectedPatternId', 'ownVersion',
-      'connFilter', 'audience', 'expandedExternals', 'offViewStepOrders',
+      'connFilter', 'audience', 'theme', 'expandedExternals', 'offViewStepOrders',
       'setModel', 'syncFromServer', 'setFocus', 'revealNode', 'revealStep', 'select',
-      'selectFlow', 'selectPattern', 'setOffViewSteps', 'setAudience', 'toggleConnVerbClass',
+      'selectFlow', 'selectPattern', 'setOffViewSteps', 'setAudience', 'setTheme', 'toggleConnVerbClass',
       'toggleConnField', 'clearConnFilter', 'toggleExternal',
     ].sort());
+  });
+
+  // setTheme only mirrors the DOM attribute Toolbar's applyTheme() already set — it does not touch
+  // the DOM or localStorage itself, which stay Toolbar/theme.ts's job (see Toolbar.test.tsx).
+  it('setTheme updates the store without touching the DOM or localStorage', () => {
+    useStore.getState().setTheme('light');
+    expect(useStore.getState().theme).toBe('light');
+    expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
+    useStore.getState().setTheme('dark');
+    expect(useStore.getState().theme).toBe('dark');
   });
 
   it('toggles audience and persists it to localStorage', () => {

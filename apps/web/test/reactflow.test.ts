@@ -141,6 +141,27 @@ describe('focusViewToFlow', () => {
     expect((nodes.find((n) => n.id === 'b1')!.data as { expandable?: boolean }).expandable).toBeFalsy();
   });
 
+  // React Flow paints the edge layer BEFORE the node layer (GraphView renders EdgeRenderer ahead of
+  // NodeRenderer inside the viewport), and both default to z-index 0 — so at an equal z every node
+  // covers every edge. A boundary box is a full-size OPAQUE fill over the whole cluster, so at z 0 it
+  // hid every edge drawn inside it. Both boundary boxes must sit below the edge layer's own z of 0,
+  // and the boxes drawn INSIDE them must not.
+  it('paints the boundary boxes below the edge layer, so the edges inside them stay visible', () => {
+    const v: FocusView = {
+      focusId: 'ca', focusNode: node('ca', 'Container'),
+      children: [node('a1')],
+      externals: [node('b1')],
+      edges: [{ id: 'g1', from: 'a1', to: 'b1', count: 1, derived: true, realizedBy: ['x1'] }],
+      externalGroups: [{ id: 'cb', name: 'Beta', childIds: ['b1'] }],
+    };
+    const { nodes } = focusViewToFlow(v, { a1: { x: 0, y: 0 }, b1: { x: 300, y: 40 } });
+    expect(nodes.find((n) => n.id === 'ca')!.zIndex).toBeLessThan(0);
+    expect(nodes.find((n) => n.id === 'cb')!.zIndex).toBeLessThan(0);
+    for (const box of nodes.filter((n) => n.type === 'node' || n.type === 'ghost')) {
+      expect(box.zIndex ?? 0, `${box.id} must stay above the edge layer`).toBeGreaterThanOrEqual(0);
+    }
+  });
+
   it('renders focus node as plain node (not region) when it has no children, anchoring external edges', () => {
     const childless: FocusView = {
       focusId: 'ext',
@@ -176,7 +197,8 @@ describe('layerColorOf', () => {
     expect(layerColorOf('System')).toEqual(LAYER_COLOR.Context);
   });
   it('falls back to a neutral colour for an unknown type', () => {
-    expect(layerColorOf('Nonsense')).toEqual({ bg: '#fff', border: '#b1b1b7' });
+    // A type outside the profile's layers gets the mid step rather than a bare white box.
+    expect(layerColorOf('Nonsense')).toEqual({ bg: 'var(--alt-2-bg)', border: 'var(--alt-2-bd)' });
   });
   it('tints child nodes by layer in the flow output', () => {
     const { nodes } = focusViewToFlow(view, pos);
@@ -223,5 +245,5 @@ it('gives every profile verb class a distinct colour', () => {
   expect(colors.every(Boolean)).toBe(true);
   expect(new Set(colors).size).toBe(classes.length);
   // Violet means "derived rollup edge" everywhere else; one colour, one meaning.
-  expect(colors).not.toContain('#7c3aed');
+  expect(colors).not.toContain('var(--edge-derived)');
 });

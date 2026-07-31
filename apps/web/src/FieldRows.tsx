@@ -1,4 +1,5 @@
 import type { FieldDef, Node } from '@hyphae/schema';
+import { fieldLayout, type FieldLayout } from './fieldLayout';
 
 /** Read-only counterparts of the inspector's old editable controls: the model is authored by agents
  *  over MCP, so nothing here writes. Kept out of `SidePanel` because `SidePanel` renders the real
@@ -12,26 +13,35 @@ export function isEmptyValue(value: unknown): boolean {
     || (Array.isArray(value) && value.length === 0);
 }
 
-/** A labelled scalar value. Reuses `.field`'s label/value stack so the panel's rhythm is unchanged
- *  from when this row held an `<input>`. */
-export function Row({ label, title, children }: {
-  label: string; title?: string; children: React.ReactNode;
+/** A labelled value, in one of two treatments: a scannable grid row for a scalar, or a stacked
+ *  block at full panel width for prose or a list. `fieldLayout()` decides which. */
+export function Row({ label, title, layout = 'grid', children }: {
+  label: string; title?: string; layout?: FieldLayout; children: React.ReactNode;
 }) {
+  if (layout === 'stack') {
+    return (
+      <div className="field field--stack" title={title}>
+        <span className="field__label hy-micro">{label}</span>
+        <div className="field__value">{children}</div>
+      </div>
+    );
+  }
   return (
-    <div className="field" title={title}>
-      <span>{label}</span>
+    <div className="field field--grid" title={title}>
+      <span className="field__label hy-micro">{label}</span>
       <span className="field__value">{children}</span>
     </div>
   );
 }
 
 /** A list value, one entry per line — the read-only form of the old newline-separated textarea.
- *  Renders nothing when empty, so an unfilled list costs no vertical space. */
+ *  Renders nothing when empty, so an unfilled list costs no vertical space. Always stacked: entries
+ *  need their own lines, so a grid treatment makes no sense here. */
 export function ListRow({ label, title, items }: { label: string; title?: string; items: string[] }) {
   if (items.length === 0) return null;
   return (
-    <div className="field" title={title}>
-      <span>{label}</span>
+    <div className="field field--stack" title={title}>
+      <span className="field__label hy-micro">{label}</span>
       <ul className="field__list">
         {items.map((item, i) => <li key={`${i}:${item}`}>{item}</li>)}
       </ul>
@@ -64,15 +74,16 @@ export function FieldRow({ def, value, nodes, onNavigate }: {
     const items = Array.isArray(value) ? value.map(String) : [String(value)];
     return <ListRow label={label} title={def.description} items={items} />;
   }
+  const layout = fieldLayout(def.type, value);
   if (def.type === 'ref') {
     return (
-      <Row label={label} title={def.description}>
+      <Row label={label} title={def.description} layout={layout}>
         <NodeLink id={String(value)} nodes={nodes} onNavigate={onNavigate} />
       </Row>
     );
   }
   return (
-    <Row label={label} title={def.description}>
+    <Row label={label} title={def.description} layout={layout}>
       {def.type === 'boolean' ? (value ? 'yes' : 'no') : String(value)}
     </Row>
   );

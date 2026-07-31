@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, fireEvent, act } from '@testing-library/react';
 import { Canvas } from '../src/Canvas';
@@ -137,7 +139,7 @@ describe('Canvas navigation (real React Flow)', () => {
     const css = hlCss(container);
     expect(css).toContain('opacity:0.65');                              // soft dim (selection dim is 0.4)
     expect(css).toContain('.react-flow__node[data-id="ca"]');          // ca is highlighted
-    expect(css).toContain('#93c5fd');                                  // soft hover accent
+    expect(css).toContain('var(--accent-soft)');                       // soft hover ring
     expect(useStore.getState().selectedId).toBeNull();
     // Node objects must NOT carry per-hover inline opacity (that churn is the bug we fixed).
     expect(node(container, 'cb')!.style.opacity).toBe('');
@@ -150,7 +152,7 @@ describe('Canvas navigation (real React Flow)', () => {
     const { container } = render(<Canvas />);
     const before = hlCss(container);
     expect(before).toContain('opacity:0.4');                           // strong selection dim
-    expect(before).toContain('#2563eb');                               // strong selection accent
+    expect(before).toContain('var(--accent)');                         // strong selection ring
     expect(before).toContain('.react-flow__node[data-id="ca"]');      // ca (selected) is highlighted
     // Hovering cb must not steal the highlight — selection wins, CSS is unchanged.
     fireEvent.mouseEnter(node(container, 'cb')!);
@@ -358,6 +360,31 @@ describe('Canvas flow overlay', () => {
     expect(node(container, 'Recording')).toBeTruthy();
   });
 
+  // The single orchestrated moment in the design: a flow's participating edges pulse, which reads
+  // as movement through the graph. Everything else only transitions on hover.
+  it('animates the participating edges when a flow is selected', () => {
+    useStore.setState({ model: flowModel(), focusId: 'ca', selectedId: null, selectedFlowId: 'f1' });
+    const { container } = render(<Canvas />);
+    expect(hlCss(container)).toContain('hyphae-pulse');
+  });
+
+  it('does not animate when no flow is selected', () => {
+    useStore.setState({ model: flowModel(), focusId: 'ca', selectedId: null, selectedFlowId: null });
+    const { container } = render(<Canvas />);
+    expect(hlCss(container)).not.toContain('hyphae-pulse');
+  });
+
+  // The discriminating case: a plain node selection (no flow) also populates edgeSel — a1 has an
+  // adjacent edge to a2 — so this reaches the same `if (edgeSel.length)` branch the flow case does.
+  // Without the `if (flowActive)` gate inside that branch, this would pulse too.
+  it('does not animate a selected node\'s adjacent edge when no flow is active', () => {
+    useStore.setState({ model: flowModel(), focusId: 'ca', selectedId: 'a1', selectedFlowId: null });
+    const { container } = render(<Canvas />);
+    const css = hlCss(container);
+    expect(css).toContain('.react-flow__edge[data-id="x"]');   // confirms edgeSel is non-empty
+    expect(css).not.toContain('hyphae-pulse');
+  });
+
   it('double-clicking a pattern member does NOT set focus to it', () => {
     // Pattern member boxes are keyed by member NAME, not by a node id — focusing one would point
     // the canvas at an id no node has. Only real model nodes are drillable.
@@ -370,5 +397,47 @@ describe('Canvas flow overlay', () => {
     const { container } = render(<Canvas />);
     dblclick(container, 'Idle');
     expect(useStore.getState().focusId).toBeNull();
+  });
+});
+
+// The highlight ring is a box-shadow on React Flow's own .react-flow__node WRAPPER, so it traces the
+// wrapper's box and is clipped by the wrapper's radius — neither of which the boundary boxes matched.
+describe('Canvas — the highlight ring traces the box it wraps', () => {
+  const canvasCss = () => readFileSync(resolve(process.cwd(), 'src/styles/canvas.css'), 'utf8');
+  const rule = (css: string, selector: string) => {
+    const m = new RegExp(`^\\${selector}\\s*\\{([^}]*)\\}`, 'm').exec(css);
+    expect(m, `${selector} has no rule of its own in canvas.css`).toBeTruthy();
+    return m![1];
+  };
+
+  // .react-flow__node is border-box and sizes the wrapper from the inline width/height. .region is
+  // width:100%/height:100% WITH a border, so under the default content-box it rendered 2px wider and
+  // taller than its own wrapper — overflowing right and bottom, which put the ring inside the box.
+  it('makes the boundary box border-box, so it cannot outgrow its wrapper', () => {
+    const css = canvasCss();
+    expect(rule(css, '.region')).toMatch(/box-sizing:\s*border-box/);
+  });
+
+  // Declared only inside the highlight rule, the radius snapped 0 -> r -> 0 while the shadow was
+  // still fading through its 150ms transition — a square ring for a moment on every hover-out.
+  it('gives every node a permanent radius matching its drawn shape, never one that toggles', () => {
+    const css = canvasCss();
+    expect(rule(css, '.react-flow__node')).toMatch(/border-radius:\s*4px/);        // roundedRect(…, 4)
+    for (const box of ['.react-flow__node-region', '.react-flow__node-ghostGroup']) {
+      expect(rule(css, box)).toMatch(/border-radius:\s*var\(--r-lg\)/);            // matches .region
+    }
+  });
+
+  it('leaves the radius out of the generated highlight rule entirely', () => {
+    const m = emptyModel();
+    m.nodes.push(
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base } as never,
+      { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base } as never,
+    );
+    useStore.setState({ model: m, focusId: 'sys', selectedId: 'ca', selectedFlowId: null, selectedPatternId: null });
+    const { container } = render(<Canvas />);
+    const css = container.querySelector('style[data-hyphae-hl]')!.textContent ?? '';
+    expect(css).toContain('box-shadow:0 0 0 2px');   // the ring is still there
+    expect(css).not.toMatch(/border-radius/);        // …but its shape is not this rule's business
   });
 });

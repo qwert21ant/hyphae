@@ -20,14 +20,23 @@ call or a direct edit of the JSON file.
 **Navigation.** The canvas shows one **focus** at a time: the focused node as a labeled region with
 its direct children inside, and everything else it connects to as dashed **ghost externals** beside
 it. Double-click any node to drill into it (a childless one included — you get a "what touches
-this?" view); the breadcrumbs walk back up. An external that stands in for a deeper node can be
-**expanded** to reveal the child actually taking part. The left **outline** panel lists the whole
-model — nodes by containment above, then Flows and Patterns in their own pane below, each scrolling
-independently — and is collapsible; a click reveals a node in context, a double-click drills in.
-Both side panels and the outline's internal split are **drag-resizable** (arrow keys resize a
-focused handle, Enter toggles collapse, double-click resets it), and the sizes persist per browser.
-Dragging the outline's handle to the edge collapses it exactly like the « button, and expanding —
-by either route — restores its previous width. Search jumps to a node by name.
+this?" view); the breadcrumbs walk back up. The breadcrumb is an **altimeter**: each crumb sits in a
+band tinted with its own C4 layer's altitude step and only the deepest is lit, so how deep you are
+in the model — Context, Container, or Component — reads before you read the names. Each band also
+tags its crumb with the node's kind (`SYS`, `ACT`, `EXT`, `CON`, `COM`; the root band is `ALL`), and
+every band is the same height, so the toolbar does not resize as you navigate. An external that
+stands in for a deeper node can be **expanded** to reveal the child actually taking part. The left
+**outline** panel lists the whole model — nodes by containment above, then Flows and Patterns in
+their own pane below, each scrolling independently — and is collapsible; a click reveals a node in
+context, a double-click drills in. The whole row is the target — indent, twisty column and the space
+past a short name included — except the twisty itself, which only opens the branch. Both side panels
+and the outline's internal split are
+**drag-resizable** (arrow keys resize a focused handle, Enter toggles collapse, double-click resets
+it), and the sizes persist per browser. Dragging the outline's handle to the edge collapses it
+exactly like the « button, and expanding — by either route — restores its previous width. Search
+jumps to a node by name. A toolbar toggle switches between the dark theme (the default) and a light
+one; the choice persists per browser. Brightness carries meaning throughout: altitude, selection and
+focus are all expressed as light level, not just the altimeter.
 
 **Reading the diagram.** A node draws as its profile **role archetype** (actor, service, datastore,
 queue, external system, UI surface) in SVG, tinted by C4 layer, showing name + a two-line summary +
@@ -45,8 +54,9 @@ steps in order, numbered along the edges they run on. Steps are clickable — ea
 where its endpoints are visible. A step with no authored connection behind it is drawn as a dotted
 **ephemeral edge** rather than vanishing; a step this view genuinely cannot draw is marked ↗ in the
 outline. Selecting a **Pattern** replaces the canvas with the pattern's own diagram (an ordered
-pipeline row, a state machine laid out by its transitions, or a stacked member list); its `anchor`
-and any member bound to a real node link back into the model.
+pipeline row, a state machine laid out by its transitions, or a stacked member list); any member
+bound to a real node links back into the model. A pattern's row carries its **kind** as a chip and
+its `anchor` — the node it describes — as a link beside the name, so both read without opening it.
 
 **The inspector.** Selecting a node or a connection shows its detail in the right-hand panel, as
 text — the browser does not write the model. A node shows its name, type, role, the fields the

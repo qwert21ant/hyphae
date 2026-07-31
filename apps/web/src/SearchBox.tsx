@@ -50,8 +50,9 @@ export function SearchBox() {
   };
 
   return (
-    <div className="search" style={{ position: 'relative' }}>
+    <div className="search">
       <input
+        className="search__input"
         aria-label="search nodes"
         placeholder="Search nodes…"
         value={query}
@@ -61,16 +62,13 @@ export function SearchBox() {
         onKeyDown={onKeyDown}
       />
       {open && results.length > 0 && (
-        <ul
-          className="search-results"
-          style={{ position: 'absolute', zIndex: 10, background: '#fff', border: '1px solid #ccc', margin: 0, padding: 0, listStyle: 'none', maxHeight: 280, overflowY: 'auto', minWidth: 220 }}
-        >
+        <ul className="float search__menu">
           {results.map((n, i) => (
             <li
               key={n.id}
+              className={`search__option${i === active ? ' search__option--active' : ''}`}
               onMouseDown={(e) => { e.preventDefault(); pick(n); }}
               onMouseEnter={() => setActive(i)}
-              style={{ padding: '2px 8px', cursor: 'pointer', background: i === active ? '#eef' : undefined }}
             >
               {n.name} <small>· {n.type}{nameOf(n.parentId) ? ` · ${nameOf(n.parentId)}` : ''}</small>
             </li>

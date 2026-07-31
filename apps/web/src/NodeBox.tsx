@@ -24,7 +24,7 @@ export type NodeBoxData = {
 
 export function NodeBox({ data }: NodeProps) {
   const d = data as NodeBoxData;
-  const color = d.color ?? { bg: '#fff', border: '#b1b1b7' };
+  const color = d.color ?? { bg: 'var(--alt-2-bg)', border: 'var(--alt-2-bd)' };
   const shape = d.shape ?? 'rectangle';
   return (
     // The div stays a plain NODE_W x NODE_H rectangle with no border or background of its own —
@@ -57,14 +57,14 @@ export function NodeBox({ data }: NodeProps) {
         // summary mid-word, which is what made the box unreadable. The name stays single-line.
         <div style={{
           position: 'relative',
-          fontSize: 10, color: '#475569', overflow: 'hidden',
+          fontSize: 10, color: 'var(--tx-2)', overflow: 'hidden',
           display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: SUMMARY_LINES,
         }}>
           {d.summary}
         </div>
       )}
       {d.technology && (
-        <div style={{ position: 'relative', fontSize: 9, color: '#334155', background: 'rgba(0,0,0,0.06)', borderRadius: 3, padding: '0 4px', alignSelf: 'center', maxWidth: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ position: 'relative', fontSize: 9, color: 'var(--tx-2)', background: 'var(--chip)', borderRadius: 3, padding: '0 4px', alignSelf: 'center', maxWidth: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {d.technology}
         </div>
       )}

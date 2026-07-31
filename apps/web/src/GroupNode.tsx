@@ -10,11 +10,14 @@ const sides: Array<{ id: string; position: Position }> = [
   { id: 'l', position: Position.Left },
 ];
 
-/** A containment region: a labeled boundary whose title bar is the drag handle. */
+/** A containment region: a labeled boundary whose title bar is the drag handle. `data-layer` (the
+ *  focus node's own C4 layer, set by focusViewToFlow) drives canvas.css's altitude tint — omitted
+ *  entirely when the layer can't be resolved, so the base `.region` rule's --alt-2-* fallback applies. */
 export function GroupNode({ data }: NodeProps) {
   const label = String((data as { label?: string }).label ?? '');
+  const layer = (data as { layer?: string }).layer;
   return (
-    <div className="region">
+    <div className="region" data-layer={layer || undefined}>
       {sides.map((s) => (
         <Handle key={s.id} id={s.id} type="source" position={s.position} style={{ opacity: 0, pointerEvents: 'none' }} />
       ))}

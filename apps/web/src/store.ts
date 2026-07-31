@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { emptyModel, type HyphaeModel, type FlowStep } from '@hyphae/schema';
 import { stepReveal, type Audience, type ConnFilter } from './focusView';
+import { initialTheme, type Theme } from './theme';
 import * as api from './api';
 
 export type { ConnFilter };
@@ -16,6 +17,11 @@ type State = {
   ownVersion: number;
   connFilter: ConnFilter;
   audience: Audience;
+  // Mirrors the <html data-theme> attribute Toolbar's toggle sets via applyTheme(), so Canvas can
+  // pass it to React Flow's own colorMode prop without either component reaching into the DOM.
+  // Initialised the same way the attribute already is (index.html's pre-paint script + theme.ts),
+  // so there is no flash of the wrong colorMode on first render.
+  theme: Theme;
   expandedExternals: Set<string>;
   offViewStepOrders: number[];
   setModel: (m: HyphaeModel, version?: number) => void;
@@ -28,6 +34,7 @@ type State = {
   selectPattern: (id: string | null) => void;
   setOffViewSteps: (orders: number[]) => void;
   setAudience: (a: Audience) => void;
+  setTheme: (t: Theme) => void;
   toggleConnVerbClass: (value: string) => void;
   toggleConnField: (key: string, value: string) => void;
   clearConnFilter: () => void;
@@ -48,6 +55,7 @@ export const useStore = create<State>((set, get) => {
     ownVersion: 0,
     connFilter: { verbClasses: [], fields: {} },
     audience: initialAudience,
+    theme: initialTheme(),
     expandedExternals: new Set<string>(),
     offViewStepOrders: [],
 
@@ -99,6 +107,9 @@ export const useStore = create<State>((set, get) => {
       if (typeof localStorage !== 'undefined') localStorage.setItem('hyphae.audience', audience);
       set({ audience });
     },
+    // The DOM attribute (and its localStorage persistence) is still applyTheme()'s job — Toolbar
+    // calls both on toggle. This setter only keeps the store's mirror in sync so Canvas re-renders.
+    setTheme: (theme) => set({ theme }),
 
     toggleConnVerbClass: (value) =>
       set((s) => {

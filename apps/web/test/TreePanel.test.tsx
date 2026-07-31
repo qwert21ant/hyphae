@@ -9,6 +9,17 @@ import { emptyModel } from '@hyphae/schema';
 
 const base = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
 
+const chromeCss = () => readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+
+/** The declarations of one rule, matched at the START of a line, and asserted to exist.
+ *  Unanchored, `.tree-label {` also matches inside `.tree-row:hover .tree-label {` — so a search for
+ *  a class's own rule silently returned a descendant rule that happened to be declared earlier. */
+function rule(css: string, selector: string): string {
+  const m = new RegExp(`^\\${selector}\\s*\\{([^}]*)\\}`, 'm').exec(css);
+  expect(m, `${selector} has no rule of its own in chrome.css`).toBeTruthy();
+  return m![1];
+}
+
 /** sys › (ca › a1, cb › b1), one cross-container flow, one pattern anchored on ca. */
 function model() {
   const m = emptyModel();
@@ -73,6 +84,67 @@ describe('TreePanel — nodes', () => {
     fireEvent.doubleClick(getByRole('button', { name: 'A1' }));
     expect(useStore.getState().focusId).toBe('a1');
   });
+
+  // Focus and selection were both colour states and fought each other. Separating "which view am I
+  // in" (a bar) from "what did I click" (a fill) lets a row be both at once and stay legible.
+  it('distinguishes the focused row from the selected row', () => {
+    reset({ focusId: 'ca', selectedId: 'a1' });
+    const { container } = renderTree();
+    expect(container.querySelector('.tree-row--current')).toBeTruthy();
+    expect(container.querySelector('.tree-row--active')).toBeTruthy();
+    expect(container.querySelector('.tree-row--current.tree-row--active')).toBeFalsy();
+  });
+
+  // The label text was the only hit target, so the indent, the twisty column and the empty space to
+  // the right of a short name all did nothing. The row is the item; the whole row acts.
+  it('reveals a node from anywhere on its row, not just the label text', () => {
+    reset({ focusId: 'ca' });
+    const { getByRole } = renderTree();
+    const row = () => getByRole('button', { name: 'A1' }).closest('.tree-row')!;
+    fireEvent.click(row());
+    expect(useStore.getState().selectedId).toBe('a1');
+    fireEvent.doubleClick(row());
+    expect(useStore.getState().focusId).toBe('a1');
+  });
+
+  it('toggles a branch from the twisty without selecting the row', () => {
+    reset({ focusId: null, selectedId: null });
+    const { getByRole } = renderTree();
+    fireEvent.click(getByRole('button', { name: 'expand Sys' }));
+    expect(getByRole('button', { name: 'Alpha' })).toBeTruthy();
+    expect(useStore.getState().selectedId).toBeNull();   // the twisty click must not reach the row
+  });
+
+  it('selects a flow and a pattern from anywhere on their rows', () => {
+    const { getByRole } = renderTree();
+    fireEvent.click(getByRole('button', { name: /Ingest clip/ }).closest('.tree-row')!);
+    expect(useStore.getState().selectedFlowId).toBe('f1');
+    fireEvent.click(getByRole('button', { name: /Recorder/ }).closest('.tree-row')!);
+    expect(useStore.getState().selectedPatternId).toBe('p1');
+  });
+
+  // The hover feedback has to match the hit target, or the row lies about what is clickable. Nothing
+  // inside the row may carry a :hover of its own — the label and the twisty each lighting up under
+  // their own pointer made one row look like two separate controls.
+  it('highlights the whole row on hover, from the row alone', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+    expect(css).toMatch(/\.tree-row:hover\s*\{[^}]*background:\s*var\(--surface-3\)/);
+    expect(css).toMatch(/\.tree-row:hover\s+\.tree-label\s*\{[^}]*color:\s*var\(--tx-1\)/);
+    expect(css).toMatch(/\.tree-row:hover\s+\.tree-twisty\s*\{[^}]*color:\s*var\(--tx-1\)/);
+    // Steps and members are items in their own right, so their whole line drives their own label.
+    expect(css).toMatch(/\.tree-step:hover\s+\.tree-label\s*\{[^}]*color:\s*var\(--tx-1\)/);
+    expect(css).toMatch(/\.tree-member--link:hover\s+\.tree-label\s*\{[^}]*color:\s*var\(--tx-1\)/);
+    for (const own of [/\.tree-label:hover\s*\{/, /\.tree-twisty:hover\s*\{/]) {
+      expect(css, `${own} must not light up independently of its row`).not.toMatch(own);
+    }
+  });
+
+  it('renders an indent guide per depth level', () => {
+    reset({ focusId: 'a1' });   // opens sys > ca > a1, so a1's row sits at depth 2
+    const { container } = renderTree();
+    const deepest = container.querySelectorAll('.tree-row')[2];
+    expect(deepest.querySelectorAll('.tree-guide').length).toBeGreaterThan(0);
+  });
 });
 
 describe('TreePanel — flows', () => {
@@ -80,8 +152,10 @@ describe('TreePanel — flows', () => {
     const { getByRole, getByText } = renderTree();
     fireEvent.click(getByRole('button', { name: 'Ingest clip' }));
     expect(useStore.getState().selectedFlowId).toBe('f1');
-    expect(getByText(/1\. send frame/)).toBeTruthy();
-    expect(getByText(/2\. ack/)).toBeTruthy();
+    // The order now lives in its own .tree-step__order column (see the "puts a step order..." test
+    // below), so the label itself carries only the message.
+    expect(getByText(/send frame/)).toBeTruthy();
+    expect(getByText(/ack/)).toBeTruthy();
   });
 
   it('deselects the flow when its row is clicked again', () => {
@@ -94,7 +168,7 @@ describe('TreePanel — flows', () => {
   it('navigates to a step on click', () => {
     reset({ selectedFlowId: 'f1' });
     const { getByText } = renderTree();
-    fireEvent.click(getByText(/2\. ack/));
+    fireEvent.click(getByText(/ack/));
     const s = useStore.getState();
     expect(s.focusId).toBe('cb');                      // step 2 runs b1 -> a1
     expect([...s.expandedExternals]).toEqual(['ca']);
@@ -104,8 +178,8 @@ describe('TreePanel — flows', () => {
   it('marks the steps the canvas could not draw', () => {
     reset({ selectedFlowId: 'f1', offViewStepOrders: [2] });
     const { getByText } = renderTree();
-    expect(getByText(/1\. send frame/).textContent).not.toContain('↗');
-    expect(getByText(/2\. ack/).textContent).toContain('↗');
+    expect(getByText(/send frame/).textContent).not.toContain('↗');
+    expect(getByText(/ack/).textContent).toContain('↗');
   });
 
   it('suppresses the browser list marker, since each row prints its own step order', () => {
@@ -113,7 +187,7 @@ describe('TreePanel — flows', () => {
     // in the DOM — assert the rule itself. The rows print the authored `order`, which need not be a
     // contiguous 1..n, so an <ol> marker would both duplicate and contradict it.
     // (import.meta.url is an http URL under jsdom, so resolve from the package root instead.)
-    const css = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8');
+    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
     expect(css).toMatch(/\.tree-steps\s*\{[^}]*list-style:\s*none/);
   });
 
@@ -122,27 +196,69 @@ describe('TreePanel — flows', () => {
     m.flows[0].steps[0].to = 'ghost';   // dangling -> bad-flow-endpoint
     reset({ model: m });
     const { getByText } = renderTree();
-    expect(getByText(/Ingest clip ⚠/)).toBeTruthy();
+    // The ⚠ now lives in its own span (so it can carry the one warning colour), so it no longer
+    // shares a text node with the label — match on the label and check the marker in .textContent,
+    // the same way the pattern warning test below already does.
+    expect(getByText(/Ingest clip/).textContent).toContain('⚠');
+  });
+
+  it('puts a step order in its own mono column', () => {
+    reset({ selectedFlowId: 'f1' });
+    const { container } = renderTree();
+    const orders = container.querySelectorAll('.tree-step__order');
+    expect(orders.length).toBe(2);
+    // Assert the authored order value itself, not just that the column exists.
+    expect(orders[0].textContent).toBe('1.');
+    expect(orders[1].textContent).toBe('2.');
   });
 });
 
 describe('TreePanel — patterns', () => {
+  // Queried by class, not by name: the anchor points AT the node called Alpha, so a name query would
+  // also match Alpha's own row the moment the node tree happens to be open around it.
+  const anchorIn = (container: HTMLElement) => container.querySelector('.tree-anchor')!;
+
   it('selects a pattern and shows its anchor and members', () => {
-    const { getByRole, getByText } = renderTree();
+    const { getByRole, getByText, container } = renderTree();
     fireEvent.click(getByRole('button', { name: /Recorder/ }));
     expect(useStore.getState().selectedPatternId).toBe('p1');
-    expect(getByText('anchor: Alpha')).toBeTruthy();
+    expect(anchorIn(container).textContent).toContain('Alpha');
     expect(getByText('Writer')).toBeTruthy();
     expect(getByText('Idle')).toBeTruthy();
   });
 
+  // The anchor rides on the pattern's own row, so you can see what a pattern describes — and jump
+  // to it — without opening the pattern first.
+  it('shows the anchor on the pattern row itself, whether or not the pattern is selected', () => {
+    const { getByRole, container } = renderTree();
+    expect(anchorIn(container).closest('.tree-row'))
+      .toBe(getByRole('button', { name: /Recorder/ }).closest('.tree-row'));
+    expect(useStore.getState().selectedPatternId).toBeNull();   // still closed
+  });
+
   it('navigates to the anchor node, leaving the pattern view', () => {
     reset({ selectedPatternId: 'p1' });
-    const { getByText } = renderTree();
-    fireEvent.click(getByText('anchor: Alpha'));
+    const { container } = renderTree();
+    fireEvent.click(anchorIn(container));
     expect(useStore.getState().focusId).toBe('sys');   // Alpha's parent, Alpha selected
     expect(useStore.getState().selectedId).toBe('ca');
     expect(useStore.getState().selectedPatternId).toBeNull();
+  });
+
+  // The row toggles the pattern and the anchor navigates away from it; without stopPropagation one
+  // click would do both, and which won would depend on the order the handlers happened to run in.
+  it('does not toggle the pattern when its anchor is clicked', () => {
+    const { container } = renderTree();
+    fireEvent.click(anchorIn(container));
+    expect(useStore.getState().selectedPatternId).toBeNull();
+    expect(useStore.getState().selectedId).toBe('ca');
+  });
+
+  it('tags a pattern with its kind as a chip, not as a colour', () => {
+    const { getByRole } = renderTree();
+    const chip = getByRole('button', { name: /Recorder/ }).closest('.tree-row')!.querySelector('.tree-kind')!;
+    expect(chip.textContent).toBe('state-machine');
+    expect(chip.classList.contains('chip')).toBe(true);
   });
 
   it('navigates from a member bound to a node, but not from a bare one', () => {
@@ -211,8 +327,58 @@ describe('TreePanel — chrome', () => {
     // jsdom loads no external stylesheet, so the rule is unobservable in the DOM — assert the
     // source. Without it the handle is invisible and undiscoverable, since the library sets no
     // cursor of its own.
-    const css = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8');
+    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
     expect(css).toMatch(/\.sep--h\s*\{[^}]*cursor:\s*row-resize/);
     expect(css).toMatch(/\.sep--v\s*\{[^}]*cursor:\s*col-resize/);
+  });
+
+  // The twisty and the collapse caret were ~14px glyphs in an 18px column — the two controls in the
+  // panel you are most likely to aim at, and the two hardest to hit. jsdom measures nothing, so this
+  // pins the declared size rather than the rendered one.
+  it('gives the twisty and the collapse caret a real hit target', () => {
+    const css = chromeCss();
+    const twisty = rule(css, '.tree-twisty');
+    expect(twisty).toMatch(/width:\s*var\(--s-hit\)/);
+    expect(twisty).toMatch(/align-self:\s*stretch/);   // full row height, without growing the row
+    const toggle = rule(css, '.tree-toggle');
+    expect(toggle).toMatch(/width:\s*var\(--s-hit\)/);
+    expect(toggle).toMatch(/height:\s*var\(--s-hit\)/);
+  });
+
+  // Derived from the owning row's own structure — its own indent plus its twisty column — rather
+  // than guessed, so a step or a member cannot end up sitting LEFT of the name it belongs to.
+  it('indents a step and a member past the row that owns them', () => {
+    const css = chromeCss();
+    expect(rule(css, '.tree-row--detail')).toMatch(/padding-left:\s*var\(--s-2\)/);
+    expect(rule(css, '.tree-step')).toMatch(/padding-left:\s*calc\(var\(--s-2\)\s*\+\s*var\(--s-hit\)/);
+    // A member has no order column to mark the nesting, so it takes a full extra level.
+    expect(rule(css, '.tree-member'))
+      .toMatch(/padding-left:\s*calc\(var\(--s-2\)\s*\+\s*var\(--s-hit\)\s*\+\s*var\(--s-6\)\)/);
+  });
+
+  // A member bound to a node is a .tree-label <button>; a bare one is a .tree-member--static <span>.
+  // The button carries the label's horizontal padding and the span carried none, so the indent of a
+  // pattern's member list silently depended on whether its members happened to bind to nodes.
+  it('aligns bound and unbound pattern members to the same left edge', () => {
+    const css = chromeCss();
+    const pad = /padding:\s*0 var\(--s-2\)/;
+    expect(rule(css, '.tree-label')).toMatch(pad);
+    expect(rule(css, '.tree-member--static')).toMatch(pad);
+  });
+
+  it('gives the focused row an accent bar rather than a fill', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+    expect(css).toMatch(/\.tree-row--current\s*\{[^}]*border-left-color:\s*var\(--accent\)/);
+  });
+
+  // The bug this guards: --current used to also set background:var(--surface-3), which is exactly
+  // what --active sets — so a row carrying both classes was pixel-identical to one carrying only
+  // --current, contradicting the two-independent-states comment above .tree-row in chrome.css.
+  // jsdom applies no external stylesheet, so this reads the rule rather than rendered pixels.
+  it('does not give --current its own background, so combining it with --active stays distinguishable', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+    const currentRule = /\.tree-row--current\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(currentRule).not.toMatch(/background/);
+    expect(css).toMatch(/\.tree-row--active\s*\{[^}]*background:\s*var\(--surface-3\)/);
   });
 });

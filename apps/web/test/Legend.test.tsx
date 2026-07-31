@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render, fireEvent } from '@testing-library/react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { Legend } from '../src/Legend';
@@ -50,5 +52,39 @@ describe('Legend verb classes', () => {
     for (const cls of new Set(c4Backend.verbs.map((v) => v.class))) {
       expect(getByText(new RegExp(cls)), cls).toBeTruthy();
     }
+  });
+});
+
+describe('Legend altitude section', () => {
+  // Brightness is now a deliberate encoding of depth (Context → Container → Component), not
+  // incidental styling, so the key that explains the visual language has to say so explicitly.
+  it('explains that brighter is deeper', () => {
+    const { getByText } = openLegend();
+    expect(getByText('Altitude')).toBeTruthy();
+    expect(getByText(/brighter is deeper/)).toBeTruthy();
+  });
+});
+
+describe('Legend edge line variants', () => {
+  // The "no arrowhead" row means something different from the plain solid row above it. A luminance
+  // step between them (the old --tx-2 vs --tx-3) measured 1.06:1 in the light theme — perceptually
+  // identical — so the distinction has to be a FORM one instead: the plain row draws an arrowhead,
+  // the mixed row does not, both at the same --tx-3. jsdom applies no external stylesheet, so this
+  // reads the CSS rules directly rather than asserting on unobservable rendered pixels.
+  it('gives the mixed-directions row its own modifier class', () => {
+    const { container } = openLegend();
+    expect(container.querySelector('.legend__line--mixed')).toBeTruthy();
+    // Exactly one row carries the modifier — the plain solid row must not also pick it up.
+    expect(container.querySelectorAll('.legend__line--mixed').length).toBe(1);
+  });
+
+  it('distinguishes the rows by an arrowhead, not by colour, and both sit at the same text step', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/styles/chrome.css'), 'utf8');
+    // Base row: an arrowhead drawn via ::after, coloured the same --tx-3 the line itself uses.
+    expect(css).toMatch(/\.legend__line\s*\{[^}]*border-top:\s*2px solid var\(--tx-3\)/);
+    expect(css).toMatch(/\.legend__line::after\s*\{[^}]*border-left:\s*6px solid var\(--tx-3\)/);
+    // Mixed row: no colour override on the line itself, and the arrowhead is suppressed.
+    expect(css).not.toMatch(/\.legend__line--mixed\s*\{[^}]*border-top-color/);
+    expect(css).toMatch(/\.legend__line--mixed::after\s*\{[^}]*display:\s*none/);
   });
 });

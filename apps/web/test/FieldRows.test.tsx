@@ -108,6 +108,37 @@ describe('FieldRow', () => {
     expect(screen.queryByText('tech')).toBeNull();
   });
 
+  // The grid/stack split is the substance of this task: fieldLayout()'s decision has to actually
+  // reach the rendered markup, not just return the right string in isolation (fieldLayout.test.ts
+  // covers that in isolation already).
+  it('grids a short text value and renders no stack markup', () => {
+    const { container } = render(
+      <FieldRow def={def({ key: 'summary', type: 'text' })} value="Owns the active path" nodes={nodes} onNavigate={noop} />,
+    );
+    expect(container.querySelector('.field--grid')).toBeTruthy();
+    expect(container.querySelector('.field--stack')).toBeNull();
+  });
+
+  it('stacks a long text value and renders no grid markup', () => {
+    const long = 'Holds the current path and re-plans when the segment is exhausted or the world changes underneath it.';
+    const { container } = render(
+      <FieldRow def={def({ key: 'description', type: 'text' })} value={long} nodes={nodes} onNavigate={noop} />,
+    );
+    expect(container.querySelector('.field--stack')).toBeTruthy();
+    expect(container.querySelector('.field--grid')).toBeNull();
+    // The label stays a micro-label in the stacked branch too — it must not silently become body
+    // text just because the value moved to a full-width block below it.
+    expect(container.querySelector('.field--stack .field__label')?.classList.contains('hy-micro')).toBe(true);
+  });
+
+  it('stacks a list field, because entries need their own lines', () => {
+    const { container } = render(
+      <FieldRow def={def({ key: 'invariants', type: 'list' })} value={['a', 'b']} nodes={nodes} onNavigate={noop} />,
+    );
+    expect(container.querySelector('.field--stack')).toBeTruthy();
+    expect(container.querySelector('.field--grid')).toBeNull();
+  });
+
   it('never renders a form control, whatever the field type', () => {
     const { container } = render(
       <>

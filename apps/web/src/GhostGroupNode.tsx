@@ -14,17 +14,13 @@ export function GhostGroupNode({ id, data }: NodeProps) {
   const label = String((data as { label?: string }).label ?? '');
   const toggle = useStore((s) => s.toggleExternal);
   return (
-    <div className="region region--ghost" style={{ borderStyle: 'dashed' }}>
+    <div className="region region--ghost">
       {sides.map((s) => (
-        <Handle key={s.id} id={s.id} type="source" position={s.position} style={{ opacity: 0, pointerEvents: 'none' }} />
+        <Handle key={s.id} id={s.id} className="region__handle-point" type="source" position={s.position} />
       ))}
-      <div className="region__handle" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontStyle: 'italic' }}>{label}</span>
-        <button
-          onClick={(ev) => { ev.stopPropagation(); toggle(id); }}
-          title="Collapse"
-          style={{ cursor: 'pointer', border: 'none', background: 'transparent', fontSize: 14, lineHeight: 1, padding: '0 2px' }}
-        >−</button>
+      <div className="region__handle region__handle--split">
+        <span className="region__label">{label}</span>
+        <button className="region__collapse" onClick={(ev) => { ev.stopPropagation(); toggle(id); }} title="Collapse">−</button>
       </div>
     </div>
   );

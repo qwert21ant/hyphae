@@ -40,7 +40,7 @@ function ancestorsOf(nodes: Node[], focusId: string | null): Set<string> {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="tree-section">
-      <div className="tree-section__title">{title}</div>
+      <div className="tree-section__title hy-micro">{title}</div>
       {children}
     </div>
   );
@@ -95,11 +95,21 @@ export function TreePanel({ collapsed, onToggleCollapse }: { collapsed: boolean;
     const open = override[node.id] ?? autoOpen.has(node.id);
     return (
       <div key={node.id}>
-        <div className={rowClass(node.id === selectedId, node.id === focusId)} style={{ paddingLeft: 4 + depth * 12 }}>
+        {/* The ROW carries the gesture, not the label: click selects the node in context,
+            double-click drills into it — the canvas's gesture. The label stays a <button> so the
+            row is still reachable and operable from the keyboard; its click simply bubbles here. */}
+        <div
+          className={rowClass(node.id === selectedId, node.id === focusId)}
+          onClick={() => revealNode(node.id)}
+          onDoubleClick={() => setFocus(node.id)}
+        >
+          {Array.from({ length: depth }, (_, i) => <span key={i} className="tree-guide" />)}
           {children.length > 0 ? (
             <button
               className="tree-twisty"
-              onClick={() => setOverride((o) => ({ ...o, [node.id]: !open }))}
+              // Expanding a branch is not selecting it — without this the twisty would also
+              // reveal the node, since the row is now listening.
+              onClick={(ev) => { ev.stopPropagation(); setOverride((o) => ({ ...o, [node.id]: !open })); }}
               aria-expanded={open}
               aria-label={`${open ? 'collapse' : 'expand'} ${node.name}`}
             >
@@ -108,8 +118,7 @@ export function TreePanel({ collapsed, onToggleCollapse }: { collapsed: boolean;
           ) : (
             <span className="tree-twisty" />
           )}
-          {/* Click selects the node in context, double-click drills into it — the canvas's gesture. */}
-          <button className="tree-label" onClick={() => revealNode(node.id)} onDoubleClick={() => setFocus(node.id)} title={`${node.name} · ${node.type}`}>
+          <button className="tree-label" title={`${node.name} · ${node.type}`}>
             {node.name}
           </button>
         </div>
@@ -122,22 +131,24 @@ export function TreePanel({ collapsed, onToggleCollapse }: { collapsed: boolean;
     const selected = f.id === selectedFlowId;
     return (
       <div key={f.id}>
-        <div className={rowClass(selected, false)} style={{ paddingLeft: 4 }}>
+        <div className={`${rowClass(selected, false)} tree-row--detail`} onClick={() => selectFlow(selected ? null : f.id)}>
           <span className="tree-twisty" />
-          <button className="tree-label" aria-pressed={selected} onClick={() => selectFlow(selected ? null : f.id)}>
-            {f.name}{invalid.flows.has(f.id) ? ' ⚠' : ''}
+          <button className="tree-label" aria-pressed={selected}>
+            {f.name}{invalid.flows.has(f.id) ? <span className="tree-invalid" title="references something missing"> ⚠</span> : ''}
           </button>
         </div>
         {selected && (
           <ol className="tree-steps">
             {[...f.steps].sort((a, b) => a.order - b.order).map((s) => (
-              <li key={s.order} className={s.kind === 'Return' ? 'tree-step--return' : undefined}>
-                <button
-                  className="tree-label"
-                  onClick={() => revealStep(s)}
-                  title={`${nodeName.get(s.from) ?? s.from} → ${nodeName.get(s.to) ?? s.to}`}
-                >
-                  {s.order}. {s.message || <em>(no caption)</em>}
+              <li
+                key={s.order}
+                className={s.kind === 'Return' ? 'tree-step tree-step--return' : 'tree-step'}
+                onClick={() => revealStep(s)}
+                title={`${nodeName.get(s.from) ?? s.from} → ${nodeName.get(s.to) ?? s.to}`}
+              >
+                <span className="tree-step__order">{s.order}.</span>
+                <button className="tree-label">
+                  {s.message || <em>(no caption)</em>}
                   {/* ↗ = the current view can't draw this step; clicking it moves the view there. */}
                   {offView.has(s.order) ? <span className="tree-offview" title="not drawn in this view"> ↗</span> : null}
                 </button>
@@ -154,32 +165,51 @@ export function TreePanel({ collapsed, onToggleCollapse }: { collapsed: boolean;
     const anchorName = p.anchor ? nodeName.get(p.anchor) : undefined;
     return (
       <div key={p.id}>
-        <div className={rowClass(selected, false)} style={{ paddingLeft: 4 }}>
+        <div className={`${rowClass(selected, false)} tree-row--detail`} onClick={() => selectPattern(selected ? null : p.id)}>
           <span className="tree-twisty" />
-          <button className="tree-label" aria-pressed={selected} onClick={() => selectPattern(selected ? null : p.id)}>
-            {p.name} <span className="tree-dim">· {p.kind}</span>{invalid.patterns.has(p.id) ? ' ⚠' : ''}
+          <button className="tree-label" aria-pressed={selected}>
+            {p.name}{invalid.patterns.has(p.id) ? <span className="tree-invalid" title="references something missing"> ⚠</span> : null}
           </button>
+          <span className="chip tree-kind" title={`${p.kind} pattern`}>{p.kind}</span>
+          {/* The pattern view replaces the canvas, so the anchor is the way back to the node it
+              describes — and knowing WHICH node a pattern is about should not require opening it, so
+              it sits on the row. stopPropagation because the row toggles the pattern and this
+              navigates away from it; without it one click would do both. A dangling anchor still
+              shows, marked, rather than silently vanishing. */}
+          {p.anchor && (anchorName
+            ? (
+              <button
+                className="tree-anchor"
+                onClick={(ev) => { ev.stopPropagation(); revealNode(p.anchor!); }}
+                title={`Go to ${anchorName} — the node this pattern describes`}
+              >
+                → {anchorName}
+              </button>
+            )
+            : (
+              <span className="tree-anchor tree-dim" title="references something missing">
+                → {p.anchor}<span className="tree-invalid"> ⚠</span>
+              </span>
+            ))}
         </div>
         {selected && (
-          <div className="tree-detail">
-            {/* The pattern view replaces the canvas, so the anchor is the way back to the node it
-                describes. A dangling anchor still shows, marked, rather than silently vanishing. */}
-            {p.anchor && (anchorName
-              ? <button className="tree-label tree-anchor" onClick={() => revealNode(p.anchor!)}>anchor: {anchorName}</button>
-              : <div className="tree-anchor tree-dim">anchor: {p.anchor} ⚠</div>)}
-            <ul className="tree-members">
-              {p.members.map((m) => {
-                const bound = m.nodeId && nodeName.has(m.nodeId) ? m.nodeId : null;
-                return (
-                  <li key={m.name}>
-                    {bound
-                      ? <button className="tree-label" onClick={() => revealNode(bound)} title={`Go to ${nodeName.get(bound)}`}>{m.name}</button>
-                      : <span className="tree-member--static">{m.name}</span>}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+          <ul className="tree-members">
+            {p.members.map((m) => {
+              const bound = m.nodeId && nodeName.has(m.nodeId) ? m.nodeId : null;
+              return (
+                <li
+                  key={m.name}
+                  className={bound ? 'tree-member tree-member--link' : 'tree-member'}
+                  onClick={bound ? () => revealNode(bound) : undefined}
+                  title={bound ? `Go to ${nodeName.get(bound)}` : undefined}
+                >
+                  {bound
+                    ? <button className="tree-label">{m.name}</button>
+                    : <span className="tree-member--static">{m.name}</span>}
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
     );
@@ -207,7 +237,7 @@ export function TreePanel({ collapsed, onToggleCollapse }: { collapsed: boolean;
   return (
     <aside className="tree-panel" aria-label="model outline">
       <div className="tree-panel__head">
-        <strong>Outline</strong>
+        <span className="tree-panel__title">Outline</span>
         <button className="tree-toggle" onClick={onToggleCollapse} title="Hide model outline" aria-label="hide model outline">«</button>
       </div>
       {hasDetail ? (
