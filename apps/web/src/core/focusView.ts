@@ -1,4 +1,5 @@
-import { c4Backend, layerOfType, verbClassOf, type HyphaeModel, type Node, type Connection, type FlowStep } from '@hyphae/schema';
+import { c4Backend, verbClassOf, type HyphaeModel, type Node, type Connection, type FlowStep } from '@hyphae/schema';
+import { NodeTree } from '@/core/NodeTree';
 
 export type ConnFilter = { verbClasses: string[]; fields: Record<string, string[]> };
 export type Audience = 'stakeholder' | 'full';
@@ -27,9 +28,6 @@ export type FocusView = {
 
 export type Crumb = { id: string | null; name: string };
 
-const indexOfLayer = (layer: string | undefined): number =>
-  layer ? c4Backend.layers.indexOf(layer) : -1;
-
 function matchesFilter(c: Connection, f: ConnFilter): boolean {
   if (f.verbClasses.length && !f.verbClasses.includes(verbClassOf(c4Backend, c.verb) ?? '')) return false;
   for (const [key, vals] of Object.entries(f.fields)) {
@@ -38,91 +36,15 @@ function matchesFilter(c: Connection, f: ConnFilter): boolean {
   return true;
 }
 
-/**
- * The node that should represent `endpointId` in a view focused at `focusLayer`:
- * - at or above the focus layer → the endpoint itself (e.g. an ExternalSystem stays itself);
- * - below the focus layer → its ancestor on the focus layer (its peer of the focus node).
- */
-function representativeWith(nodes: Map<string, Node>, endpointId: string, focusLayer: string): string {
-  const fi = indexOfLayer(focusLayer);
-  let cur = nodes.get(endpointId);
-  if (!cur) return endpointId;
-  if (indexOfLayer(layerOfType(c4Backend, cur.type)) <= fi) return endpointId;
-  const seen = new Set<string>();
-  while (cur && !seen.has(cur.id)) {
-    seen.add(cur.id);
-    if (layerOfType(c4Backend, cur.type) === focusLayer) return cur.id;
-    if (!cur.parentId) return cur.id;
-    const p = nodes.get(cur.parentId);
-    if (!p) return cur.id;
-    cur = p;
-  }
-  return endpointId;
-}
-
+/** See {@link NodeTree.representativeWith} — the node that stands in for `endpointId` at `focusLayer`. */
 export function representative(model: HyphaeModel, endpointId: string, focusLayer: string): string {
-  const nodes = new Map(model.nodes.map((n) => [n.id, n]));
-  return representativeWith(nodes, endpointId, focusLayer);
-}
-
-/**
- * The direct child of `focusId` that contains `endpointId` (itself, if it is already a direct child),
- * or null when the endpoint is not inside the focus subtree. This is how connections authored deep
- * below the focus (e.g. Component↔Component connections under a focused System) roll up to the
- * children actually shown (the Containers), instead of collapsing onto the focus.
- */
-function childOfFocus(nodes: Map<string, Node>, endpointId: string, focusId: string): string | null {
-  let cur = nodes.get(endpointId);
-  const seen = new Set<string>();
-  while (cur && !seen.has(cur.id)) {
-    seen.add(cur.id);
-    if (cur.parentId === focusId) return cur.id;
-    if (!cur.parentId) return null;
-    cur = nodes.get(cur.parentId);
-  }
-  return null;
-}
-
-/** The top-level ancestor of `endpointId` (the root of its containment tree). */
-function rootAncestor(nodes: Map<string, Node>, endpointId: string): string {
-  let cur = nodes.get(endpointId);
-  let result = endpointId;
-  const seen = new Set<string>();
-  while (cur && !seen.has(cur.id)) {
-    seen.add(cur.id);
-    result = cur.id;
-    if (!cur.parentId || !nodes.has(cur.parentId)) break;
-    cur = nodes.get(cur.parentId);
-  }
-  return result;
-}
-
-/** The layer external endpoints roll up to at `focusId`: the focus node's own layer (its peers),
- *  or the top layer at the root view. */
-function focusLayerOf(nodes: Map<string, Node>, focusId: string | null): string {
-  const focusNode = focusId ? nodes.get(focusId) ?? null : null;
-  return focusNode ? layerOfType(c4Backend, focusNode.type) ?? '' : c4Backend.layers[0];
-}
-
-/**
- * The node that stands in for connection endpoint `id` in a COLLAPSED view focused at `focusId`:
- * - root view: its top-level ancestor (a shown root);
- * - the focus itself: the focus;
- * - inside the focus subtree: the direct child of the focus that contains it (the children level);
- * - outside: a peer at the focus's own layer (an aggregated external box), or itself if at/above it.
- */
-function representativeAtFocus(nodes: Map<string, Node>, id: string, focusId: string | null, focusLayer: string): string {
-  if (!focusId) return rootAncestor(nodes, id);
-  if (id === focusId) return focusId;
-  const child = childOfFocus(nodes, id, focusId);
-  if (child) return child;
-  return representativeWith(nodes, id, focusLayer);
+  return new NodeTree(model).representativeWith(endpointId, focusLayer);
 }
 
 export function buildFocusView(model: HyphaeModel, focusId: string | null, filter?: ConnFilter, audience: Audience = 'full', expandedExternals: Set<string> = new Set()): FocusView {
-  const nodes = new Map(model.nodes.map((n) => [n.id, n]));
+  const tree = new NodeTree(model);
   const allIds = new Set(model.nodes.map((n) => n.id));
-  const focusNode = focusId ? nodes.get(focusId) ?? null : null;
+  const focusNode = focusId ? tree.get(focusId) ?? null : null;
 
   let children = focusId
     ? model.nodes.filter((n) => n.parentId === focusId)
@@ -130,15 +52,15 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
 
   const stakeholder = audience === 'stakeholder';
 
-  const focusLayer = focusLayerOf(nodes, focusId);
+  const focusLayer = tree.focusLayerOf(focusId);
 
   const inside = new Set<string>(children.map((n) => n.id));
   if (focusId) inside.add(focusId);
 
-  const unexpandedRep = (id: string): string => representativeAtFocus(nodes, id, focusId, focusLayer);
+  const unexpandedRep = (id: string): string => tree.representativeAt(id, focusId, focusLayer);
   const mapEndpoint = (id: string): string => {
     const rep = unexpandedRep(id);
-    if (expandedExternals.has(rep)) return childOfFocus(nodes, id, rep) ?? rep;
+    if (expandedExternals.has(rep)) return tree.childOf(id, rep) ?? rep;
     return rep;
   };
 
@@ -243,7 +165,7 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
     if (!inside.has(ed.from)) shownExternalIds.add(ed.from);
     if (!inside.has(ed.to)) shownExternalIds.add(ed.to);
   }
-  const externals = [...shownExternalIds].map((id) => nodes.get(id)).filter((n): n is Node => !!n);
+  const externals = [...shownExternalIds].map((id) => tree.get(id)).filter((n): n is Node => !!n);
 
   // Which shown, collapsed, focus-peer externals would reveal a finer participating child if expanded.
   // Computed from the surviving connections (not the rendered edges), so a finer child that got
@@ -254,9 +176,9 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
     for (const origId of [c.from, c.to]) {
       const rep = unexpandedRep(origId);
       if (inside.has(rep) || expandedExternals.has(rep) || expandableExternalIds.has(rep)) continue;
-      if (!shownExternalIds.has(rep)) continue;                          // only externals actually rendered
-      if (representativeWith(nodes, rep, focusLayer) !== rep) continue;  // focus-peer reps only (not members)
-      const child = childOfFocus(nodes, origId, rep);
+      if (!shownExternalIds.has(rep)) continue;                       // only externals actually rendered
+      if (tree.representativeWith(rep, focusLayer) !== rep) continue; // focus-peer reps only (not members)
+      const child = tree.childOf(origId, rep);
       if (child !== null) expandableExternalIds.add(rep);
     }
   }
@@ -266,7 +188,7 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
   const externalGroups: { id: string; name: string; childIds: string[] }[] = [];
   for (const extId of expandedExternals) {
     const childIds = externals.filter((n) => n.parentId === extId).map((n) => n.id);
-    const parent = nodes.get(extId);
+    const parent = tree.get(extId);
     if (childIds.length && parent) externalGroups.push({ id: extId, name: parent.name, childIds });
   }
 
@@ -296,33 +218,19 @@ export type StepReveal = {
  * Returns null when either endpoint is missing from the model (a stale flow), so callers no-op.
  */
 export function stepReveal(model: HyphaeModel, step: Pick<FlowStep, 'from' | 'to' | 'via'>): StepReveal | null {
-  const nodes = new Map(model.nodes.map((n) => [n.id, n]));
-  const from = nodes.get(step.from);
-  const to = nodes.get(step.to);
+  const tree = new NodeTree(model);
+  const from = tree.get(step.from);
+  const to = tree.get(step.to);
   if (!from || !to) return null;
 
-  const parentOf = (n: Node): string | null => (n.parentId && nodes.has(n.parentId) ? n.parentId : null);
-  /** How many resolvable ancestors a node has (0 = top-level). Cycle-guarded like the walks above. */
-  const depthOf = (n: Node): number => {
-    const seen = new Set<string>([n.id]);
-    let depth = 0;
-    let cur = parentOf(n) ? nodes.get(parentOf(n)!) : undefined;
-    while (cur && !seen.has(cur.id)) {
-      seen.add(cur.id);
-      depth++;
-      const p = parentOf(cur);
-      cur = p ? nodes.get(p) : undefined;
-    }
-    return depth;
-  };
   const selectedId = step.via ?? step.from;
-  const fromParent = parentOf(from);
-  if (fromParent === parentOf(to)) return { focusId: fromParent, expand: new Set<string>(), selectedId };
+  const fromParent = tree.parentOf(from);
+  if (fromParent === tree.parentOf(to)) return { focusId: fromParent, expand: new Set<string>(), selectedId };
 
-  const [deeper, other] = depthOf(to) > depthOf(from) ? [to, from] : [from, to];
-  const focusId = parentOf(deeper);
-  const rep = representativeAtFocus(nodes, other.id, focusId, focusLayerOf(nodes, focusId));
-  const insideView = rep === focusId || (focusId === null ? true : nodes.get(rep)?.parentId === focusId);
+  const [deeper, other] = tree.depthOf(to) > tree.depthOf(from) ? [to, from] : [from, to];
+  const focusId = tree.parentOf(deeper);
+  const rep = tree.representativeAt(other.id, focusId, tree.focusLayerOf(focusId));
+  const insideView = rep === focusId || (focusId === null ? true : tree.get(rep)?.parentId === focusId);
   return { focusId, expand: rep === other.id || insideView ? new Set<string>() : new Set([rep]), selectedId };
 }
 
@@ -365,14 +273,10 @@ export function externalConnections(model: HyphaeModel, nodeId: string): Connect
 }
 
 export function breadcrumbPath(model: HyphaeModel, focusId: string | null): Crumb[] {
-  const nodes = new Map(model.nodes.map((n) => [n.id, n]));
-  const chain: Crumb[] = [];
-  let cur = focusId ? nodes.get(focusId) ?? null : null;
-  const seen = new Set<string>();
-  while (cur && !seen.has(cur.id)) {
-    seen.add(cur.id);
-    chain.unshift({ id: cur.id, name: cur.name });
-    cur = cur.parentId ? nodes.get(cur.parentId) ?? null : null;
-  }
-  return [{ id: null, name: 'Root' }, ...chain];
+  const tree = new NodeTree(model);
+  const focusNode = focusId ? tree.get(focusId) ?? null : null;
+  if (!focusNode) return [{ id: null, name: 'Root' }];
+  // The tree's walk yields the ancestors nearest-first; a breadcrumb reads outermost-first.
+  const chain = [...tree.ancestors(focusNode.id)].reverse().concat(focusNode);
+  return [{ id: null, name: 'Root' }, ...chain.map((n) => ({ id: n.id, name: n.name }))];
 }
