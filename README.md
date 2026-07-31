@@ -6,8 +6,9 @@ See `docs/MODEL.md` for the model concept and `docs/SPEC.md` for the product spe
 ## Develop
 
     pnpm install
-    pnpm --filter @hyphae/server dev   # API + SSE on :5173, owns ./hyphae.json
-    pnpm --filter @hyphae/web dev      # viewer on :3000, proxies the API
+    pnpm dev      # both of the below, in parallel
+    pnpm server   # API + SSE on :5173, owns ./hyphae.json
+    pnpm web      # viewer on :3000, proxies the API
 
 The server is the single source of truth: it holds the model in memory, validates every write,
 persists `hyphae.json` atomically (debounced), and broadcasts changes over SSE so an open viewer
@@ -30,13 +31,13 @@ stands in for a deeper node can be **expanded** to reveal the child actually tak
 their own pane below, each scrolling independently — and is collapsible; a click reveals a node in
 context, a double-click drills in. The whole row is the target — indent, twisty column and the space
 past a short name included — except the twisty itself, which only opens the branch. Both side panels
-and the outline's internal split are
-**drag-resizable** (arrow keys resize a focused handle, Enter toggles collapse, double-click resets
-it), and the sizes persist per browser. Dragging the outline's handle to the edge collapses it
-exactly like the « button, and expanding — by either route — restores its previous width. Search
-jumps to a node by name. A toolbar toggle switches between the dark theme (the default) and a light
-one; the choice persists per browser. Brightness carries meaning throughout: altitude, selection and
-focus are all expressed as light level, not just the altimeter.
+and the outline's internal split are **drag-resizable** (arrow keys resize a focused handle, Enter
+toggles collapse, double-click resets it), and the sizes persist per browser. Dragging the outline's
+handle to the edge collapses it exactly like the « button, and expanding — by either route —
+restores its previous width. Search jumps to a node by name. A toolbar toggle switches between the
+dark theme (the default) and a light one; the choice persists per browser. Brightness carries
+meaning throughout: altitude, selection and focus are all expressed as light level, not just the
+altimeter — see `docs/SPEC.md` §9 for the rule the whole design follows.
 
 **Reading the diagram.** A node draws as its profile **role archetype** (actor, service, datastore,
 queue, external system, UI surface) in SVG, tinted by C4 layer, showing name + a two-line summary +
@@ -93,8 +94,8 @@ whole-model write endpoint.
 
 The MCP server is an HTTP client of the running Hyphae server, so the server must be up:
 
-    pnpm --filter @hyphae/server dev          # terminal A — owns hyphae.json on :5173
-    HYPHAE_SERVER=http://localhost:5173 pnpm --filter @hyphae/server mcp   # terminal B
+    pnpm server                                      # terminal A — owns hyphae.json on :5173
+    HYPHAE_SERVER=http://localhost:5173 pnpm mcp     # terminal B
 
 Read tools: `describe_profile` (the active profile's node/pattern kinds, roles, verbs (with their
 classes), and their documented fields — call it first), `model_overview`, `get_node`, `list_nodes`

@@ -24,7 +24,7 @@ schema in `packages/schema` wins any disagreement.
     pnpm server         # API + SSE on :5173, owns ./hyphae.json (override with HYPHAE_FILE)
     pnpm web            # viewer on :3000, proxies the API
     pnpm mcp            # MCP server — an HTTP client of the above, so the server must be running
-    pnpm -r test        # baseline 523 green: schema 147, server 107, web 269
+    pnpm -r test        # baseline 662 green: schema 147, server 107, web 408
     pnpm -r build
 
 ## Testing gotchas
@@ -44,14 +44,41 @@ These cost real time when rediscovered:
   `matchMedia` and `setPointerCapture`, none of which jsdom implements; `apps/web/test/setup.ts`
   provides them. Elements are never measured, so panel *sizes* are untestable — assert the
   `role="separator"` structure (`aria-orientation` is perpendicular to its group) instead.
-- **jsdom loads no external stylesheet**, so nothing in `styles.css` is observable in the DOM. To pin
-  a CSS invariant, read the file and assert the rule (`TreePanel.test.tsx` does this for the step
-  list marker).
+- **jsdom loads no external stylesheet**, so nothing in `src/styles/` is observable in the DOM, and
+  nothing is ever measured. To pin a CSS invariant, read the file and assert the rule — see the
+  `rule(css, selector)` helper in `TreePanel.test.tsx`. **Anchor such a regex to the start of a
+  line** (`^\.tree-label\s*\{`): unanchored, `.tree-label {` also matches inside
+  `.tree-row:hover .tree-label {`, so the assertion silently reads a different block. Assert the
+  rule was found at all, too — a renamed selector otherwise passes as an empty string.
 - `import.meta.url` is an **http** URL under jsdom — resolve fixture paths from `process.cwd()`.
 - Roughly 80 `act(...)` warnings in the web suite are **pre-existing noise**, not your change.
 - The store is a module-level singleton: reset the slice you touch in `beforeEach`, and let the
   initial `loadModel()` settle (`await new Promise(r => setTimeout(r, 0))`) before seeding a model in
   a test that renders `<App />`, or the async load overwrites it.
+
+## Styling — the rules the suite enforces
+
+The viewer has one design rule: **luminance is state, hue is meaning.** Altitude, selection and focus
+are light levels with no hue; the five `--verb-*` tokens own the whole chromatic budget; violet means
+only "rolled-up edge", `--accent` only interaction, `--warn` only an invalid flow/pattern. Giving a
+structural distinction a hue, or a semantic one only a luminance step, is a design bug — reach for a
+difference in **form** instead (this is why a pattern's kind is a chip, not a colour). `docs/SPEC.md`
+§9 states the rule; `apps/web/src/styles/tokens.css` is the authoritative value for every colour,
+type step and space step.
+
+Four of these are tests, not preferences (`tokens.test.ts`, `contrast.test.ts`):
+
+- **No colour literal anywhere in `apps/web/src` outside `tokens.css`** — no hex, no `rgb()`/`hsl()`.
+- **Every token declared in `:root` must be referenced somewhere**, and every `var()` must resolve.
+  Both directions fail the suite, so moving a rule's last use of a token kills the token.
+- **Every colour token must exist in both themes.**
+- **33 foreground/background pairs are measured at 4.5:1, in both themes.** When one fails, retune
+  the token — **never** loosen the threshold.
+
+Conventions the suite does *not* enforce: `base.css` is the reset layer and may use element/ID/pseudo
+selectors; `chrome.css` and `canvas.css` use **class and attribute selectors only** — no element
+types. A modifier must be declared *after* the class it narrows (`.tree-kind` sits with `.chip`, not
+with the tree rules) — equal specificity means source order is the only thing deciding.
 
 ## Invariants that bite
 
@@ -74,6 +101,22 @@ These cost real time when rediscovered:
 - **`TreePanel` is controlled by `App`.** `onResize` → `isCollapsed()` is the only authority on
   `outlineCollapsed`; reintroducing local collapse state in `TreePanel` silently breaks drag-collapse,
   since a drag past the edge never calls the lifted toggle.
+- **React Flow paints its edge layer BELOW its node layer** (`GraphView` renders `EdgeRenderer` ahead
+  of `NodeRenderer`), and both default to z-index 0 — so any opaque node covers any edge. The two
+  containment boxes are opaque and span the whole cluster, so they carry `zIndex: -1`
+  (`BOUNDARY_Z` in `reactflow.ts`). Drop that and every edge inside a region disappears.
+- **A node's DOM must not outgrow its React Flow wrapper.** `.react-flow__node` is `border-box` and
+  sized from the inline width/height; a child at `width:100%` *with a border* under the default
+  content-box renders wider and taller than it, overflowing right and bottom. `.region` and `NodeBox`
+  both set `box-sizing: border-box` for this reason.
+- **The selection/hover ring is a `box-shadow` on React Flow's own node wrapper**, injected as a
+  generated stylesheet by `Canvas.tsx`. It traces the *wrapper's* box and is clipped by the
+  *wrapper's* radius, so that radius lives permanently in `canvas.css` per node type — put it in the
+  highlight rule and it snaps back to 0 while the shadow is still fading out.
+- **The row is the item, in the outline and the altimeter.** The row/band owns the click, the hover
+  and the cursor; the label inside stays a `<button>` only so it is keyboard-reachable, and its click
+  bubbles. A `:hover` on an inner element makes one item light up in pieces. Anything inside that
+  navigates *elsewhere* (a pattern's anchor, the twisty) must `stopPropagation`.
 
 ## Working with a built model
 

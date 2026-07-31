@@ -325,8 +325,10 @@ Built into the core, and unchanged by the visual repositioning:
 - **One tool call — one model operation.** An MCP write is atomic: reparenting a component is a
   `parentId` change; deleting a node cascades to remove its connections, and any flow step that
   referenced it is marked ↗ in the outline as undrawable.
-- **Zoom navigation between altitudes.** Double-click to drill into any node; breadcrumbs on top;
-  a left outline of the whole model for orientation. Layout is automatic and stable — filtering,
+- **Zoom navigation between altitudes.** Double-click to drill into any node; an **altimeter** on top
+  — the breadcrumb drawn as tinted altitude bands, each tagged with its node's kind, only the deepest
+  lit, so depth reads before the names do; a left outline of the whole model for orientation. In both,
+  the whole row or band is the target, not the text inside it. Layout is automatic and stable — filtering,
   the audience toggle, and expanding an external never reflow the graph. The current view lives in
   the URL hash (`#node/…`, `#flow/…`, `#pattern/…`), so it is shareable and Back-able.
 - **Flow as an overlay; Pattern as a shape.** Select a Flow → it jumps to step 1 and lights the
