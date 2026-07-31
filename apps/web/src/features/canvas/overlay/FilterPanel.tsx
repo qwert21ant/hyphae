@@ -1,6 +1,6 @@
 import { useStore } from '@/state/store';
 import { c4Backend, connectionFields, verbClasses, type FieldDef } from '@hyphae/schema';
-import { VERB_CLASS_COLOR } from '@/features/canvas/reactflow';
+import { VERB_CLASS_COLOR } from '@/core/verbColors';
 
 function VerbClassGroup() {
   const selected = useStore((s) => s.connFilter.verbClasses);

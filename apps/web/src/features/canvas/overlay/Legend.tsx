@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { c4Backend, verbClasses } from '@hyphae/schema';
-import { LAYER_COLOR, VERB_CLASS_COLOR } from '@/features/canvas/reactflow';
+import { LAYER_COLOR, VERB_CLASS_COLOR } from '@/core/verbColors';
 import { SHAPE_LABEL } from '@/features/canvas/shapes';
 import { NodeShape } from '@/features/canvas/nodes/NodeShape';
 

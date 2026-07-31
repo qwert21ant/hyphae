@@ -1,6 +1,6 @@
 import { useStore } from '@/state/store';
 import { c4Backend, verbClassOf, type Connection } from '@hyphae/schema';
-import { VERB_CLASS_COLOR } from '@/features/canvas/reactflow';
+import { VERB_CLASS_COLOR } from '@/core/verbColors';
 
 /** A read-only list of connections: each endpoint name focuses its node, and the row selects the
  *  connection (to inspect it / drill its own realizedBy). Reused by the rollup-edge and the
