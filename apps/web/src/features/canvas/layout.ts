@@ -15,6 +15,11 @@ export const LABEL_H = 22;
 export type XY = { x: number; y: number };
 
 const COL_GAP = 120;  // horizontal gap between the children cluster and an external column
+const NODE_SEP = 56;  // dagre's within-rank gap. Was 40 — the grid packing below buys back the width
+const RANK_SEP = 104; // dagre's between-rank gap. Was 80
+
+/** Columns in the grid that holds children dagre could not rank. */
+export const GRID_COLS = 4;
 // Vertical PITCH (not gap) between stacked external boxes, so it must stay larger than NODE_H or
 // the boxes overlap — derived from NODE_H rather than hardcoded so growing the box can't break it.
 export const ROW_GAP = NODE_H + 12;
@@ -52,16 +57,42 @@ export function groupBoxHeight(n: number, m: NodeMetrics = DEFAULT_METRICS): num
 export function layoutFocusView(view: FocusView, m: NodeMetrics = DEFAULT_METRICS): Record<string, XY> {
   const childIds = new Set(view.children.map((n) => n.id));
   const pos: Record<string, XY> = {};
+  const byId = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+
+  // Partition: a child dagre can rank (it has at least one edge to a sibling) versus one it cannot.
+  // An unranked child gets no useful position from dagre — they all land together in rank 0, which
+  // is what turned a 12-child focus into a single ~3000px row that every external edge crossed.
+  const connected = view.children.filter((n) =>
+    view.edges.some((e) => (e.from === n.id && childIds.has(e.to)) || (e.to === n.id && childIds.has(e.from))));
+  const isolatedKids = view.children.filter((n) => !connected.includes(n));
 
   const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: 'TB', nodesep: 40, ranksep: 80, marginx: 20, marginy: 20 });
+  g.setGraph({ rankdir: 'TB', nodesep: NODE_SEP, ranksep: RANK_SEP, marginx: 20, marginy: 20 });
   g.setDefaultEdgeLabel(() => ({}));
-  for (const n of view.children) g.setNode(n.id, { width: m.width, height: m.height });
+  for (const n of connected) g.setNode(n.id, { width: m.width, height: m.height });
   for (const e of view.edges) if (childIds.has(e.from) && childIds.has(e.to)) g.setEdge(e.from, e.to);
-  dagre.layout(g);
-  for (const n of view.children) {
+  if (connected.length) dagre.layout(g);
+  for (const n of connected) {
     const d = g.node(n.id);
     pos[n.id] = d ? { x: d.x - m.width / 2, y: d.y - m.height / 2 } : { x: 0, y: 0 };
+  }
+
+  // The unranked remainder, packed into a GRID_COLS-wide block below the ranked core and centred
+  // on it. Ordered by id so the block is stable across runs.
+  if (isolatedKids.length) {
+    const rankedXs = connected.map((n) => pos[n.id].x);
+    const rankedYs = connected.map((n) => pos[n.id].y);
+    const coreLeft = rankedXs.length ? Math.min(...rankedXs) : 0;
+    const coreRight = rankedXs.length ? Math.max(...rankedXs) + m.width : m.width;
+    const coreBottom = rankedYs.length ? Math.max(...rankedYs) + m.height + RANK_SEP : 0;
+    const cols = Math.min(GRID_COLS, isolatedKids.length);
+    const pitchX = m.width + NODE_SEP;
+    const gridW = (cols - 1) * pitchX + m.width;
+    const left = (coreLeft + coreRight) / 2 - gridW / 2;
+    const ids = isolatedKids.map((n) => n.id).sort(byId);
+    ids.forEach((id, i) => {
+      pos[id] = { x: left + (i % cols) * pitchX, y: coreBottom + Math.floor(i / cols) * rowGap(m) };
+    });
   }
 
   // When the focus node has no children, give it a slot at the origin so edges can anchor on it.
@@ -78,8 +109,6 @@ export function layoutFocusView(view: FocusView, m: NodeMetrics = DEFAULT_METRIC
 
   const incoming = view.externals.filter((ext) => view.edges.some((e) => e.from === ext.id)).map((n) => n.id);
   const outgoing = view.externals.filter((ext) => !view.edges.some((e) => e.from === ext.id)).map((n) => n.id);
-  const byId = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
-
   // Barycentre: the mean y of the already-placed in-view neighbours. Sorting the column this way
   // instead of by id is where most of the crossing reduction comes from — a UUID sort is random
   // with respect to the graph, so an external feeding the topmost child could land at the bottom of

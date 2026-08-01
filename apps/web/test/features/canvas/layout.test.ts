@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   layoutFocusView, resolveViewPositions, groupBoxHeight, NODE_W, NODE_H, PAD, LABEL_H, ROW_GAP, MEMBER_PITCH,
-  DEFAULT_METRICS, BADGE_ROW_H, withBadgeRow, rowGap,
+  DEFAULT_METRICS, BADGE_ROW_H, withBadgeRow, rowGap, GRID_COLS,
 } from '@/features/canvas/layout';
 import type { FocusView } from '@/core/focusView';
 
@@ -264,5 +264,45 @@ describe('external column ordering', () => {
 
   it('is still deterministic', () => {
     expect(layoutFocusView(chain)).toEqual(layoutFocusView(chain));
+  });
+});
+
+describe('isolated children', () => {
+  const isolated = (n: number): FocusView => ({
+    focusId: 'f', focusNode: node('f', 'Container'),
+    children: Array.from({ length: n }, (_, i) => node(`i${i}`)),
+    externals: [],
+    edges: [],
+  });
+
+  it('packs children with no intra-cluster edge into a grid, not one row', () => {
+    const pos = layoutFocusView(isolated(12));
+    const rows = new Set(Object.values(pos).map((p) => Math.round(p.y)));
+    const cols = new Set(Object.values(pos).map((p) => Math.round(p.x)));
+    expect(cols.size).toBe(GRID_COLS);
+    expect(rows.size).toBe(3);
+  });
+
+  it('keeps the grid narrower than the equivalent row', () => {
+    const pos = layoutFocusView(isolated(12));
+    const xs = Object.values(pos).map((p) => p.x);
+    const width = Math.max(...xs) + NODE_W - Math.min(...xs);
+    expect(width).toBeLessThan(12 * NODE_W);
+  });
+
+  it('leaves dagre-ranked children alone and puts the grid below them', () => {
+    const mixed: FocusView = {
+      focusId: 'f', focusNode: node('f', 'Container'),
+      children: [node('c1'), node('c2'), node('lone')],
+      externals: [],
+      edges: [{ id: 'e', from: 'c1', to: 'c2', count: 1, derived: false, realizedBy: ['a'] }],
+    };
+    const pos = layoutFocusView(mixed);
+    expect(pos.c1.y).toBeLessThan(pos.c2.y);       // dagre's TB rank order survives
+    expect(pos.lone.y).toBeGreaterThan(pos.c2.y);  // the grid sits below the ranked core
+  });
+
+  it('is deterministic', () => {
+    expect(layoutFocusView(isolated(7))).toEqual(layoutFocusView(isolated(7)));
   });
 });
