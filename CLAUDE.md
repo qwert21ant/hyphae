@@ -28,7 +28,7 @@ schema in `packages/schema` wins any disagreement.
                      highlight.ts  flowEdges.ts  layout.ts  reactflow.ts
                      shapes.ts  patternView.ts  flowOverlay.ts  canvas.css
                      nodes/    NodeBox  NodeShape  GroupNode  GhostNode
-                               GhostGroupNode  PatternMemberNode
+                               GhostGroupNode  PatternMemberNode  HubBadges
                      edges/    FloatingEdge.tsx  floating.ts
                      overlay/  Legend.tsx  FilterPanel.tsx
         outline/     TreePanel.tsx  outline.css
@@ -36,7 +36,7 @@ schema in `packages/schema` wins any disagreement.
                      fieldLayout.ts  inspector.css
         toolbar/     Toolbar.tsx  Altimeter.tsx  SearchBox.tsx  toolbar.css
       core/          NodeTree.ts  stepReveal.ts  connections.ts  breadcrumb.ts
-                     hashRoute.ts  verbColors.ts
+                     hashRoute.ts  verbColors.ts  hubs.ts
                      focusView/  index.ts  buildFocusView.ts  edges.ts  types.ts
       state/         store.ts  api.ts  theme.ts
       styles/        tokens.css  base.css
@@ -90,7 +90,7 @@ resolving nothing, depending on which one you missed.
     pnpm server         # API + SSE on :5173, owns ./hyphae.json (override with HYPHAE_FILE)
     pnpm web            # viewer on :3000, proxies the API
     pnpm mcp            # MCP server — an HTTP client of the above, so the server must be running
-    pnpm -r test        # baseline 669 green: schema 147, server 107, web 415 (45 files)
+    pnpm -r test        # baseline 716 green: schema 147, server 107, web 462 (31 files)
     pnpm -r build
     pnpm --filter @hyphae/web typecheck   # tsc --noEmit — NOT part of build; see below
 
@@ -179,11 +179,22 @@ Conventions the suite does *not* enforce — jsdom loads no stylesheet, so nothi
 
 ## Invariants that bite
 
-- **Focus-view pipeline:** `buildFocusView` (`core/focusView/`) → `layoutFocusView` (on the
-  *collapsed, unfiltered* base view) → `resolveViewPositions` (both `features/canvas/layout.ts`) →
-  `focusViewToFlow` (`features/canvas/reactflow.ts`). The whole chain is wired in
-  `features/canvas/useCanvasView.ts`, and base positions are memoized on `[model, focusId]` only, so
-  the connection filter, the audience toggle, and expanding an external never reflow the graph.
+- **Focus-view pipeline:** `buildFocusView` (`core/focusView/`) → `quietHubs` (`core/hubs.ts`) →
+  `layoutFocusView` (on the *collapsed, unfiltered* base view) → `resolveViewPositions` →
+  `applyDragOverrides` (all three `features/canvas/layout.ts`) → `focusViewToFlow`
+  (`features/canvas/reactflow.ts`). The whole chain is wired in `features/canvas/useCanvasView.ts`,
+  and base positions are memoized on `[model, focusId, hubIds]`, so the connection filter, the
+  audience toggle, and expanding an external never reflow the graph. Quieting IS in that key on
+  purpose: it changes what is *drawn*, not merely what is *shown* of a fixed drawing.
+- **Hub detection runs on the BASE view, never the rendered one** (`detectHubs` in `core/hubs.ts`).
+  Run it on the rendered view and filtering out `dataAccess` un-hubs a settings node, reflowing the
+  whole graph on a filter toggle — precisely what the layout-stability invariant above exists to
+  prevent. `quietHubs` is then applied to *both* views with the same id set.
+- **`NODE_W`/`NODE_H` are the defaults of a `NodeMetrics` parameter**, threaded through
+  `layoutFocusView`, `resolveViewPositions`, `groupBoxHeight` and `focusViewToFlow`. Quieting adds
+  `BADGE_ROW_H` to the height so the badge row fits; dagre, the external columns, the group boxes,
+  the region box and the node components must all agree, or boxes overlap. `patternView.ts` stays on
+  the bare constants deliberately — the pattern view keeps the default size.
 - A node with **no base slot gets no position** and renders at the origin, on top of everything else.
   If nodes stack up in a corner, look here first.
 - **`expandedExternals` is for nodes OUTSIDE the focus.** Expanded groups are laid out in the
