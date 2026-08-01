@@ -164,7 +164,7 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>, opts: 
     nodes.push({
       id: n.id, type: 'node', position: pos[n.id] ?? { x: 0, y: 0 },
       data: { ...nodeVisual(n), width: m.width, height: m.height, badges: opts.badges?.get(n.id), hubDegree: hubDegree(n.id) },
-      initialWidth: m.width, initialHeight: m.height, draggable: false,
+      initialWidth: m.width, initialHeight: m.height,
     });
   }
   for (const n of view.externals) {
@@ -174,7 +174,7 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>, opts: 
         ...nodeVisual(n), width: m.width, height: m.height, badges: opts.badges?.get(n.id), hubDegree: hubDegree(n.id),
         expandable: view.expandableExternalIds?.has(n.id) ?? false,
       },
-      initialWidth: m.width, initialHeight: m.height, draggable: false,
+      initialWidth: m.width, initialHeight: m.height,
     });
   }
 

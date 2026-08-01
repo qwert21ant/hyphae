@@ -35,6 +35,40 @@ function FieldGroup({ def }: { def: FieldDef }) {
   );
 }
 
+/**
+ * Density: how much of the graph is drawn at all, as opposed to which of it is shown. Quieting and
+ * the threshold reflow the layout (they change what is drawn); the connection filters above do not.
+ */
+function DensityGroup() {
+  const quietHubsOn = useStore((s) => s.quietHubsOn);
+  const toggleQuietHubs = useStore((s) => s.toggleQuietHubs);
+  const hubThreshold = useStore((s) => s.hubThreshold);
+  const setHubThreshold = useStore((s) => s.setHubThreshold);
+  const dragged = useStore((s) => s.nodePositions);
+  const resetNodePositions = useStore((s) => s.resetNodePositions);
+  return (
+    <div className="filter__group">
+      <div className="filter__label">Density</div>
+      <label className="filter__option">
+        <input type="checkbox" aria-label="Quiet hubs" checked={quietHubsOn} onChange={toggleQuietHubs} />
+        Quiet hubs
+      </label>
+      <label className="filter__option filter__stepper" title="A node with at least this many drawn edges is quieted">
+        ≥
+        <input
+          type="number" min={2} max={40} aria-label="Hub threshold"
+          value={hubThreshold} disabled={!quietHubsOn}
+          onChange={(ev) => setHubThreshold(Number(ev.target.value))}
+        />
+        edges
+      </label>
+      {Object.keys(dragged).length > 0 && (
+        <button className="filter__clear" onClick={resetNodePositions}>reset layout</button>
+      )}
+    </div>
+  );
+}
+
 export function FilterPanel() {
   const filter = useStore((s) => s.connFilter);
   const clear = useStore((s) => s.clearConnFilter);
@@ -47,6 +81,7 @@ export function FilterPanel() {
         {active > 0 && <button className="filter__clear" onClick={clear}>clear</button>}
       </div>
       <VerbClassGroup />
+      <DensityGroup />
       {enumFields.map((f) => <FieldGroup key={f.key} def={f} />)}
     </div>
   );

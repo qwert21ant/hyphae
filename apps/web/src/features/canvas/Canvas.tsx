@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ReactFlow, Background, Controls, MiniMap, Panel, ConnectionMode,
+  ReactFlow, Background, Controls, MiniMap, Panel, ConnectionMode, useNodesState,
   type Node as FlowNode,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -43,6 +43,12 @@ export function Canvas() {
   const { view, nodes, edges, overlay, flowActive, patternFlow } = useCanvasView();
   const { onNodeClick } = useDrillNavigation();
 
+  // The derived `nodes` are the source of truth; React Flow's copy exists only so it can animate a
+  // drag — it will not move a fully controlled node without an onNodesChange handler.
+  const setNodePosition = useStore((s) => s.setNodePosition);
+  const [rfNodes, setRfNodes, onNodesChange] = useNodesState<FlowNode>([]);
+  useEffect(() => { setRfNodes(nodes); }, [nodes, setRfNodes]);
+
   // Transient hover, so a user can trace a node's neighborhood without committing a selection.
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   // Drilling changes focus (and remounts the graph); reset hover so the new view opens neutral.
@@ -78,7 +84,7 @@ export function Canvas() {
     hi, activeId, flowActive, patternActive: !!patternFlow, strong, accent, dimEdge, dimNode,
   });
 
-  const rfNodes = patternFlow ? patternFlow.nodes : nodes;
+  const shownNodes = patternFlow ? patternFlow.nodes : rfNodes;
   const rfEdges = patternFlow ? patternFlow.edges : displayEdges;
 
   return (
@@ -87,12 +93,16 @@ export function Canvas() {
       <ReactFlow
         key={selectedPatternId ? `pattern:${selectedPatternId}` : (focusId ?? '__root__')}
         colorMode={theme}
-        nodes={rfNodes}
+        nodes={shownNodes}
+        onNodesChange={patternFlow ? undefined : onNodesChange}
         edges={rfEdges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         connectionMode={ConnectionMode.Loose}
-        nodesDraggable={false}
+        nodesDraggable={!patternFlow}
+        // Commit on drop, not per frame: writing every frame would re-run focusViewToFlow at frame
+        // rate. The region box therefore resizes when the node lands, not continuously mid-drag.
+        onNodeDragStop={(_, n) => setNodePosition(n.id, n.position)}
         nodesConnectable={false}
         elementsSelectable
         onNodeClick={onNodeClick}

@@ -23,9 +23,11 @@ export function useDrillNavigation(): { onNodeClick: (e: unknown, node: FlowNode
     setFocus(node.id);
   };
 
-  // React Flow suppresses onNodeDoubleClick while nodesDraggable={false} (double-click rides on
-  // the node drag machinery), so we detect the double-click from the onNodeClick stream instead:
-  // first click selects, a second click on the same node within the threshold drills in.
+  // The double-click is detected from the onNodeClick stream: first click selects, a second click on
+  // the same node within the threshold drills in. This started as a workaround — React Flow
+  // suppresses onNodeDoubleClick while nodesDraggable={false}, because double-click rides on the
+  // node drag machinery — and nodes ARE draggable now, so onNodeDoubleClick would fire. It is kept
+  // deliberately: it works either way, and nine drill tests in Canvas.test.tsx pin this behaviour.
   const lastClick = useRef<{ id: string; t: number }>({ id: '', t: 0 });
   const onNodeClick = (_: unknown, node: FlowNode) => {
     const now = Date.now();

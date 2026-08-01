@@ -475,3 +475,14 @@ describe('hub quieting', () => {
     expect(queryByText('↳ Hub')).toBeNull();
   });
 });
+
+describe('dragging', () => {
+  it('makes child boxes draggable and leaves the region fixed', () => {
+    useStore.setState({ model: model(), focusId: 'ca' });
+    const { container } = render(<Canvas />);
+    // React Flow v12's NodeWrapper puts a `draggable` class on a node it will drag and omits it for
+    // one with draggable:false. Verified against @xyflow/react's own class list.
+    expect(node(container, 'a1')!.className).toContain('draggable');
+    expect(node(container, 'ca')!.className).not.toContain('draggable');
+  });
+});
