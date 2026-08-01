@@ -2,7 +2,7 @@ import dagre from '@dagrejs/dagre';
 import type { Node as FlowNode, Edge as FlowEdge } from '@xyflow/react';
 import { MarkerType } from '@xyflow/react';
 import { patternKindDefOf, type Pattern, type Profile, type Node as ModelNode } from '@hyphae/schema';
-import { NODE_W, NODE_H } from '@/features/canvas/layout';
+import { NODE_W, NODE_H } from './layout';
 
 export type PatternMemberData = {
   name: string;

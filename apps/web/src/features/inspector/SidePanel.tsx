@@ -2,9 +2,9 @@ import { useMemo } from 'react';
 import { useStore } from '@/state/store';
 import { buildFocusView } from '@/core/focusView';
 import { partitionConnections } from '@/core/connections';
-import { ConnectionList } from '@/features/inspector/ConnectionList';
-import { Row, ListRow, NodeLink, FieldRow } from '@/features/inspector/FieldRows';
-import { fieldLayout } from '@/features/inspector/fieldLayout';
+import { ConnectionList } from './ConnectionList';
+import { Row, ListRow, NodeLink, FieldRow } from './FieldRows';
+import { fieldLayout } from './fieldLayout';
 import { nodeFields, connectionFields, c4Backend, type Connection } from '@hyphae/schema';
 
 /** The inspector: a read-only detail view of whatever is selected. The model is authored by agents

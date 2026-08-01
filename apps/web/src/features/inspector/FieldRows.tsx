@@ -1,5 +1,5 @@
 import type { FieldDef, Node } from '@hyphae/schema';
-import { fieldLayout, type FieldLayout } from '@/features/inspector/fieldLayout';
+import { fieldLayout, type FieldLayout } from './fieldLayout';
 
 /** Read-only counterparts of the inspector's old editable controls: the model is authored by agents
  *  over MCP, so nothing here writes. Kept out of `SidePanel` because `SidePanel` renders the real

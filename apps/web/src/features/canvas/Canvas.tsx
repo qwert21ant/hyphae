@@ -5,7 +5,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useStore } from '@/state/store';
-import { highlightSets } from '@/features/canvas/reactflow';
+import { highlightSets } from './reactflow';
 import { GroupNode } from '@/features/canvas/nodes/GroupNode';
 import { NodeBox } from '@/features/canvas/nodes/NodeBox';
 import { GhostNode } from '@/features/canvas/nodes/GhostNode';

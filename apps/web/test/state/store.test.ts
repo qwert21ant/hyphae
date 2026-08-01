@@ -122,7 +122,7 @@ describe('viewer store', () => {
 // branch that seeds initial audience is otherwise never exercised). The
 // top-level `useStore` binding used by every other test above was already
 // resolved at import time and is unaffected by resetModules, and the
-// vi.mock('../src/api', ...) mock factory is reapplied automatically after
+// vi.mock('@/state/api', ...) mock factory is reapplied automatically after
 // reset, so this does not desync any other test in the file.
 describe('audience init from localStorage', () => {
   it('initializes audience from a previously persisted localStorage value', async () => {

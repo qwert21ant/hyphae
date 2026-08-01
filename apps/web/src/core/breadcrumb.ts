@@ -1,5 +1,5 @@
 import { type HyphaeModel } from '@hyphae/schema';
-import { NodeTree } from '@/core/NodeTree';
+import { NodeTree } from './NodeTree';
 
 export type Crumb = { id: string | null; name: string };
 

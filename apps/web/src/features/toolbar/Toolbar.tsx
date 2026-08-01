@@ -1,6 +1,6 @@
 import { useStore } from '@/state/store';
-import { Altimeter } from '@/features/toolbar/Altimeter';
-import { SearchBox } from '@/features/toolbar/SearchBox';
+import { Altimeter } from './Altimeter';
+import { SearchBox } from './SearchBox';
 import { applyTheme, nextTheme } from '@/state/theme';
 
 const AUDIENCES = ['stakeholder', 'full'] as const;

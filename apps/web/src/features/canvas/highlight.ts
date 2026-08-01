@@ -1,4 +1,4 @@
-import { EDGE_LABEL_CLASS } from './edges/FloatingEdge';
+import { EDGE_LABEL_CLASS } from '@/features/canvas/edges/FloatingEdge';
 
 export type HighlightArgs = {
   hi: { nodes: Set<string>; edges: Set<string> };

@@ -1,5 +1,5 @@
 import { type HyphaeModel, type FlowStep } from '@hyphae/schema';
-import { NodeTree } from '@/core/NodeTree';
+import { NodeTree } from './NodeTree';
 
 export type StepReveal = {
   focusId: string | null;    // the view to focus

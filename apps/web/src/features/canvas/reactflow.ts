@@ -1,7 +1,7 @@
 import { MarkerType, type Node as FlowNode, type Edge as FlowEdge } from '@xyflow/react';
 import { c4Backend, layerOfType, roleOfNode, roleDefOf, verbClassOf, type Node as ModelNode } from '@hyphae/schema';
 import type { FocusView, FocusEdge } from '@/core/focusView';
-import { NODE_W, NODE_H, PAD, LABEL_H, type XY } from '@/features/canvas/layout';
+import { NODE_W, NODE_H, PAD, LABEL_H, type XY } from './layout';
 import { layerColorOf, VERB_CLASS_COLOR } from '@/core/verbColors';
 
 /** The node data every node renderer reads: name, the on-diagram purpose, tech chip, and shape. */

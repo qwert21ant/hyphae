@@ -4,9 +4,17 @@ const indexOfLayer = (layer: string | undefined): number =>
   layer ? c4Backend.layers.indexOf(layer) : -1;
 
 /**
- * The model's containment tree: the id→node index, built once, plus the one cycle-guarded parent
- * walk every view derivation needs. Five functions in `focusView.ts` used to rebuild the index and
- * re-implement the walk; a guard duplicated five times is a guard that will be forgotten in one.
+ * The model's containment tree: the id→node index, built once, plus the shared cycle-guarded parent
+ * walk (`climb`, behind `ancestors`) that most view derivations need. Five functions in
+ * `focusView.ts` used to rebuild the index and re-implement the walk; a guard duplicated five times
+ * is a guard that will be forgotten in one.
+ *
+ * Two methods keep a `seen` guard of their own — `childOf` and `representativeWith` — and that is
+ * deliberate, not leftover duplication: both compare or read the **raw** `parentId` (`childOf`
+ * matches an ancestor that is itself absent from the model; `representativeWith` stops on an
+ * unresolvable parent and returns the node it stopped at), and both exit mid-loop with a value the
+ * shared walk has no way to express. Five guards became three; folding these two into `ancestors`
+ * would change their answers, not just their shape.
  *
  * Two rules are load-bearing and deliberately odd:
  * - a `parentId` that is not in the model counts as **top-level** (dangling refs never make a node
@@ -33,7 +41,7 @@ export class NodeTree {
     return node.parentId && this.byId.has(node.parentId) ? node.parentId : null;
   }
 
-  /** The resolvable ancestors of `node`, nearest first, stopping on a cycle. The single guarded walk. */
+  /** The resolvable ancestors of `node`, nearest first, stopping on a cycle. The shared guarded walk. */
   private climb(node: Node): Node[] {
     const chain: Node[] = [];
     const seen = new Set<string>([node.id]);

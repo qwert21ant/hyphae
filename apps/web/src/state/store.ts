@@ -2,8 +2,8 @@ import { create } from 'zustand';
 import { emptyModel, type HyphaeModel, type FlowStep } from '@hyphae/schema';
 import { stepReveal } from '@/core/stepReveal';
 import { type Audience, type ConnFilter } from '@/core/focusView';
-import { initialTheme, type Theme } from '@/state/theme';
-import * as api from '@/state/api';
+import { initialTheme, type Theme } from './theme';
+import * as api from './api';
 
 export type { ConnFilter };
 

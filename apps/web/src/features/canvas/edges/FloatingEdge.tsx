@@ -1,5 +1,5 @@
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, useInternalNode, type EdgeProps } from '@xyflow/react';
-import { getEdgeParams, fanEdgeParams, boxOf, EDGE_FAN_SPREAD } from '@/features/canvas/edges/floating';
+import { getEdgeParams, fanEdgeParams, boxOf, EDGE_FAN_SPREAD } from './floating';
 
 /** Class on the portaled edge label. Shared with Canvas's highlight CSS, which cannot reach the
  *  label through `.react-flow__edge` — the label renders outside the edge's <g>. */

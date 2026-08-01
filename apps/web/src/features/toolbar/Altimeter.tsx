@@ -19,8 +19,9 @@ const typeTag = (type: string) => type.slice(0, 3).toUpperCase();
  * A C4 model's one inarguable property is altitude, and navigating it means descending. Each crumb
  * is drawn inside a band tinted with its own layer's altitude step, so how deep you are is readable
  * without reading the names; only the deepest band is lit. `data-layer` carries the layer name and
- * the CSS maps it to a step, which keeps the ramp in one place (styles/chrome.css) rather than
- * duplicating LAYER_COLOR here — while the visible tag names the kind the reader actually navigates.
+ * the CSS maps it to a step, which keeps the ramp in one place (features/toolbar/toolbar.css)
+ * rather than duplicating LAYER_COLOR here — while the visible tag names the kind the reader
+ * actually navigates.
  */
 export function Altimeter() {
   const model = useStore((s) => s.model);

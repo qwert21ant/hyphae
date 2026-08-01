@@ -1,7 +1,7 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { Shape } from '@hyphae/schema';
 import { shapePadding } from '@/features/canvas/shapes';
-import { NodeShape } from '@/features/canvas/nodes/NodeShape';
+import { NodeShape } from './NodeShape';
 import { NODE_W, NODE_H, SUMMARY_LINES } from '@/features/canvas/layout';
 
 // Invisible, non-interactive side handles kept only so floating edges can anchor to the node

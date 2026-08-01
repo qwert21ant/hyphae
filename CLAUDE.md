@@ -50,8 +50,11 @@ schema in `packages/schema` wins any disagreement.
 `apps/web/test/` **mirrors `src/`** — `test/features/canvas/nodes/NodeBox.test.tsx` sits opposite
 `src/features/canvas/nodes/NodeBox.tsx`.
 
-Web imports use the **`@/` alias** (`@/core/NodeTree`, never `../../../core/NodeTree`). It is
-declared in **three** files and all three must agree: `apps/web/tsconfig.json` (`paths`),
+Web imports use the **`@/` alias** (`@/core/NodeTree`, never `../../../core/NodeTree`), with one
+exception: a file in the **same directory** is imported as `./Name`. A *child* directory is not a
+sibling — `Canvas.tsx` reaches `nodes/NodeBox` through the alias — so `./` in an import always means
+"the file next to this one", and nothing else. The alias is declared in **three** files and all
+three must agree: `apps/web/tsconfig.json` (`paths`),
 `vite.config.ts` and `vitest.config.ts` (`resolve.alias`). The vitest config is standalone — it does
 *not* inherit vite's `resolve` — so adding the alias in only two of them leaves tests or the build
 resolving nothing, depending on which one you missed.
@@ -68,12 +71,18 @@ resolving nothing, depending on which one you missed.
    state, export a function. Components stay functions (class components cannot use hooks); so do the
    Zustand store and the stateless transforms — `hashRoute`, `shapes`, `floating`, `fieldLayout`,
    `theme`, `layout`. A class around any of those is a hollow namespace.
-3. **A feature folder owns its components, its pure logic and its CSS.** `core/` holds only what two
-   or more features import. A non-canvas file importing `features/canvas/*` internals is a layering
-   bug — that is why `core/verbColors.ts` exists: `VERB_CLASS_COLOR`, `LAYER_COLOR` and
-   `layerColorOf` are wanted by the inspector and the toolbar, so they left `reactflow.ts` and the
-   React Flow adapters stayed behind. Importing a feature's public *component* (`App.tsx` importing
-   `Canvas`) is fine.
+3. **A feature folder owns its components, its pure logic and its CSS.** `core/` is the **model
+   layer**: pure logic over the model, independent of any feature's UI. A module earns a place there
+   by being readable and testable knowing only `@hyphae/schema` — it must not render, must not import
+   a feature's components, hooks or stylesheet, and must not be where a helper lands merely because
+   no feature wanted it. Being imported by two features is *not* the test, and never was:
+   `breadcrumb.ts` has one caller (the toolbar), `connections.ts` one (the inspector), `hashRoute.ts`
+   one (`App.tsx`), and `NodeTree.ts` is used only by its `core/` neighbours. A non-canvas file
+   importing `features/canvas/*` internals is a layering bug — that is why `core/verbColors.ts`
+   exists: `VERB_CLASS_COLOR`, `LAYER_COLOR` and `layerColorOf` are read by
+   `features/inspector/ConnectionList.tsx` as well as by the canvas's own `overlay/FilterPanel.tsx`,
+   `overlay/Legend.tsx` and `reactflow.ts`, so they left `reactflow.ts` and the React Flow adapters
+   stayed behind. Importing a feature's public *component* (`App.tsx` importing `Canvas`) is fine.
 
 ## Commands
 

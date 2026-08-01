@@ -10,7 +10,7 @@ vi.mock('@/state/api', () => {
   return { loadModel: vi.fn(async () => ({ model: blank(), version: 0 })) };
 });
 
-import { App } from '../src/App';
+import { App } from '@/App';
 import { useStore } from '@/state/store';
 import { emptyModel } from '@hyphae/schema';
 
