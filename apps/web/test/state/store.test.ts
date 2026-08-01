@@ -28,6 +28,9 @@ describe('viewer store', () => {
       'setModel', 'syncFromServer', 'setFocus', 'revealNode', 'revealStep', 'select',
       'selectFlow', 'selectPattern', 'setOffViewSteps', 'setAudience', 'setTheme', 'toggleConnVerbClass',
       'toggleConnField', 'clearConnFilter', 'toggleExternal',
+      // Density controls: all view state, none of it a model write.
+      'quietHubsOn', 'hubThreshold', 'hubOverrides', 'nodePositions',
+      'toggleQuietHubs', 'setHubThreshold', 'setHubOverride', 'setNodePosition', 'resetNodePositions',
     ].sort());
   });
 
@@ -197,5 +200,52 @@ describe('api.ts has no write path', () => {
   it('contains no fetch call using a write method', () => {
     const src = readFileSync(join(process.cwd(), 'src/state/api.ts'), 'utf8');
     expect(src).not.toMatch(/method:\s*['"]?(POST|PATCH|PUT|DELETE)/i);
+  });
+});
+
+describe('density state', () => {
+  beforeEach(() => {
+    useStore.setState({
+      quietHubsOn: true, hubThreshold: 8, hubOverrides: {}, nodePositions: {},
+      focusId: null, expandedExternals: new Set(),
+    });
+  });
+
+  it('defaults to quieting on at a threshold of 8', () => {
+    expect(useStore.getState().quietHubsOn).toBe(true);
+    expect(useStore.getState().hubThreshold).toBe(8);
+  });
+
+  it('toggles quieting', () => {
+    useStore.getState().toggleQuietHubs();
+    expect(useStore.getState().quietHubsOn).toBe(false);
+  });
+
+  it('clamps the threshold to 2..40', () => {
+    useStore.getState().setHubThreshold(0);
+    expect(useStore.getState().hubThreshold).toBe(2);
+    useStore.getState().setHubThreshold(99);
+    expect(useStore.getState().hubThreshold).toBe(40);
+  });
+
+  it('records a hub override in both directions', () => {
+    useStore.getState().setHubOverride('a', false);
+    useStore.getState().setHubOverride('b', true);
+    expect(useStore.getState().hubOverrides).toEqual({ a: false, b: true });
+  });
+
+  it('records and resets a dragged position', () => {
+    useStore.getState().setNodePosition('a', { x: 10, y: 20 });
+    expect(useStore.getState().nodePositions).toEqual({ a: { x: 10, y: 20 } });
+    useStore.getState().resetNodePositions();
+    expect(useStore.getState().nodePositions).toEqual({});
+  });
+
+  it('clears drag positions and hub overrides when the focus changes', () => {
+    useStore.getState().setNodePosition('a', { x: 1, y: 2 });
+    useStore.getState().setHubOverride('a', false);
+    useStore.getState().setFocus('other');
+    expect(useStore.getState().nodePositions).toEqual({});
+    expect(useStore.getState().hubOverrides).toEqual({});
   });
 });
