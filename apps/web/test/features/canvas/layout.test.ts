@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   layoutFocusView, resolveViewPositions, groupBoxHeight, NODE_W, NODE_H, PAD, LABEL_H, ROW_GAP, MEMBER_PITCH,
-  DEFAULT_METRICS, BADGE_ROW_H, withBadgeRow, rowGap, GRID_COLS,
+  DEFAULT_METRICS, BADGE_ROW_H, withBadgeRow, rowGap, GRID_COLS, applyDragOverrides,
 } from '@/features/canvas/layout';
 import type { FocusView } from '@/core/focusView';
 
@@ -304,5 +304,22 @@ describe('isolated children', () => {
 
   it('is deterministic', () => {
     expect(layoutFocusView(isolated(7))).toEqual(layoutFocusView(isolated(7)));
+  });
+});
+
+describe('applyDragOverrides', () => {
+  it('overrides a laid-out position with the dragged one', () => {
+    const out = applyDragOverrides({ a: { x: 0, y: 0 }, b: { x: 10, y: 10 } }, { a: { x: 99, y: 98 } });
+    expect(out).toEqual({ a: { x: 99, y: 98 }, b: { x: 10, y: 10 } });
+  });
+
+  it('ignores an override for a node not in the view', () => {
+    const out = applyDragOverrides({ a: { x: 0, y: 0 } }, { gone: { x: 5, y: 5 } });
+    expect(out).toEqual({ a: { x: 0, y: 0 } });
+  });
+
+  it('returns the base object untouched when there is nothing to override', () => {
+    const base = { a: { x: 1, y: 2 } };
+    expect(applyDragOverrides(base, {})).toBe(base);
   });
 });

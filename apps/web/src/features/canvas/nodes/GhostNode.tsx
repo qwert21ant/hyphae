@@ -3,6 +3,7 @@ import { useStore } from '@/state/store';
 import type { NodeBoxData } from './NodeBox';
 import { shapePadding } from '@/features/canvas/shapes';
 import { NodeShape } from './NodeShape';
+import { HubBadges, HubChip } from './HubBadges';
 import { NODE_W, NODE_H, SUMMARY_LINES } from '@/features/canvas/layout';
 
 // Invisible, non-interactive side handles kept only so floating edges can anchor to the node
@@ -47,6 +48,7 @@ export function GhostNode({ id, data }: NodeProps) {
         justifyContent: 'center',
         gap: 2,
         overflow: 'hidden',
+        opacity: d.hubDegree != null ? 0.55 : 1,
       }}
     >
       <NodeShape shape={shape} w={w} h={h} bg={color.bg} border={color.border} stroke={1.5} dashed />
@@ -76,6 +78,8 @@ export function GhostNode({ id, data }: NodeProps) {
           {d.technology}
         </div>
       )}
+      <HubBadges badges={d.badges} />
+      {d.hubDegree != null && <HubChip id={id} degree={d.hubDegree} />}
     </div>
   );
 }

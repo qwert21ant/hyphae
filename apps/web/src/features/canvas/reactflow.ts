@@ -87,10 +87,15 @@ export type FlowOptions = {
   badges?: Map<string, HubBadge[]>;
   /** Drawn-edge degree per node, so a quieted hub can show what it is standing in for. */
   hubDegrees?: Map<string, number>;
+  /** Which nodes are quieted. Only these get a `hubDegree` in their data, and so a chip. */
+  hubIds?: Set<string>;
 };
 
 export function focusViewToFlow(view: FocusView, pos: Record<string, XY>, opts: FlowOptions = {}): { nodes: FlowNode[]; edges: FlowEdge[] } {
   const m = opts.metrics ?? DEFAULT_METRICS;
+  // A degree is only carried by a node that is actually quieted — it is the chip's label AND the
+  // flag that the node is standing in for hidden edges.
+  const hubDegree = (id: string) => (opts.hubIds?.has(id) ? opts.hubDegrees?.get(id) : undefined);
   const nodes: FlowNode[] = [];
 
   // initialWidth/initialHeight are unmeasured-size hints: they don't constrain the real DOM node
@@ -158,7 +163,7 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>, opts: 
   for (const n of view.children) {
     nodes.push({
       id: n.id, type: 'node', position: pos[n.id] ?? { x: 0, y: 0 },
-      data: { ...nodeVisual(n), width: m.width, height: m.height, badges: opts.badges?.get(n.id) },
+      data: { ...nodeVisual(n), width: m.width, height: m.height, badges: opts.badges?.get(n.id), hubDegree: hubDegree(n.id) },
       initialWidth: m.width, initialHeight: m.height, draggable: false,
     });
   }
@@ -166,7 +171,7 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>, opts: 
     nodes.push({
       id: n.id, type: 'ghost', position: pos[n.id] ?? { x: 0, y: 0 },
       data: {
-        ...nodeVisual(n), width: m.width, height: m.height, badges: opts.badges?.get(n.id),
+        ...nodeVisual(n), width: m.width, height: m.height, badges: opts.badges?.get(n.id), hubDegree: hubDegree(n.id),
         expandable: view.expandableExternalIds?.has(n.id) ?? false,
       },
       initialWidth: m.width, initialHeight: m.height, draggable: false,

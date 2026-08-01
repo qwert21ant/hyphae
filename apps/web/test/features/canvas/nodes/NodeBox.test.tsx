@@ -55,6 +55,14 @@ describe('NodeBox', () => {
     expect(box.style.height).toBe('120px');
   });
 
+  it('renders hub badges passed through data', () => {
+    const { getByText } = renderBox({
+      name: 'n',
+      badges: [{ hubId: 'h', hubName: 'Settings', verb: 'reads', verbClass: 'dataAccess' }],
+    });
+    expect(getByText('↳ Settings')).toBeTruthy();
+  });
+
   it('draws its role shape as SVG, not as CSS on the div', () => {
     const { container } = renderBox({ name: 'Store', summary: 's', shape: 'cylinder' });
     expect(container.querySelector('svg[data-shape="cylinder"]')).toBeTruthy();

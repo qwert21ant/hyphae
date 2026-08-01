@@ -145,6 +145,21 @@ export function layoutFocusView(view: FocusView, m: NodeMetrics = DEFAULT_METRIC
 }
 
 /**
+ * Session-only manual positions layered over the computed ones. Applied LAST, after
+ * resolveViewPositions, so a dragged node keeps its place while the connection filter and the
+ * audience toggle go on leaving the rest of the graph alone. An override for a node that is not in
+ * the view is ignored rather than added, so a stale id from a previous focus cannot create a
+ * position for a node that has no slot.
+ */
+export function applyDragOverrides(base: Record<string, XY>, overrides: Record<string, XY>): Record<string, XY> {
+  const ids = Object.keys(overrides).filter((id) => id in base);
+  if (!ids.length) return base;
+  const out = { ...base };
+  for (const id of ids) out[id] = overrides[id];
+  return out;
+}
+
+/**
  * Map a rendered view onto stable `base` slots (from layoutFocusView on the collapsed base view):
  * - children and a childless focus node keep their base position (so filtering connections or
  *   switching audience never moves them);

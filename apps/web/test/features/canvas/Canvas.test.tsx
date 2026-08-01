@@ -441,3 +441,37 @@ describe('Canvas — the highlight ring traces the box it wraps', () => {
     expect(css).not.toMatch(/border-radius/);        // …but its shape is not this rule's business
   });
 });
+
+describe('hub quieting', () => {
+  /** `hub` is read by three siblings inside container `ca`. */
+  function hubModel() {
+    const m = emptyModel();
+    m.nodes.push(
+      { id: 'ca', name: 'Alpha', type: 'Container', parentId: null, ...base },
+      { id: 'hub', name: 'Hub', type: 'Component', parentId: 'ca', ...base },
+      { id: 'k1', name: 'K1', type: 'Component', parentId: 'ca', ...base },
+      { id: 'k2', name: 'K2', type: 'Component', parentId: 'ca', ...base },
+      { id: 'k3', name: 'K3', type: 'Component', parentId: 'ca', ...base },
+    );
+    m.connections.push(
+      { id: 'r1', from: 'k1', to: 'hub', ...e, verb: 'reads' },
+      { id: 'r2', from: 'k2', to: 'hub', ...e, verb: 'reads' },
+      { id: 'r3', from: 'k3', to: 'hub', ...e, verb: 'reads' },
+    );
+    return m;
+  }
+
+  it('keeps the hub node but replaces its edges with badges on the readers', () => {
+    useStore.setState({ model: hubModel(), focusId: 'ca', quietHubsOn: true, hubThreshold: 3, hubOverrides: {} });
+    const { container, getAllByText } = render(<Canvas />);
+    expect(node(container, 'hub')).toBeTruthy();
+    expect(getAllByText('↳ Hub')).toHaveLength(3);
+  });
+
+  it('draws no badge when quieting is off', () => {
+    useStore.setState({ model: hubModel(), focusId: 'ca', quietHubsOn: false, hubOverrides: {} });
+    const { container, queryByText } = render(<Canvas />);
+    expect(node(container, 'hub')).toBeTruthy();
+    expect(queryByText('↳ Hub')).toBeNull();
+  });
+});

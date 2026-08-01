@@ -1,7 +1,9 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { Shape } from '@hyphae/schema';
+import type { HubBadge } from '@/core/hubs';
 import { shapePadding } from '@/features/canvas/shapes';
 import { NodeShape } from './NodeShape';
+import { HubBadges, HubChip } from './HubBadges';
 import { NODE_W, NODE_H, SUMMARY_LINES } from '@/features/canvas/layout';
 
 // Invisible, non-interactive side handles kept only so floating edges can anchor to the node
@@ -23,9 +25,13 @@ export type NodeBoxData = {
   /** Box size, supplied by focusViewToFlow — grows a badge row when hub quieting is on. */
   width?: number;
   height?: number;
+  /** Edges of quieted hubs, re-encoded onto this node. */
+  badges?: HubBadge[];
+  /** Set only when THIS node is the quieted hub — its drawn-edge degree, and the chip's label. */
+  hubDegree?: number;
 };
 
-export function NodeBox({ data }: NodeProps) {
+export function NodeBox({ id, data }: NodeProps) {
   const d = data as NodeBoxData;
   const color = d.color ?? { bg: 'var(--alt-2-bg)', border: 'var(--alt-2-bd)' };
   const shape = d.shape ?? 'rectangle';
@@ -50,6 +56,7 @@ export function NodeBox({ data }: NodeProps) {
         justifyContent: 'center',
         gap: 2,
         overflow: 'hidden',
+        opacity: d.hubDegree != null ? 0.55 : 1,
       }}
     >
       <NodeShape shape={shape} w={w} h={h} bg={color.bg} border={color.border} />
@@ -73,6 +80,8 @@ export function NodeBox({ data }: NodeProps) {
           {d.technology}
         </div>
       )}
+      <HubBadges badges={d.badges} />
+      {d.hubDegree != null && <HubChip id={id} degree={d.hubDegree} />}
     </div>
   );
 }
