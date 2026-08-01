@@ -224,3 +224,45 @@ describe('NodeMetrics', () => {
     expect(groupBoxHeight(3, tall)).toBeGreaterThan(groupBoxHeight(3));
   });
 });
+
+describe('external column ordering', () => {
+  // Three children stacked by dagre (a chain gives them distinct ranks, hence distinct y), and
+  // three incoming externals deliberately id-sorted into the WRONG vertical order.
+  const chain: FocusView = {
+    focusId: 'f', focusNode: node('f', 'Container'),
+    children: [node('k1'), node('k2'), node('k3')],
+    externals: [node('xa', 'Container'), node('xb', 'Container'), node('xc', 'Container')],
+    edges: [
+      { id: 'c1', from: 'k1', to: 'k2', count: 1, derived: false, realizedBy: ['a'] },
+      { id: 'c2', from: 'k2', to: 'k3', count: 1, derived: false, realizedBy: ['b'] },
+      // xa→k3 (bottom), xb→k2 (middle), xc→k1 (top): id order is the exact reverse of graph order
+      { id: 'e1', from: 'xa', to: 'k3', count: 1, derived: true, realizedBy: ['p'] },
+      { id: 'e2', from: 'xb', to: 'k2', count: 1, derived: true, realizedBy: ['q'] },
+      { id: 'e3', from: 'xc', to: 'k1', count: 1, derived: true, realizedBy: ['r'] },
+    ],
+  };
+
+  it('orders a column by its neighbours vertical position, not by id', () => {
+    const pos = layoutFocusView(chain);
+    // k1 is above k3, so xc (which feeds k1) must sit above xa (which feeds k3).
+    expect(pos.k1.y).toBeLessThan(pos.k3.y);
+    expect(pos.xc.y).toBeLessThan(pos.xb.y);
+    expect(pos.xb.y).toBeLessThan(pos.xa.y);
+  });
+
+  it('falls back to the id order for externals with no placed neighbour', () => {
+    const orphaned: FocusView = {
+      ...chain,
+      edges: [
+        { id: 'o1', from: 'xb', to: 'f', count: 1, derived: true, realizedBy: ['p'] },
+        { id: 'o2', from: 'xa', to: 'f', count: 1, derived: true, realizedBy: ['q'] },
+      ],
+    };
+    const pos = layoutFocusView(orphaned);
+    expect(pos.xa.y).toBeLessThan(pos.xb.y);
+  });
+
+  it('is still deterministic', () => {
+    expect(layoutFocusView(chain)).toEqual(layoutFocusView(chain));
+  });
+});

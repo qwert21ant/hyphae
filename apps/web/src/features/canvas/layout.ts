@@ -79,8 +79,30 @@ export function layoutFocusView(view: FocusView, m: NodeMetrics = DEFAULT_METRIC
   const incoming = view.externals.filter((ext) => view.edges.some((e) => e.from === ext.id)).map((n) => n.id);
   const outgoing = view.externals.filter((ext) => !view.edges.some((e) => e.from === ext.id)).map((n) => n.id);
   const byId = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
-  incoming.sort(byId);
-  outgoing.sort(byId);
+
+  // Barycentre: the mean y of the already-placed in-view neighbours. Sorting the column this way
+  // instead of by id is where most of the crossing reduction comes from — a UUID sort is random
+  // with respect to the graph, so an external feeding the topmost child could land at the bottom of
+  // its column and drag its edge across everything. An external with no placed neighbour keeps the
+  // id order, so the result stays fully deterministic.
+  const barycentre = (id: string): number | null => {
+    const ys: number[] = [];
+    for (const e of view.edges) {
+      const other = e.from === id ? e.to : e.to === id ? e.from : null;
+      if (other === null || other === id) continue;
+      const p = pos[other];
+      if (p) ys.push(p.y);
+    }
+    return ys.length ? ys.reduce((a, b) => a + b, 0) / ys.length : null;
+  };
+  const byBarycentre = (a: string, b: string) => {
+    const ba = barycentre(a);
+    const bb = barycentre(b);
+    if (ba === null || bb === null || ba === bb) return byId(a, b);
+    return ba - bb;
+  };
+  incoming.sort(byBarycentre);
+  outgoing.sort(byBarycentre);
 
   const pitch = rowGap(m);
   const placeColumn = (ids: string[], x: number) => {
