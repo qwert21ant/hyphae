@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { layoutFocusView, resolveViewPositions, groupBoxHeight, NODE_W, NODE_H, PAD, LABEL_H, ROW_GAP, MEMBER_PITCH } from '@/features/canvas/layout';
+import {
+  layoutFocusView, resolveViewPositions, groupBoxHeight, NODE_W, NODE_H, PAD, LABEL_H, ROW_GAP, MEMBER_PITCH,
+  DEFAULT_METRICS, BADGE_ROW_H, withBadgeRow, rowGap,
+} from '@/features/canvas/layout';
 import type { FocusView } from '@/core/focusView';
 
 const node = (id: string, type = 'Component') =>
@@ -183,5 +186,41 @@ describe('node box vs stacking pitch (overlap guards)', () => {
     };
     const pos = resolveViewPositions(v as never, base);
     expect(pos.b2.y - pos.b1.y).toBeGreaterThanOrEqual(NODE_H);
+  });
+});
+
+describe('NodeMetrics', () => {
+  it('defaults to the exported constants', () => {
+    expect(DEFAULT_METRICS).toEqual({ width: NODE_W, height: NODE_H });
+  });
+
+  it('withBadgeRow adds exactly one badge row of height', () => {
+    expect(withBadgeRow(DEFAULT_METRICS)).toEqual({ width: NODE_W, height: NODE_H + BADGE_ROW_H });
+  });
+
+  it('rowGap stays a PITCH larger than the box it stacks', () => {
+    const tall = withBadgeRow(DEFAULT_METRICS);
+    expect(rowGap(tall)).toBeGreaterThan(tall.height);
+    expect(rowGap(DEFAULT_METRICS)).toBe(ROW_GAP);
+  });
+
+  it('stacks externals at the taller pitch when metrics grow', () => {
+    const v: FocusView = {
+      focusId: 'ca', focusNode: node('ca', 'Container'),
+      children: [node('a1')],
+      externals: [node('x1', 'Container'), node('x2', 'Container')],
+      edges: [
+        { id: 'e1', from: 'x1', to: 'a1', count: 1, derived: true, realizedBy: ['p'] },
+        { id: 'e2', from: 'x2', to: 'a1', count: 1, derived: true, realizedBy: ['q'] },
+      ],
+    };
+    const tall = withBadgeRow(DEFAULT_METRICS);
+    const pos = layoutFocusView(v, tall);
+    expect(Math.abs(pos.x1.y - pos.x2.y)).toBe(rowGap(tall));
+  });
+
+  it('grows the group box by the taller member pitch', () => {
+    const tall = withBadgeRow(DEFAULT_METRICS);
+    expect(groupBoxHeight(3, tall)).toBeGreaterThan(groupBoxHeight(3));
   });
 });

@@ -20,12 +20,17 @@ export type NodeBoxData = {
   technology?: string;
   shape?: Shape;
   color?: { bg: string; border: string };
+  /** Box size, supplied by focusViewToFlow — grows a badge row when hub quieting is on. */
+  width?: number;
+  height?: number;
 };
 
 export function NodeBox({ data }: NodeProps) {
   const d = data as NodeBoxData;
   const color = d.color ?? { bg: 'var(--alt-2-bg)', border: 'var(--alt-2-bd)' };
   const shape = d.shape ?? 'rectangle';
+  const w = d.width ?? NODE_W;
+  const h = d.height ?? NODE_H;
   return (
     // The div stays a plain NODE_W x NODE_H rectangle with no border or background of its own —
     // NodeShape paints the body behind the text. Floating edges anchor to this box (floating.ts),
@@ -33,9 +38,9 @@ export function NodeBox({ data }: NodeProps) {
     <div
       style={{
         position: 'relative',
-        width: NODE_W,
-        height: NODE_H,
-        padding: shapePadding(shape, NODE_W, NODE_H),
+        width: w,
+        height: h,
+        padding: shapePadding(shape, w, h),
         boxSizing: 'border-box',
         fontSize: 12,
         lineHeight: 1.25,
@@ -47,7 +52,7 @@ export function NodeBox({ data }: NodeProps) {
         overflow: 'hidden',
       }}
     >
-      <NodeShape shape={shape} w={NODE_W} h={NODE_H} bg={color.bg} border={color.border} />
+      <NodeShape shape={shape} w={w} h={h} bg={color.bg} border={color.border} />
       {sides.map((s) => (
         <Handle key={s.id} id={s.id} type="source" position={s.position} style={{ opacity: 0, pointerEvents: 'none' }} />
       ))}

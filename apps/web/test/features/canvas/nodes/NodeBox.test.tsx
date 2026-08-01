@@ -48,6 +48,13 @@ describe('NodeBox', () => {
     expect(box.style.height).toBe(`${NODE_H}px`);
   });
 
+  it('sizes the box from data when a taller metric is passed', () => {
+    const { container } = renderBox({ name: 'n', width: 300, height: 120 });
+    const box = container.querySelector('div') as HTMLElement;
+    expect(box.style.width).toBe('300px');
+    expect(box.style.height).toBe('120px');
+  });
+
   it('draws its role shape as SVG, not as CSS on the div', () => {
     const { container } = renderBox({ name: 'Store', summary: 's', shape: 'cylinder' });
     expect(container.querySelector('svg[data-shape="cylinder"]')).toBeTruthy();

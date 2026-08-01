@@ -1,8 +1,9 @@
 import { MarkerType, type Node as FlowNode, type Edge as FlowEdge } from '@xyflow/react';
 import { c4Backend, layerOfType, roleOfNode, roleDefOf, verbClassOf, type Node as ModelNode } from '@hyphae/schema';
 import type { FocusView, FocusEdge } from '@/core/focusView';
-import { NODE_W, NODE_H, PAD, LABEL_H, type XY } from './layout';
+import { PAD, LABEL_H, DEFAULT_METRICS, type NodeMetrics, type XY } from './layout';
 import { layerColorOf, VERB_CLASS_COLOR } from '@/core/verbColors';
+import type { HubBadge } from '@/core/hubs';
 
 /** The node data every node renderer reads: name, the on-diagram purpose, tech chip, and shape. */
 export function nodeVisual(n: ModelNode) {
@@ -79,7 +80,17 @@ function derivedEdge(e: FocusEdge): FlowEdge {
  */
 const BOUNDARY_Z = -1;
 
-export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nodes: FlowNode[]; edges: FlowEdge[] } {
+export type FlowOptions = {
+  /** Box size for the `node` / `ghost` types. Grows a badge row when hub quieting is on. */
+  metrics?: NodeMetrics;
+  /** Quieted edges, re-encoded per neighbour id. */
+  badges?: Map<string, HubBadge[]>;
+  /** Drawn-edge degree per node, so a quieted hub can show what it is standing in for. */
+  hubDegrees?: Map<string, number>;
+};
+
+export function focusViewToFlow(view: FocusView, pos: Record<string, XY>, opts: FlowOptions = {}): { nodes: FlowNode[]; edges: FlowEdge[] } {
+  const m = opts.metrics ?? DEFAULT_METRICS;
   const nodes: FlowNode[] = [];
 
   // initialWidth/initialHeight are unmeasured-size hints: they don't constrain the real DOM node
@@ -90,8 +101,8 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nod
     const ys = view.children.map((n) => pos[n.id]?.y ?? 0);
     const minX = Math.min(...xs);
     const minY = Math.min(...ys);
-    const maxX = Math.max(...xs.map((x) => x + NODE_W));
-    const maxY = Math.max(...ys.map((y) => y + NODE_H));
+    const maxX = Math.max(...xs.map((x) => x + m.width));
+    const maxY = Math.max(...ys.map((y) => y + m.height));
     const width = maxX - minX + 2 * PAD;
     const height = maxY - minY + LABEL_H + 2 * PAD;
     nodes.push({
@@ -114,9 +125,9 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nod
       id: view.focusNode.id,
       type: 'node',
       position: pos[view.focusNode.id] ?? { x: 0, y: 0 },
-      data: nodeVisual(view.focusNode),
-      initialWidth: NODE_W,
-      initialHeight: NODE_H,
+      data: { ...nodeVisual(view.focusNode), width: m.width, height: m.height },
+      initialWidth: m.width,
+      initialHeight: m.height,
       draggable: false,
     });
   }
@@ -126,8 +137,8 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nod
     if (!mpos.length) continue;
     const minX = Math.min(...mpos.map((p) => p.x));
     const minY = Math.min(...mpos.map((p) => p.y));
-    const maxX = Math.max(...mpos.map((p) => p.x + NODE_W));
-    const maxY = Math.max(...mpos.map((p) => p.y + NODE_H));
+    const maxX = Math.max(...mpos.map((p) => p.x + m.width));
+    const maxY = Math.max(...mpos.map((p) => p.y + m.height));
     const width = maxX - minX + 2 * PAD;
     const height = maxY - minY + LABEL_H + 2 * PAD;
     nodes.push({
@@ -145,10 +156,21 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nod
   }
 
   for (const n of view.children) {
-    nodes.push({ id: n.id, type: 'node', position: pos[n.id] ?? { x: 0, y: 0 }, data: nodeVisual(n), initialWidth: NODE_W, initialHeight: NODE_H, draggable: false });
+    nodes.push({
+      id: n.id, type: 'node', position: pos[n.id] ?? { x: 0, y: 0 },
+      data: { ...nodeVisual(n), width: m.width, height: m.height, badges: opts.badges?.get(n.id) },
+      initialWidth: m.width, initialHeight: m.height, draggable: false,
+    });
   }
   for (const n of view.externals) {
-    nodes.push({ id: n.id, type: 'ghost', position: pos[n.id] ?? { x: 0, y: 0 }, data: { ...nodeVisual(n), expandable: view.expandableExternalIds?.has(n.id) ?? false }, initialWidth: NODE_W, initialHeight: NODE_H, draggable: false });
+    nodes.push({
+      id: n.id, type: 'ghost', position: pos[n.id] ?? { x: 0, y: 0 },
+      data: {
+        ...nodeVisual(n), width: m.width, height: m.height, badges: opts.badges?.get(n.id),
+        expandable: view.expandableExternalIds?.has(n.id) ?? false,
+      },
+      initialWidth: m.width, initialHeight: m.height, draggable: false,
+    });
   }
 
   const edges = view.edges.map((e) => (e.derived ? derivedEdge(e) : realEdge(e)));
