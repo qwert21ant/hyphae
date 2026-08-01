@@ -161,7 +161,7 @@ string; its kind is inferred from syntax:
 
 **Refs are relative, anchored by containment.** A ref resolves against the `root` of the nearest
 ancestor that declares one, found by walking `parentId`; roots chain down the tree. So a Component
-under a Container with `root: "apps/server/"` writes `src/mcp.ts`, not `apps/server/src/mcp.ts`.
+under a Container with `root: "apps/server/"` writes `src/routes.ts`, not `apps/server/src/routes.ts`.
 
 Two rules follow, and both are enforced by `validate_model`:
 - **Declare `root` on every Container** (Phase 1). Without an anchoring root somewhere above it, a

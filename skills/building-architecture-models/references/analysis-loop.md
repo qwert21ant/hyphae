@@ -48,5 +48,6 @@ filesystem):
   graph relations `CALLS`/`IMPORTS`/`IMPLEMENTS`/`EXTENDS` → a hyphae connection's `verb` + `object`.
 - **codeRefs:** every symbol carries a `filePath`; record `path#SymbolName` as the node's `codeRefs`.
   gitnexus reports `filePath` **repo-relative**, but refs are stored **relative to the owning
-  Container's `root`** — strip the container's root prefix before writing (`apps/server/src/mcp.ts`
-  under `root: "apps/server/"` becomes `src/mcp.ts`). See SKILL.md → *Refs and roots*.
+  Container's `root`** — strip the container's root prefix before writing
+  (`apps/server/src/routes.ts` under `root: "apps/server/"` becomes `src/routes.ts`). See SKILL.md →
+  *Refs and roots*.

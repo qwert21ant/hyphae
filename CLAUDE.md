@@ -18,14 +18,72 @@ pnpm workspaces: `apps/web` (Vite/React/@xyflow), `apps/server` (Hono API + SSE 
 changes, they change in the same branch. Keep the schema, the docs, and the skill consistent: the Zod
 schema in `packages/schema` wins any disagreement.
 
+## Where the code lives
+
+    apps/web/src/
+      main.tsx  App.tsx  app.css
+      styles.css                    the ordered CSS index — its @import order IS the cascade
+      features/
+        canvas/      Canvas.tsx  useCanvasView.ts  useDrillNavigation.ts
+                     highlight.ts  flowEdges.ts  layout.ts  reactflow.ts
+                     shapes.ts  patternView.ts  flowOverlay.ts  canvas.css
+                     nodes/    NodeBox  NodeShape  GroupNode  GhostNode
+                               GhostGroupNode  PatternMemberNode
+                     edges/    FloatingEdge.tsx  floating.ts
+                     overlay/  Legend.tsx  FilterPanel.tsx
+        outline/     TreePanel.tsx  outline.css
+        inspector/   SidePanel.tsx  ConnectionList.tsx  FieldRows.tsx
+                     fieldLayout.ts  inspector.css
+        toolbar/     Toolbar.tsx  Altimeter.tsx  SearchBox.tsx  toolbar.css
+      core/          NodeTree.ts  stepReveal.ts  connections.ts  breadcrumb.ts
+                     hashRoute.ts  verbColors.ts
+                     focusView/  index.ts  buildFocusView.ts  edges.ts  types.ts
+      state/         store.ts  api.ts  theme.ts
+      styles/        tokens.css  base.css
+
+    apps/server/src/
+      index.ts  routes.ts  store.ts  errors.ts
+      mcp/         index.ts  api.ts  params.ts  register.ts
+                   tools/  index.ts  shared.ts  nodes.ts  connections.ts
+                           flows.ts  patterns.ts  query.ts  validate.ts
+
+`apps/web/test/` **mirrors `src/`** — `test/features/canvas/nodes/NodeBox.test.tsx` sits opposite
+`src/features/canvas/nodes/NodeBox.tsx`.
+
+Web imports use the **`@/` alias** (`@/core/NodeTree`, never `../../../core/NodeTree`). It is
+declared in **three** files and all three must agree: `apps/web/tsconfig.json` (`paths`),
+`vite.config.ts` and `vitest.config.ts` (`resolve.alias`). The vitest config is standalone — it does
+*not* inherit vite's `resolve` — so adding the alias in only two of them leaves tests or the build
+resolving nothing, depending on which one you missed.
+
+### The three structural conventions
+
+1. **A file has one job.** Components render; pure modules compute; hooks bind the two. A component
+   whose `useMemo` chain is longer than its JSX is hiding a hook or a pure module — that is exactly
+   what `Canvas.tsx` was before it became `useCanvasView` + `highlight` + `flowEdges` +
+   `useDrillNavigation` + ~80 lines of JSX.
+2. **A class earns its place by deleting duplication, not by being a class.** `core/NodeTree.ts` is
+   the only class in `apps/web`, and it exists because five functions each rebuilt the same id→node
+   map and each re-implemented the same cycle-guarded parent walk. Absent that kind of shared derived
+   state, export a function. Components stay functions (class components cannot use hooks); so do the
+   Zustand store and the stateless transforms — `hashRoute`, `shapes`, `floating`, `fieldLayout`,
+   `theme`, `layout`. A class around any of those is a hollow namespace.
+3. **A feature folder owns its components, its pure logic and its CSS.** `core/` holds only what two
+   or more features import. A non-canvas file importing `features/canvas/*` internals is a layering
+   bug — that is why `core/verbColors.ts` exists: `VERB_CLASS_COLOR`, `LAYER_COLOR` and
+   `layerColorOf` are wanted by the inspector and the toolbar, so they left `reactflow.ts` and the
+   React Flow adapters stayed behind. Importing a feature's public *component* (`App.tsx` importing
+   `Canvas`) is fine.
+
 ## Commands
 
     pnpm dev            # server (:5173) + web (:3000) in parallel
     pnpm server         # API + SSE on :5173, owns ./hyphae.json (override with HYPHAE_FILE)
     pnpm web            # viewer on :3000, proxies the API
     pnpm mcp            # MCP server — an HTTP client of the above, so the server must be running
-    pnpm -r test        # baseline 662 green: schema 147, server 107, web 408
+    pnpm -r test        # baseline 669 green: schema 147, server 107, web 415 (45 files)
     pnpm -r build
+    pnpm --filter @hyphae/web typecheck   # tsc --noEmit — NOT part of build; see below
 
 ## Testing gotchas
 
@@ -36,21 +94,39 @@ These cost real time when rediscovered:
   first (jsdom lives in `apps/web/vitest.config.ts`).
 - **React Flow renders zero edges in jsdom** (nodes are never measured), and edge labels portal into
   `.react-flow__edgelabel-renderer`. You cannot assert edge or label DOM. Assert the **generated
-  highlight CSS** instead — see the `hlCss(container)` pattern in `apps/web/test/Canvas.test.tsx` —
-  or test the pure function underneath.
+  highlight CSS** instead — see the `hlCss(container)` pattern in
+  `apps/web/test/features/canvas/Canvas.test.tsx`, which reads the `<style data-hyphae-hl>` element
+  `Canvas.tsx` injects — or test the pure function underneath. `highlightCss` now lives in
+  `apps/web/src/features/canvas/highlight.ts` and is **directly callable**, so a new test should call
+  it with plain values rather than render the canvas; the existing `hlCss` tests stay as the
+  integration guard.
 - A component rendering React Flow `Handle`s needs a `ReactFlowProvider` wrapper in tests
   (`NodeBox.test.tsx`, `PatternMemberNode.test.tsx`).
 - **The resizable panels need jsdom stubs.** `react-resizable-panels` calls `ResizeObserver`,
   `matchMedia` and `setPointerCapture`, none of which jsdom implements; `apps/web/test/setup.ts`
   provides them. Elements are never measured, so panel *sizes* are untestable — assert the
   `role="separator"` structure (`aria-orientation` is perpendicular to its group) instead.
-- **jsdom loads no external stylesheet**, so nothing in `src/styles/` is observable in the DOM, and
-  nothing is ever measured. To pin a CSS invariant, read the file and assert the rule — see the
-  `rule(css, selector)` helper in `TreePanel.test.tsx`. **Anchor such a regex to the start of a
-  line** (`^\.tree-label\s*\{`): unanchored, `.tree-label {` also matches inside
+- **jsdom loads no external stylesheet**, so no stylesheet anywhere in `src/` is observable in the
+  DOM, and nothing is ever measured. To pin a CSS invariant, read the file and assert the rule — see
+  the `rule(css, selector)` helper in `test/features/outline/TreePanel.test.tsx`, which reads
+  `src/features/outline/outline.css`. **Anchor such a regex to the start of a line**
+  (`^\.tree-label\s*\{`): unanchored, `.tree-label {` also matches inside
   `.tree-row:hover .tree-label {`, so the assertion silently reads a different block. Assert the
   rule was found at all, too — a renamed selector otherwise passes as an empty string.
-- `import.meta.url` is an **http** URL under jsdom — resolve fixture paths from `process.cwd()`.
+- **`process.cwd()` is what makes the mirrored test tree safe.** Fixture and CSS paths resolve from
+  the *package* root (`resolve(process.cwd(), 'src/features/outline/outline.css')`), not from the
+  test file, so a test can sit at any depth without its `readFileSync` paths changing. Do **not**
+  reach for `import.meta.url` here: under jsdom it is an **http** URL, not a file one.
+- **A raw NUL byte makes a file invisible to grep.** `features/canvas/reactflow.ts` contained two (a
+  literal control character where the `\0` escape was meant). ripgrep and grep classify such a file
+  as binary and skip it **with no error at all**, so a mechanical rename sweep misses it silently. If
+  a sweep looks like it skipped a file, run `file <path>` and check for `data`.
+- **`apps/web`'s `build` script is `vite build`, which does NOT typecheck.** It fails on an
+  unresolvable module specifier but happily ships a *wrong named export*. `pnpm typecheck`
+  (`tsc --noEmit`) is a separate script and is **not** part of `pnpm -r build`; run it explicitly
+  after any import-touching change. It currently has a **pre-existing 4-error floor**, all in test
+  files (three `TS2698` spread errors, one `Model` import in `Altimeter.test.tsx`) — 4 errors is
+  clean, 5 is yours. `apps/server`'s build is `tsc -p`, so that one does typecheck.
 - Roughly 80 `act(...)` warnings in the web suite are **pre-existing noise**, not your change.
 - The store is a module-level singleton: reset the slice you touch in `beforeEach`, and let the
   initial `loadModel()` settle (`await new Promise(r => setTimeout(r, 0))`) before seeding a model in
@@ -66,7 +142,8 @@ difference in **form** instead (this is why a pattern's kind is a chip, not a co
 §9 states the rule; `apps/web/src/styles/tokens.css` is the authoritative value for every colour,
 type step and space step.
 
-Four of these are tests, not preferences (`tokens.test.ts`, `contrast.test.ts`):
+Four of these are tests, not preferences (`test/styles/tokens.test.ts`, `test/styles/contrast.test.ts`
+— `tokens.test.ts` walks `src/` recursively, so the CSS split did not change what it covers):
 
 - **No colour literal anywhere in `apps/web/src` outside `tokens.css`** — no hex, no `rgb()`/`hsl()`.
 - **Every token declared in `:root` must be referenced somewhere**, and every `var()` must resolve.
@@ -75,24 +152,37 @@ Four of these are tests, not preferences (`tokens.test.ts`, `contrast.test.ts`):
 - **33 foreground/background pairs are measured at 4.5:1, in both themes.** When one fails, retune
   the token — **never** loosen the threshold.
 
-Conventions the suite does *not* enforce: `base.css` is the reset layer and may use element/ID/pseudo
-selectors; `chrome.css` and `canvas.css` use **class and attribute selectors only** — no element
-types. A modifier must be declared *after* the class it narrows (`.tree-kind` sits with `.chip`, not
-with the tree rules) — equal specificity means source order is the only thing deciding.
+Conventions the suite does *not* enforce — jsdom loads no stylesheet, so nothing below is testable:
+
+- **`base.css` is the reset layer** and is the only file allowed element/ID/pseudo selectors. Every
+  other stylesheet is **class and attribute selectors only** — no element types.
+- **The `@import` order in `src/styles.css` IS the cascade.** Because every rule outside `base.css`
+  is an equal-specificity class selector, source order is the only thing deciding which one wins, and
+  source order is that file's list: `styles/tokens.css` → `styles/base.css` →
+  `features/canvas/canvas.css` → `features/outline/outline.css` → `features/inspector/inspector.css`
+  → `features/toolbar/toolbar.css` → `app.css`. **A modifier belongs in a file listed BELOW the one
+  declaring the class it narrows** (or later within the same file). The worked example is
+  `.tree-kind`: it is a `.chip` modifier, so it lives in **`inspector.css` next to `.chip`** — *not*
+  in `outline.css`, despite the name and despite `TreePanel.tsx` being the only thing that renders
+  it. Move it "where it belongs" by name and it stops beating `.chip`.
+- No `.tsx` imports a stylesheet. Per-component CSS imports would make the cascade the module-graph
+  order, which shifts silently when anyone reorders an import — and the suite cannot see it.
 
 ## Invariants that bite
 
-- **Focus-view pipeline:** `buildFocusView` → `layoutFocusView` (on the *collapsed, unfiltered* base
-  view) → `resolveViewPositions` → `focusViewToFlow`. Base positions are memoized on
-  `[model, focusId]` only, so the connection filter, the audience toggle, and expanding an external
-  never reflow the graph.
+- **Focus-view pipeline:** `buildFocusView` (`core/focusView/`) → `layoutFocusView` (on the
+  *collapsed, unfiltered* base view) → `resolveViewPositions` (both `features/canvas/layout.ts`) →
+  `focusViewToFlow` (`features/canvas/reactflow.ts`). The whole chain is wired in
+  `features/canvas/useCanvasView.ts`, and base positions are memoized on `[model, focusId]` only, so
+  the connection filter, the audience toggle, and expanding an external never reflow the graph.
 - A node with **no base slot gets no position** and renders at the origin, on top of everything else.
   If nodes stack up in a corner, look here first.
 - **`expandedExternals` is for nodes OUTSIDE the focus.** Expanded groups are laid out in the
   external columns, so expanding a node that is drawn *inside* the view stacks a group box over the
-  cluster. `stepReveal` guards this.
+  cluster. `stepReveal` (`core/stepReveal.ts`) guards this.
 - **Pattern member React Flow nodes are keyed by member NAME, not a node id.** Never use one as a
-  focus id; navigate via the member's `nodeId` (`Canvas.drill()` checks ids against `model.nodes`).
+  focus id; navigate via the member's `nodeId` — `drill()` in `features/canvas/useDrillNavigation.ts`
+  checks ids against `model.nodes`.
 - **URL routes are fully prefixed:** `#node/<id>`, `#flow/<id>`, `#pattern/<id>`. A bare `#<id>` is
   not a route — it rewrites to root. Precedence is pattern > flow > focus.
 - The server rejects a bad write with **422 + the specific issues**; there is no whole-model write
@@ -104,15 +194,17 @@ with the tree rules) — equal specificity means source order is the only thing 
 - **React Flow paints its edge layer BELOW its node layer** (`GraphView` renders `EdgeRenderer` ahead
   of `NodeRenderer`), and both default to z-index 0 — so any opaque node covers any edge. The two
   containment boxes are opaque and span the whole cluster, so they carry `zIndex: -1`
-  (`BOUNDARY_Z` in `reactflow.ts`). Drop that and every edge inside a region disappears.
+  (`BOUNDARY_Z` in `features/canvas/reactflow.ts`). Drop that and every edge inside a region
+  disappears.
 - **A node's DOM must not outgrow its React Flow wrapper.** `.react-flow__node` is `border-box` and
   sized from the inline width/height; a child at `width:100%` *with a border* under the default
   content-box renders wider and taller than it, overflowing right and bottom. `.region` and `NodeBox`
   both set `box-sizing: border-box` for this reason.
-- **The selection/hover ring is a `box-shadow` on React Flow's own node wrapper**, injected as a
-  generated stylesheet by `Canvas.tsx`. It traces the *wrapper's* box and is clipped by the
-  *wrapper's* radius, so that radius lives permanently in `canvas.css` per node type — put it in the
-  highlight rule and it snaps back to 0 while the shadow is still fading out.
+- **The selection/hover ring is a `box-shadow` on React Flow's own node wrapper**, built by
+  `highlightCss` in `features/canvas/highlight.ts` and injected by `Canvas.tsx` as a
+  `<style data-hyphae-hl>` element. It traces the *wrapper's* box and is clipped by the *wrapper's*
+  radius, so that radius lives permanently in `features/canvas/canvas.css` per node type — put it in
+  the highlight rule and it snaps back to 0 while the shadow is still fading out.
 - **The row is the item, in the outline and the altimeter.** The row/band owns the click, the hover
   and the cursor; the label inside stays a `<button>` only so it is keyboard-reachable, and its click
   bubbles. A `:hover` on an inner element makes one item light up in pieces. Anything inside that
