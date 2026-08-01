@@ -75,7 +75,7 @@ export const useStore = create<State>((set, get) => {
     expandedExternals: new Set<string>(),
     offViewStepOrders: [],
     quietHubsOn: true,
-    hubThreshold: 8,
+    hubThreshold: 10,
     hubOverrides: {},
     nodePositions: {},
 

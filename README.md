@@ -71,7 +71,7 @@ thinly described node — use the `model_gaps` MCP tool to audit that properly. 
 connection filter, the audience toggle, and expanding an external never reflow the graph.
 
 **Density.** A large container focus is mostly one node's fan-in, so **quiet hubs** is on by
-default: a node with at least *N* drawn edges (default 8, set in the Connections panel) keeps its
+default: a node with at least *N* drawn edges (default 10, set in the Connections panel) keeps its
 box but drops its lines, and each line reappears as a `↳ Name` badge on the node at the other end,
 carrying the same verb-class hue it had. The quieted node stays where it is, dimmed, with a
 `hub ×N` chip — click the chip to bring its edges back. Nothing is hidden without a way back: the

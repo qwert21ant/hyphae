@@ -206,14 +206,17 @@ describe('api.ts has no write path', () => {
 describe('density state', () => {
   beforeEach(() => {
     useStore.setState({
-      quietHubsOn: true, hubThreshold: 8, hubOverrides: {}, nodePositions: {},
+      quietHubsOn: true, hubThreshold: 10, hubOverrides: {}, nodePositions: {},
       focusId: null, expandedExternals: new Set(),
     });
   });
 
-  it('defaults to quieting on at a threshold of 8', () => {
+  // 10 is measured, not guessed: on the real Baritone model a threshold of 8 quiets 46% of the
+  // boxes at Baritone API (85 edges -> 8, which is no longer a diagram), while 12 quiets nothing
+  // at 9 of 11 foci. The degree distribution is a cliff and 10 sits on it.
+  it('defaults to quieting on at a threshold of 10', () => {
     expect(useStore.getState().quietHubsOn).toBe(true);
-    expect(useStore.getState().hubThreshold).toBe(8);
+    expect(useStore.getState().hubThreshold).toBe(10);
   });
 
   it('toggles quieting', () => {

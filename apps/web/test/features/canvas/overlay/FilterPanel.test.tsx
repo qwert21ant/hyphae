@@ -5,7 +5,7 @@ import { useStore } from '@/state/store';
 
 describe('density controls', () => {
   beforeEach(() => {
-    useStore.setState({ quietHubsOn: true, hubThreshold: 8, nodePositions: {} });
+    useStore.setState({ quietHubsOn: true, hubThreshold: 10, nodePositions: {} });
   });
 
   it('toggles quieting from the panel', () => {
