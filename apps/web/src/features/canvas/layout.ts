@@ -25,24 +25,9 @@ export const GRID_COLS = 4;
 export const ROW_GAP = NODE_H + 12;
 export const MEMBER_PITCH = ROW_GAP; // expanded-group members stack at the same pitch as externals
 
-/**
- * The rendered size of one node box. A parameter rather than a constant because turning hub
- * quieting on adds a badge row to every box, and dagre, the external columns, the group boxes and
- * the region box all have to agree about it — a second constant would let one of them disagree.
- */
-export type NodeMetrics = { width: number; height: number };
-export const DEFAULT_METRICS: NodeMetrics = { width: NODE_W, height: NODE_H };
-
-/** Height of the hub-badge row NodeBox/GhostNode render when quieting is on. */
-export const BADGE_ROW_H = 16;
-export const withBadgeRow = (m: NodeMetrics): NodeMetrics => ({ ...m, height: m.height + BADGE_ROW_H });
-
-/** Vertical PITCH (not gap) between stacked boxes — must stay larger than the box height. */
-export const rowGap = (m: NodeMetrics = DEFAULT_METRICS): number => m.height + 12;
-
 /** The rendered height of an expanded group's box wrapping `n` members. */
-export function groupBoxHeight(n: number, m: NodeMetrics = DEFAULT_METRICS): number {
-  return LABEL_H + 2 * PAD + Math.max(0, n - 1) * rowGap(m) + m.height;
+export function groupBoxHeight(n: number): number {
+  return LABEL_H + 2 * PAD + Math.max(0, n - 1) * MEMBER_PITCH + NODE_H;
 }
 
 /**
@@ -54,7 +39,7 @@ export function groupBoxHeight(n: number, m: NodeMetrics = DEFAULT_METRICS): num
  * stakeholder mode, or have expanded externals) is mapped onto these slots by resolveViewPositions,
  * so the connection filter, the audience toggle, and expansion never reflow the whole graph.
  */
-export function layoutFocusView(view: FocusView, m: NodeMetrics = DEFAULT_METRICS): Record<string, XY> {
+export function layoutFocusView(view: FocusView): Record<string, XY> {
   const childIds = new Set(view.children.map((n) => n.id));
   const pos: Record<string, XY> = {};
   const byId = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
@@ -69,12 +54,12 @@ export function layoutFocusView(view: FocusView, m: NodeMetrics = DEFAULT_METRIC
   const g = new dagre.graphlib.Graph();
   g.setGraph({ rankdir: 'TB', nodesep: NODE_SEP, ranksep: RANK_SEP, marginx: 20, marginy: 20 });
   g.setDefaultEdgeLabel(() => ({}));
-  for (const n of connected) g.setNode(n.id, { width: m.width, height: m.height });
+  for (const n of connected) g.setNode(n.id, { width: NODE_W, height: NODE_H });
   for (const e of view.edges) if (childIds.has(e.from) && childIds.has(e.to)) g.setEdge(e.from, e.to);
   if (connected.length) dagre.layout(g);
   for (const n of connected) {
     const d = g.node(n.id);
-    pos[n.id] = d ? { x: d.x - m.width / 2, y: d.y - m.height / 2 } : { x: 0, y: 0 };
+    pos[n.id] = d ? { x: d.x - NODE_W / 2, y: d.y - NODE_H / 2 } : { x: 0, y: 0 };
   }
 
   // The unranked remainder, packed into a GRID_COLS-wide block below the ranked core and centred
@@ -83,15 +68,15 @@ export function layoutFocusView(view: FocusView, m: NodeMetrics = DEFAULT_METRIC
     const rankedXs = connected.map((n) => pos[n.id].x);
     const rankedYs = connected.map((n) => pos[n.id].y);
     const coreLeft = rankedXs.length ? Math.min(...rankedXs) : 0;
-    const coreRight = rankedXs.length ? Math.max(...rankedXs) + m.width : m.width;
-    const coreBottom = rankedYs.length ? Math.max(...rankedYs) + m.height + RANK_SEP : 0;
+    const coreRight = rankedXs.length ? Math.max(...rankedXs) + NODE_W : NODE_W;
+    const coreBottom = rankedYs.length ? Math.max(...rankedYs) + NODE_H + RANK_SEP : 0;
     const cols = Math.min(GRID_COLS, isolatedKids.length);
-    const pitchX = m.width + NODE_SEP;
-    const gridW = (cols - 1) * pitchX + m.width;
+    const pitchX = NODE_W + NODE_SEP;
+    const gridW = (cols - 1) * pitchX + NODE_W;
     const left = (coreLeft + coreRight) / 2 - gridW / 2;
     const ids = isolatedKids.map((n) => n.id).sort(byId);
     ids.forEach((id, i) => {
-      pos[id] = { x: left + (i % cols) * pitchX, y: coreBottom + Math.floor(i / cols) * rowGap(m) };
+      pos[id] = { x: left + (i % cols) * pitchX, y: coreBottom + Math.floor(i / cols) * ROW_GAP };
     });
   }
 
@@ -102,9 +87,9 @@ export function layoutFocusView(view: FocusView, m: NodeMetrics = DEFAULT_METRIC
   const xs = view.children.map((n) => pos[n.id].x);
   const ys = view.children.map((n) => pos[n.id].y);
   const minX = xs.length ? Math.min(...xs) : 0;
-  const maxX = xs.length ? Math.max(...xs) + m.width : m.width;
+  const maxX = xs.length ? Math.max(...xs) + NODE_W : NODE_W;
   const minY = ys.length ? Math.min(...ys) : 0;
-  const maxY = ys.length ? Math.max(...ys) + m.height : m.height;
+  const maxY = ys.length ? Math.max(...ys) + NODE_H : NODE_H;
   const midY = (minY + maxY) / 2;
 
   const incoming = view.externals.filter((ext) => view.edges.some((e) => e.from === ext.id)).map((n) => n.id);
@@ -133,12 +118,11 @@ export function layoutFocusView(view: FocusView, m: NodeMetrics = DEFAULT_METRIC
   incoming.sort(byBarycentre);
   outgoing.sort(byBarycentre);
 
-  const pitch = rowGap(m);
   const placeColumn = (ids: string[], x: number) => {
-    const totalH = Math.max(0, ids.length - 1) * pitch;
-    ids.forEach((id, i) => { pos[id] = { x, y: midY - totalH / 2 + i * pitch - m.height / 2 }; });
+    const totalH = Math.max(0, ids.length - 1) * ROW_GAP;
+    ids.forEach((id, i) => { pos[id] = { x, y: midY - totalH / 2 + i * ROW_GAP - NODE_H / 2 }; });
   };
-  placeColumn(incoming, minX - COL_GAP - m.width);
+  placeColumn(incoming, minX - COL_GAP - NODE_W);
   placeColumn(outgoing, maxX + COL_GAP);
 
   return pos;
@@ -169,7 +153,7 @@ export function applyDragOverrides(base: Record<string, XY>, overrides: Record<s
  *   column ⇒ same side), its members stacked downward at MEMBER_PITCH; only lower items in that same
  *   column are pushed down to make room (children and the opposite column never move).
  */
-export function resolveViewPositions(view: FocusView, base: Record<string, XY>, m: NodeMetrics = DEFAULT_METRICS): Record<string, XY> {
+export function resolveViewPositions(view: FocusView, base: Record<string, XY>): Record<string, XY> {
   const pos: Record<string, XY> = {};
   for (const n of view.children) if (base[n.id]) pos[n.id] = base[n.id];
   if (view.focusNode && base[view.focusNode.id]) pos[view.focusNode.id] = base[view.focusNode.id];
@@ -197,8 +181,8 @@ export function resolveViewPositions(view: FocusView, base: Record<string, XY>, 
       const b = base[it.id];
       const y = b.y + offset;
       if (it.members) {
-        it.members.forEach((mid, i) => { pos[mid] = { x: b.x + PAD, y: y + LABEL_H + PAD + i * rowGap(m) }; });
-        offset += groupBoxHeight(it.members.length, m) - m.height; // reserve extra room below the group
+        it.members.forEach((mid, i) => { pos[mid] = { x: b.x + PAD, y: y + LABEL_H + PAD + i * MEMBER_PITCH }; });
+        offset += groupBoxHeight(it.members.length) - NODE_H; // reserve extra room below the group
       } else {
         pos[it.id] = { x: b.x, y };
       }

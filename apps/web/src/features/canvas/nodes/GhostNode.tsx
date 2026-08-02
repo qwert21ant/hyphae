@@ -3,7 +3,6 @@ import { useStore } from '@/state/store';
 import type { NodeBoxData } from './NodeBox';
 import { shapePadding } from '@/features/canvas/shapes';
 import { NodeShape } from './NodeShape';
-import { HubBadges, HubChip } from './HubBadges';
 import { NODE_W, NODE_H, SUMMARY_LINES } from '@/features/canvas/layout';
 
 // Invisible, non-interactive side handles kept only so floating edges can anchor to the node
@@ -25,8 +24,6 @@ export function GhostNode({ id, data }: NodeProps) {
   const color = d.color ?? { bg: 'var(--surface-2)', border: 'var(--rule)' };
   const toggle = useStore((s) => s.toggleExternal);
   const shape = d.shape ?? 'rectangle';
-  const w = d.width ?? NODE_W;
-  const h = d.height ?? NODE_H;
   // The dashed outline is stroked along the shape's own path, so it survives on every edge —
   // including a hexagon's diagonals, where a CSS border used to be clipped away. That is what the
   // old background hatch existed to compensate for; it is no longer needed.
@@ -34,9 +31,9 @@ export function GhostNode({ id, data }: NodeProps) {
     <div
       style={{
         position: 'relative',
-        width: w,
-        height: h,
-        padding: shapePadding(shape, w, h),
+        width: NODE_W,
+        height: NODE_H,
+        padding: shapePadding(shape, NODE_W, NODE_H),
         boxSizing: 'border-box',
         color: 'var(--tx-2)',
         fontSize: 12,
@@ -48,10 +45,9 @@ export function GhostNode({ id, data }: NodeProps) {
         justifyContent: 'center',
         gap: 2,
         overflow: 'hidden',
-        opacity: d.hubDegree != null ? 0.55 : 1,
       }}
     >
-      <NodeShape shape={shape} w={w} h={h} bg={color.bg} border={color.border} stroke={1.5} dashed />
+      <NodeShape shape={shape} w={NODE_W} h={NODE_H} bg={color.bg} border={color.border} stroke={1.5} dashed />
       {sides.map((s) => (
         <Handle key={s.id} id={s.id} type="source" position={s.position} style={{ opacity: 0, pointerEvents: 'none' }} />
       ))}
@@ -78,8 +74,6 @@ export function GhostNode({ id, data }: NodeProps) {
           {d.technology}
         </div>
       )}
-      <HubBadges badges={d.badges} />
-      {d.hubDegree != null && <HubChip id={id} degree={d.hubDegree} />}
     </div>
   );
 }

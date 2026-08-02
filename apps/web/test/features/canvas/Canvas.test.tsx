@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, fireEvent, act } from '@testing-library/react';
 import { Canvas } from '@/features/canvas/Canvas';
 import { EDGE_LABEL_CLASS } from '@/features/canvas/edges/FloatingEdge';
+import { GROUP_GRIP } from '@/features/canvas/reactflow';
 import { useStore } from '@/state/store';
 import { emptyModel } from '@hyphae/schema';
 
@@ -442,47 +443,78 @@ describe('Canvas — the highlight ring traces the box it wraps', () => {
   });
 });
 
-describe('hub quieting', () => {
-  /** `hub` is read by three siblings inside container `ca`. */
-  function hubModel() {
+describe('dragging', () => {
+  // React Flow v12's NodeWrapper puts a `draggable` class on a node it will drag and omits it for
+  // one with draggable:false. Verified against @xyflow/react's own class list.
+  it('makes child boxes and the containment region draggable', () => {
+    useStore.setState({ model: model(), focusId: 'ca' });
+    const { container } = render(<Canvas />);
+    expect(node(container, 'a1')!.className).toContain('draggable');
+    expect(node(container, 'ca')!.className).toContain('draggable');
+  });
+
+  it('grabs a region by its title bar only, so the box does not swallow the clicks inside it', () => {
+    useStore.setState({ model: model(), focusId: 'ca' });
+    const { container } = render(<Canvas />);
+    const region = node(container, 'ca')!;
+    // The grip is the element React Flow filters pointerdown against (dragHandle), and the only
+    // part of a pointer-transparent box that takes pointer events at all.
+    expect(region.querySelector(`.${GROUP_GRIP}`)).toBeTruthy();
+    // jsdom loads no stylesheet, so the rule has to be read from the file. Anchored to the start of
+    // a line: unanchored, `.region__handle {` also matches inside `.region__handle--split {`.
+    const css = readFileSync(resolve(process.cwd(), 'src/features/canvas/canvas.css'), 'utf8');
+    const grip = css.match(new RegExp(String.raw`^\.${GROUP_GRIP}\s*\{([^}]*)\}`, 'm'))?.[1] ?? '';
+    expect(grip, 'the .region__handle rule was not found').not.toBe('');
+    expect(grip).toMatch(/pointer-events:\s*auto/);
+    expect(grip).toMatch(/cursor:\s*grab/);
+  });
+});
+
+describe('a dragged external survives being expanded', () => {
+  // ca (focus) holds a1; cb holds b1 and b2, both reached from a1, so cb renders as ONE collapsed
+  // ghost that can be expanded into a group of two member ghosts.
+  function expandable() {
     const m = emptyModel();
     m.nodes.push(
-      { id: 'ca', name: 'Alpha', type: 'Container', parentId: null, ...base },
-      { id: 'hub', name: 'Hub', type: 'Component', parentId: 'ca', ...base },
-      { id: 'k1', name: 'K1', type: 'Component', parentId: 'ca', ...base },
-      { id: 'k2', name: 'K2', type: 'Component', parentId: 'ca', ...base },
-      { id: 'k3', name: 'K3', type: 'Component', parentId: 'ca', ...base },
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
+      { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
+      { id: 'cb', name: 'Beta', type: 'Container', parentId: 'sys', ...base },
+      { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
+      { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
+      { id: 'b2', name: 'B2', type: 'Component', parentId: 'cb', ...base },
     );
     m.connections.push(
-      { id: 'r1', from: 'k1', to: 'hub', ...e, verb: 'reads' },
-      { id: 'r2', from: 'k2', to: 'hub', ...e, verb: 'reads' },
-      { id: 'r3', from: 'k3', to: 'hub', ...e, verb: 'reads' },
+      { id: 'x1', from: 'a1', to: 'b1', ...e },
+      { id: 'x2', from: 'a1', to: 'b2', ...e },
     );
     return m;
   }
 
-  it('keeps the hub node but replaces its edges with badges on the readers', () => {
-    useStore.setState({ model: hubModel(), focusId: 'ca', quietHubsOn: true, hubThreshold: 3, hubOverrides: {} });
-    const { container, getAllByText } = render(<Canvas />);
-    expect(node(container, 'hub')).toBeTruthy();
-    expect(getAllByText('↳ Hub')).toHaveLength(3);
-  });
+  const at = (container: HTMLElement, id: string) => {
+    const t = node(container, id)!.style.transform;
+    const [, x, y] = /translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/.exec(t) ?? [];
+    return { x: Number(x), y: Number(y) };
+  };
 
-  it('draws no badge when quieting is off', () => {
-    useStore.setState({ model: hubModel(), focusId: 'ca', quietHubsOn: false, hubOverrides: {} });
-    const { container, queryByText } = render(<Canvas />);
-    expect(node(container, 'hub')).toBeTruthy();
-    expect(queryByText('↳ Hub')).toBeNull();
-  });
-});
+  it('anchors the expanded group at the dragged slot, not at the auto-layout one', () => {
+    useStore.setState({ model: expandable(), focusId: 'ca', expandedExternals: new Set(), nodePositions: {} });
+    const { container, rerender } = render(<Canvas />);
+    const auto = at(container, 'cb');
 
-describe('dragging', () => {
-  it('makes child boxes draggable and leaves the region fixed', () => {
-    useStore.setState({ model: model(), focusId: 'ca' });
-    const { container } = render(<Canvas />);
-    // React Flow v12's NodeWrapper puts a `draggable` class on a node it will drag and omits it for
-    // one with draggable:false. Verified against @xyflow/react's own class list.
-    expect(node(container, 'a1')!.className).toContain('draggable');
-    expect(node(container, 'ca')!.className).not.toContain('draggable');
+    // Drag the collapsed ghost somewhere clearly its own.
+    const dragged = { x: auto.x + 500, y: auto.y + 300 };
+    act(() => { useStore.getState().setNodePosition('cb', dragged); });
+    rerender(<Canvas />);
+    expect(at(container, 'cb')).toEqual(dragged);
+
+    // Expanding turns the ghost into a group box. It must stay where it was put — before the fix the
+    // override was applied only to the RESOLVED positions, and the group is anchored from the BASE
+    // slot, so the box teleported back to the slot dagre computed.
+    act(() => { useStore.getState().toggleExternal('cb'); });
+    rerender(<Canvas />);
+    expect(at(container, 'cb')).toEqual(dragged);
+    // ...and its members come with it, laid out inside the box rather than back in the column.
+    expect(at(container, 'b1').x).toBeGreaterThan(dragged.x);
+    expect(at(container, 'b1').y).toBeGreaterThan(dragged.y);
   });
 });

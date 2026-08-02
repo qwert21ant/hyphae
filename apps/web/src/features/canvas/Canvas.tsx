@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow, Background, Controls, MiniMap, Panel, ConnectionMode, useNodesState,
   type Node as FlowNode,
@@ -15,6 +15,7 @@ import { FloatingEdge } from '@/features/canvas/edges/FloatingEdge';
 import { decorateFlowEdges } from './flowEdges';
 import { highlightCss } from './highlight';
 import { useCanvasView } from './useCanvasView';
+import type { XY } from './layout';
 import { useDrillNavigation } from './useDrillNavigation';
 import { FilterPanel } from '@/features/canvas/overlay/FilterPanel';
 import { Legend } from '@/features/canvas/overlay/Legend';
@@ -46,8 +47,53 @@ export function Canvas() {
   // The derived `nodes` are the source of truth; React Flow's copy exists only so it can animate a
   // drag — it will not move a fully controlled node without an onNodesChange handler.
   const setNodePosition = useStore((s) => s.setNodePosition);
+  const setNodePositions = useStore((s) => s.setNodePositions);
   const [rfNodes, setRfNodes, onNodesChange] = useNodesState<FlowNode>([]);
   useEffect(() => { setRfNodes(nodes); }, [nodes, setRfNodes]);
+
+  // Dragging a containment box has to carry its contents. Neither box is a React Flow *parent* —
+  // children are laid out as absolute siblings — so React Flow moves the box alone and we move the
+  // rest. The members' start positions are captured once, on drag start, so every frame is a single
+  // delta from a fixed origin and rounding cannot accumulate.
+  const dragRef = useRef<{ id: string; start: XY; members: { id: string; start: XY }[] } | null>(null);
+  const membersOf = (n: FlowNode): string[] => {
+    if (n.type === 'region') return view.children.map((c) => c.id);
+    if (n.type === 'ghostGroup') return view.externalGroups?.find((g) => g.id === n.id)?.childIds ?? [];
+    return [];
+  };
+  const onNodeDragStart = (_: unknown, n: FlowNode) => {
+    const ids = membersOf(n);
+    if (!ids.length) { dragRef.current = null; return; }
+    const at = new Map(rfNodes.map((x) => [x.id, x.position]));
+    dragRef.current = {
+      id: n.id,
+      start: { ...n.position },
+      members: ids.map((id) => ({ id, start: { ...(at.get(id) ?? { x: 0, y: 0 }) } })),
+    };
+  };
+  type Drag = NonNullable<typeof dragRef.current>;
+  const movedMembers = (d: Drag, to: XY) => {
+    const dx = to.x - d.start.x;
+    const dy = to.y - d.start.y;
+    return d.members.map((m) => [m.id, { x: m.start.x + dx, y: m.start.y + dy }] as const);
+  };
+  // Local state only — no store write per frame, which would re-run the whole view pipeline.
+  const onNodeDrag = (_: unknown, n: FlowNode) => {
+    const d = dragRef.current;
+    if (d?.id !== n.id) return;
+    const moved = new Map(movedMembers(d, n.position));
+    setRfNodes((ns) => ns.map((x) => (moved.has(x.id) ? { ...x, position: moved.get(x.id)! } : x)));
+  };
+  const onNodeDragStop = (_: unknown, n: FlowNode) => {
+    const d = dragRef.current;
+    dragRef.current = null;
+    // A ghost group's own position IS its collapsed ghost's base slot, so committing just the group
+    // moves its members through resolveViewPositions AND survives collapsing it back to one box.
+    if (!d || d.id !== n.id || n.type === 'ghostGroup') { setNodePosition(n.id, n.position); return; }
+    // A region has no slot of its own — it is derived from its children — so moving it means moving
+    // every child by the same delta, in one update rather than one render per child.
+    setNodePositions(Object.fromEntries(movedMembers(d, n.position)));
+  };
 
   // Transient hover, so a user can trace a node's neighborhood without committing a selection.
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -102,7 +148,9 @@ export function Canvas() {
         nodesDraggable={!patternFlow}
         // Commit on drop, not per frame: writing every frame would re-run focusViewToFlow at frame
         // rate. The region box therefore resizes when the node lands, not continuously mid-drag.
-        onNodeDragStop={(_, n) => setNodePosition(n.id, n.position)}
+        onNodeDragStart={onNodeDragStart}
+        onNodeDrag={onNodeDrag}
+        onNodeDragStop={onNodeDragStop}
         nodesConnectable={false}
         elementsSelectable
         onNodeClick={onNodeClick}

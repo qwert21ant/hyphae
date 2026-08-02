@@ -70,17 +70,12 @@ thinly described node — use the `model_gaps` MCP tool to audit that properly. 
 `user` / `traceability`) decides the edge colour. Layout is automatic (dagre) and stable — the
 connection filter, the audience toggle, and expanding an external never reflow the graph.
 
-**Density.** A large container focus is mostly one node's fan-in, so **quiet hubs** is on by
-default: a node with at least *N* drawn edges (default 10, set in the Connections panel) keeps its
-box but drops its lines, and each line reappears as a `↳ Name` badge on the node at the other end,
-carrying the same verb-class hue it had. The quieted node stays where it is, dimmed, with a
-`hub ×N` chip — click the chip to bring its edges back. Nothing is hidden without a way back: the
-inspector lists every connection regardless. Changing the toggle or the threshold *does* reflow,
-because it changes what is drawn rather than what is shown.
-
-**Dragging.** Drag any node to untangle a view; edges re-anchor as it moves and the container box
-resizes when it lands. Positions are session-only and reset when the focus changes — **reset
-layout** in the Connections panel clears them for the current view.
+**Dragging.** Drag any node to untangle a view; edges re-anchor as it moves. A **containment box** —
+the focus region, or an expanded external's group — is dragged by its **title bar**, and carries its
+contents with it; the rest of the box stays click-through so it never swallows the nodes and edges
+inside it. Dragging a child instead resizes the region around it when the node lands. Positions are
+session-only and reset when the focus changes — **reset layout** in the Connections panel clears
+them for the current view.
 
 **Deep links.** The current view lives in the URL hash — `#node/<id>`, `#flow/<id>`,
 `#pattern/<id>` — so a view survives refresh, is shareable, and the browser Back button walks the

@@ -28,7 +28,7 @@ schema in `packages/schema` wins any disagreement.
                      highlight.ts  flowEdges.ts  layout.ts  reactflow.ts
                      shapes.ts  patternView.ts  flowOverlay.ts  canvas.css
                      nodes/    NodeBox  NodeShape  GroupNode  GhostNode
-                               GhostGroupNode  PatternMemberNode  HubBadges
+                               GhostGroupNode  PatternMemberNode
                      edges/    FloatingEdge.tsx  floating.ts
                      overlay/  Legend.tsx  FilterPanel.tsx
         outline/     TreePanel.tsx  outline.css
@@ -36,7 +36,7 @@ schema in `packages/schema` wins any disagreement.
                      fieldLayout.ts  inspector.css
         toolbar/     Toolbar.tsx  Altimeter.tsx  SearchBox.tsx  toolbar.css
       core/          NodeTree.ts  stepReveal.ts  connections.ts  breadcrumb.ts
-                     hashRoute.ts  verbColors.ts  hubs.ts
+                     hashRoute.ts  verbColors.ts
                      focusView/  index.ts  buildFocusView.ts  edges.ts  types.ts
       state/         store.ts  api.ts  theme.ts
       styles/        tokens.css  base.css
@@ -90,7 +90,7 @@ resolving nothing, depending on which one you missed.
     pnpm server         # API + SSE on :5173, owns ./hyphae.json (override with HYPHAE_FILE)
     pnpm web            # viewer on :3000, proxies the API
     pnpm mcp            # MCP server — an HTTP client of the above, so the server must be running
-    pnpm -r test        # baseline 716 green: schema 147, server 107, web 462 (31 files)
+    pnpm -r test        # baseline 686 green: schema 147, server 107, web 432 (29 files)
     pnpm -r build
     pnpm --filter @hyphae/web typecheck   # tsc --noEmit — NOT part of build; see below
 
@@ -179,22 +179,26 @@ Conventions the suite does *not* enforce — jsdom loads no stylesheet, so nothi
 
 ## Invariants that bite
 
-- **Focus-view pipeline:** `buildFocusView` (`core/focusView/`) → `quietHubs` (`core/hubs.ts`) →
-  `layoutFocusView` (on the *collapsed, unfiltered* base view) → `resolveViewPositions` →
-  `applyDragOverrides` (all three `features/canvas/layout.ts`) → `focusViewToFlow`
-  (`features/canvas/reactflow.ts`). The whole chain is wired in `features/canvas/useCanvasView.ts`,
-  and base positions are memoized on `[model, focusId, hubIds]`, so the connection filter, the
-  audience toggle, and expanding an external never reflow the graph. Quieting IS in that key on
-  purpose: it changes what is *drawn*, not merely what is *shown* of a fixed drawing.
-- **Hub detection runs on the BASE view, never the rendered one** (`detectHubs` in `core/hubs.ts`).
-  Run it on the rendered view and filtering out `dataAccess` un-hubs a settings node, reflowing the
-  whole graph on a filter toggle — precisely what the layout-stability invariant above exists to
-  prevent. `quietHubs` is then applied to *both* views with the same id set.
-- **`NODE_W`/`NODE_H` are the defaults of a `NodeMetrics` parameter**, threaded through
-  `layoutFocusView`, `resolveViewPositions`, `groupBoxHeight` and `focusViewToFlow`. Quieting adds
-  `BADGE_ROW_H` to the height so the badge row fits; dagre, the external columns, the group boxes,
-  the region box and the node components must all agree, or boxes overlap. `patternView.ts` stays on
-  the bare constants deliberately — the pattern view keeps the default size.
+- **Focus-view pipeline:** `buildFocusView` (`core/focusView/`) → `layoutFocusView` (on the
+  *collapsed, unfiltered* base view) → `applyDragOverrides` → `resolveViewPositions` →
+  `applyDragOverrides` again (all three `features/canvas/layout.ts`) → `focusViewToFlow`
+  (`features/canvas/reactflow.ts`). Wired in `features/canvas/useCanvasView.ts`; base positions are
+  memoized on `[model, focusId]` only, so the connection filter, the audience toggle, and expanding
+  an external never reflow the graph.
+- **Drag overrides are applied to the BASE SLOTS, not only to the finished positions** — that is
+  what the doubled `applyDragOverrides` is for. An expanded external is drawn as a group anchored at
+  its *collapsed ghost's base slot*, so overriding only the resolved positions left the group
+  anchored where dagre put it: drag an external, expand it, and it teleported back. The second pass
+  exists for ids that live only in the resolved view — a group's own members — which have no base
+  slot to override. Pinned by "a dragged external survives being expanded" in `Canvas.test.tsx`.
+- **A containment box is dragged by its title bar and carries its contents.** `region` and
+  `ghostGroup` carry `dragHandle: '.region__handle'` (`GROUP_GRIP` in `reactflow.ts`); the box is
+  `pointer-events: none` and only that strip takes pointer events, or the box — which spans the whole
+  cluster — would swallow every click meant for the nodes and edges inside it. Neither box is a React
+  Flow *parent* (children are absolute siblings), so `Canvas.tsx` moves the members itself: locally
+  per frame, committed on drop. A **ghost group commits its own id**, since that id IS its collapsed
+  ghost's base slot, so the move survives collapsing; a **region commits every child**, since it has
+  no slot of its own. `GhostGroupNode`'s collapse caret needs `nodrag` or pressing it starts a drag.
 - A node with **no base slot gets no position** and renders at the origin, on top of everything else.
   If nodes stack up in a corner, look here first.
 - **`expandedExternals` is for nodes OUTSIDE the focus.** Expanded groups are laid out in the

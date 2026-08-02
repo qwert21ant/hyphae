@@ -28,9 +28,8 @@ describe('viewer store', () => {
       'setModel', 'syncFromServer', 'setFocus', 'revealNode', 'revealStep', 'select',
       'selectFlow', 'selectPattern', 'setOffViewSteps', 'setAudience', 'setTheme', 'toggleConnVerbClass',
       'toggleConnField', 'clearConnFilter', 'toggleExternal',
-      // Density controls: all view state, none of it a model write.
-      'quietHubsOn', 'hubThreshold', 'hubOverrides', 'nodePositions',
-      'toggleQuietHubs', 'setHubThreshold', 'setHubOverride', 'setNodePosition', 'resetNodePositions',
+      // Manual layout: view state, not a model write.
+      'nodePositions', 'setNodePosition', 'setNodePositions', 'resetNodePositions',
     ].sort());
   });
 
@@ -203,38 +202,11 @@ describe('api.ts has no write path', () => {
   });
 });
 
-describe('density state', () => {
+describe('manual layout state', () => {
   beforeEach(() => {
     useStore.setState({
-      quietHubsOn: true, hubThreshold: 10, hubOverrides: {}, nodePositions: {},
-      focusId: null, expandedExternals: new Set(),
+      nodePositions: {}, focusId: null, expandedExternals: new Set(),
     });
-  });
-
-  // 10 is measured, not guessed: on the real Baritone model a threshold of 8 quiets 46% of the
-  // boxes at Baritone API (85 edges -> 8, which is no longer a diagram), while 12 quiets nothing
-  // at 9 of 11 foci. The degree distribution is a cliff and 10 sits on it.
-  it('defaults to quieting on at a threshold of 10', () => {
-    expect(useStore.getState().quietHubsOn).toBe(true);
-    expect(useStore.getState().hubThreshold).toBe(10);
-  });
-
-  it('toggles quieting', () => {
-    useStore.getState().toggleQuietHubs();
-    expect(useStore.getState().quietHubsOn).toBe(false);
-  });
-
-  it('clamps the threshold to 2..40', () => {
-    useStore.getState().setHubThreshold(0);
-    expect(useStore.getState().hubThreshold).toBe(2);
-    useStore.getState().setHubThreshold(99);
-    expect(useStore.getState().hubThreshold).toBe(40);
-  });
-
-  it('records a hub override in both directions', () => {
-    useStore.getState().setHubOverride('a', false);
-    useStore.getState().setHubOverride('b', true);
-    expect(useStore.getState().hubOverrides).toEqual({ a: false, b: true });
   });
 
   it('records and resets a dragged position', () => {
@@ -244,11 +216,17 @@ describe('density state', () => {
     expect(useStore.getState().nodePositions).toEqual({});
   });
 
-  it('clears drag positions and hub overrides when the focus changes', () => {
+  it('commits several positions in one update', () => {
+    useStore.getState().setNodePosition('a', { x: 1, y: 1 });
+    useStore.getState().setNodePositions({ b: { x: 2, y: 2 }, c: { x: 3, y: 3 } });
+    expect(useStore.getState().nodePositions).toEqual({
+      a: { x: 1, y: 1 }, b: { x: 2, y: 2 }, c: { x: 3, y: 3 },
+    });
+  });
+
+  it('clears drag positions when the focus changes', () => {
     useStore.getState().setNodePosition('a', { x: 1, y: 2 });
-    useStore.getState().setHubOverride('a', false);
     useStore.getState().setFocus('other');
     expect(useStore.getState().nodePositions).toEqual({});
-    expect(useStore.getState().hubOverrides).toEqual({});
   });
 });

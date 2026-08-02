@@ -20,7 +20,10 @@ export function GhostGroupNode({ id, data }: NodeProps) {
       ))}
       <div className="region__handle region__handle--split">
         <span className="region__label">{label}</span>
-        <button className="region__collapse" onClick={(ev) => { ev.stopPropagation(); toggle(id); }} title="Collapse">−</button>
+        {/* `nodrag` is React Flow's opt-out (noDragClassName): without it, pressing the caret would
+            start a drag of the whole group instead of collapsing it, since the button sits inside
+            the title bar that IS the drag handle. */}
+        <button className="region__collapse nodrag" onClick={(ev) => { ev.stopPropagation(); toggle(id); }} title="Collapse">−</button>
       </div>
     </div>
   );

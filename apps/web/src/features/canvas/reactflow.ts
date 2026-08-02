@@ -1,9 +1,8 @@
 import { MarkerType, type Node as FlowNode, type Edge as FlowEdge } from '@xyflow/react';
 import { c4Backend, layerOfType, roleOfNode, roleDefOf, verbClassOf, type Node as ModelNode } from '@hyphae/schema';
 import type { FocusView, FocusEdge } from '@/core/focusView';
-import { PAD, LABEL_H, DEFAULT_METRICS, type NodeMetrics, type XY } from './layout';
+import { NODE_W, NODE_H, PAD, LABEL_H, type XY } from './layout';
 import { layerColorOf, VERB_CLASS_COLOR } from '@/core/verbColors';
-import type { HubBadge } from '@/core/hubs';
 
 /** The node data every node renderer reads: name, the on-diagram purpose, tech chip, and shape. */
 export function nodeVisual(n: ModelNode) {
@@ -80,22 +79,12 @@ function derivedEdge(e: FocusEdge): FlowEdge {
  */
 const BOUNDARY_Z = -1;
 
-export type FlowOptions = {
-  /** Box size for the `node` / `ghost` types. Grows a badge row when hub quieting is on. */
-  metrics?: NodeMetrics;
-  /** Quieted edges, re-encoded per neighbour id. */
-  badges?: Map<string, HubBadge[]>;
-  /** Drawn-edge degree per node, so a quieted hub can show what it is standing in for. */
-  hubDegrees?: Map<string, number>;
-  /** Which nodes are quieted. Only these get a `hubDegree` in their data, and so a chip. */
-  hubIds?: Set<string>;
-};
+/** The class React Flow treats as a containment box's drag handle — its title bar. Shared with
+ *  GroupNode/GhostGroupNode, which render it, and with canvas.css, which makes it the one part of a
+ *  pointer-transparent box that takes pointer events. */
+export const GROUP_GRIP = 'region__handle';
 
-export function focusViewToFlow(view: FocusView, pos: Record<string, XY>, opts: FlowOptions = {}): { nodes: FlowNode[]; edges: FlowEdge[] } {
-  const m = opts.metrics ?? DEFAULT_METRICS;
-  // A degree is only carried by a node that is actually quieted — it is the chip's label AND the
-  // flag that the node is standing in for hidden edges.
-  const hubDegree = (id: string) => (opts.hubIds?.has(id) ? opts.hubDegrees?.get(id) : undefined);
+export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nodes: FlowNode[]; edges: FlowEdge[] } {
   const nodes: FlowNode[] = [];
 
   // initialWidth/initialHeight are unmeasured-size hints: they don't constrain the real DOM node
@@ -106,8 +95,8 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>, opts: 
     const ys = view.children.map((n) => pos[n.id]?.y ?? 0);
     const minX = Math.min(...xs);
     const minY = Math.min(...ys);
-    const maxX = Math.max(...xs.map((x) => x + m.width));
-    const maxY = Math.max(...ys.map((y) => y + m.height));
+    const maxX = Math.max(...xs.map((x) => x + NODE_W));
+    const maxY = Math.max(...ys.map((y) => y + NODE_H));
     const width = maxX - minX + 2 * PAD;
     const height = maxY - minY + LABEL_H + 2 * PAD;
     nodes.push({
@@ -121,7 +110,10 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>, opts: 
       initialWidth: width,
       initialHeight: height,
       zIndex: BOUNDARY_Z,
-      draggable: false,
+      // Grabbable by its title bar only. The box spans the whole cluster and is pointer-transparent
+      // (canvas.css `.region`), so a whole-surface drag target would swallow every click meant for
+      // the nodes and edges inside it; `.region__handle` is the one strip that takes pointer events.
+      dragHandle: `.${GROUP_GRIP}`,
       selectable: false,
     });
   } else if (view.focusNode) {
@@ -130,9 +122,9 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>, opts: 
       id: view.focusNode.id,
       type: 'node',
       position: pos[view.focusNode.id] ?? { x: 0, y: 0 },
-      data: { ...nodeVisual(view.focusNode), width: m.width, height: m.height },
-      initialWidth: m.width,
-      initialHeight: m.height,
+      data: nodeVisual(view.focusNode),
+      initialWidth: NODE_W,
+      initialHeight: NODE_H,
       draggable: false,
     });
   }
@@ -142,8 +134,8 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>, opts: 
     if (!mpos.length) continue;
     const minX = Math.min(...mpos.map((p) => p.x));
     const minY = Math.min(...mpos.map((p) => p.y));
-    const maxX = Math.max(...mpos.map((p) => p.x + m.width));
-    const maxY = Math.max(...mpos.map((p) => p.y + m.height));
+    const maxX = Math.max(...mpos.map((p) => p.x + NODE_W));
+    const maxY = Math.max(...mpos.map((p) => p.y + NODE_H));
     const width = maxX - minX + 2 * PAD;
     const height = maxY - minY + LABEL_H + 2 * PAD;
     nodes.push({
@@ -155,7 +147,7 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>, opts: 
       initialWidth: width,
       initialHeight: height,
       zIndex: BOUNDARY_Z,
-      draggable: false,
+      dragHandle: `.${GROUP_GRIP}`,
       selectable: false,
     });
   }
@@ -163,18 +155,18 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>, opts: 
   for (const n of view.children) {
     nodes.push({
       id: n.id, type: 'node', position: pos[n.id] ?? { x: 0, y: 0 },
-      data: { ...nodeVisual(n), width: m.width, height: m.height, badges: opts.badges?.get(n.id), hubDegree: hubDegree(n.id) },
-      initialWidth: m.width, initialHeight: m.height,
+      data: nodeVisual(n),
+      initialWidth: NODE_W, initialHeight: NODE_H,
     });
   }
   for (const n of view.externals) {
     nodes.push({
       id: n.id, type: 'ghost', position: pos[n.id] ?? { x: 0, y: 0 },
       data: {
-        ...nodeVisual(n), width: m.width, height: m.height, badges: opts.badges?.get(n.id), hubDegree: hubDegree(n.id),
+        ...nodeVisual(n),
         expandable: view.expandableExternalIds?.has(n.id) ?? false,
       },
-      initialWidth: m.width, initialHeight: m.height,
+      initialWidth: NODE_W, initialHeight: NODE_H,
     });
   }
 

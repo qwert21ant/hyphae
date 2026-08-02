@@ -150,5 +150,3 @@
  * --t-md against the legend's inherited --t-sm, which read as two unrelated cards. */
 .filter__option { display: flex; align-items: center; gap: var(--s-3); font-size: var(--t-sm); line-height: 1.7; cursor: pointer; }
 .filter__swatch { display: inline-block; width: 10px; height: 2px; }
-/* Below .filter__option so it wins on equal specificity — it narrows that class. */
-.filter__stepper input { width: 3.2em; margin: 0 var(--s-2); }
