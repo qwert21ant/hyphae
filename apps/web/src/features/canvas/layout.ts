@@ -148,7 +148,15 @@ export type DragState = {
   id: string;
   /** 'ghostGroup' and 'region' carry members; anything else moves alone. */
   type: string;
+  /** Where the dragged node was rendered when the drag began. */
   start: XY;
+  /**
+   * A ghost group's BASE SLOT at drag start, which is not the same thing as `start`. The box is
+   * drawn wrapping its members, so its position is `min(members) - padding`; that coincides with
+   * the slot only while member 0 is still the topmost one. Drag member 0 below its siblings and the
+   * box sits a whole MEMBER_PITCH lower than the slot it is anchored to.
+   */
+  slot?: XY;
   members: { id: string; start: XY }[];
 };
 
@@ -158,18 +166,22 @@ export type DragState = {
  * - A plain node or ghost commits itself.
  * - A GHOST GROUP commits its own id, because that id IS its collapsed ghost's base slot: every
  *   member still derived from the slot follows through resolveViewPositions, and the move survives
- *   collapsing the group back to a single box. A member that was dragged INDIVIDUALLY is the
- *   exception — it carries its own absolute override and no longer derives from the slot, so it
- *   must be shifted by the same delta or it stays behind while its siblings move.
+ *   collapsing the group back to a single box. It commits the SLOT moved by the drag delta, not the
+ *   box's own position — see `DragState.slot`; committing the box position shifted every derived
+ *   member by however far the box had drifted from the slot. A member that was dragged INDIVIDUALLY
+ *   is the other exception — it carries its own absolute override and no longer derives from the
+ *   slot, so it must be shifted by the same delta or it stays behind while its siblings move.
  * - A REGION has no slot of its own (it is derived from its children), so it commits every child.
+ *
+ * Everything the drag carries therefore moves by exactly the drag delta, and nothing else moves.
  */
 export function dragCommit(d: DragState, to: XY, overrides: Record<string, XY>): Record<string, XY> {
   const dx = to.x - d.start.x;
   const dy = to.y - d.start.y;
-  const shifted = (m: { id: string; start: XY }) => ({ x: m.start.x + dx, y: m.start.y + dy });
+  const shifted = (m: { start: XY }) => ({ x: m.start.x + dx, y: m.start.y + dy });
   if (!d.members.length) return { [d.id]: to };
   if (d.type === 'ghostGroup') {
-    const patch: Record<string, XY> = { [d.id]: to };
+    const patch: Record<string, XY> = { [d.id]: shifted({ start: d.slot ?? d.start }) };
     for (const m of d.members) if (overrides[m.id]) patch[m.id] = shifted(m);
     return patch;
   }

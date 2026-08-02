@@ -3,7 +3,7 @@ import type { Node as FlowNode, Edge as FlowEdge } from '@xyflow/react';
 import { c4Backend } from '@hyphae/schema';
 import { useStore } from '@/state/store';
 import { buildFocusView, type FocusView } from '@/core/focusView';
-import { layoutFocusView, resolveViewPositions, applyDragOverrides } from './layout';
+import { layoutFocusView, resolveViewPositions, applyDragOverrides, type XY } from './layout';
 import { focusViewToFlow } from './reactflow';
 import { computeFlowOverlay, type FlowOverlay } from './flowOverlay';
 import { patternViewToFlow } from './patternView';
@@ -15,6 +15,9 @@ export type CanvasView = {
   overlay: FlowOverlay | null;
   flowActive: boolean;
   patternFlow: { nodes: FlowNode[]; edges: FlowEdge[] } | null;
+  /** Base slots, drag overrides included. A ghost group is ANCHORED at its slot but DRAWN wrapping
+   *  its members, so the two diverge once a member is dragged — dragging the group needs the slot. */
+  slots: Record<string, XY>;
 };
 
 /**
@@ -76,5 +79,5 @@ export function useCanvasView(): CanvasView {
   const pattern = useMemo(() => model.patterns.find((p) => p.id === selectedPatternId) ?? null, [model.patterns, selectedPatternId]);
   const patternFlow = useMemo(() => (pattern ? patternViewToFlow(pattern, c4Backend, model.nodes) : null), [pattern, model.nodes]);
 
-  return { view, nodes, edges, overlay, flowActive, patternFlow };
+  return { view, nodes, edges, overlay, flowActive, patternFlow, slots: draggedBase };
 }

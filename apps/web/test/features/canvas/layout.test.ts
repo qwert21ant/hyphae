@@ -314,6 +314,20 @@ describe('dragCommit', () => {
     expect(patch.b2).toBeUndefined(); // still derived — must NOT be pinned
   });
 
+  it('moves the SLOT by the delta, not the box position it has drifted from', () => {
+    // Member 0 was dragged below its sibling, so the box — drawn wrapping its members — now sits a
+    // whole MEMBER_PITCH below the slot it is anchored to. Committing the box position would place
+    // every still-derived member from a slot that had silently moved down by that difference.
+    const d: DragState = {
+      id: 'cb', type: 'ghostGroup',
+      start: { x: 100, y: 100 + MEMBER_PITCH },   // where the box is drawn
+      slot: { x: 100, y: 100 },                   // where it is anchored
+      members: [{ id: 'b1', start: { x: 124, y: 100 + MEMBER_PITCH } }],
+    };
+    const to = { x: d.start.x + 30, y: d.start.y + 7 };
+    expect(dragCommit(d, to, {})).toEqual({ cb: { x: 130, y: 107 } });
+  });
+
   it('commits every child of a region, which has no slot of its own', () => {
     const d: DragState = {
       id: 'ca', type: 'region', start: { x: 0, y: 0 },

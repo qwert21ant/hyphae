@@ -90,7 +90,7 @@ resolving nothing, depending on which one you missed.
     pnpm server         # API + SSE on :5173, owns ./hyphae.json (override with HYPHAE_FILE)
     pnpm web            # viewer on :3000, proxies the API
     pnpm mcp            # MCP server — an HTTP client of the above, so the server must be running
-    pnpm -r test        # baseline 691 green: schema 147, server 107, web 437 (29 files)
+    pnpm -r test        # baseline 693 green: schema 147, server 107, web 439 (29 files)
     pnpm -r build
     pnpm --filter @hyphae/web typecheck   # tsc --noEmit — NOT part of build; see below
 
@@ -206,6 +206,11 @@ Conventions the suite does *not* enforce — jsdom loads no stylesheet, so nothi
   only for members that actually carry an override (pinning the others would freeze them). Without
   it the dragged member stays behind while its siblings follow the slot, and the group visibly tears
   apart on release while looking correct throughout the drag.
+- **A ghost group is ANCHORED at its base slot but DRAWN wrapping its members**, and the two are
+  only equal while member 0 is still the topmost one. Drag member 0 below its siblings and the box
+  sits a whole `MEMBER_PITCH` lower than its slot. So a group drag commits `slot + delta`, never the
+  box's own position — hence `DragState.slot`, captured from `useCanvasView`'s `slots`. Commit the
+  box position instead and every still-derived member is re-placed a row down on release.
 - A node with **no base slot gets no position** and renders at the origin, on top of everything else.
   If nodes stack up in a corner, look here first.
 - **`expandedExternals` is for nodes OUTSIDE the focus.** Expanded groups are laid out in the

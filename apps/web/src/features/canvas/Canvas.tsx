@@ -41,7 +41,7 @@ export function Canvas() {
   // deliberately read outside of, and absent from, every useMemo dependency array in this file.
   const theme = useStore((s) => s.theme);
 
-  const { view, nodes, edges, overlay, flowActive, patternFlow } = useCanvasView();
+  const { view, nodes, edges, overlay, flowActive, patternFlow, slots } = useCanvasView();
   const { onNodeClick } = useDrillNavigation();
 
   // The derived `nodes` are the source of truth; React Flow's copy exists only so it can animate a
@@ -69,6 +69,7 @@ export function Canvas() {
       id: n.id,
       type: n.type ?? '',
       start: { ...n.position },
+      slot: slots[n.id] ? { ...slots[n.id] } : undefined,
       members: ids.map((id) => ({ id, start: { ...(at.get(id) ?? { x: 0, y: 0 }) } })),
     };
   };

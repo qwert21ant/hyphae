@@ -533,6 +533,46 @@ describe('a dragged external survives being expanded', () => {
     expect(at(container, 'b2')).toEqual({ x: b2Before.x + delta.x, y: b2Before.y + delta.y });
   });
 
+  it('does not shift the siblings when the FIRST member was dragged over them first', () => {
+    // The reported flow. Dragging member 0 down past member 1 makes the box — drawn wrapping its
+    // members — sit a MEMBER_PITCH below the slot it is anchored to. Committing the box position as
+    // the slot then re-placed every still-derived member a row lower, so the group "jumped" on
+    // release. Nothing here is anti-overlap logic; the box position and the slot had diverged.
+    useStore.setState({ model: expandable(), focusId: 'ca', expandedExternals: new Set(['cb']), nodePositions: {} });
+    const { container, rerender } = render(<Canvas />);
+    const b1Start = at(container, 'b1');
+    const b2Before = at(container, 'b2');
+    const boxBefore = at(container, 'cb');
+
+    // 1. drag the FIRST member down onto its sibling
+    const b1Moved = { x: b1Start.x, y: b2Before.y + 10 };
+    act(() => { useStore.getState().setNodePosition('b1', b1Moved); });
+    rerender(<Canvas />);
+    // The box has now drifted off the slot: it wraps from b2 instead of from b1.
+    const boxAfter = at(container, 'cb');
+    expect(boxAfter.y).toBeGreaterThan(boxBefore.y);
+
+    // 2. drag the whole group, committing exactly as Canvas's onNodeDragStop does
+    const delta = { x: 120, y: 30 };
+    act(() => {
+      useStore.getState().setNodePositions(dragCommit(
+        {
+          id: 'cb', type: 'ghostGroup',
+          start: boxAfter,                                   // where the box is drawn
+          slot: useStore.getState().nodePositions.cb ?? boxBefore, // where it is anchored
+          members: [{ id: 'b1', start: b1Moved }, { id: 'b2', start: b2Before }],
+        },
+        { x: boxAfter.x + delta.x, y: boxAfter.y + delta.y },
+        useStore.getState().nodePositions,
+      ));
+    });
+    rerender(<Canvas />);
+
+    // Every member moved by exactly the delta. No sibling drifted.
+    expect(at(container, 'b1')).toEqual({ x: b1Moved.x + delta.x, y: b1Moved.y + delta.y });
+    expect(at(container, 'b2')).toEqual({ x: b2Before.x + delta.x, y: b2Before.y + delta.y });
+  });
+
   it('anchors the expanded group at the dragged slot, not at the auto-layout one', () => {
     useStore.setState({ model: expandable(), focusId: 'ca', expandedExternals: new Set(), nodePositions: {} });
     const { container, rerender } = render(<Canvas />);
