@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   layoutFocusView, resolveViewPositions, groupBoxHeight, NODE_W, NODE_H, PAD, LABEL_H, ROW_GAP, MEMBER_PITCH,
-  GRID_COLS, applyDragOverrides,
+  GRID_COLS, applyDragOverrides, dragCommit, type DragState, type XY,
 } from '@/features/canvas/layout';
 import type { FocusView } from '@/core/focusView';
 
@@ -286,5 +286,41 @@ describe('applyDragOverrides', () => {
   it('returns the base object untouched when there is nothing to override', () => {
     const base = { a: { x: 1, y: 2 } };
     expect(applyDragOverrides(base, {})).toBe(base);
+  });
+});
+
+describe('dragCommit', () => {
+  const grp = (members: { id: string; start: XY }[] = []): DragState =>
+    ({ id: 'cb', type: 'ghostGroup', start: { x: 100, y: 100 }, members });
+
+  it('commits a lone node as itself', () => {
+    const d: DragState = { id: 'a1', type: 'node', start: { x: 0, y: 0 }, members: [] };
+    expect(dragCommit(d, { x: 5, y: 6 }, {})).toEqual({ a1: { x: 5, y: 6 } });
+  });
+
+  it('commits a ghost group as its own slot, letting derived members follow', () => {
+    const d = grp([{ id: 'b1', start: { x: 124, y: 146 } }]);
+    // b1 has no override of its own, so it still derives from the slot — nothing to commit for it.
+    expect(dragCommit(d, { x: 300, y: 100 }, {})).toEqual({ cb: { x: 300, y: 100 } });
+  });
+
+  it('carries an individually-dragged member along with its group', () => {
+    // THE BUG: b1 was dragged on its own, so it holds an absolute override and no longer derives
+    // from the group's slot. Moving the group left it behind at its stale absolute position while
+    // b2 followed the slot, which tore the group apart on release.
+    const d = grp([{ id: 'b1', start: { x: 500, y: 500 } }, { id: 'b2', start: { x: 124, y: 250 } }]);
+    const patch = dragCommit(d, { x: 300, y: 100 }, { b1: { x: 500, y: 500 } });
+    expect(patch).toEqual({ cb: { x: 300, y: 100 }, b1: { x: 700, y: 500 } });
+    expect(patch.b2).toBeUndefined(); // still derived — must NOT be pinned
+  });
+
+  it('commits every child of a region, which has no slot of its own', () => {
+    const d: DragState = {
+      id: 'ca', type: 'region', start: { x: 0, y: 0 },
+      members: [{ id: 'a1', start: { x: 10, y: 10 } }, { id: 'a2', start: { x: 10, y: 120 } }],
+    };
+    expect(dragCommit(d, { x: 40, y: -10 }, {})).toEqual({
+      a1: { x: 50, y: 0 }, a2: { x: 50, y: 110 },
+    });
   });
 });

@@ -90,7 +90,7 @@ resolving nothing, depending on which one you missed.
     pnpm server         # API + SSE on :5173, owns ./hyphae.json (override with HYPHAE_FILE)
     pnpm web            # viewer on :3000, proxies the API
     pnpm mcp            # MCP server — an HTTP client of the above, so the server must be running
-    pnpm -r test        # baseline 686 green: schema 147, server 107, web 432 (29 files)
+    pnpm -r test        # baseline 691 green: schema 147, server 107, web 437 (29 files)
     pnpm -r build
     pnpm --filter @hyphae/web typecheck   # tsc --noEmit — NOT part of build; see below
 
@@ -196,9 +196,16 @@ Conventions the suite does *not* enforce — jsdom loads no stylesheet, so nothi
   `pointer-events: none` and only that strip takes pointer events, or the box — which spans the whole
   cluster — would swallow every click meant for the nodes and edges inside it. Neither box is a React
   Flow *parent* (children are absolute siblings), so `Canvas.tsx` moves the members itself: locally
-  per frame, committed on drop. A **ghost group commits its own id**, since that id IS its collapsed
-  ghost's base slot, so the move survives collapsing; a **region commits every child**, since it has
-  no slot of its own. `GhostGroupNode`'s collapse caret needs `nodrag` or pressing it starts a drag.
+  per frame, committed on drop by **`dragCommit`** (`layout.ts`, pure and unit-tested — the logic
+  lived in an event handler and was both wrong and untestable there). A **ghost group commits its own
+  id**, since that id IS its collapsed ghost's base slot, so the move survives collapsing; a
+  **region commits every child**, since it has no slot of its own.
+  `GhostGroupNode`'s collapse caret needs `nodrag` or pressing it starts a drag.
+- **A member dragged out of a group stops deriving from that group's slot**, so moving the group
+  afterwards must shift the member's own override by the same delta — `dragCommit` does this, and
+  only for members that actually carry an override (pinning the others would freeze them). Without
+  it the dragged member stays behind while its siblings follow the slot, and the group visibly tears
+  apart on release while looking correct throughout the drag.
 - A node with **no base slot gets no position** and renders at the origin, on top of everything else.
   If nodes stack up in a corner, look here first.
 - **`expandedExternals` is for nodes OUTSIDE the focus.** Expanded groups are laid out in the

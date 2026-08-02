@@ -15,7 +15,7 @@ import { FloatingEdge } from '@/features/canvas/edges/FloatingEdge';
 import { decorateFlowEdges } from './flowEdges';
 import { highlightCss } from './highlight';
 import { useCanvasView } from './useCanvasView';
-import type { XY } from './layout';
+import { dragCommit, type DragState } from './layout';
 import { useDrillNavigation } from './useDrillNavigation';
 import { FilterPanel } from '@/features/canvas/overlay/FilterPanel';
 import { Legend } from '@/features/canvas/overlay/Legend';
@@ -55,7 +55,7 @@ export function Canvas() {
   // children are laid out as absolute siblings — so React Flow moves the box alone and we move the
   // rest. The members' start positions are captured once, on drag start, so every frame is a single
   // delta from a fixed origin and rounding cannot accumulate.
-  const dragRef = useRef<{ id: string; start: XY; members: { id: string; start: XY }[] } | null>(null);
+  const dragRef = useRef<DragState | null>(null);
   const membersOf = (n: FlowNode): string[] => {
     if (n.type === 'region') return view.children.map((c) => c.id);
     if (n.type === 'ghostGroup') return view.externalGroups?.find((g) => g.id === n.id)?.childIds ?? [];
@@ -67,32 +67,29 @@ export function Canvas() {
     const at = new Map(rfNodes.map((x) => [x.id, x.position]));
     dragRef.current = {
       id: n.id,
+      type: n.type ?? '',
       start: { ...n.position },
       members: ids.map((id) => ({ id, start: { ...(at.get(id) ?? { x: 0, y: 0 }) } })),
     };
   };
-  type Drag = NonNullable<typeof dragRef.current>;
-  const movedMembers = (d: Drag, to: XY) => {
-    const dx = to.x - d.start.x;
-    const dy = to.y - d.start.y;
-    return d.members.map((m) => [m.id, { x: m.start.x + dx, y: m.start.y + dy }] as const);
-  };
-  // Local state only — no store write per frame, which would re-run the whole view pipeline.
+  // Local state only — no store write per frame, which would re-run the whole view pipeline. Every
+  // member moves by the same delta from a fixed origin, so the preview matches what dragCommit
+  // will write and nothing jumps on release.
   const onNodeDrag = (_: unknown, n: FlowNode) => {
     const d = dragRef.current;
     if (d?.id !== n.id) return;
-    const moved = new Map(movedMembers(d, n.position));
+    const dx = n.position.x - d.start.x;
+    const dy = n.position.y - d.start.y;
+    const moved = new Map(d.members.map((m) => [m.id, { x: m.start.x + dx, y: m.start.y + dy }]));
     setRfNodes((ns) => ns.map((x) => (moved.has(x.id) ? { ...x, position: moved.get(x.id)! } : x)));
   };
   const onNodeDragStop = (_: unknown, n: FlowNode) => {
     const d = dragRef.current;
     dragRef.current = null;
-    // A ghost group's own position IS its collapsed ghost's base slot, so committing just the group
-    // moves its members through resolveViewPositions AND survives collapsing it back to one box.
-    if (!d || d.id !== n.id || n.type === 'ghostGroup') { setNodePosition(n.id, n.position); return; }
-    // A region has no slot of its own — it is derived from its children — so moving it means moving
-    // every child by the same delta, in one update rather than one render per child.
-    setNodePositions(Object.fromEntries(movedMembers(d, n.position)));
+    if (!d || d.id !== n.id) { setNodePosition(n.id, n.position); return; }
+    // Read through getState rather than subscribing: this needs the overrides as they are at drop,
+    // and a subscription here would re-render the canvas on every committed drag for nothing.
+    setNodePositions(dragCommit(d, n.position, useStore.getState().nodePositions));
   };
 
   // Transient hover, so a user can trace a node's neighborhood without committing a selection.

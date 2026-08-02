@@ -5,6 +5,7 @@ import { render, fireEvent, act } from '@testing-library/react';
 import { Canvas } from '@/features/canvas/Canvas';
 import { EDGE_LABEL_CLASS } from '@/features/canvas/edges/FloatingEdge';
 import { GROUP_GRIP } from '@/features/canvas/reactflow';
+import { dragCommit } from '@/features/canvas/layout';
 import { useStore } from '@/state/store';
 import { emptyModel } from '@hyphae/schema';
 
@@ -495,6 +496,42 @@ describe('a dragged external survives being expanded', () => {
     const [, x, y] = /translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/.exec(t) ?? [];
     return { x: Number(x), y: Number(y) };
   };
+
+  it('keeps an individually-dragged member with its group when the group moves', () => {
+    // The reported sequence: expand → move a member → move the whole group. The member holds an
+    // ABSOLUTE override and no longer derives from the group's slot, so committing only the slot
+    // left it behind while its sibling followed, tearing the group apart on release.
+    useStore.setState({ model: expandable(), focusId: 'ca', expandedExternals: new Set(['cb']), nodePositions: {} });
+    const { container, rerender } = render(<Canvas />);
+    const b2Before = at(container, 'b2');
+    // The group box sits exactly on its collapsed ghost's base slot, so its rendered position IS
+    // the slot — read it before anything moves, while the box still wraps the untouched members.
+    const slot = at(container, 'cb');
+
+    // 1. drag the member b1 off on its own
+    const b1Moved = { x: at(container, 'b1').x + 40, y: at(container, 'b1').y + 90 };
+    act(() => { useStore.getState().setNodePosition('b1', b1Moved); });
+    rerender(<Canvas />);
+    expect(at(container, 'b1')).toEqual(b1Moved);
+
+    // 2. drag the whole group, exactly as Canvas's onNodeDragStop commits it
+    const delta = { x: 250, y: 60 };
+    act(() => {
+      useStore.getState().setNodePositions(dragCommit(
+        {
+          id: 'cb', type: 'ghostGroup', start: slot,
+          members: [{ id: 'b1', start: b1Moved }, { id: 'b2', start: b2Before }],
+        },
+        { x: slot.x + delta.x, y: slot.y + delta.y },
+        useStore.getState().nodePositions,
+      ));
+    });
+    rerender(<Canvas />);
+
+    // Both members moved by the SAME delta — the group stayed intact.
+    expect(at(container, 'b1')).toEqual({ x: b1Moved.x + delta.x, y: b1Moved.y + delta.y });
+    expect(at(container, 'b2')).toEqual({ x: b2Before.x + delta.x, y: b2Before.y + delta.y });
+  });
 
   it('anchors the expanded group at the dragged slot, not at the auto-layout one', () => {
     useStore.setState({ model: expandable(), focusId: 'ca', expandedExternals: new Set(), nodePositions: {} });

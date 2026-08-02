@@ -143,6 +143,39 @@ export function applyDragOverrides(base: Record<string, XY>, overrides: Record<s
   return out;
 }
 
+/** A drag in progress: what is being moved, from where, and the contents it carries. */
+export type DragState = {
+  id: string;
+  /** 'ghostGroup' and 'region' carry members; anything else moves alone. */
+  type: string;
+  start: XY;
+  members: { id: string; start: XY }[];
+};
+
+/**
+ * What dragging a node commits to the session position overrides.
+ *
+ * - A plain node or ghost commits itself.
+ * - A GHOST GROUP commits its own id, because that id IS its collapsed ghost's base slot: every
+ *   member still derived from the slot follows through resolveViewPositions, and the move survives
+ *   collapsing the group back to a single box. A member that was dragged INDIVIDUALLY is the
+ *   exception — it carries its own absolute override and no longer derives from the slot, so it
+ *   must be shifted by the same delta or it stays behind while its siblings move.
+ * - A REGION has no slot of its own (it is derived from its children), so it commits every child.
+ */
+export function dragCommit(d: DragState, to: XY, overrides: Record<string, XY>): Record<string, XY> {
+  const dx = to.x - d.start.x;
+  const dy = to.y - d.start.y;
+  const shifted = (m: { id: string; start: XY }) => ({ x: m.start.x + dx, y: m.start.y + dy });
+  if (!d.members.length) return { [d.id]: to };
+  if (d.type === 'ghostGroup') {
+    const patch: Record<string, XY> = { [d.id]: to };
+    for (const m of d.members) if (overrides[m.id]) patch[m.id] = shifted(m);
+    return patch;
+  }
+  return Object.fromEntries(d.members.map((m) => [m.id, shifted(m)]));
+}
+
 /**
  * Map a rendered view onto stable `base` slots (from layoutFocusView on the collapsed base view):
  * - children and a childless focus node keep their base position (so filtering connections or
