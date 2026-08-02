@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ReactFlow, Background, Controls, MiniMap, Panel, ConnectionMode,
+  ReactFlow, Background, Controls, MiniMap, Panel, ConnectionMode, useNodesState,
   type Node as FlowNode,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -15,6 +15,7 @@ import { FloatingEdge } from '@/features/canvas/edges/FloatingEdge';
 import { decorateFlowEdges } from './flowEdges';
 import { highlightCss } from './highlight';
 import { useCanvasView } from './useCanvasView';
+import { dragCommit, type DragState } from './layout';
 import { useDrillNavigation } from './useDrillNavigation';
 import { FilterPanel } from '@/features/canvas/overlay/FilterPanel';
 import { Legend } from '@/features/canvas/overlay/Legend';
@@ -40,8 +41,57 @@ export function Canvas() {
   // deliberately read outside of, and absent from, every useMemo dependency array in this file.
   const theme = useStore((s) => s.theme);
 
-  const { view, nodes, edges, overlay, flowActive, patternFlow } = useCanvasView();
+  const { view, nodes, edges, overlay, flowActive, patternFlow, slots } = useCanvasView();
   const { onNodeClick } = useDrillNavigation();
+
+  // The derived `nodes` are the source of truth; React Flow's copy exists only so it can animate a
+  // drag — it will not move a fully controlled node without an onNodesChange handler.
+  const setNodePosition = useStore((s) => s.setNodePosition);
+  const setNodePositions = useStore((s) => s.setNodePositions);
+  const [rfNodes, setRfNodes, onNodesChange] = useNodesState<FlowNode>([]);
+  useEffect(() => { setRfNodes(nodes); }, [nodes, setRfNodes]);
+
+  // Dragging a containment box has to carry its contents. Neither box is a React Flow *parent* —
+  // children are laid out as absolute siblings — so React Flow moves the box alone and we move the
+  // rest. The members' start positions are captured once, on drag start, so every frame is a single
+  // delta from a fixed origin and rounding cannot accumulate.
+  const dragRef = useRef<DragState | null>(null);
+  const membersOf = (n: FlowNode): string[] => {
+    if (n.type === 'region') return view.children.map((c) => c.id);
+    if (n.type === 'ghostGroup') return view.externalGroups?.find((g) => g.id === n.id)?.childIds ?? [];
+    return [];
+  };
+  const onNodeDragStart = (_: unknown, n: FlowNode) => {
+    const ids = membersOf(n);
+    if (!ids.length) { dragRef.current = null; return; }
+    const at = new Map(rfNodes.map((x) => [x.id, x.position]));
+    dragRef.current = {
+      id: n.id,
+      type: n.type ?? '',
+      start: { ...n.position },
+      slot: slots[n.id] ? { ...slots[n.id] } : undefined,
+      members: ids.map((id) => ({ id, start: { ...(at.get(id) ?? { x: 0, y: 0 }) } })),
+    };
+  };
+  // Local state only — no store write per frame, which would re-run the whole view pipeline. Every
+  // member moves by the same delta from a fixed origin, so the preview matches what dragCommit
+  // will write and nothing jumps on release.
+  const onNodeDrag = (_: unknown, n: FlowNode) => {
+    const d = dragRef.current;
+    if (d?.id !== n.id) return;
+    const dx = n.position.x - d.start.x;
+    const dy = n.position.y - d.start.y;
+    const moved = new Map(d.members.map((m) => [m.id, { x: m.start.x + dx, y: m.start.y + dy }]));
+    setRfNodes((ns) => ns.map((x) => (moved.has(x.id) ? { ...x, position: moved.get(x.id)! } : x)));
+  };
+  const onNodeDragStop = (_: unknown, n: FlowNode) => {
+    const d = dragRef.current;
+    dragRef.current = null;
+    if (!d || d.id !== n.id) { setNodePosition(n.id, n.position); return; }
+    // Read through getState rather than subscribing: this needs the overrides as they are at drop,
+    // and a subscription here would re-render the canvas on every committed drag for nothing.
+    setNodePositions(dragCommit(d, n.position, useStore.getState().nodePositions));
+  };
 
   // Transient hover, so a user can trace a node's neighborhood without committing a selection.
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -78,7 +128,7 @@ export function Canvas() {
     hi, activeId, flowActive, patternActive: !!patternFlow, strong, accent, dimEdge, dimNode,
   });
 
-  const rfNodes = patternFlow ? patternFlow.nodes : nodes;
+  const shownNodes = patternFlow ? patternFlow.nodes : rfNodes;
   const rfEdges = patternFlow ? patternFlow.edges : displayEdges;
 
   return (
@@ -87,12 +137,18 @@ export function Canvas() {
       <ReactFlow
         key={selectedPatternId ? `pattern:${selectedPatternId}` : (focusId ?? '__root__')}
         colorMode={theme}
-        nodes={rfNodes}
+        nodes={shownNodes}
+        onNodesChange={patternFlow ? undefined : onNodesChange}
         edges={rfEdges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         connectionMode={ConnectionMode.Loose}
-        nodesDraggable={false}
+        nodesDraggable={!patternFlow}
+        // Commit on drop, not per frame: writing every frame would re-run focusViewToFlow at frame
+        // rate. The region box therefore resizes when the node lands, not continuously mid-drag.
+        onNodeDragStart={onNodeDragStart}
+        onNodeDrag={onNodeDrag}
+        onNodeDragStop={onNodeDragStop}
         nodesConnectable={false}
         elementsSelectable
         onNodeClick={onNodeClick}

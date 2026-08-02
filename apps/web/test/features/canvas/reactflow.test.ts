@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { focusViewToFlow, highlightSets } from '@/features/canvas/reactflow';
+import { focusViewToFlow, highlightSets, GROUP_GRIP } from '@/features/canvas/reactflow';
 import { layerColorOf, LAYER_COLOR, VERB_CLASS_COLOR } from '@/core/verbColors';
 import type { FocusView } from '@/core/focusView';
 import type { Edge as FlowEdge } from '@xyflow/react';
@@ -30,7 +30,11 @@ describe('focusViewToFlow', () => {
     expect(nodes.findIndex((n) => n.id === 'ca')).toBeLessThan(nodes.findIndex((n) => n.id === 'a1'));
     const region = nodes.find((n) => n.id === 'ca')!;
     expect(region.position.x).toBeLessThan(pos.a1.x);
-    expect(region.draggable).toBe(false);
+    // The region is draggable, but only by its title bar: it spans the whole cluster and is
+    // pointer-transparent, so a whole-surface drag target would swallow every click meant for the
+    // nodes and edges inside it.
+    expect(region.draggable).toBeUndefined();
+    expect(region.dragHandle).toBe(`.${GROUP_GRIP}`);
   });
 
   it('renders a real edge with its kind label and a derived edge with a count label', () => {

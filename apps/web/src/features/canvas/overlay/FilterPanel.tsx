@@ -35,6 +35,19 @@ function FieldGroup({ def }: { def: FieldDef }) {
   );
 }
 
+/** Only shown once something has actually been dragged — there is nothing to reset before that. */
+function LayoutGroup() {
+  const dragged = useStore((s) => s.nodePositions);
+  const resetNodePositions = useStore((s) => s.resetNodePositions);
+  if (!Object.keys(dragged).length) return null;
+  return (
+    <div className="filter__group">
+      <div className="filter__label">Layout</div>
+      <button className="filter__clear" onClick={resetNodePositions}>reset layout</button>
+    </div>
+  );
+}
+
 export function FilterPanel() {
   const filter = useStore((s) => s.connFilter);
   const clear = useStore((s) => s.clearConnFilter);
@@ -47,6 +60,7 @@ export function FilterPanel() {
         {active > 0 && <button className="filter__clear" onClick={clear}>clear</button>}
       </div>
       <VerbClassGroup />
+      <LayoutGroup />
       {enumFields.map((f) => <FieldGroup key={f.key} def={f} />)}
     </div>
   );

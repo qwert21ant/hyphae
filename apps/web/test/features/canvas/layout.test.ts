@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { layoutFocusView, resolveViewPositions, groupBoxHeight, NODE_W, NODE_H, PAD, LABEL_H, ROW_GAP, MEMBER_PITCH } from '@/features/canvas/layout';
+import {
+  layoutFocusView, resolveViewPositions, groupBoxHeight, NODE_W, NODE_H, PAD, LABEL_H, ROW_GAP, MEMBER_PITCH,
+  GRID_COLS, applyDragOverrides, dragCommit, type DragState, type XY,
+} from '@/features/canvas/layout';
 import type { FocusView } from '@/core/focusView';
 
 const node = (id: string, type = 'Component') =>
@@ -183,5 +186,155 @@ describe('node box vs stacking pitch (overlap guards)', () => {
     };
     const pos = resolveViewPositions(v as never, base);
     expect(pos.b2.y - pos.b1.y).toBeGreaterThanOrEqual(NODE_H);
+  });
+});
+
+
+describe('external column ordering', () => {
+  // Three children stacked by dagre (a chain gives them distinct ranks, hence distinct y), and
+  // three incoming externals deliberately id-sorted into the WRONG vertical order.
+  const chain: FocusView = {
+    focusId: 'f', focusNode: node('f', 'Container'),
+    children: [node('k1'), node('k2'), node('k3')],
+    externals: [node('xa', 'Container'), node('xb', 'Container'), node('xc', 'Container')],
+    edges: [
+      { id: 'c1', from: 'k1', to: 'k2', count: 1, derived: false, realizedBy: ['a'] },
+      { id: 'c2', from: 'k2', to: 'k3', count: 1, derived: false, realizedBy: ['b'] },
+      // xa→k3 (bottom), xb→k2 (middle), xc→k1 (top): id order is the exact reverse of graph order
+      { id: 'e1', from: 'xa', to: 'k3', count: 1, derived: true, realizedBy: ['p'] },
+      { id: 'e2', from: 'xb', to: 'k2', count: 1, derived: true, realizedBy: ['q'] },
+      { id: 'e3', from: 'xc', to: 'k1', count: 1, derived: true, realizedBy: ['r'] },
+    ],
+  };
+
+  it('orders a column by its neighbours vertical position, not by id', () => {
+    const pos = layoutFocusView(chain);
+    // k1 is above k3, so xc (which feeds k1) must sit above xa (which feeds k3).
+    expect(pos.k1.y).toBeLessThan(pos.k3.y);
+    expect(pos.xc.y).toBeLessThan(pos.xb.y);
+    expect(pos.xb.y).toBeLessThan(pos.xa.y);
+  });
+
+  it('falls back to the id order for externals with no placed neighbour', () => {
+    const orphaned: FocusView = {
+      ...chain,
+      edges: [
+        { id: 'o1', from: 'xb', to: 'f', count: 1, derived: true, realizedBy: ['p'] },
+        { id: 'o2', from: 'xa', to: 'f', count: 1, derived: true, realizedBy: ['q'] },
+      ],
+    };
+    const pos = layoutFocusView(orphaned);
+    expect(pos.xa.y).toBeLessThan(pos.xb.y);
+  });
+
+  it('is still deterministic', () => {
+    expect(layoutFocusView(chain)).toEqual(layoutFocusView(chain));
+  });
+});
+
+describe('isolated children', () => {
+  const isolated = (n: number): FocusView => ({
+    focusId: 'f', focusNode: node('f', 'Container'),
+    children: Array.from({ length: n }, (_, i) => node(`i${i}`)),
+    externals: [],
+    edges: [],
+  });
+
+  it('packs children with no intra-cluster edge into a grid, not one row', () => {
+    const pos = layoutFocusView(isolated(12));
+    const rows = new Set(Object.values(pos).map((p) => Math.round(p.y)));
+    const cols = new Set(Object.values(pos).map((p) => Math.round(p.x)));
+    expect(cols.size).toBe(GRID_COLS);
+    expect(rows.size).toBe(3);
+  });
+
+  it('keeps the grid narrower than the equivalent row', () => {
+    const pos = layoutFocusView(isolated(12));
+    const xs = Object.values(pos).map((p) => p.x);
+    const width = Math.max(...xs) + NODE_W - Math.min(...xs);
+    expect(width).toBeLessThan(12 * NODE_W);
+  });
+
+  it('leaves dagre-ranked children alone and puts the grid below them', () => {
+    const mixed: FocusView = {
+      focusId: 'f', focusNode: node('f', 'Container'),
+      children: [node('c1'), node('c2'), node('lone')],
+      externals: [],
+      edges: [{ id: 'e', from: 'c1', to: 'c2', count: 1, derived: false, realizedBy: ['a'] }],
+    };
+    const pos = layoutFocusView(mixed);
+    expect(pos.c1.y).toBeLessThan(pos.c2.y);       // dagre's TB rank order survives
+    expect(pos.lone.y).toBeGreaterThan(pos.c2.y);  // the grid sits below the ranked core
+  });
+
+  it('is deterministic', () => {
+    expect(layoutFocusView(isolated(7))).toEqual(layoutFocusView(isolated(7)));
+  });
+});
+
+describe('applyDragOverrides', () => {
+  it('overrides a laid-out position with the dragged one', () => {
+    const out = applyDragOverrides({ a: { x: 0, y: 0 }, b: { x: 10, y: 10 } }, { a: { x: 99, y: 98 } });
+    expect(out).toEqual({ a: { x: 99, y: 98 }, b: { x: 10, y: 10 } });
+  });
+
+  it('ignores an override for a node not in the view', () => {
+    const out = applyDragOverrides({ a: { x: 0, y: 0 } }, { gone: { x: 5, y: 5 } });
+    expect(out).toEqual({ a: { x: 0, y: 0 } });
+  });
+
+  it('returns the base object untouched when there is nothing to override', () => {
+    const base = { a: { x: 1, y: 2 } };
+    expect(applyDragOverrides(base, {})).toBe(base);
+  });
+});
+
+describe('dragCommit', () => {
+  const grp = (members: { id: string; start: XY }[] = []): DragState =>
+    ({ id: 'cb', type: 'ghostGroup', start: { x: 100, y: 100 }, members });
+
+  it('commits a lone node as itself', () => {
+    const d: DragState = { id: 'a1', type: 'node', start: { x: 0, y: 0 }, members: [] };
+    expect(dragCommit(d, { x: 5, y: 6 }, {})).toEqual({ a1: { x: 5, y: 6 } });
+  });
+
+  it('commits a ghost group as its own slot, letting derived members follow', () => {
+    const d = grp([{ id: 'b1', start: { x: 124, y: 146 } }]);
+    // b1 has no override of its own, so it still derives from the slot — nothing to commit for it.
+    expect(dragCommit(d, { x: 300, y: 100 }, {})).toEqual({ cb: { x: 300, y: 100 } });
+  });
+
+  it('carries an individually-dragged member along with its group', () => {
+    // THE BUG: b1 was dragged on its own, so it holds an absolute override and no longer derives
+    // from the group's slot. Moving the group left it behind at its stale absolute position while
+    // b2 followed the slot, which tore the group apart on release.
+    const d = grp([{ id: 'b1', start: { x: 500, y: 500 } }, { id: 'b2', start: { x: 124, y: 250 } }]);
+    const patch = dragCommit(d, { x: 300, y: 100 }, { b1: { x: 500, y: 500 } });
+    expect(patch).toEqual({ cb: { x: 300, y: 100 }, b1: { x: 700, y: 500 } });
+    expect(patch.b2).toBeUndefined(); // still derived — must NOT be pinned
+  });
+
+  it('moves the SLOT by the delta, not the box position it has drifted from', () => {
+    // Member 0 was dragged below its sibling, so the box — drawn wrapping its members — now sits a
+    // whole MEMBER_PITCH below the slot it is anchored to. Committing the box position would place
+    // every still-derived member from a slot that had silently moved down by that difference.
+    const d: DragState = {
+      id: 'cb', type: 'ghostGroup',
+      start: { x: 100, y: 100 + MEMBER_PITCH },   // where the box is drawn
+      slot: { x: 100, y: 100 },                   // where it is anchored
+      members: [{ id: 'b1', start: { x: 124, y: 100 + MEMBER_PITCH } }],
+    };
+    const to = { x: d.start.x + 30, y: d.start.y + 7 };
+    expect(dragCommit(d, to, {})).toEqual({ cb: { x: 130, y: 107 } });
+  });
+
+  it('commits every child of a region, which has no slot of its own', () => {
+    const d: DragState = {
+      id: 'ca', type: 'region', start: { x: 0, y: 0 },
+      members: [{ id: 'a1', start: { x: 10, y: 10 } }, { id: 'a2', start: { x: 10, y: 120 } }],
+    };
+    expect(dragCommit(d, { x: 40, y: -10 }, {})).toEqual({
+      a1: { x: 50, y: 0 }, a2: { x: 50, y: 110 },
+    });
   });
 });

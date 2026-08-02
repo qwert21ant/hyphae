@@ -90,7 +90,7 @@ resolving nothing, depending on which one you missed.
     pnpm server         # API + SSE on :5173, owns ./hyphae.json (override with HYPHAE_FILE)
     pnpm web            # viewer on :3000, proxies the API
     pnpm mcp            # MCP server — an HTTP client of the above, so the server must be running
-    pnpm -r test        # baseline 669 green: schema 147, server 107, web 415 (45 files)
+    pnpm -r test        # baseline 693 green: schema 147, server 107, web 439 (29 files)
     pnpm -r build
     pnpm --filter @hyphae/web typecheck   # tsc --noEmit — NOT part of build; see below
 
@@ -180,10 +180,37 @@ Conventions the suite does *not* enforce — jsdom loads no stylesheet, so nothi
 ## Invariants that bite
 
 - **Focus-view pipeline:** `buildFocusView` (`core/focusView/`) → `layoutFocusView` (on the
-  *collapsed, unfiltered* base view) → `resolveViewPositions` (both `features/canvas/layout.ts`) →
-  `focusViewToFlow` (`features/canvas/reactflow.ts`). The whole chain is wired in
-  `features/canvas/useCanvasView.ts`, and base positions are memoized on `[model, focusId]` only, so
-  the connection filter, the audience toggle, and expanding an external never reflow the graph.
+  *collapsed, unfiltered* base view) → `applyDragOverrides` → `resolveViewPositions` →
+  `applyDragOverrides` again (all three `features/canvas/layout.ts`) → `focusViewToFlow`
+  (`features/canvas/reactflow.ts`). Wired in `features/canvas/useCanvasView.ts`; base positions are
+  memoized on `[model, focusId]` only, so the connection filter, the audience toggle, and expanding
+  an external never reflow the graph.
+- **Drag overrides are applied to the BASE SLOTS, not only to the finished positions** — that is
+  what the doubled `applyDragOverrides` is for. An expanded external is drawn as a group anchored at
+  its *collapsed ghost's base slot*, so overriding only the resolved positions left the group
+  anchored where dagre put it: drag an external, expand it, and it teleported back. The second pass
+  exists for ids that live only in the resolved view — a group's own members — which have no base
+  slot to override. Pinned by "a dragged external survives being expanded" in `Canvas.test.tsx`.
+- **A containment box is dragged by its title bar and carries its contents.** `region` and
+  `ghostGroup` carry `dragHandle: '.region__handle'` (`GROUP_GRIP` in `reactflow.ts`); the box is
+  `pointer-events: none` and only that strip takes pointer events, or the box — which spans the whole
+  cluster — would swallow every click meant for the nodes and edges inside it. Neither box is a React
+  Flow *parent* (children are absolute siblings), so `Canvas.tsx` moves the members itself: locally
+  per frame, committed on drop by **`dragCommit`** (`layout.ts`, pure and unit-tested — the logic
+  lived in an event handler and was both wrong and untestable there). A **ghost group commits its own
+  id**, since that id IS its collapsed ghost's base slot, so the move survives collapsing; a
+  **region commits every child**, since it has no slot of its own.
+  `GhostGroupNode`'s collapse caret needs `nodrag` or pressing it starts a drag.
+- **A member dragged out of a group stops deriving from that group's slot**, so moving the group
+  afterwards must shift the member's own override by the same delta — `dragCommit` does this, and
+  only for members that actually carry an override (pinning the others would freeze them). Without
+  it the dragged member stays behind while its siblings follow the slot, and the group visibly tears
+  apart on release while looking correct throughout the drag.
+- **A ghost group is ANCHORED at its base slot but DRAWN wrapping its members**, and the two are
+  only equal while member 0 is still the topmost one. Drag member 0 below its siblings and the box
+  sits a whole `MEMBER_PITCH` lower than its slot. So a group drag commits `slot + delta`, never the
+  box's own position — hence `DragState.slot`, captured from `useCanvasView`'s `slots`. Commit the
+  box position instead and every still-derived member is re-placed a row down on release.
 - A node with **no base slot gets no position** and renders at the origin, on top of everything else.
   If nodes stack up in a corner, look here first.
 - **`expandedExternals` is for nodes OUTSIDE the focus.** Expanded groups are laid out in the

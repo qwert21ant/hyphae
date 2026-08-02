@@ -79,6 +79,11 @@ function derivedEdge(e: FocusEdge): FlowEdge {
  */
 const BOUNDARY_Z = -1;
 
+/** The class React Flow treats as a containment box's drag handle — its title bar. Shared with
+ *  GroupNode/GhostGroupNode, which render it, and with canvas.css, which makes it the one part of a
+ *  pointer-transparent box that takes pointer events. */
+export const GROUP_GRIP = 'region__handle';
+
 export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nodes: FlowNode[]; edges: FlowEdge[] } {
   const nodes: FlowNode[] = [];
 
@@ -105,7 +110,10 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nod
       initialWidth: width,
       initialHeight: height,
       zIndex: BOUNDARY_Z,
-      draggable: false,
+      // Grabbable by its title bar only. The box spans the whole cluster and is pointer-transparent
+      // (canvas.css `.region`), so a whole-surface drag target would swallow every click meant for
+      // the nodes and edges inside it; `.region__handle` is the one strip that takes pointer events.
+      dragHandle: `.${GROUP_GRIP}`,
       selectable: false,
     });
   } else if (view.focusNode) {
@@ -139,16 +147,27 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nod
       initialWidth: width,
       initialHeight: height,
       zIndex: BOUNDARY_Z,
-      draggable: false,
+      dragHandle: `.${GROUP_GRIP}`,
       selectable: false,
     });
   }
 
   for (const n of view.children) {
-    nodes.push({ id: n.id, type: 'node', position: pos[n.id] ?? { x: 0, y: 0 }, data: nodeVisual(n), initialWidth: NODE_W, initialHeight: NODE_H, draggable: false });
+    nodes.push({
+      id: n.id, type: 'node', position: pos[n.id] ?? { x: 0, y: 0 },
+      data: nodeVisual(n),
+      initialWidth: NODE_W, initialHeight: NODE_H,
+    });
   }
   for (const n of view.externals) {
-    nodes.push({ id: n.id, type: 'ghost', position: pos[n.id] ?? { x: 0, y: 0 }, data: { ...nodeVisual(n), expandable: view.expandableExternalIds?.has(n.id) ?? false }, initialWidth: NODE_W, initialHeight: NODE_H, draggable: false });
+    nodes.push({
+      id: n.id, type: 'ghost', position: pos[n.id] ?? { x: 0, y: 0 },
+      data: {
+        ...nodeVisual(n),
+        expandable: view.expandableExternalIds?.has(n.id) ?? false,
+      },
+      initialWidth: NODE_W, initialHeight: NODE_H,
+    });
   }
 
   const edges = view.edges.map((e) => (e.derived ? derivedEdge(e) : realEdge(e)));

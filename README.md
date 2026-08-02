@@ -70,6 +70,13 @@ thinly described node — use the `model_gaps` MCP tool to audit that properly. 
 `user` / `traceability`) decides the edge colour. Layout is automatic (dagre) and stable — the
 connection filter, the audience toggle, and expanding an external never reflow the graph.
 
+**Dragging.** Drag any node to untangle a view; edges re-anchor as it moves. A **containment box** —
+the focus region, or an expanded external's group — is dragged by its **title bar**, and carries its
+contents with it; the rest of the box stays click-through so it never swallows the nodes and edges
+inside it. Dragging a child instead resizes the region around it when the node lands. Positions are
+session-only and reset when the focus changes — **reset layout** in the Connections panel clears
+them for the current view.
+
 **Deep links.** The current view lives in the URL hash — `#node/<id>`, `#flow/<id>`,
 `#pattern/<id>` — so a view survives refresh, is shareable, and the browser Back button walks the
 history. A hash naming something that no longer exists rewrites to the root view.

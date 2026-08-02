@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { emptyModel, type HyphaeModel, type FlowStep } from '@hyphae/schema';
 import { stepReveal } from '@/core/stepReveal';
 import { type Audience, type ConnFilter } from '@/core/focusView';
+import { type XY } from '@/features/canvas/layout';
 import { initialTheme, type Theme } from './theme';
 import * as api from './api';
 
@@ -25,6 +26,10 @@ type State = {
   theme: Theme;
   expandedExternals: Set<string>;
   offViewStepOrders: number[];
+  // Manually dragged node positions, layered over the computed layout. Session-only by design: the
+  // auto-layout owns the durable picture, and this exists to untangle the diagram in front of you.
+  // Not persisted — unlike the audience toggle, it is not a preference that should outlive the tab.
+  nodePositions: Record<string, XY>;
   setModel: (m: HyphaeModel, version?: number) => void;
   syncFromServer: () => Promise<void>;
   setFocus: (id: string | null) => void;
@@ -40,6 +45,9 @@ type State = {
   toggleConnField: (key: string, value: string) => void;
   clearConnFilter: () => void;
   toggleExternal: (id: string) => void;
+  setNodePosition: (id: string, p: XY) => void;
+  setNodePositions: (entries: Record<string, XY>) => void;
+  resetNodePositions: () => void;
 };
 
 export const useStore = create<State>((set, get) => {
@@ -59,13 +67,14 @@ export const useStore = create<State>((set, get) => {
     theme: initialTheme(),
     expandedExternals: new Set<string>(),
     offViewStepOrders: [],
+    nodePositions: {},
 
     setModel: (model, version = 0) => set({ model, ownVersion: version }),
     syncFromServer: async () => {
       const { model, version } = await api.loadModel();
       set({ model, ownVersion: version });
     },
-    setFocus: (focusId) => set({ focusId, selectedId: null, expandedExternals: new Set<string>() }),
+    setFocus: (focusId) => set({ focusId, selectedId: null, expandedExternals: new Set<string>(), nodePositions: {} }),
     // Jump to a node from search, the tree, or a pattern member: focus its parent (root when
     // top-level) so the node shows as a highlighted child box, and select it. Atomic so setFocus's
     // selectedId reset can't clobber it. Any flow/pattern selection is dropped — this is an explicit
@@ -77,7 +86,7 @@ export const useStore = create<State>((set, get) => {
       const parentId = n.parentId && nodes.some((x) => x.id === n.parentId) ? n.parentId : null;
       set({
         focusId: parentId, selectedId: id, expandedExternals: new Set<string>(),
-        selectedFlowId: null, selectedPatternId: null,
+        selectedFlowId: null, selectedPatternId: null, nodePositions: {},
       });
     },
     // Jump to a flow step: focus the view that owns both endpoints, expand whatever external hides
@@ -85,7 +94,7 @@ export const useStore = create<State>((set, get) => {
     revealStep: (step) => {
       const target = stepReveal(get().model, step);
       if (!target) return;
-      set({ focusId: target.focusId, selectedId: target.selectedId, expandedExternals: target.expand });
+      set({ focusId: target.focusId, selectedId: target.selectedId, nodePositions: {}, expandedExternals: target.expand });
     },
     select: (selectedId) => set({ selectedId }),
     // Selecting a flow jumps to its first step, so the overlay is never invisible: a flow authored
@@ -126,6 +135,12 @@ export const useStore = create<State>((set, get) => {
         return { connFilter: { ...s.connFilter, fields: { ...s.connFilter.fields, [key]: next } } };
       }),
     clearConnFilter: () => set({ connFilter: { verbClasses: [], fields: {} } }),
+
+    setNodePosition: (id, p) => set((s) => ({ nodePositions: { ...s.nodePositions, [id]: p } })),
+    // Bulk form, so dragging a region commits all of its children in ONE update rather than one
+    // render per child.
+    setNodePositions: (entries) => set((s) => ({ nodePositions: { ...s.nodePositions, ...entries } })),
+    resetNodePositions: () => set({ nodePositions: {} }),
 
     toggleExternal: (id) =>
       set((s) => {

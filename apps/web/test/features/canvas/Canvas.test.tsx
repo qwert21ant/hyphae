@@ -4,6 +4,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, fireEvent, act } from '@testing-library/react';
 import { Canvas } from '@/features/canvas/Canvas';
 import { EDGE_LABEL_CLASS } from '@/features/canvas/edges/FloatingEdge';
+import { GROUP_GRIP } from '@/features/canvas/reactflow';
+import { dragCommit } from '@/features/canvas/layout';
 import { useStore } from '@/state/store';
 import { emptyModel } from '@hyphae/schema';
 
@@ -439,5 +441,157 @@ describe('Canvas — the highlight ring traces the box it wraps', () => {
     const css = container.querySelector('style[data-hyphae-hl]')!.textContent ?? '';
     expect(css).toContain('box-shadow:0 0 0 2px');   // the ring is still there
     expect(css).not.toMatch(/border-radius/);        // …but its shape is not this rule's business
+  });
+});
+
+describe('dragging', () => {
+  // React Flow v12's NodeWrapper puts a `draggable` class on a node it will drag and omits it for
+  // one with draggable:false. Verified against @xyflow/react's own class list.
+  it('makes child boxes and the containment region draggable', () => {
+    useStore.setState({ model: model(), focusId: 'ca' });
+    const { container } = render(<Canvas />);
+    expect(node(container, 'a1')!.className).toContain('draggable');
+    expect(node(container, 'ca')!.className).toContain('draggable');
+  });
+
+  it('grabs a region by its title bar only, so the box does not swallow the clicks inside it', () => {
+    useStore.setState({ model: model(), focusId: 'ca' });
+    const { container } = render(<Canvas />);
+    const region = node(container, 'ca')!;
+    // The grip is the element React Flow filters pointerdown against (dragHandle), and the only
+    // part of a pointer-transparent box that takes pointer events at all.
+    expect(region.querySelector(`.${GROUP_GRIP}`)).toBeTruthy();
+    // jsdom loads no stylesheet, so the rule has to be read from the file. Anchored to the start of
+    // a line: unanchored, `.region__handle {` also matches inside `.region__handle--split {`.
+    const css = readFileSync(resolve(process.cwd(), 'src/features/canvas/canvas.css'), 'utf8');
+    const grip = css.match(new RegExp(String.raw`^\.${GROUP_GRIP}\s*\{([^}]*)\}`, 'm'))?.[1] ?? '';
+    expect(grip, 'the .region__handle rule was not found').not.toBe('');
+    expect(grip).toMatch(/pointer-events:\s*auto/);
+    expect(grip).toMatch(/cursor:\s*grab/);
+  });
+});
+
+describe('a dragged external survives being expanded', () => {
+  // ca (focus) holds a1; cb holds b1 and b2, both reached from a1, so cb renders as ONE collapsed
+  // ghost that can be expanded into a group of two member ghosts.
+  function expandable() {
+    const m = emptyModel();
+    m.nodes.push(
+      { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
+      { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
+      { id: 'cb', name: 'Beta', type: 'Container', parentId: 'sys', ...base },
+      { id: 'a1', name: 'A1', type: 'Component', parentId: 'ca', ...base },
+      { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
+      { id: 'b2', name: 'B2', type: 'Component', parentId: 'cb', ...base },
+    );
+    m.connections.push(
+      { id: 'x1', from: 'a1', to: 'b1', ...e },
+      { id: 'x2', from: 'a1', to: 'b2', ...e },
+    );
+    return m;
+  }
+
+  const at = (container: HTMLElement, id: string) => {
+    const t = node(container, id)!.style.transform;
+    const [, x, y] = /translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/.exec(t) ?? [];
+    return { x: Number(x), y: Number(y) };
+  };
+
+  it('keeps an individually-dragged member with its group when the group moves', () => {
+    // The reported sequence: expand → move a member → move the whole group. The member holds an
+    // ABSOLUTE override and no longer derives from the group's slot, so committing only the slot
+    // left it behind while its sibling followed, tearing the group apart on release.
+    useStore.setState({ model: expandable(), focusId: 'ca', expandedExternals: new Set(['cb']), nodePositions: {} });
+    const { container, rerender } = render(<Canvas />);
+    const b2Before = at(container, 'b2');
+    // The group box sits exactly on its collapsed ghost's base slot, so its rendered position IS
+    // the slot — read it before anything moves, while the box still wraps the untouched members.
+    const slot = at(container, 'cb');
+
+    // 1. drag the member b1 off on its own
+    const b1Moved = { x: at(container, 'b1').x + 40, y: at(container, 'b1').y + 90 };
+    act(() => { useStore.getState().setNodePosition('b1', b1Moved); });
+    rerender(<Canvas />);
+    expect(at(container, 'b1')).toEqual(b1Moved);
+
+    // 2. drag the whole group, exactly as Canvas's onNodeDragStop commits it
+    const delta = { x: 250, y: 60 };
+    act(() => {
+      useStore.getState().setNodePositions(dragCommit(
+        {
+          id: 'cb', type: 'ghostGroup', start: slot,
+          members: [{ id: 'b1', start: b1Moved }, { id: 'b2', start: b2Before }],
+        },
+        { x: slot.x + delta.x, y: slot.y + delta.y },
+        useStore.getState().nodePositions,
+      ));
+    });
+    rerender(<Canvas />);
+
+    // Both members moved by the SAME delta — the group stayed intact.
+    expect(at(container, 'b1')).toEqual({ x: b1Moved.x + delta.x, y: b1Moved.y + delta.y });
+    expect(at(container, 'b2')).toEqual({ x: b2Before.x + delta.x, y: b2Before.y + delta.y });
+  });
+
+  it('does not shift the siblings when the FIRST member was dragged over them first', () => {
+    // The reported flow. Dragging member 0 down past member 1 makes the box — drawn wrapping its
+    // members — sit a MEMBER_PITCH below the slot it is anchored to. Committing the box position as
+    // the slot then re-placed every still-derived member a row lower, so the group "jumped" on
+    // release. Nothing here is anti-overlap logic; the box position and the slot had diverged.
+    useStore.setState({ model: expandable(), focusId: 'ca', expandedExternals: new Set(['cb']), nodePositions: {} });
+    const { container, rerender } = render(<Canvas />);
+    const b1Start = at(container, 'b1');
+    const b2Before = at(container, 'b2');
+    const boxBefore = at(container, 'cb');
+
+    // 1. drag the FIRST member down onto its sibling
+    const b1Moved = { x: b1Start.x, y: b2Before.y + 10 };
+    act(() => { useStore.getState().setNodePosition('b1', b1Moved); });
+    rerender(<Canvas />);
+    // The box has now drifted off the slot: it wraps from b2 instead of from b1.
+    const boxAfter = at(container, 'cb');
+    expect(boxAfter.y).toBeGreaterThan(boxBefore.y);
+
+    // 2. drag the whole group, committing exactly as Canvas's onNodeDragStop does
+    const delta = { x: 120, y: 30 };
+    act(() => {
+      useStore.getState().setNodePositions(dragCommit(
+        {
+          id: 'cb', type: 'ghostGroup',
+          start: boxAfter,                                   // where the box is drawn
+          slot: useStore.getState().nodePositions.cb ?? boxBefore, // where it is anchored
+          members: [{ id: 'b1', start: b1Moved }, { id: 'b2', start: b2Before }],
+        },
+        { x: boxAfter.x + delta.x, y: boxAfter.y + delta.y },
+        useStore.getState().nodePositions,
+      ));
+    });
+    rerender(<Canvas />);
+
+    // Every member moved by exactly the delta. No sibling drifted.
+    expect(at(container, 'b1')).toEqual({ x: b1Moved.x + delta.x, y: b1Moved.y + delta.y });
+    expect(at(container, 'b2')).toEqual({ x: b2Before.x + delta.x, y: b2Before.y + delta.y });
+  });
+
+  it('anchors the expanded group at the dragged slot, not at the auto-layout one', () => {
+    useStore.setState({ model: expandable(), focusId: 'ca', expandedExternals: new Set(), nodePositions: {} });
+    const { container, rerender } = render(<Canvas />);
+    const auto = at(container, 'cb');
+
+    // Drag the collapsed ghost somewhere clearly its own.
+    const dragged = { x: auto.x + 500, y: auto.y + 300 };
+    act(() => { useStore.getState().setNodePosition('cb', dragged); });
+    rerender(<Canvas />);
+    expect(at(container, 'cb')).toEqual(dragged);
+
+    // Expanding turns the ghost into a group box. It must stay where it was put — before the fix the
+    // override was applied only to the RESOLVED positions, and the group is anchored from the BASE
+    // slot, so the box teleported back to the slot dagre computed.
+    act(() => { useStore.getState().toggleExternal('cb'); });
+    rerender(<Canvas />);
+    expect(at(container, 'cb')).toEqual(dragged);
+    // ...and its members come with it, laid out inside the box rather than back in the column.
+    expect(at(container, 'b1').x).toBeGreaterThan(dragged.x);
+    expect(at(container, 'b1').y).toBeGreaterThan(dragged.y);
   });
 });
