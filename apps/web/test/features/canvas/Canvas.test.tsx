@@ -14,7 +14,7 @@ import { emptyModel } from '@hyphae/schema';
 // nodesDraggable={false} suppresses React Flow's onNodeDoubleClick.
 
 const base = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
-const e = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+const e = { label: '', verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
 
 function model() {
   const m = emptyModel();

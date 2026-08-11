@@ -11,8 +11,9 @@ export type FocusEdge = {
   derived: boolean;    // aggregated/collapsed (dashed) edge
   realizedBy: string[]; // ids of the model connections this edge represents (length === count)
   direction?: string;  // the connection's direction for a real edge (e.g. 'Bidirectional')
-  verb?: string;        // the connection's verb for a 1:1 real edge
-  object?: string;      // the connection's object for a 1:1 real edge
+  label?: string;       // the connection's label for a 1:1 real edge — the only text drawn
+  verb?: string;        // legacy: still the colour key until the verb system is removed
+  object?: string;      // legacy
 };
 
 export type FocusView = {

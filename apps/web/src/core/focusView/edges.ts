@@ -16,12 +16,12 @@ export function matchesFilter(c: Connection, f: ConnFilter): boolean {
 // there the count is the whole point, and the underlying verbs differ anyway.
 // `a`/`b` are the canonical (id-sorted) endpoints; `ab`/`ba` record which orientations occur
 // among the rolled-up ones, which is what decides the merged edge's arrow direction.
-export type Entry = { id: string; from: string; to: string; direction: string; verb: string; object: string; direct: boolean };
+export type Entry = { id: string; from: string; to: string; direction: string; label: string; verb: string; object: string; direct: boolean };
 export type Pair = { a: string; b: string; entries: Entry[] };
 
 export const realEdgeOf = (d: Entry): FocusEdge => ({
   id: d.id, from: d.from, to: d.to, count: 1, derived: false,
-  realizedBy: [d.id], direction: d.direction, verb: d.verb, object: d.object,
+  realizedBy: [d.id], direction: d.direction, label: d.label, verb: d.verb, object: d.object,
 });
 
 /** One dashed summary edge over `items`. It keeps an arrow only when every underlying connection

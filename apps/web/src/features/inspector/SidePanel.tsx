@@ -94,10 +94,7 @@ export function SidePanel() {
         <div className="panel__chips">
           <span className="chip">{nameOf(conn.from)} → {nameOf(conn.to)}</span>
         </div>
-        <Row label="verb" layout="grid" title="The business action shown on the edge.">{conn.verb}</Row>
-        {conn.object && (
-          <Row label="object" layout="grid" title='Short noun the action acts on, e.g. "camera list".'>{conn.object}</Row>
-        )}
+        <Row label="label" layout="grid" title="What this edge says. The only text drawn on the diagram.">{conn.label}</Row>
         <Row label="direction" layout="grid">{conn.direction}</Row>
         {conn.description && (
           <Row label="description" layout={fieldLayout('core', conn.description)}>{conn.description}</Row>

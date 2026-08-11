@@ -10,7 +10,7 @@ const mkNode = (over: Partial<Node>): Node => ({
 });
 
 const conns: Connection[] = [
-  { id: 'x', from: 'a1', to: 'b1', verb: 'reads', object: 'camera list', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} },
+  { id: 'x', from: 'a1', to: 'b1', label: 'reads camera list', verb: 'reads', object: 'camera list', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} },
 ];
 
 beforeEach(() => {
@@ -24,7 +24,7 @@ beforeEach(() => {
 });
 
 describe('ConnectionList', () => {
-  it('renders a row per connection with endpoint names and the object', () => {
+  it('renders a row per connection with endpoint names and the label', () => {
     render(<ConnectionList connections={conns} />);
     expect(screen.getByRole('button', { name: 'A1' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'B1' })).toBeTruthy();

@@ -4,11 +4,11 @@ import { breadcrumbPath } from '@/core/breadcrumb';
 import { externalConnections, partitionConnections } from '@/core/connections';
 import { stepReveal } from '@/core/stepReveal';
 import { emptyModel } from '@hyphae/schema';
-import { edgeLabel } from '@/features/canvas/reactflow';
+import { clipLabel } from '@/features/canvas/reactflow';
 import { VERB_CLASS_COLOR } from '@/core/verbColors';
 
 const base = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
-const e = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+const e = { label: '', verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
 
 /** sys › (ca, cb containers); ca has comps a1,a2; cb has comp b1; ext is external. */
 function model() {
@@ -450,18 +450,22 @@ describe('breadcrumbPath', () => {
 });
 
 describe('edge labels', () => {
-  it('joins verb and object', () => {
-    expect(edgeLabel('reads', 'camera list')).toBe('reads camera list');
+  it('returns a short label unchanged', () => {
+    expect(clipLabel('reads settings')).toBe('reads settings');
   });
 
-  it('degrades to the verb alone when there is no object', () => {
-    expect(edgeLabel('publishes', '')).toBe('publishes');
+  it('trims surrounding whitespace', () => {
+    expect(clipLabel('  reads settings  ')).toBe('reads settings');
   });
 
-  it('caps a long object so the label stays readable', () => {
-    const label = edgeLabel('reads', 'an extremely long object name that would wreck the layout');
-    expect(label.length).toBeLessThanOrEqual(36);
+  it('clips a label longer than the cap and marks it with an ellipsis', () => {
+    const label = clipLabel('constructs at startup and owns for the whole session');
+    expect(label).toHaveLength(40);
     expect(label.endsWith('…')).toBe(true);
+  });
+
+  it('returns an empty string for an unlabelled edge', () => {
+    expect(clipLabel('')).toBe('');
   });
 
   it('has a colour for every verb class', () => {

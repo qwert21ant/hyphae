@@ -31,7 +31,7 @@ export function ConnectionList({ connections }: { connections: Connection[] }) {
             {' → '}
             <button className="rollup-link" onClick={(ev) => { ev.stopPropagation(); setFocus(c.to); }}>{nameOf(c.to)}</button>
             {parentNameOf(c.to) && <small className="rollup-meta"> ({parentNameOf(c.to)})</small>}
-            {c.object && <small className="rollup-meta"> · {c.object}</small>}
+            {c.label && <small className="rollup-meta"> · {c.label}</small>}
           </li>
         );
       })}

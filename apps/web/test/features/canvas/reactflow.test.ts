@@ -14,7 +14,7 @@ const view: FocusView = {
   children: [node('a1'), node('a2')],
   externals: [node('cb', 'Container')],
   edges: [
-    { id: 'i', from: 'a1', to: 'a2', count: 1, derived: false, realizedBy: ['i'] },
+    { id: 'i', from: 'a1', to: 'a2', count: 1, derived: false, realizedBy: ['i'], label: 'reads settings' },
     { id: 'ext:a1->cb', from: 'a1', to: 'cb', count: 3, derived: true, realizedBy: ['e1', 'e2', 'e3'] },
   ],
 };
@@ -37,10 +37,10 @@ describe('focusViewToFlow', () => {
     expect(region.dragHandle).toBe(`.${GROUP_GRIP}`);
   });
 
-  it('renders a real edge with its kind label and a derived edge with a count label', () => {
+  it('renders a real edge with its own label and a derived edge with a count label', () => {
     const { edges } = focusViewToFlow(view, pos);
     const real = edges.find((e) => e.id === 'i')!;
-    expect(real.label).toBe('uses');
+    expect(real.label).toBe('reads settings');
     expect((real.data as { derived?: boolean } | undefined)?.derived).toBeFalsy();
     const derived = edges.find((e) => e.id === 'ext:a1->cb')!;
     expect(derived.label).toBe('3');

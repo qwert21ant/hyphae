@@ -20,26 +20,24 @@ function markers(direction: string | undefined, color?: string): Pick<FlowEdge, 
   return { markerEnd: arrow, ...(direction === 'Bidirectional' ? { markerStart: arrow } : {}) };
 }
 
-const OBJECT_CAP = 24;
+// A label carries the whole meaning of the edge now, so it gets more room than the old 24-char
+// object cap allowed — but still a cap, because an unbounded label wrecks the layout.
+const LABEL_CAP = 40;
 
-/** "reads camera list" — the verb, plus the object when there is one, capped so a long
- *  object cannot wreck the layout. */
-export function edgeLabel(verb: string, object: string): string {
-  const obj = object.trim();
-  if (!obj) return verb;
-  const clipped = obj.length > OBJECT_CAP ? `${obj.slice(0, OBJECT_CAP - 1)}…` : obj;
-  return `${verb} ${clipped}`;
+/** The edge's label, trimmed and clipped to something a diagram can carry. */
+export function clipLabel(label: string): string {
+  const t = label.trim();
+  return t.length > LABEL_CAP ? `${t.slice(0, LABEL_CAP - 1)}…` : t;
 }
 
 function realEdge(e: FocusEdge): FlowEdge {
-  const verb = e.verb ?? 'uses';
-  const color = VERB_CLASS_COLOR[verbClassOf(c4Backend, verb) ?? 'control'];
+  const color = VERB_CLASS_COLOR[verbClassOf(c4Backend, e.verb ?? 'uses') ?? 'control'];
   return {
     id: e.id,
     type: 'floating',
     source: e.from,
     target: e.to,
-    label: edgeLabel(verb, e.object ?? ''),
+    label: clipLabel(e.label ?? ''),
     style: { stroke: color },
     labelStyle: { fill: color, fontWeight: 500 },
     ...markers(e.direction, color),
