@@ -26,7 +26,7 @@ diagrams no one can read at a glance.
    and a graph an LLM queries and edits. The diagram is primary; it is a projection of the
    graph, not a second copy.
 2. **The diagram carries meaning; the panel carries detail.** A node shows its role and a
-   one-line purpose; a connection shows an **action verb + object** ("reads camera list",
+   one-line purpose; a connection shows its **label** — one phrase saying what it does (
    "stores clip"). Everything deeper lives in the side panel.
 3. **A small set of orthogonal axes.** A diagram is a projection of one or two axes, not a
    separate entity.
@@ -46,7 +46,7 @@ axes at once.
 | Axis | Question | Carriers in the model | Projections (diagrams) |
 |------|----------|-----------------------|------------------------|
 | **Structure** | what it is made of | node `parentId`, node `role` | containment map, UI-tree, module-tree |
-| **Dependencies / Collaboration** | who does what to whom | connection **verb** + object | dependency graph, collaboration diagram |
+| **Dependencies / Collaboration** | who does what to whom | connection **label** | dependency graph, collaboration diagram |
 | **Behavior** | what happens over time | `flows`, state-machine `patterns` | numbered flow overlay, sequence, state chart |
 | **Data** | what data it operates on | `dataTypes` + connection `carries` *(reserved)* | ERD, data-flow |
 | **Intent** | why, which requirements/decisions | `requirements`, `decisions` *(reserved)* + `traceability`-class connections | traceability matrix, decision map |
@@ -79,15 +79,13 @@ and validated against the active profile. The concrete node **types** come from 
 
 ### 3.2 Connection
 A first-class edge, and the main carrier of on-diagram meaning. Core:
-`id` / `from` / `to` / **`verb`** / **`object`** / `description` / `direction` /
+`id` / `from` / `to` / **`label`** / `description` / `direction` /
 `realizedBy` (cross-layer) / `codeRefs` and a `fields` bag. There is no separate connection
-*kind* — verb and object alone carry an edge's meaning.
+*kind* and no verb vocabulary — the label alone carries an edge's meaning.
 
-- **`verb`** is a profile-declared business action shown on the edge, grouped into
-  colored classes — *data access* (reads / writes / stores / modifies / aggregates …),
-  *messaging* (publishes / subscribes / notifies …), *control* (invokes / triggers /
-  requests), *user* (views / submits / navigates), *traceability* (implements / satisfies,
-  §6). It replaces the former low-signal `intent` field, and the connection `type` (kind)
+- **`label`** is free text and the only thing drawn on the edge. It must say something a reader
+  cannot infer from the two node names. It replaced the `verb` + `object` pair, the former
+  low-signal `intent` field, and the connection `type` (kind)
   and `transport` field it once overlapped with — both retired. `implements` is not only
   the reserved requirement-traceability link (§6): it is also how a Component or Container
   connection records that it realizes a declared interface — the honest half of the retired

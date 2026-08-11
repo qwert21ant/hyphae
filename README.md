@@ -41,14 +41,15 @@ altimeter — see `docs/SPEC.md` §9 for the rule the whole design follows.
 
 **Reading the diagram.** A node draws as its profile **role archetype** (actor, service, datastore,
 queue, external system, UI surface) in SVG, tinted by C4 layer, showing name + a two-line summary +
-a technology chip. A connection is labeled with its **verb + object** ("reads camera list") and
-colored by verb class; several connections between the same pair fan apart instead of stacking.
+a technology chip. A connection is labeled with its **`label`** — one free-text phrase saying what
+the edge does — and drawn in a single neutral line colour; several connections between the same pair
+fan apart instead of stacking.
 **Derived cross-layer edges** — component connections rolled up to the altitude you are viewing —
 are dashed violet and carry a count, unless an authored higher-level connection claims them via
 `realizedBy`. Selecting or hovering a node/edge highlights its neighborhood and dims the rest,
 labels included. The **audience toggle** (stakeholder / full) hides derived edges for a clean
-read; the connection filter panel (verb class + profile fields) and the legend are generated from
-the profile.
+read; the connection filter panel (profile fields) and the legend are generated from the
+profile.
 
 **Flows and Patterns.** Selecting a **Flow** in the outline jumps to its first step and lights its
 steps in order, numbered along the edges they run on. Steps are clickable — each navigates to a view
@@ -65,9 +66,9 @@ canvas draws (`summary`, `technology`), description, `root`, `codeRefs`/`docRefs
 **profile-defined fields** for its kind (`responsibilities`, `invariants`, …), its parent, and its
 incoming/outgoing connections. A field with no value renders no row at all, so a short panel means a
 thinly described node — use the `model_gaps` MCP tool to audit that properly. The parent, and any
-`ref`-typed field, are clickable and reveal their target. A connection's meaning is its **verb** +
-**object** ("reads camera list"), and its verb's *class* (`dataAccess` / `messaging` / `control` /
-`user` / `traceability`) decides the edge colour. Layout is automatic (dagre) and stable — the
+`ref`-typed field, are clickable and reveal their target. A connection's meaning is its **`label`**
+plus an optional longer `description`; every authored edge is drawn in the same neutral colour, since
+nothing about an edge has earned a hue. Layout is automatic (dagre) and stable — the
 connection filter, the audience toggle, and expanding an external never reflow the graph.
 
 **Dragging.** Drag any node to untangle a view; edges re-anchor as it moves. A **containment box** —
@@ -118,10 +119,10 @@ The MCP server is an HTTP client of the running Hyphae server, so the server mus
     pnpm server                                      # terminal A — owns hyphae.json on :5173
     HYPHAE_SERVER=http://localhost:5173 pnpm mcp     # terminal B
 
-Read tools: `describe_profile` (the active profile's node/pattern kinds, roles, verbs (with their
-classes), and their documented fields — call it first), `model_overview`, `get_node`, `list_nodes`
-(with an optional text `query`), `list_connections` (filters incl. `nodeId`, `verb`, and
-`verbClass`), `rollup_connections` (derived higher-layer edges), `get_subgraph`, `list_flows` /
+Read tools: `describe_profile` (the active profile's node/pattern kinds, roles, and their
+documented fields — call it first), `model_overview`, `get_node`, `list_nodes`
+(with an optional text `query`), `list_connections` (filters incl. `nodeId`, `containerId`,
+`crossingBoundary`, `involvingExternal`), `rollup_connections` (derived higher-layer edges), `get_subgraph`, `list_flows` /
 `get_flow`, `list_patterns` / `get_pattern`, `resolve_refs` (resolve a node's refs against its
 anchoring `root`), `validate_model` (structural/field issues), `model_gaps` (coverage/quality gaps
 — orphan components, thin/name-echoing descriptions).

@@ -105,8 +105,8 @@ A local web application on the Structurizr Lite model:
 
 A node's layer is a derivative of the **profile** + the node's category. A profile is a
 declarative vocabulary: node types (each with a `role`/archetype), containment rules,
-the **verb** vocabulary, and **pattern** kinds. There is no separate connection kind — a
-connection's meaning is its `verb` + `object` alone.
+and **pattern** kinds. There is no separate connection kind and no verb vocabulary — a
+connection's meaning is its free-text `label` alone.
 
 The primary profile is `c4-backend`:
 
@@ -141,17 +141,16 @@ the rest is side-panel detail.
 
 A first-class entity and the main carrier of on-diagram meaning.
 
-**Core:** `id`, `from`, `to`, **`verb`** (profile business action), **`object`** (short noun or a
-`DataEntity` ref), `description`, `direction`, `realizedBy` (cross-layer aggregation),
-`codeRefs`, and a `fields` bag. There is no separate connection kind — verb and object alone
-carry an edge's meaning.
+**Core:** `id`, `from`, `to`, **`label`** (free text — what this edge does), `description`,
+`direction`, `realizedBy` (cross-layer aggregation), `codeRefs`, and a `fields` bag. There is no
+separate connection kind, and no verb vocabulary — the label alone carries an edge's meaning.
 
-- **`verb`** is shown on the edge and colored by class — *data access* (reads / writes /
-  stores / modifies / aggregates …), *messaging* (publishes / subscribes / notifies …),
-  *control* (invokes / triggers / requests), *user* (views / submits / navigates),
-  *traceability* (implements / satisfies — §6.8). It replaces the former low-signal `intent`,
-  and the connection `type` (kind) and `transport` field it once overlapped with — both retired.
-- **`object`** links the action to a `DataEntity` when relevant ("reads → Camera").
+- **`label`** is the only text drawn on the edge. It must say something a reader **cannot infer
+  from the two node names**: "constructs at startup and owns for the session", not "uses the mine
+  process". An edge with nothing worth saying there should not exist. This is the rule that replaced
+  the `verb` + `object` pair, which measured 50% `uses`/`invokes` and 79% undescribed on a real
+  model — see `docs/superpowers/specs/2026-08-12-model-legibility-design.md`.
+- **`description`** is the optional long form, shown in the inspector rather than on the canvas.
 
 > `Composition` is removed — containment is only `parentId`.
 
@@ -315,11 +314,13 @@ Built into the core, and unchanged by the visual repositioning:
   connection = verb + object. Full fields, invariants, codeRefs, and incoming/outgoing lists
   are side-panel.
 - **Legibility budget.** Cap what is shown at rest; roll up dense fans; push depth into
-  drill-down, Flows, Patterns, and the panel. A legend explains role shapes, verb-class colors,
-  and solid-vs-derived edges.
+  drill-down, Flows, Patterns, and the panel. A legend explains role shapes and
+  solid-vs-derived edges.
 - **Luminance is state, hue is meaning.** Altitude (Context → Container → Component), selection and
-  focus are expressed as light level; the chromatic budget belongs to the five verb classes, which
-  are the one thing on the canvas that needs colour to be told apart. Dark is the default; the light
+  focus are expressed as light level. The chromatic budget is almost entirely **unspent**: the verb
+  classes that used to own it are gone, and a hue must mean something or not exist. Violet means a
+  derived rollup edge, `--accent` interaction, `--warn` an invalid flow/pattern — and that is all.
+  Every authored edge takes one neutral `--edge-line`. Dark is the default; the light
   theme is warm paper rather than an inversion. Every value comes from
   `apps/web/src/styles/tokens.css`.
 - **A dragged position is a reading aid, not a fact about the model.** Manual positions last for the

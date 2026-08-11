@@ -91,7 +91,7 @@ resolving nothing, depending on which one you missed.
     pnpm server         # API + SSE on :5173, owns ./hyphae.json (override with HYPHAE_FILE)
     pnpm web            # viewer on :3000, proxies the API
     pnpm mcp            # MCP server — an HTTP client of the above, so the server must be running
-    pnpm -r test        # baseline 693 green: schema 147, server 107, web 439 (29 files)
+    pnpm -r test        # baseline 732 green: schema 143, server 106, web 483 (35 files)
     pnpm -r build
     pnpm --filter @hyphae/web typecheck   # tsc --noEmit — NOT part of build; see below
 
@@ -145,8 +145,9 @@ These cost real time when rediscovered:
 ## Styling — the rules the suite enforces
 
 The viewer has one design rule: **luminance is state, hue is meaning.** Altitude, selection and focus
-are light levels with no hue; the five `--verb-*` tokens own the whole chromatic budget; violet means
-only "rolled-up edge", `--accent` only interaction, `--warn` only an invalid flow/pattern. Giving a
+are light levels with no hue; the chromatic budget is almost entirely unspent since the verb classes
+were removed, and every authored edge takes the neutral `--edge-line`; violet means only
+"rolled-up edge", `--accent` only interaction, `--warn` only an invalid flow/pattern. Giving a
 structural distinction a hue, or a semantic one only a luminance step, is a design bug — reach for a
 difference in **form** instead (this is why a pattern's kind is a chip, not a colour). `docs/SPEC.md`
 §9 states the rule; `apps/web/src/styles/tokens.css` is the authoritative value for every colour,
