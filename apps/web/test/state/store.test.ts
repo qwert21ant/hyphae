@@ -30,6 +30,8 @@ describe('viewer store', () => {
       'toggleConnField', 'clearConnFilter', 'toggleExternal',
       // Manual layout: view state, not a model write.
       'nodePositions', 'setNodePosition', 'setNodePositions', 'resetNodePositions',
+      // How edges are drawn: a viewing preference, not a model write.
+      'edgeStyle', 'setEdgeStyle',
     ].sort());
   });
 

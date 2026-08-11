@@ -1,7 +1,10 @@
 import { Position } from '@xyflow/react';
 import type { Box } from './floating';
 
+// Both still live in floating.ts, which Task 8 folds into this file wholesale. Re-exported here so
+// consumers can already import them from their final home.
 export type { Box };
+export { boxOf } from './floating';
 
 /**
  * MINIMUM spacing between two ports on the same side. The real pitch is `side / portCount(side)`,

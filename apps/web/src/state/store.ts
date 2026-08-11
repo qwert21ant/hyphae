@@ -30,6 +30,9 @@ type State = {
   // auto-layout owns the durable picture, and this exists to untangle the diagram in front of you.
   // Not persisted — unlike the audience toggle, it is not a preference that should outlive the tab.
   nodePositions: Record<string, XY>;
+  // How edges are drawn. Session-only and deliberately NOT reset by setFocus: unlike a dragged
+  // position, this is a viewing preference about the whole canvas, not an override of one view.
+  edgeStyle: 'squared' | 'curved';
   setModel: (m: HyphaeModel, version?: number) => void;
   syncFromServer: () => Promise<void>;
   setFocus: (id: string | null) => void;
@@ -48,6 +51,7 @@ type State = {
   setNodePosition: (id: string, p: XY) => void;
   setNodePositions: (entries: Record<string, XY>) => void;
   resetNodePositions: () => void;
+  setEdgeStyle: (s: 'squared' | 'curved') => void;
 };
 
 export const useStore = create<State>((set, get) => {
@@ -68,6 +72,7 @@ export const useStore = create<State>((set, get) => {
     expandedExternals: new Set<string>(),
     offViewStepOrders: [],
     nodePositions: {},
+    edgeStyle: 'squared',
 
     setModel: (model, version = 0) => set({ model, ownVersion: version }),
     syncFromServer: async () => {
@@ -120,6 +125,7 @@ export const useStore = create<State>((set, get) => {
     // The DOM attribute (and its localStorage persistence) is still applyTheme()'s job — Toolbar
     // calls both on toggle. This setter only keeps the store's mirror in sync so Canvas re-renders.
     setTheme: (theme) => set({ theme }),
+    setEdgeStyle: (edgeStyle) => set({ edgeStyle }),
 
     toggleConnVerbClass: (value) =>
       set((s) => {

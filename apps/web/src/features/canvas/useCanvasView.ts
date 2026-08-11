@@ -3,15 +3,22 @@ import type { Node as FlowNode, Edge as FlowEdge } from '@xyflow/react';
 import { c4Backend } from '@hyphae/schema';
 import { useStore } from '@/state/store';
 import { buildFocusView, type FocusView } from '@/core/focusView';
-import { layoutFocusView, resolveViewPositions, applyDragOverrides, type XY } from './layout';
+import { layoutFocusView, resolveViewPositions, applyDragOverrides, gutterGeometry, type XY } from './layout';
 import { focusViewToFlow } from './reactflow';
 import { computeFlowOverlay, type FlowOverlay } from './flowOverlay';
 import { patternViewToFlow } from './patternView';
+import { decorateFlowEdges } from './flowEdges';
+import { routeEdges } from './edges/routeEdges';
+import type { NodeKind } from './edges/ports';
 
 export type CanvasView = {
   view: FocusView;
   nodes: FlowNode[];
   edges: FlowEdge[];
+  /** The edges actually handed to React Flow: flow-decorated, then routed. Routing runs AFTER
+   *  decoration because decoration is what creates a flow's ephemeral step edges — route first and
+   *  they arrive with no Route and fall back to a mid-side anchor. */
+  displayEdges: FlowEdge[];
   overlay: FlowOverlay | null;
   flowActive: boolean;
   patternFlow: { nodes: FlowNode[]; edges: FlowEdge[] } | null;
@@ -67,6 +74,25 @@ export function useCanvasView(): CanvasView {
   const overlay = useMemo(() => (flow ? computeFlowOverlay(flow, edges, visibleNodeIds) : null), [flow, edges, visibleNodeIds]);
   const flowActive = !!overlay && (overlay.participatingNodes.size > 0 || overlay.participatingEdges.size > 0);
 
+  // Decorate first, THEN route: decoration is what mints a flow's ephemeral step edges, and an edge
+  // that never reached routeEdges has no Route to resolve.
+  const decorated = useMemo(() => decorateFlowEdges(edges, overlay), [edges, overlay]);
+
+  const kinds = useMemo(() => {
+    const k: Record<string, NodeKind> = {};
+    for (const n of view.children) k[n.id] = 'child';
+    for (const n of view.externals) k[n.id] = 'external';
+    return k;
+  }, [view]);
+
+  const displayEdges = useMemo(() => {
+    const routes = routeEdges(
+      decorated.map((e) => ({ id: e.id, source: e.source, target: e.target })),
+      positions, kinds, gutterGeometry(view, positions),
+    );
+    return decorated.map((e) => (routes[e.id] ? { ...e, data: { ...e.data, route: routes[e.id] } } : e));
+  }, [decorated, positions, kinds, view]);
+
   // Publish the steps this view cannot draw, so the tree can mark them as elsewhere. Which steps
   // those are depends on the drawn edges, which only exist here.
   const setOffViewSteps = useStore((s) => s.setOffViewSteps);
@@ -79,5 +105,5 @@ export function useCanvasView(): CanvasView {
   const pattern = useMemo(() => model.patterns.find((p) => p.id === selectedPatternId) ?? null, [model.patterns, selectedPatternId]);
   const patternFlow = useMemo(() => (pattern ? patternViewToFlow(pattern, c4Backend, model.nodes) : null), [pattern, model.nodes]);
 
-  return { view, nodes, edges, overlay, flowActive, patternFlow, slots: draggedBase };
+  return { view, nodes, edges, displayEdges, overlay, flowActive, patternFlow, slots: draggedBase };
 }
