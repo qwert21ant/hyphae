@@ -63,7 +63,7 @@ export function buildConnectionTools(api: HyphaeApi) {
         id: c.id, from: c.from, to: c.to,
         fromName: byId.get(c.from)?.name ?? c.from, toName: byId.get(c.to)?.name ?? c.to,
         fromContainer: containerName(c.from), toContainer: containerName(c.to),
-        verb: c.verb, object: c.object,
+        label: c.label, verb: c.verb, object: c.object,
         direction: c.direction, description: c.description,
       }));
     },

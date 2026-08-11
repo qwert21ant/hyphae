@@ -97,17 +97,19 @@ export function registerAll(server: McpServer, tools: ReturnType<typeof buildToo
   const coreConnFields = {
     description: z.string().optional(),
     direction: z.enum(['Unidirectional', 'Bidirectional']).optional(),
+    label: z.string().optional()
+      .describe('What this edge says, in your own words — the ONLY text drawn on the diagram. State something a reader cannot infer from the two node names ("constructs at startup and owns for the session"), not a restatement of the target ("uses the mine process"). Keep it under about 40 characters. An edge with nothing worth saying here should not be created.'),
     verb: z.string().optional()
-      .describe('The business action this edge performs — a verb id from describe_profile (reads, writes, publishes, invokes, views, …). Shown on the diagram and colored by verb class. Defaults to "uses"; pick something more specific whenever one fits, because "uses" carries almost no information.'),
+      .describe('Legacy, superseded by `label`. Accepted only so an older client still works; a label composed from it wins nothing over writing `label` directly.'),
     object: z.string().optional()
-      .describe('What the action acts on — a short noun such as "camera list" or "clip". Rendered after the verb ("reads camera list"). Keep it under about 24 characters so the label stays readable.'),
+      .describe('Legacy, superseded by `label`.'),
     realizedBy: z.array(z.string()).optional()
       .describe('Ids of lower-layer connections this edge aggregates/describes (e.g. a Container↔Container edge realizedBy the Component↔Component edges that explain it). Bound edges are excluded from rollup.'),
     fields: z.object(fieldsShape('connection')).partial().optional(),
   };
   const connItem = z.object({ from: z.string(), to: z.string(), ...coreConnFields });
   server.registerTool('create_connections', {
-    description: "Create one OR MANY connections in a single call (single write = one-element array). Each item: from, to (existing node ids), verb + object (what the edge does and to what — this is the diagram label), and optional realizedBy to bind lower-layer edges. Best-effort: {created:[{id,from,to},...]} in input order on full success, else {results:[{id,from,to}|{issues}]}. Use the echoed ids to fill `realizedBy` on a higher-layer edge without re-listing.",
+    description: "Create one OR MANY connections in a single call (single write = one-element array). Each item: from, to (existing node ids), label (what the edge says — this is the diagram label), and optional realizedBy to bind lower-layer edges. Best-effort: {created:[{id,from,to},...]} in input order on full success, else {results:[{id,from,to}|{issues}]}. Use the echoed ids to fill `realizedBy` on a higher-layer edge without re-listing.",
     inputSchema: { connections: z.array(connItem) },
   }, async (a) => text(await tools.create_connections(a)));
 

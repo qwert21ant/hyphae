@@ -327,9 +327,9 @@ function connModel(): HyphaeModel {
     { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
     { id: 'ext', name: 'Ext', type: 'ExternalSystem', parentId: null, ...base },
   );
-  const e = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+  const e = { label: '', verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
   m.connections.push(
-    { id: 'x1', from: 'a1', to: 'b1', ...e, verb: 'reads' },       // dataAccess
+    { id: 'x1', from: 'a1', to: 'b1', ...e, verb: 'reads', label: 'reads the profile row' }, // dataAccess
     { id: 'x2', from: 'a1', to: 'ext', ...e, verb: 'publishes' },  // messaging
     { id: 'x3', from: 'b1', to: 'ext', ...e, verb: 'invokes' },    // control
     { id: 'x4', from: 'a1', to: 'a2', ...e, verb: 'reads' },       // dataAccess
@@ -348,6 +348,11 @@ describe('list_connections', () => {
   it('filters by verb and verbClass', async () => {
     expect(ids(await buildTools(api()).list_connections({ verbClass: 'dataAccess' }))).toEqual(['x1', 'x4']);
     expect(ids(await buildTools(api()).list_connections({ verb: 'invokes' }))).toEqual(['x3']);
+  });
+
+  it('returns each connection label, which is what the diagram draws', async () => {
+    const rows = (await buildTools(api()).list_connections({})) as Array<Record<string, unknown>>;
+    expect(rows.find((r) => r.id === 'x1')?.label).toBe('reads the profile row');
   });
 
   it('never returns the retired type/transport fields', async () => {
