@@ -265,7 +265,15 @@ Paste the output into the table below, replacing this row. These become the budg
 
 | focus | edges | crossings (old) | density L / R | derived colGap L / R |
 |---|---|---|---|---|
-| *(fill from probe output)* | | | | |
+| Baritone API | 85 | 402 | 20 / 2 | 384 / 120 |
+| Process Layer | 68 | 346 | 25 / 10 | 474 / 204 |
+| Utilities & Schematics | 53 | 138 | 13 / 3 | 258 / 120 |
+| Command System | 46 | 80 | 7 / 6 | 150 / 132 |
+
+**Read:** lane sharing works. Process Layer sends 39 edges across its left gutter but only 25 are
+ever open at once, and Baritone API 37 for a density of 20 — so the widest gutter is 474px against
+the ~588px the spec named as the accepted worst case. Traffic is also strongly asymmetric (37 left
+vs 3 right at Baritone API), which is exactly what independent gutter sizing is for.
 
 - [ ] **Step 8: Delete the probe**
 
