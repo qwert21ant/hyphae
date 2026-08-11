@@ -32,6 +32,10 @@ type State = {
   nodePositions: Record<string, XY>;
   // How edges are drawn. Session-only and deliberately NOT reset by setFocus: unlike a dragged
   // position, this is a viewing preference about the whole canvas, not an override of one view.
+  // Defaults to 'curved': measured on the real model, curved-through-ports crosses about as often
+  // as the old free-anchor router (530 vs 476 on Baritone API) while squared costs a further ~130,
+  // because an external column feeding a cluster is a converging fan and orthogonal runs sweep
+  // across each other's lanes. Squared is a click away for anyone who prefers the engineered grain.
   edgeStyle: 'squared' | 'curved';
   setModel: (m: HyphaeModel, version?: number) => void;
   syncFromServer: () => Promise<void>;
@@ -72,7 +76,7 @@ export const useStore = create<State>((set, get) => {
     expandedExternals: new Set<string>(),
     offViewStepOrders: [],
     nodePositions: {},
-    edgeStyle: 'squared',
+    edgeStyle: 'curved',
 
     setModel: (model, version = 0) => set({ model, ownVersion: version }),
     syncFromServer: async () => {
