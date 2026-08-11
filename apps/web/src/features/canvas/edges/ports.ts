@@ -1,10 +1,16 @@
-import { Position } from '@xyflow/react';
-import type { Box } from './floating';
+import { Position, type InternalNode } from '@xyflow/react';
 
-// Both still live in floating.ts, which Task 8 folds into this file wholesale. Re-exported here so
-// consumers can already import them from their final home.
-export type { Box };
-export { boxOf } from './floating';
+export type Box = { x: number; y: number; width: number; height: number };
+
+/** Absolute bounding box of a React Flow internal node. */
+export function boxOf(n: InternalNode): Box {
+  return {
+    x: n.internals.positionAbsolute.x,
+    y: n.internals.positionAbsolute.y,
+    width: n.measured?.width ?? 0,
+    height: n.measured?.height ?? 0,
+  };
+}
 
 /**
  * MINIMUM spacing between two ports on the same side. The real pitch is `side / portCount(side)`,
@@ -57,4 +63,32 @@ export function chooseSides(
   return dy >= 0
     ? { sourceSide: Position.Bottom, targetSide: Position.Top }
     : { sourceSide: Position.Top, targetSide: Position.Bottom };
+}
+
+export type EdgeParams = { sx: number; sy: number; tx: number; ty: number; sourcePos: Position; targetPos: Position };
+
+/** Perpendicular gap between two edges forced to share a port. */
+export const EDGE_FAN_SPREAD = 22;
+
+/**
+ * Perpendicular offset for the `index`-th of `count` edges forced to SHARE a port.
+ *
+ * Ports normally keep edges apart on their own; this is the overflow case, when a side carries more
+ * edges than it has ports. Offsets are centred on zero so the group stays balanced on the true
+ * line, and a lone edge is returned untouched.
+ *
+ * `reversed` marks an edge traversing the pair against the group's canonical endpoint order. Its
+ * source→target vector is negated, which negates the perpendicular too — so without flipping the
+ * offset back, A→B and B→A land on the SAME side and overlap exactly.
+ */
+export function fanEdgeParams(p: EdgeParams, index: number, count: number, spread = EDGE_FAN_SPREAD, reversed = false): EdgeParams {
+  if (count <= 1) return p;
+  const dx = p.tx - p.sx;
+  const dy = p.ty - p.sy;
+  const len = Math.hypot(dx, dy);
+  if (!len) return p; // coincident endpoints have no perpendicular to shift along
+  const off = (index - (count - 1) / 2) * spread * (reversed ? -1 : 1);
+  const nx = (-dy / len) * off;
+  const ny = (dx / len) * off;
+  return { ...p, sx: p.sx + nx, sy: p.sy + ny, tx: p.tx + nx, ty: p.ty + ny };
 }

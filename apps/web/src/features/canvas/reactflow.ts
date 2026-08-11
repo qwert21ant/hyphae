@@ -170,21 +170,10 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nod
     });
   }
 
+  // Two connections between the same node pair used to resolve to the identical bezier and stack
+  // their labels, which is what the per-pair fanning here existed to undo. routeEdges now gives
+  // them different ports, so the case no longer arises.
   const edges = view.edges.map((e) => (e.derived ? derivedEdge(e) : realEdge(e)));
-
-  // Two connections between the same node pair resolve to the identical bezier and stack their
-  // labels. Tag each with its position within the pair so FloatingEdge can fan them apart. The
-  // pair is UNORDERED: A→B and B→A occupy the same curve, so they must share one group.
-  const byPair = new Map<string, FlowEdge[]>();
-  for (const e of edges) {
-    const key = e.source < e.target ? `${e.source}\0${e.target}` : `${e.target}\0${e.source}`;
-    const group = byPair.get(key);
-    if (group) group.push(e);
-    else byPair.set(key, [e]);
-  }
-  for (const group of byPair.values()) {
-    group.forEach((e, i) => { e.data = { ...e.data, offsetIndex: i, offsetCount: group.length }; });
-  }
 
   return { nodes, edges };
 }
