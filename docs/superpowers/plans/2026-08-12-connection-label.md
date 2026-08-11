@@ -56,7 +56,7 @@ plan safe, so it is built and tested first. `ConnectionSchema` is only ever cons
 (`apps/server/src/store.ts:76,84`) and `z.array()` (`packages/schema/src/model.ts:24`), both of which
 work on the `ZodEffects` that `z.preprocess` returns — no `.partial()`/`.omit()` caller exists.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `packages/schema/test/connection.test.ts`:
 
@@ -86,12 +86,12 @@ describe('label back-compat shim', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `cd packages/schema && pnpm vitest run test/connection.test.ts`
 Expected: FAIL — the parsed object has no `label`, so each assertion receives `undefined`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Replace the whole of `packages/schema/src/connection.ts`:
 
@@ -136,12 +136,12 @@ export const ConnectionSchema = z.preprocess((raw) => {
 export type Connection = z.infer<typeof ConnectionShape>;
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `cd packages/schema && pnpm vitest run`
 Expected: PASS, 147 + 4 = **151 green**.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/schema/src/connection.ts packages/schema/test/connection.test.ts
@@ -176,7 +176,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 `verb` stays on `FocusEdge` through this task because `realEdge` still needs it to pick a colour.
 Task 5 removes it together with the colour system. Only the *rendered text* changes here.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `apps/web/test/features/canvas/reactflow.test.ts`, replace the existing `edgeLabel` describe block
 with:
@@ -206,12 +206,12 @@ describe('clipLabel', () => {
 
 Update the file's import to pull `clipLabel` instead of `edgeLabel`.
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `cd apps/web && pnpm vitest run test/features/canvas/reactflow.test.ts`
 Expected: FAIL — `clipLabel is not a function` / no such export.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 In `apps/web/src/features/canvas/reactflow.ts`, replace lines 23–47:
 
@@ -275,14 +275,14 @@ rows) with a single label row:
         <Row label="label" layout="grid" title="What this edge says. The only text drawn on the diagram.">{conn.label}</Row>
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `cd apps/web && pnpm vitest run`
 Expected: PASS. Fix any test that asserted the old `verb object` edge text or the SidePanel `verb` /
 `object` rows — they now assert `label`. Then run `cd .. && pnpm --filter @hyphae/web typecheck`,
 expecting exactly the 4-error floor.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/web/src/core/focusView apps/web/src/features/canvas/reactflow.ts \
@@ -314,7 +314,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 `verb` and `object` stay accepted here so the tools keep working against a model mid-migration; Task
 4 removes them.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `apps/server/test/mcp.test.ts`, inside the existing connection-tools describe block:
 
@@ -332,13 +332,13 @@ it('creates a connection from a label and echoes it back from list_connections',
 Use whatever seeding helper the file already provides rather than `seedTwoNodes` if it is named
 differently — read the top of the file first.
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `cd apps/server && pnpm vitest run test/mcp.test.ts`
 Expected: FAIL — `label` is not in the tool's param shape, so it is dropped, and the returned row has
 no `label` key.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 In `apps/server/src/mcp/register.ts`, add `label` to `coreConnFields` ahead of the legacy pair:
 
@@ -360,12 +360,12 @@ In `apps/server/src/mcp/tools/connections.ts`, add `label` to the mapped row (li
         verb: c.verb, object: c.object, label: c.label,
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `cd apps/server && pnpm vitest run`
 Expected: PASS, 107 + 1 = **108 green**.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/server/src/mcp/register.ts apps/server/src/mcp/tools/connections.ts apps/server/test/mcp.test.ts
@@ -402,7 +402,7 @@ The preprocess shim **stays**. It reads `verb`/`object` off the *raw input*, so 
 labels from legacy files even once the fields are gone from the parsed output — which is exactly what
 we want and what its four Task 1 tests already pin.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `packages/schema/test/connection.test.ts`, replace the `ConnectionSchema verb/object` describe
 block with:
@@ -429,13 +429,13 @@ it('does not report an unknown verb, because verbs no longer exist', () => {
 
 Adapt `modelWith` to whatever helper the file already uses.
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `cd packages/schema && pnpm vitest run`
 Expected: FAIL — the parsed connection still has `verb`/`object`, and `validateModel` still emits
 `unknown-verb`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 `packages/schema/src/connection.ts` — delete these two lines and the comment above them from
 `ConnectionShape`:
@@ -479,14 +479,14 @@ the `get_subgraph` param type and destructure, and replace line 13 with:
       const edges = model.connections;
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `pnpm -r test`
 Expected: schema and server green. Delete or rewrite any remaining test that asserts a verb
 vocabulary — `c4-backend.test.ts` and `profile.test.ts` both assert `verbs`. Then
 `pnpm --filter @hyphae/web typecheck`, expecting the 4-error floor.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/schema/src packages/schema/test apps/server/src apps/server/test
@@ -536,7 +536,7 @@ and delete the other four** — the surviving value needs no retuning, and every
 neutral line, which is the point: the spec leaves the chromatic budget empty rather than inventing a
 new hue meaning.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `apps/web/test/styles/tokens.test.ts`, replace the five `--verb-*` entries in the required-token
 list (line 40) with `'--edge-line',`, and replace the "gives every verb hue a distinct hex value"
@@ -558,12 +558,12 @@ In `apps/web/test/styles/contrast.test.ts`, replace the five verb pairs on lines
   ['--edge-line', '--surface-2'], ['--edge-derived', '--surface-2'],
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `cd apps/web && pnpm vitest run test/styles`
 Expected: FAIL — `--edge-line missing from :root`, and `--verb-* tokens survived`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 `apps/web/src/styles/tokens.css` — in the `:root` block replace lines 42–46 with:
 
@@ -644,7 +644,7 @@ imports and replace the dot (lines 23–28) with a class-free one:
             <span className="conn__dot" style={{ background: 'var(--edge-line)' }} />
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `cd apps/web && pnpm vitest run`
 Expected: PASS. `Legend.test.tsx` and `store.test.ts` assert the verb group and
@@ -652,7 +652,7 @@ Expected: PASS. `Legend.test.tsx` and `store.test.ts` assert the verb group and
 `verbClasses`; drop the key. Then `cd .. && pnpm --filter @hyphae/web typecheck`, expecting the
 4-error floor, and `pnpm -r build`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/web/src apps/web/test
@@ -684,12 +684,12 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 The skill is a **root cause**, not an afterthought: it produced a model that was 79% undescribed and
 50% `uses`/`invokes`. It must now state the rule and require a label that survives it.
 
-- [ ] **Step 1: Find every stale mention**
+- [x] **Step 1: Find every stale mention**
 
 Run: `grep -rn "verb\|--verb-\|\bobject\b" README.md docs/MODEL.md docs/SPEC.md CLAUDE.md skills/`
 Read each hit before editing; several are prose about the design rationale, not field references.
 
-- [ ] **Step 2: Rewrite them**
+- [x] **Step 2: Rewrite them**
 
 - `README.md` — the MCP tool list's `create_connections` / `list_connections` entries lose their
   `verb`/`verbClass` params and gain `label`.
@@ -705,7 +705,7 @@ Read each hit before editing; several are prose about the design rationale, not 
   names.* State explicitly that a label restating the target's name (`"uses the mine process"` →
   `MineProcess`) is not worth an edge, and that an edge with nothing to say should not be created.
 
-- [ ] **Step 3: Verify the real model still loads and renders**
+- [x] **Step 3: Verify the real model still loads and renders**
 
 The Baritone model is untracked and predates `label`, so it exercises the shim end to end.
 
@@ -718,12 +718,12 @@ Expected: 195 connections, each carrying a composed `label` such as `"triggers m
 no `verb`/`object` keys. **A local HTTP proxy intercepts `curl` on this machine and returns 503 —
 `--noproxy '*'` is required.** Then run `validate_model` over the MCP and expect `[]`.
 
-- [ ] **Step 4: Run the whole suite**
+- [x] **Step 4: Run the whole suite**
 
 Run: `pnpm -r test && pnpm -r build && pnpm --filter @hyphae/web typecheck`
 Expected: all green; typecheck at exactly its 4-error floor.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git status --short   # confirm no *.json model is staged
@@ -750,3 +750,29 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   after every reader has stopped consulting it.
 - **Known risk.** The shim composes mediocre labels (`"triggers mine process"`). That is deliberate
   and non-blocking per the spec — improving them is a later model round, not part of this plan.
+
+---
+
+## Deviations from the plan as written
+
+All six tasks landed. Four things differed from the plan and are worth recording.
+
+1. **Task order 4 and 5 were swapped.** As written, Task 4 removed `verbClassOf` from the schema
+   while Task 5 still called it from `reactflow.ts`, `ConnectionList.tsx`, `Legend.tsx` and
+   `FilterPanel.tsx` — `pnpm -r test` would have been red on web between the two, contradicting the
+   plan's own green-every-task rule. Task 5 depends only on Task 2, so the colour-system removal
+   went first and the schema contraction last.
+2. **`edgeLabel`'s tests were in `test/core/focusView.test.ts`, not `reactflow.test.ts`.** The plan
+   named the wrong file for the Task 2 red step.
+3. **Adding a required `label` broke far more test fixtures than the plan anticipated** — 42 type
+   errors across `focusView.test.ts`, `Canvas.test.tsx` and `SidePanel.test.tsx`, then more in
+   `packages/schema/test` and `apps/server/test`. `apps/server` and `packages/schema` build with
+   `tsc -p`, which typechecks their tests, so these were build failures rather than test failures
+   and did not show up until `pnpm -r build`. Every one was a one-line fixture fix.
+4. **The verb-class filter tests became field-filter tests.** `ConnFilter` kept its `fields` axis, so
+   the store, `buildFocusView` and `Canvas` cases that exercised `verbClasses` now exercise
+   `fields` — the same guarantees over the axis that survived, rather than deleted coverage.
+
+**Final state:** 732 green (schema 143, server 106, web 483), `pnpm -r build` clean, web typecheck at
+its pre-existing 4-error floor. The real 195-connection Baritone model was verified through the shim:
+every connection came back with a composed label, no `verb`/`object` survived, `validate_model` clean.
