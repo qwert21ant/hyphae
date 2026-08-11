@@ -84,12 +84,18 @@ export function routeEdges(
   // lookup, not for storage.
   for (const { side, slots } of bySide.values()) {
     const len = side === Position.Left || side === Position.Right ? NODE_H : NODE_W;
-    const count = portCount(len);
+    const n = slots.length;
+    // A side of NODE_H carries only 3 ports, and a hub can want twelve. Clamping the overflow to
+    // the last port stacked ten edges on ONE point, which fanned them across the gutter and cost
+    // more crossings than the free-anchor router it replaced. So the grid is a preference, not a
+    // cap: when demand exceeds it the side degrades to a continuum and every edge keeps a distinct
+    // landing. One formula covers both regimes —
+    //   n <= ports: count is the grid, and the edges spread across the WHOLE side (n=1 lands mid-side)
+    //   n >  ports: count is n, so index === i and no two edges share a point
+    const count = Math.max(portCount(len), n);
     slots.sort((a, b) => a.order - b.order || byId(a.edgeId, b.edgeId));
     slots.forEach((slot, i) => {
-      // Overflow shares the outermost port rather than refusing the edge; FloatingEdge fans the
-      // duplicates apart. Ports quantise, they never reject.
-      portOf.set(key(slot.edgeId, slot.end), Math.min(i, count - 1));
+      portOf.set(key(slot.edgeId, slot.end), Math.floor(((i + 0.5) * count) / n));
       countOf.set(key(slot.edgeId, slot.end), count);
     });
   }
