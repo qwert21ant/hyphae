@@ -35,15 +35,24 @@ function FieldGroup({ def }: { def: FieldDef }) {
   );
 }
 
-/** Only shown once something has actually been dragged — there is nothing to reset before that. */
+/**
+ * The Layout group is ALWAYS rendered, because the edge-style toggle lives here and is not
+ * conditional. Only "reset layout" is — there is nothing to reset until something has been dragged.
+ */
 function LayoutGroup() {
   const dragged = useStore((s) => s.nodePositions);
   const resetNodePositions = useStore((s) => s.resetNodePositions);
-  if (!Object.keys(dragged).length) return null;
+  const edgeStyle = useStore((s) => s.edgeStyle);
+  const setEdgeStyle = useStore((s) => s.setEdgeStyle);
+  // The button names the style it switches TO, so it reads as an action rather than a status.
+  const next = edgeStyle === 'squared' ? 'curved' : 'squared';
   return (
     <div className="filter__group">
       <div className="filter__label">Layout</div>
-      <button className="filter__clear" onClick={resetNodePositions}>reset layout</button>
+      <button className="filter__clear" onClick={() => setEdgeStyle(next)}>{next} edges</button>
+      {!!Object.keys(dragged).length && (
+        <button className="filter__clear" onClick={resetNodePositions}>reset layout</button>
+      )}
     </div>
   );
 }
