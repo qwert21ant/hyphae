@@ -12,7 +12,6 @@ import { GhostNode } from '@/features/canvas/nodes/GhostNode';
 import { GhostGroupNode } from '@/features/canvas/nodes/GhostGroupNode';
 import { PatternMemberNode } from '@/features/canvas/nodes/PatternMemberNode';
 import { FloatingEdge } from '@/features/canvas/edges/FloatingEdge';
-import { decorateFlowEdges } from './flowEdges';
 import { highlightCss } from './highlight';
 import { useCanvasView } from './useCanvasView';
 import { dragCommit, type DragState } from './layout';
@@ -41,7 +40,7 @@ export function Canvas() {
   // deliberately read outside of, and absent from, every useMemo dependency array in this file.
   const theme = useStore((s) => s.theme);
 
-  const { view, nodes, edges, overlay, flowActive, patternFlow, slots } = useCanvasView();
+  const { view, nodes, edges, displayEdges, overlay, flowActive, patternFlow, slots } = useCanvasView();
   const { onNodeClick } = useDrillNavigation();
 
   // The derived `nodes` are the source of truth; React Flow's copy exists only so it can animate a
@@ -98,11 +97,11 @@ export function Canvas() {
   // Drilling changes focus (and remounts the graph); reset hover so the new view opens neutral.
   useEffect(() => setHoveredId(null), [focusId]);
 
-  const displayEdges = useMemo(() => decorateFlowEdges(edges, overlay), [edges, overlay]);
-
   // Which node/edge the highlight is about: selection wins over hover, and a flow, when one is
   // active, wins over both (its participating set drives the highlight, as a strong selection).
   // highlight.ts turns this into the injected stylesheet — see the note there on why it is CSS.
+  // NB: these read the UNDECORATED `edges`. Swapping in `displayEdges` would quietly pull a flow's
+  // ephemeral step edges into the highlight sets, which is a behaviour change, not a refactor.
   const present = useMemo(
     () => new Set<string>([...nodes.map((n) => n.id), ...edges.map((e) => e.id)]),
     [nodes, edges],

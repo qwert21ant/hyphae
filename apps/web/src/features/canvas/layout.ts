@@ -1,5 +1,6 @@
 import dagre from '@dagrejs/dagre';
 import type { FocusView } from '@/core/focusView';
+import { assignLanes, laneSlots, gutterWidth, type Span } from './edges/lanes';
 
 // Node box size. Sized to fit a name line, a TWO-line summary, and the technology chip at the
 // font sizes NodeBox uses (12/10/9px at line-height 1.25, 6px vertical padding, 2px gaps):
@@ -14,7 +15,9 @@ export const LABEL_H = 22;
 
 export type XY = { x: number; y: number };
 
-const COL_GAP = 120;  // horizontal gap between the children cluster and an external column
+// The historical fixed gap between the children cluster and an external column. Now only the FLOOR
+// that gutterWidth() enforces — the real gap is derived per gutter from how many lanes it needs.
+const COL_GAP = 120;
 const NODE_SEP = 56;  // dagre's within-rank gap. Was 40 — the grid packing below buys back the width
 const RANK_SEP = 104; // dagre's between-rank gap. Was 80
 
@@ -122,10 +125,60 @@ export function layoutFocusView(view: FocusView): Record<string, XY> {
     const totalH = Math.max(0, ids.length - 1) * ROW_GAP;
     ids.forEach((id, i) => { pos[id] = { x, y: midY - totalH / 2 + i * ROW_GAP - NODE_H / 2 }; });
   };
+  // Place the columns TWICE. Lane demand depends only on the Y spans of the runs, and a column's y
+  // is fixed by midY and ROW_GAP while the gap moves only x — so a provisional placement yields the
+  // EXACT lane count, and re-placing the columns at the widened gap cannot invalidate it.
   placeColumn(incoming, minX - COL_GAP - NODE_W);
   placeColumn(outgoing, maxX + COL_GAP);
 
+  const laneDemand = (ids: string[]): number => {
+    const set = new Set(ids);
+    const spans: Span[] = [];
+    for (const e of view.edges) {
+      const ext = set.has(e.from) ? e.from : set.has(e.to) ? e.to : null;
+      if (ext === null) continue;
+      const a = pos[e.from];
+      const b = pos[e.to];
+      if (!a || !b) continue;
+      const y0 = a.y + NODE_H / 2;
+      const y1 = b.y + NODE_H / 2;
+      if (y0 === y1) continue;   // straight horizontal: consumes no lane
+      spans.push({ id: e.id, y0, y1 });
+    }
+    return laneSlots(assignLanes(spans));
+  };
+
+  placeColumn(incoming, minX - gutterWidth(laneDemand(incoming)) - NODE_W);
+  placeColumn(outgoing, maxX + gutterWidth(laneDemand(outgoing)));
+
   return pos;
+}
+
+/**
+ * Where each gutter BEGINS and where the children cluster sits, in absolute x — the shape
+ * routeEdges consumes.
+ *
+ * The left gutter is the empty band between the right edge of the left column and the cluster; the
+ * right gutter is the band between the cluster and the left edge of the right column. So
+ * `rightGutterX` is simply `clusterMaxX`: the right gutter starts where the cluster ends. Both are
+ * kept as named fields because "left" on its own reads as either "the left gutter" or "the left
+ * edge of a gutter", and that ambiguity is worth a redundant field.
+ */
+export function gutterGeometry(
+  view: FocusView, pos: Record<string, XY>,
+): { leftGutterX: number; rightGutterX: number; clusterMinX: number; clusterMaxX: number } {
+  const xs = view.children.map((n) => pos[n.id]?.x).filter((x): x is number => x !== undefined);
+  const clusterMinX = xs.length ? Math.min(...xs) : 0;
+  const clusterMaxX = xs.length ? Math.max(...xs) + NODE_W : NODE_W;
+  const extXs = view.externals.map((n) => pos[n.id]?.x).filter((x): x is number => x !== undefined);
+  const leftCol = extXs.filter((x) => x < clusterMinX);
+  return {
+    // Right edge of the rightmost left-column box; with no left column, the historical gap.
+    leftGutterX: leftCol.length ? Math.max(...leftCol) + NODE_W : clusterMinX - COL_GAP,
+    rightGutterX: clusterMaxX,
+    clusterMinX,
+    clusterMaxX,
+  };
 }
 
 /**

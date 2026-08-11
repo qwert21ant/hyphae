@@ -29,7 +29,8 @@ schema in `packages/schema` wins any disagreement.
                      shapes.ts  patternView.ts  flowOverlay.ts  canvas.css
                      nodes/    NodeBox  NodeShape  GroupNode  GhostNode
                                GhostGroupNode  PatternMemberNode
-                     edges/    FloatingEdge.tsx  floating.ts
+                     edges/    FloatingEdge.tsx  ports.ts  lanes.ts  paths.ts
+                               routeEdges.ts
                      overlay/  Legend.tsx  FilterPanel.tsx
         outline/     TreePanel.tsx  outline.css
         inspector/   SidePanel.tsx  ConnectionList.tsx  FieldRows.tsx
@@ -179,6 +180,45 @@ Conventions the suite does *not* enforce — jsdom loads no stylesheet, so nothi
 
 ## Invariants that bite
 
+- **Edge geometry is ASSIGNED globally and RESOLVED locally.** `routeEdges` (`edges/routeEdges.ts`)
+  picks a side, a port index and a lane per edge, memoized per view in `useCanvasView`; it returns
+  no absolute node coordinates. `FloatingEdge` resolves that against `useInternalNode` every render.
+  That split is why dragging reads well: positions reach the store only on `onNodeDragStop`, so the
+  port and lane stay fixed while the endpoints track the node every frame, and the port snaps on
+  release instead of sliding along the border. Compute endpoints in the assignment pass and the
+  edges detach from the node mid-drag.
+- **Routing runs AFTER `decorateFlowEdges`.** Decoration is what creates a flow's ephemeral step
+  edges, so routing first leaves them with no `Route` and they fall back to a mid-side anchor. This
+  is why `decorateFlowEdges` lives in `useCanvasView` and not in `Canvas.tsx`. Canvas still uses the
+  UNDECORATED `edges` for `present`, `childIds` and `highlightSets` — swap those for `displayEdges`
+  and ephemeral flow edges quietly join the highlight sets.
+- **A port grid is a preference, not a cap.** A left/right side carries only 3 ports
+  (`NODE_H` 92 / `PORT_PITCH` 24) and a hub can want twelve. Clamping the overflow to the last port
+  stacked nine edges on one landing point and cost *more* crossings than the free-anchor router it
+  replaced. `routeEdges` therefore uses `count = max(portCount, n)`, so a crowded side degrades to a
+  continuum and every edge keeps a distinct anchor. Pinned by "never lands two edge ends on the same
+  point" in `crossings.real.test.ts`.
+- **`COL_GAP` is derived, not constant.** `layoutFocusView` places the external columns twice: lane
+  demand depends only on the *y* spans of the runs, and a column's y is fixed by `midY` and
+  `ROW_GAP` while `COL_GAP` moves only x — so the provisional placement yields an exact lane count
+  and re-placing at the widened gap cannot invalidate it. A test asserting a literal external x will
+  break; assert the relationship (gap ≥ 120) instead.
+- **`curved` is the default edge style for a measured reason.** An external column feeding a cluster
+  is a converging *fan*, and orthogonal runs sweep across one another's lanes going in: on Baritone
+  API, free-anchor 476 crossings, curved 530, squared 657. Do not "fix" the default back to squared
+  without re-measuring — `crossings.real.test.ts` records the budget. **Squared reads as the more
+  structured of the two** and is the better default once the known gap below is closed.
+
+**Known gap — `squared` draws collinear overlapping segments.** Reported after the router shipped;
+not yet fixed. Ports are distinct *per node*, but two different nodes can carry ports at the same
+`y` — children sharing a dagre rank, or externals on the `ROW_GAP` column pitch — so their
+horizontal approach runs into a gutter are collinear and overlap exactly, drawing as one thick line
+instead of two edges. Lane-less edges have the same failure at the dogleg, which `squaredPath`
+always turns at the midpoint, so two edges between the same pair of ranks turn at the identical `x`.
+Neither case is caught by `crossings.real.test.ts`: `countCrossings` counts *proper* intersections
+and deliberately ignores collinear overlap, so overlapping runs score zero. Fixing it means
+staggering the approach `y` (or the dogleg `x`) per edge — a jog offset, the same idea as the lane
+index — and adding an overlap metric next to the crossing one.
 - **Focus-view pipeline:** `buildFocusView` (`core/focusView/`) → `layoutFocusView` (on the
   *collapsed, unfiltered* base view) → `applyDragOverrides` → `resolveViewPositions` →
   `applyDragOverrides` again (all three `features/canvas/layout.ts`) → `focusViewToFlow`

@@ -5,7 +5,7 @@ import { useStore } from '@/state/store';
 
 describe('layout controls', () => {
   beforeEach(() => {
-    useStore.setState({ nodePositions: {} });
+    useStore.setState({ nodePositions: {}, edgeStyle: 'curved' });
   });
 
   it('shows reset layout only once something has been dragged', () => {
@@ -15,5 +15,20 @@ describe('layout controls', () => {
     rerender(<FilterPanel />);
     fireEvent.click(screen.getByText('reset layout'));
     expect(useStore.getState().nodePositions).toEqual({});
+  });
+
+  // The group used to render nothing until a drag had happened. The edge-style toggle is not
+  // conditional, so it would have been invisible almost all of the time.
+  it('offers the edge style toggle even when nothing has been dragged', () => {
+    render(<FilterPanel />);
+    expect(screen.getByText('squared edges')).toBeTruthy();
+  });
+
+  it('switches the store to squared, then offers the way back', () => {
+    const { rerender } = render(<FilterPanel />);
+    fireEvent.click(screen.getByText('squared edges'));
+    expect(useStore.getState().edgeStyle).toBe('squared');
+    rerender(<FilterPanel />);
+    expect(screen.getByText('curved edges')).toBeTruthy();
   });
 });

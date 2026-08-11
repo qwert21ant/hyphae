@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   layoutFocusView, resolveViewPositions, groupBoxHeight, NODE_W, NODE_H, PAD, LABEL_H, ROW_GAP, MEMBER_PITCH,
-  GRID_COLS, applyDragOverrides, dragCommit, type DragState, type XY,
+  GRID_COLS, applyDragOverrides, dragCommit, gutterGeometry, type DragState, type XY,
 } from '@/features/canvas/layout';
+import { gutterWidth } from '@/features/canvas/edges/lanes';
 import type { FocusView } from '@/core/focusView';
 
 const node = (id: string, type = 'Component') =>
@@ -336,5 +337,50 @@ describe('dragCommit', () => {
     expect(dragCommit(d, { x: 40, y: -10 }, {})).toEqual({
       a1: { x: 50, y: 0 }, a2: { x: 50, y: 110 },
     });
+  });
+});
+
+const edge = (id: string, from: string, to: string) =>
+  ({ id, from, to, count: 1, derived: false, realizedBy: [id] });
+
+const viewOf = (externals: string[], edges: ReturnType<typeof edge>[]): FocusView => ({
+  focusId: 'ca',
+  focusNode: node('ca', 'Container'),
+  children: [node('c1'), node('c2')],
+  externals: externals.map((id) => node(id, 'Container')),
+  edges,
+});
+
+describe('gutters sized from lane demand', () => {
+  it('keeps the 120px gap when a single external needs one lane', () => {
+    const view = viewOf(['e1'], [edge('a', 'e1', 'c1')]);
+    const pos = layoutFocusView(view);
+    const g = gutterGeometry(view, pos);
+    expect(g.clusterMinX - g.leftGutterX).toBe(120);
+  });
+
+  it('widens the gutter when many runs overlap in y', () => {
+    // Twelve incoming externals all reaching the SAME child: every span overlaps, so density is 12.
+    const ids = Array.from({ length: 12 }, (_, i) => `e${i}`);
+    const view = viewOf(ids, ids.map((id, i) => edge(`a${i}`, id, 'c1')));
+    const pos = layoutFocusView(view);
+    const g = gutterGeometry(view, pos);
+    expect(g.clusterMinX - g.leftGutterX).toBeGreaterThan(120);
+    expect(g.clusterMinX - g.leftGutterX).toBeLessThanOrEqual(gutterWidth(12));
+  });
+
+  it('sizes the two gutters independently', () => {
+    // layoutFocusView calls an external INCOMING when it is the `from` of any edge, OUTGOING
+    // otherwise — so 'out0' lands in the right-hand column.
+    const ids = Array.from({ length: 10 }, (_, i) => `in${i}`);
+    const view = viewOf(
+      [...ids, 'out0'],
+      [...ids.map((id, i) => edge(`i${i}`, id, 'c1')), edge('o', 'c1', 'out0')],
+    );
+    const pos = layoutFocusView(view);
+    const g = gutterGeometry(view, pos);
+    const left = g.clusterMinX - g.leftGutterX;
+    const right = pos.out0.x - g.rightGutterX;
+    expect(left).toBeGreaterThan(right);
   });
 });

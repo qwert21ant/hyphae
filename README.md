@@ -77,6 +77,20 @@ inside it. Dragging a child instead resizes the region around it when the node l
 session-only and reset when the focus changes — **reset layout** in the Connections panel clears
 them for the current view.
 
+**Edge routing.** An edge attaches to one of a fixed set of **ports** spaced along a node's side,
+not to an arbitrary point on its border, so runs leave parallel and no two edges land on the same
+spot. Which face each end uses is a rule, not a guess: an external always leaves the face pointing
+at the cluster, siblings connect top-to-bottom along dagre's ranks. Where a run crosses the gap
+between a column and the cluster it takes a **lane** — a vertical channel in that gutter — and the
+gutter widens to fit however many lanes it needs, sized independently on each side. Lanes are shared
+between runs that never overlap vertically, so a gutter carrying 39 edges may need only 25 lanes.
+
+Two styles, toggled in the Connections panel beside **reset layout**: **curved** (the default) draws
+a bezier through the ports, **squared** draws right-angle runs down the lanes and turns each label
+90° to ride its lane. Both share one port assignment — only the path differs. Curved is the default
+because an external column feeding a cluster is a converging fan, where orthogonal runs sweep across
+one another and cross noticeably more often.
+
 **Deep links.** The current view lives in the URL hash — `#node/<id>`, `#flow/<id>`,
 `#pattern/<id>` — so a view survives refresh, is shareable, and the browser Back button walks the
 history. A hash naming something that no longer exists rewrites to the root view.
