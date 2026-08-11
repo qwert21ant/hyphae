@@ -206,7 +206,19 @@ Conventions the suite does *not* enforce — jsdom loads no stylesheet, so nothi
 - **`curved` is the default edge style for a measured reason.** An external column feeding a cluster
   is a converging *fan*, and orthogonal runs sweep across one another's lanes going in: on Baritone
   API, free-anchor 476 crossings, curved 530, squared 657. Do not "fix" the default back to squared
-  without re-measuring — `crossings.real.test.ts` records the budget.
+  without re-measuring — `crossings.real.test.ts` records the budget. **Squared reads as the more
+  structured of the two** and is the better default once the known gap below is closed.
+
+**Known gap — `squared` draws collinear overlapping segments.** Reported after the router shipped;
+not yet fixed. Ports are distinct *per node*, but two different nodes can carry ports at the same
+`y` — children sharing a dagre rank, or externals on the `ROW_GAP` column pitch — so their
+horizontal approach runs into a gutter are collinear and overlap exactly, drawing as one thick line
+instead of two edges. Lane-less edges have the same failure at the dogleg, which `squaredPath`
+always turns at the midpoint, so two edges between the same pair of ranks turn at the identical `x`.
+Neither case is caught by `crossings.real.test.ts`: `countCrossings` counts *proper* intersections
+and deliberately ignores collinear overlap, so overlapping runs score zero. Fixing it means
+staggering the approach `y` (or the dogleg `x`) per edge — a jog offset, the same idea as the lane
+index — and adding an overlap metric next to the crossing one.
 - **Focus-view pipeline:** `buildFocusView` (`core/focusView/`) → `layoutFocusView` (on the
   *collapsed, unfiltered* base view) → `applyDragOverrides` → `resolveViewPositions` →
   `applyDragOverrides` again (all three `features/canvas/layout.ts`) → `focusViewToFlow`
