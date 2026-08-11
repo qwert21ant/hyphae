@@ -62,7 +62,7 @@ Produces the two numbers everything else is sized against: current crossing coun
 - Consumes: `layoutFocusView`, `buildFocusView`, `getEdgeParams` (all existing).
 - Produces: `loadRealModel(): HyphaeModel | null`, `REAL_FOCUSES: string[]`, `countCrossings(polylines: XY[][]): number`.
 
-- [ ] **Step 1: Write the failing test for the crossing counter**
+- [x] **Step 1: Write the failing test for the crossing counter**
 
 Create `apps/web/test/support/crossings.test.ts`:
 
@@ -101,12 +101,12 @@ describe('countCrossings', () => {
 });
 ```
 
-- [ ] **Step 2: Run it to make sure it fails**
+- [x] **Step 2: Run it to make sure it fails**
 
 Run: `cd apps/web && pnpm vitest run test/support/crossings.test.ts`
 Expected: FAIL — `Failed to resolve import "./crossings"`.
 
-- [ ] **Step 3: Implement the crossing counter**
+- [x] **Step 3: Implement the crossing counter**
 
 Create `apps/web/test/support/crossings.ts`:
 
@@ -149,12 +149,12 @@ export function countCrossings(polylines: XY[][]): number {
 }
 ```
 
-- [ ] **Step 4: Run it to make sure it passes**
+- [x] **Step 4: Run it to make sure it passes**
 
 Run: `cd apps/web && pnpm vitest run test/support/crossings.test.ts`
 Expected: PASS, 4 tests.
 
-- [ ] **Step 5: Write the real-model loader**
+- [x] **Step 5: Write the real-model loader**
 
 Create `apps/web/test/support/realModel.ts`. The model file is untracked, so it may be absent on a clean checkout; the loader must signal that rather than throw, and callers use `it.skipIf`.
 
@@ -190,7 +190,7 @@ export function realFocusIds(model: HyphaeModel): { name: string; id: string }[]
 }
 ```
 
-- [ ] **Step 6: Write the throwaway density probe**
+- [x] **Step 6: Write the throwaway density probe**
 
 Create `apps/web/test/zz-density-probe.test.ts`. This measures the two baselines and prints them; it is deleted in Step 8.
 
@@ -256,7 +256,7 @@ describe('baseline probe', () => {
 });
 ```
 
-- [ ] **Step 7: Run the probe and record the numbers**
+- [x] **Step 7: Run the probe and record the numbers**
 
 Run: `cd apps/web && pnpm vitest run test/zz-density-probe.test.ts`
 Expected: PASS, with one JSON line per focus in the output.
@@ -275,13 +275,13 @@ ever open at once, and Baritone API 37 for a density of 20 — so the widest gut
 the ~588px the spec named as the accepted worst case. Traffic is also strongly asymmetric (37 left
 vs 3 right at Baritone API), which is exactly what independent gutter sizing is for.
 
-- [ ] **Step 8: Delete the probe**
+- [x] **Step 8: Delete the probe**
 
 ```bash
 rm apps/web/test/zz-density-probe.test.ts
 ```
 
-- [ ] **Step 9: Verify the suite and commit**
+- [x] **Step 9: Verify the suite and commit**
 
 Run: `cd apps/web && pnpm vitest run`
 Expected: 439 pre-existing + 4 new = 443 web tests green.
@@ -321,7 +321,7 @@ EOF
   - `type NodeKind = 'child' | 'external'`
   - `chooseSides(source: Box, target: Box, sourceKind: NodeKind, targetKind: NodeKind): { sourceSide: Position; targetSide: Position }`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/web/test/features/canvas/edges/ports.test.ts`:
 
@@ -398,12 +398,12 @@ describe('chooseSides', () => {
 });
 ```
 
-- [ ] **Step 2: Run it to make sure it fails**
+- [x] **Step 2: Run it to make sure it fails**
 
 Run: `cd apps/web && pnpm vitest run test/features/canvas/edges/ports.test.ts`
 Expected: FAIL — `Failed to resolve import "@/features/canvas/edges/ports"`.
 
-- [ ] **Step 3: Implement `ports.ts`**
+- [x] **Step 3: Implement `ports.ts`**
 
 Create `apps/web/src/features/canvas/edges/ports.ts`:
 
@@ -473,12 +473,12 @@ export function chooseSides(
 export { opposite };
 ```
 
-- [ ] **Step 4: Run it to make sure it passes**
+- [x] **Step 4: Run it to make sure it passes**
 
 Run: `cd apps/web && pnpm vitest run test/features/canvas/edges/ports.test.ts`
 Expected: PASS, 11 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /c/projects/hyphae
@@ -519,7 +519,7 @@ EOF
   - `gutterWidth(lanes: number): number`
   - `laneX(gutterLeft: number, lane: number): number`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/web/test/features/canvas/edges/lanes.test.ts`:
 
@@ -597,12 +597,12 @@ describe('laneX', () => {
 });
 ```
 
-- [ ] **Step 2: Run it to make sure it fails**
+- [x] **Step 2: Run it to make sure it fails**
 
 Run: `cd apps/web && pnpm vitest run test/features/canvas/edges/lanes.test.ts`
 Expected: FAIL — `Failed to resolve import "@/features/canvas/edges/lanes"`.
 
-- [ ] **Step 3: Implement `lanes.ts`**
+- [x] **Step 3: Implement `lanes.ts`**
 
 Create `apps/web/src/features/canvas/edges/lanes.ts`:
 
@@ -662,12 +662,12 @@ export function laneX(gutterLeft: number, lane: number): number {
 }
 ```
 
-- [ ] **Step 4: Run it to make sure it passes**
+- [x] **Step 4: Run it to make sure it passes**
 
 Run: `cd apps/web && pnpm vitest run test/features/canvas/edges/lanes.test.ts`
 Expected: PASS, 9 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /c/projects/hyphae
@@ -709,7 +709,7 @@ EOF
 
 `points` is the polyline the crossing metric measures; for `curvedPath` it is the chord.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/web/test/features/canvas/edges/paths.test.ts`:
 
@@ -781,12 +781,12 @@ describe('curvedPath', () => {
 });
 ```
 
-- [ ] **Step 2: Run it to make sure it fails**
+- [x] **Step 2: Run it to make sure it fails**
 
 Run: `cd apps/web && pnpm vitest run test/features/canvas/edges/paths.test.ts`
 Expected: FAIL — `Failed to resolve import "@/features/canvas/edges/paths"`.
 
-- [ ] **Step 3: Implement `paths.ts`**
+- [x] **Step 3: Implement `paths.ts`**
 
 Create `apps/web/src/features/canvas/edges/paths.ts`:
 
@@ -896,12 +896,12 @@ export function curvedPath(s: Anchor, t: Anchor): DrawnPath {
 }
 ```
 
-- [ ] **Step 4: Run it to make sure it passes**
+- [x] **Step 4: Run it to make sure it passes**
 
 Run: `cd apps/web && pnpm vitest run test/features/canvas/edges/paths.test.ts`
 Expected: PASS, 9 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /c/projects/hyphae
@@ -945,7 +945,7 @@ right edge of the left column, and the right edge of the children cluster. `clus
 `clusterMaxX` are the cluster's own bounds. The names are spelled out because "left" alone reads
 ambiguously as either the gutter's left edge or the left-hand gutter.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/web/test/features/canvas/edges/routeEdges.test.ts`:
 
@@ -1052,12 +1052,12 @@ describe('fallbackRoute', () => {
 });
 ```
 
-- [ ] **Step 2: Run it to make sure it fails**
+- [x] **Step 2: Run it to make sure it fails**
 
 Run: `cd apps/web && pnpm vitest run test/features/canvas/edges/routeEdges.test.ts`
 Expected: FAIL — `Failed to resolve import "@/features/canvas/edges/routeEdges"`.
 
-- [ ] **Step 3: Implement `routeEdges.ts`**
+- [x] **Step 3: Implement `routeEdges.ts`**
 
 Create `apps/web/src/features/canvas/edges/routeEdges.ts`:
 
@@ -1220,12 +1220,12 @@ export function fallbackRoute(source: XY, target: XY): Route {
 }
 ```
 
-- [ ] **Step 4: Run it to make sure it passes**
+- [x] **Step 4: Run it to make sure it passes**
 
 Run: `cd apps/web && pnpm vitest run test/features/canvas/edges/routeEdges.test.ts`
 Expected: PASS, 11 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /c/projects/hyphae
@@ -1265,7 +1265,7 @@ EOF
 - Consumes: `assignLanes`, `laneSlots`, `gutterWidth` (Task 3).
 - Produces: `layoutFocusView` unchanged in signature; new export `gutterGeometry(view: FocusView, pos: Record<string, XY>): Gutters` returning the same shape `routeEdges` consumes.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `apps/web/test/features/canvas/layout.test.ts`:
 
@@ -1322,12 +1322,12 @@ describe('gutters sized from lane demand', () => {
 });
 ```
 
-- [ ] **Step 2: Run it to make sure it fails**
+- [x] **Step 2: Run it to make sure it fails**
 
 Run: `cd apps/web && pnpm vitest run test/features/canvas/layout.test.ts`
 Expected: FAIL — `gutterGeometry` is not exported.
 
-- [ ] **Step 3: Implement in `layout.ts`**
+- [x] **Step 3: Implement in `layout.ts`**
 
 Replace the fixed `COL_GAP` usage in `layoutFocusView`'s column placement with a two-pass placement, and export `gutterGeometry`:
 
@@ -1404,17 +1404,17 @@ export function gutterGeometry(
 }
 ```
 
-- [ ] **Step 4: Run the tests**
+- [x] **Step 4: Run the tests**
 
 Run: `cd apps/web && pnpm vitest run test/features/canvas/layout.test.ts`
 Expected: PASS — the three new tests plus every pre-existing layout test.
 
-- [ ] **Step 5: Run the whole web suite**
+- [x] **Step 5: Run the whole web suite**
 
 Run: `cd apps/web && pnpm vitest run`
 Expected: all green. If a pre-existing test asserted an exact external x that assumed `COL_GAP === 120`, update it — the value is now derived, and the test should assert the *relationship* (gap ≥ 120) rather than the literal.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd /c/projects/hyphae
@@ -1453,7 +1453,7 @@ The switchover. Renderer and provider change together so the app is never broken
 - Consumes: `Route`, `routeEdges`, `fallbackRoute` (Task 5); `portPoint`, `boxOf`, `fanEdgeParams` (Tasks 2 / existing); `squaredPath`, `curvedPath` (Task 4); `gutterGeometry` (Task 6).
 - Produces: `CanvasView` gains `displayEdges: FlowEdge[]`; `edges` keeps its current meaning (undecorated, used by the highlight logic).
 
-- [ ] **Step 1: Rewrite `FloatingEdge.tsx`**
+- [x] **Step 1: Rewrite `FloatingEdge.tsx`**
 
 ```tsx
 import { BaseEdge, EdgeLabelRenderer, useInternalNode, type EdgeProps } from '@xyflow/react';
@@ -1524,7 +1524,7 @@ export function FloatingEdge({ id, source, target, style, markerEnd, markerStart
 }
 ```
 
-- [ ] **Step 2: Add the route memo to `useCanvasView.ts`**
+- [x] **Step 2: Add the route memo to `useCanvasView.ts`**
 
 Add to the imports:
 
@@ -1572,7 +1572,7 @@ Return `displayEdges` alongside the rest:
   return { view, nodes, edges, displayEdges, overlay, flowActive, patternFlow, slots: draggedBase };
 ```
 
-- [ ] **Step 3: Update `Canvas.tsx`**
+- [x] **Step 3: Update `Canvas.tsx`**
 
 Destructure `displayEdges` from `useCanvasView`, delete the local `decorateFlowEdges` memo at line 101, and delete the now-unused `decorateFlowEdges` import at line 15:
 
@@ -1583,17 +1583,17 @@ Destructure `displayEdges` from `useCanvasView`, delete the local `decorateFlowE
 `edges` stays in use by `present`, `childIds` and `highlightSets` — do not replace those with
 `displayEdges`, or the highlight sets start including ephemeral flow edges and the behaviour changes.
 
-- [ ] **Step 4: Run the whole web suite**
+- [x] **Step 4: Run the whole web suite**
 
 Run: `cd apps/web && pnpm vitest run`
 Expected: green. `edgeStyle` does not exist in the store yet, so `useStore((s) => s.edgeStyle)` returns `undefined` and `squaredPath` is used — which is the intended default. Task 8 makes it explicit.
 
-- [ ] **Step 5: Typecheck**
+- [x] **Step 5: Typecheck**
 
 Run: `cd /c/projects/hyphae && pnpm --filter @hyphae/web typecheck`
 Expected: exactly 4 errors, all pre-existing and all in test files. 5 is yours.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd /c/projects/hyphae
@@ -1638,7 +1638,7 @@ Now that nothing calls it. Kept separate so a reviewer can approve the deletion 
 - Produces: `ports.ts` now exports `Box`, `boxOf`, `PORT_PITCH`, `portCount`, `portPoint`, `chooseSides`, `NodeKind`, `EDGE_FAN_SPREAD`, `fanEdgeParams`.
 - Removed everywhere: `intersection`, `side`, `getEdgeParams`, `EdgeParams`, and edge `data.offsetIndex` / `data.offsetCount`.
 
-- [ ] **Step 1: Move `Box`, `boxOf`, `EDGE_FAN_SPREAD` and `fanEdgeParams` into `ports.ts`**
+- [x] **Step 1: Move `Box`, `boxOf`, `EDGE_FAN_SPREAD` and `fanEdgeParams` into `ports.ts`**
 
 Copy those four declarations verbatim from `floating.ts` into `ports.ts`, replacing the
 `import type { Box } from './floating'` / `export type { Box }` pair at the top with the real
@@ -1654,14 +1654,14 @@ declaration. Update `fanEdgeParams`'s doc comment, whose current first paragraph
  */
 ```
 
-- [ ] **Step 2: Move the `fanEdgeParams` tests**
+- [x] **Step 2: Move the `fanEdgeParams` tests**
 
 Move the `fanEdgeParams (parallel edge separation)` and `fanEdgeParams on an ANTIPARALLEL pair`
 `describe` blocks from `floating.test.ts` into `ports.test.ts`, changing their import to
 `@/features/canvas/edges/ports`. Drop the `getEdgeParams (floating edge geometry)` block — that
 function no longer exists.
 
-- [ ] **Step 3: Delete the old files**
+- [x] **Step 3: Delete the old files**
 
 ```bash
 cd /c/projects/hyphae
@@ -1669,7 +1669,7 @@ rm apps/web/src/features/canvas/edges/floating.ts
 rm apps/web/test/features/canvas/edges/floating.test.ts
 ```
 
-- [ ] **Step 4: Remove the fanning block from `reactflow.ts`**
+- [x] **Step 4: Remove the fanning block from `reactflow.ts`**
 
 Delete the whole `byPair` block at `reactflow.ts:176-187` (the comment above it included) so
 `focusViewToFlow` ends:
@@ -1680,7 +1680,7 @@ Delete the whole `byPair` block at `reactflow.ts:176-187` (the comment above it 
   return { nodes, edges };
 ```
 
-- [ ] **Step 5: Check for stragglers**
+- [x] **Step 5: Check for stragglers**
 
 Run: `cd /c/projects/hyphae && rg -n "getEdgeParams|from './floating'|edges/floating|offsetIndex|offsetCount" apps/web`
 Expected: no matches.
@@ -1689,7 +1689,7 @@ Expected: no matches.
 > with **no error at all**. `features/canvas/reactflow.ts` has contained two before. If this sweep
 > looks like it skipped a file, run `file <path>` and check for `data`.
 
-- [ ] **Step 6: Run the suite and typecheck**
+- [x] **Step 6: Run the suite and typecheck**
 
 Run: `cd apps/web && pnpm vitest run`
 Expected: green.
@@ -1697,7 +1697,7 @@ Expected: green.
 Run: `cd /c/projects/hyphae && pnpm --filter @hyphae/web typecheck`
 Expected: exactly 4 errors.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd /c/projects/hyphae
@@ -1735,7 +1735,7 @@ EOF
 **Interfaces:**
 - Produces: `State.edgeStyle: 'squared' | 'curved'` defaulting to `'squared'`; `State.setEdgeStyle(s): void`.
 
-- [ ] **Step 1: Write the failing store test**
+- [x] **Step 1: Write the failing store test**
 
 Create `apps/web/test/state/edgeStyle.test.ts`:
 
@@ -1765,12 +1765,12 @@ describe('edgeStyle', () => {
 });
 ```
 
-- [ ] **Step 2: Run it to make sure it fails**
+- [x] **Step 2: Run it to make sure it fails**
 
 Run: `cd apps/web && pnpm vitest run test/state/edgeStyle.test.ts`
 Expected: FAIL — `edgeStyle` is `undefined`, `setEdgeStyle` is not a function.
 
-- [ ] **Step 3: Add it to the store**
+- [x] **Step 3: Add it to the store**
 
 In `apps/web/src/state/store.ts`, add to the `State` type (near `theme`):
 
@@ -1798,12 +1798,12 @@ and alongside `setTheme`:
     setEdgeStyle: (edgeStyle) => set({ edgeStyle }),
 ```
 
-- [ ] **Step 4: Run the store test**
+- [x] **Step 4: Run the store test**
 
 Run: `cd apps/web && pnpm vitest run test/state/edgeStyle.test.ts`
 Expected: PASS, 3 tests.
 
-- [ ] **Step 5: Write the failing panel test**
+- [x] **Step 5: Write the failing panel test**
 
 Append to `apps/web/test/features/canvas/overlay/FilterPanel.test.tsx`:
 
@@ -1835,12 +1835,12 @@ describe('edge style toggle', () => {
 > **Note for the implementer:** `test/features/canvas/overlay/FilterPanel.test.tsx` already exists.
 > Reuse the imports and render helpers already at the top of it rather than adding duplicates.
 
-- [ ] **Step 6: Run it to make sure it fails**
+- [x] **Step 6: Run it to make sure it fails**
 
 Run: `cd apps/web && pnpm vitest run test/features/canvas/overlay/FilterPanel.test.tsx`
 Expected: FAIL — no button matching `/curved/i`.
 
-- [ ] **Step 7: Restructure `LayoutGroup`**
+- [x] **Step 7: Restructure `LayoutGroup`**
 
 Replace `LayoutGroup` in `apps/web/src/features/canvas/overlay/FilterPanel.tsx` with:
 
@@ -1869,7 +1869,7 @@ function LayoutGroup() {
 }
 ```
 
-- [ ] **Step 8: Run the panel test and the whole suite**
+- [x] **Step 8: Run the panel test and the whole suite**
 
 Run: `cd apps/web && pnpm vitest run test/features/canvas/overlay/FilterPanel.test.tsx`
 Expected: PASS.
@@ -1877,7 +1877,7 @@ Expected: PASS.
 Run: `cd apps/web && pnpm vitest run`
 Expected: green.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 cd /c/projects/hyphae
@@ -1912,7 +1912,7 @@ EOF
 **Interfaces:**
 - Consumes: `loadRealModel`, `realFocusIds`, `countCrossings` (Task 1); `buildFocusView`, `layoutFocusView`, `gutterGeometry`; `routeEdges`, `portPoint`, `squaredPath`.
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 Create `apps/web/test/features/canvas/edges/crossings.real.test.ts`. Replace `OLD_CROSSINGS` with the
 numbers recorded in Task 1 Step 7.
@@ -1987,7 +1987,7 @@ describe('edge crossings on the real model', () => {
 });
 ```
 
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 Run: `cd apps/web && pnpm vitest run test/features/canvas/edges/crossings.real.test.ts`
 Expected: PASS.
@@ -1998,7 +1998,7 @@ puts lane 0 nearest the gutter's left edge. Flip it (`laneX(gutterLeft, lane)` �
 re-measure. Use `superpowers:systematic-debugging` before changing anything else — find the root
 cause, do not tune blindly.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd /c/projects/hyphae
@@ -2029,14 +2029,14 @@ EOF
 - Modify: `CLAUDE.md` (file map + "Invariants that bite")
 - Modify: `docs/SPEC.md` (§ 9, one bullet)
 
-- [ ] **Step 1: Update `README.md` § Viewer**
+- [x] **Step 1: Update `README.md` § Viewer**
 
 Add a paragraph after the Dragging section describing: edges attach to discrete ports rather than
 arbitrary border points; cluster↔column runs share ordered vertical lanes in the gutter, whose width
 is derived from how many lanes it needs; a lane's label is rotated to ride it; and the filter panel's
 Layout group toggles between squared and curved edges (squared is the default).
 
-- [ ] **Step 2: Update the `CLAUDE.md` file map**
+- [x] **Step 2: Update the `CLAUDE.md` file map**
 
 In the `apps/web/src/` tree, replace the `edges/  FloatingEdge.tsx  floating.ts` line with:
 
@@ -2045,7 +2045,7 @@ In the `apps/web/src/` tree, replace the `edges/  FloatingEdge.tsx  floating.ts`
                                routeEdges.ts
 ```
 
-- [ ] **Step 3: Add three entries to `CLAUDE.md` "Invariants that bite"**
+- [x] **Step 3: Add three entries to `CLAUDE.md` "Invariants that bite"**
 
 ```markdown
 - **Edge geometry is ASSIGNED globally and RESOLVED locally.** `routeEdges` (`edges/routeEdges.ts`)
@@ -2067,7 +2067,7 @@ In the `apps/web/src/` tree, replace the `edges/  FloatingEdge.tsx  floating.ts`
   break; assert the relationship (gap ≥ 120) instead.
 ```
 
-- [ ] **Step 4: Add one bullet to `docs/SPEC.md` § 9**
+- [x] **Step 4: Add one bullet to `docs/SPEC.md` § 9**
 
 ```markdown
 - **Edge form carries routing, not meaning.** Squared and curved are the same edges drawn two ways —
@@ -2075,7 +2075,7 @@ In the `apps/web/src/` tree, replace the `edges/  FloatingEdge.tsx  floating.ts`
   entirely to the verb classes; a lane, a corner radius and a rotated label are differences in form.
 ```
 
-- [ ] **Step 5: Full verification**
+- [x] **Step 5: Full verification**
 
 Run: `cd /c/projects/hyphae && pnpm -r test`
 Expected: 693 pre-existing + the new tests, all green.
@@ -2086,7 +2086,7 @@ Expected: exactly 4 errors.
 Run: `cd /c/projects/hyphae && pnpm -r build`
 Expected: success.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd /c/projects/hyphae
@@ -2120,3 +2120,31 @@ Before calling this done:
       Process Layer and Baritone API in both edge styles. **There is no visual verification tooling
       in this environment** — no browser, no screenshots — so no claim about how it *looks* can be
       made from here. Hand them something to look at and ask.
+
+---
+
+## Executed 2026-08-11 — deviations from the plan as written
+
+All eleven tasks are implemented and committed on `feat/edge-routing`. Four things went differently:
+
+1. **`store.edgeStyle` landed in Task 7, not Task 9.** The plan expected `useStore((s) => s.edgeStyle)`
+   to return `undefined` until Task 9, but that does not typecheck — `tsc` rejects the missing
+   property even though vitest is happy, which is the `vite build` blind spot in the testing gotchas.
+   Task 9 kept the FilterPanel toggle only.
+2. **`boxOf` was re-exported from `ports.ts` during Task 7** and only physically moved in Task 8, so
+   the intermediate state compiled.
+3. **Port overflow was wrong as specified.** `Math.min(i, count - 1)` clamps every excess edge onto
+   the last port: measured on Baritone API, one port took nine edges and the model drew 147 distinct
+   anchors where it needed 170. Replaced with `count = max(portCount, n)`, so a crowded side degrades
+   to a continuum. See `955e068`.
+4. **The default is `curved`, not `squared`, and Task 10 asserts different things.** At equal
+   fidelity the new router crosses more than the free-anchor one it replaced (Baritone API:
+   476 old, 530 curved, 657 squared) because an external column feeding a cluster is a converging
+   *fan* — orthogonal runs sweep across one another's lanes going in. Lanes cost only ~26 of that;
+   the dogleg ~101 and the forced left/right anchors ~54. The "fewer crossings than before"
+   assertion was never something the spec promised, so it became three guards that reflect the
+   design: every drawable edge is routed, no two edge ends share a landing point, and crossings stay
+   inside a recorded budget. Decided with the user mid-implementation.
+
+Final state: `pnpm -r test` 745 green (schema 147, server 107, web 491), typecheck at its 4-error
+floor, `pnpm -r build` clean.
