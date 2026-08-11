@@ -327,6 +327,9 @@ Built into the core, and unchanged by the visual repositioning:
   "a node's position in a view is a hint, not the truth" — if a position were worth persisting it
   would be model data, and it is not. A containment box is grabbed by its title bar and carries its
   contents, because the box is *derived from* its contents: it has no position of its own to move.
+- **Edge form carries routing, not meaning.** Curved and squared are the same edges drawn two ways —
+  the choice is the reader's, and neither encodes anything about the connection. Hue still belongs
+  entirely to the verb classes; a lane, a corner radius and a rotated label are differences in form.
 - **One tool call — one model operation.** An MCP write is atomic: reparenting a component is a
   `parentId` change; deleting a node cascades to remove its connections, and any flow step that
   referenced it is marked ↗ in the outline as undrawable.
