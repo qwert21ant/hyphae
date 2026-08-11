@@ -36,3 +36,27 @@ describe('ConnectionSchema verb/object', () => {
     expect(c).toMatchObject({ verb: 'reads', object: 'camera list' });
   });
 });
+
+describe('label back-compat shim', () => {
+  const base = { id: 'c1', from: 'a', to: 'b' };
+
+  it('composes label from legacy verb + object when label is absent', () => {
+    expect(ConnectionSchema.parse({ ...base, verb: 'reads', object: 'settings' }).label)
+      .toBe('reads settings');
+  });
+
+  it('falls back to the verb alone when the object is empty', () => {
+    expect(ConnectionSchema.parse({ ...base, verb: 'triggers', object: '' }).label)
+      .toBe('triggers');
+  });
+
+  it('leaves an explicit label untouched even when verb and object are present', () => {
+    expect(ConnectionSchema.parse({
+      ...base, verb: 'reads', object: 'settings', label: 'reads the session settings',
+    }).label).toBe('reads the session settings');
+  });
+
+  it('leaves label empty when there is no legacy verb or object either', () => {
+    expect(ConnectionSchema.parse({ ...base }).label).toBe('');
+  });
+});
