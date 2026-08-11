@@ -10,7 +10,7 @@ const node = (over: Record<string, unknown>): Node => ({
   codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
 } as Node);
 const conn = (over: Record<string, unknown>): Connection => ({
-  id: 'e', from: 'a', to: 'b', label: '', verb: 'uses', object: '', description: '',
+  id: 'e', from: 'a', to: 'b', label: '', description: '',
   direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {}, ...over,
 } as Connection);
 function model(over: Partial<HyphaeModel> = {}): HyphaeModel {
@@ -181,9 +181,9 @@ describe('ref anchoring', () => {
   });
 });
 
-describe('role and verb validation', () => {
+describe('role validation', () => {
   const base = { root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } };
-  const edge = { label: '', verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+  const edge = { label: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
 
   function model(): HyphaeModel {
     const m = emptyModel();
@@ -197,14 +197,13 @@ describe('role and verb validation', () => {
     return m;
   }
 
-  it('accepts a null role and the default verb', () => {
+  it('accepts a null role', () => {
     expect(validateModel(model(), c4Backend)).toEqual([]);
   });
 
-  it('accepts a declared role override and a declared verb', () => {
+  it('accepts a declared role override', () => {
     const m = model();
     m.nodes[2].role = 'datastore';
-    m.connections[0].verb = 'reads';
     expect(validateModel(m, c4Backend)).toEqual([]);
   });
 
@@ -217,13 +216,12 @@ describe('role and verb validation', () => {
     expect(issues[0].message).toMatch(/wormhole/);
   });
 
-  it('flags an undeclared verb', () => {
+  // Verbs are gone: a connection's meaning is free text now, so there is no vocabulary left to
+  // validate it against.
+  it('reports nothing about a legacy verb, declared or not', () => {
     const m = model();
-    m.connections[0].verb = 'yeets';
-    const issues = validateModel(m, c4Backend).filter((i) => i.kind === 'unknown-verb');
-    expect(issues).toHaveLength(1);
-    expect(issues[0].ref).toBe('e1');
-    expect(issues[0].message).toMatch(/yeets/);
+    (m.connections[0] as unknown as Record<string, unknown>).verb = 'yeets';
+    expect(validateModel(m, c4Backend).map((i) => i.kind)).not.toContain('unknown-verb');
   });
 
   it('reports a missing summary on a Component', () => {
@@ -237,7 +235,7 @@ describe('role and verb validation', () => {
 
 describe('realizedBy validation', () => {
   const base = { root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } };
-  const edge = { label: '', verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+  const edge = { label: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
 
   /** Two containers wired at the Component layer by e1, plus an authored Container edge `up`
    *  that claims e1 — the shape Phase 3 of the modeling skill produces. */
@@ -286,7 +284,7 @@ describe('realizedBy validation', () => {
 
 describe('flow validation', () => {
   const nbase = { root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } };
-  const edge = { label: '', verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+  const edge = { label: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
 
   function flowModel(): HyphaeModel {
     const m = emptyModel();

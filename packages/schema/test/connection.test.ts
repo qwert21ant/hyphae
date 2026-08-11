@@ -19,21 +19,18 @@ describe('ConnectionSchema', () => {
   });
 });
 
-describe('ConnectionSchema verb/object', () => {
+describe('legacy verb/object are dropped from the parsed connection', () => {
   const base = { id: 'c', from: 'a', to: 'b' };
 
-  it('defaults verb to uses so an old file needs no migration', () => {
-    const c = ConnectionSchema.parse(base);
-    expect(c.verb).toBe('uses');
+  it('does not carry verb or object through', () => {
+    const c = ConnectionSchema.parse({ ...base, verb: 'reads', object: 'settings' });
+    expect(c).not.toHaveProperty('verb');
+    expect(c).not.toHaveProperty('object');
   });
 
-  it('defaults object to empty', () => {
-    expect(ConnectionSchema.parse(base).object).toBe('');
-  });
-
-  it('keeps an explicit verb and object', () => {
-    const c = ConnectionSchema.parse({ ...base, verb: 'reads', object: 'camera list' });
-    expect(c).toMatchObject({ verb: 'reads', object: 'camera list' });
+  it('still composes their meaning into the label on the way past', () => {
+    expect(ConnectionSchema.parse({ ...base, verb: 'reads', object: 'settings' }).label)
+      .toBe('reads settings');
   });
 });
 

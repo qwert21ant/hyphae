@@ -1,10 +1,10 @@
-import { c4Backend, nodeAtOrAboveLayer, rollupConnections, verbClassOf } from '@hyphae/schema';
+import { c4Backend, nodeAtOrAboveLayer, rollupConnections } from '@hyphae/schema';
 import type { HyphaeApi } from '../api';
 import { runCreate, runVoid } from './shared';
 
 export function buildConnectionTools(api: HyphaeApi) {
   return {
-    list_connections: async ({ verb, verbClass, nodeId, containerId, crossingBoundary, involvingExternal, limit, offset, maxLayer = 'Component' }: { verb?: string; verbClass?: string; nodeId?: string; containerId?: string; crossingBoundary?: boolean; involvingExternal?: boolean; limit?: number; offset?: number; maxLayer?: string } = {}) => {
+    list_connections: async ({ nodeId, containerId, crossingBoundary, involvingExternal, limit, offset, maxLayer = 'Component' }: { nodeId?: string; containerId?: string; crossingBoundary?: boolean; involvingExternal?: boolean; limit?: number; offset?: number; maxLayer?: string } = {}) => {
       const model = await api.getModel();
       const byId = new Map(model.nodes.map((n) => [n.id, n]));
       if (nodeId !== undefined && !byId.has(nodeId)) return { error: `node ${nodeId} not found` };
@@ -45,8 +45,6 @@ export function buildConnectionTools(api: HyphaeApi) {
         const toNode = byId.get(c.to);
         if (!fromNode || !toNode) return false;
         if (!nodeAtOrAboveLayer(c4Backend, fromNode.type, maxLayer) || !nodeAtOrAboveLayer(c4Backend, toNode.type, maxLayer)) return false;
-        if (verb !== undefined && c.verb !== verb) return false;
-        if (verbClass !== undefined && verbClassOf(c4Backend, c.verb) !== verbClass) return false;
         if (nodeId !== undefined && c.from !== nodeId && c.to !== nodeId) return false;
         if (subtree && !(subtree.has(c.from) || subtree.has(c.to))) return false;
         if (involvingExternal !== undefined) {
@@ -63,7 +61,7 @@ export function buildConnectionTools(api: HyphaeApi) {
         id: c.id, from: c.from, to: c.to,
         fromName: byId.get(c.from)?.name ?? c.from, toName: byId.get(c.to)?.name ?? c.to,
         fromContainer: containerName(c.from), toContainer: containerName(c.to),
-        label: c.label, verb: c.verb, object: c.object,
+        label: c.label,
         direction: c.direction, description: c.description,
       }));
     },
@@ -80,7 +78,7 @@ export function buildConnectionTools(api: HyphaeApi) {
         realizedBy: e.realizedBy.map((id) => {
           const c = connById.get(id);
           if (!c) return { id };
-          return { id: c.id, fromName: byId.get(c.from)?.name ?? c.from, toName: byId.get(c.to)?.name ?? c.to, verb: c.verb, object: c.object, description: c.description };
+          return { id: c.id, fromName: byId.get(c.from)?.name ?? c.from, toName: byId.get(c.to)?.name ?? c.to, description: c.description };
         }),
       }));
     },

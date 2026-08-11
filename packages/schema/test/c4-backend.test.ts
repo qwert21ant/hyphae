@@ -44,7 +44,7 @@ describe('profile meta-schema', () => {
     expect(nodeFields(c4Backend, 'System').map((f) => f.key)).toEqual(['responsibilities', 'invariants', 'summary']);
   });
 
-  it('ships no connection fields — verb and object carry the meaning', () => {
+  it('ships no connection fields — the label and description carry the meaning', () => {
     expect(c4Backend.commonConnectionFields).toEqual([]);
     expect(connectionFields(c4Backend)).toEqual([]);
   });
@@ -71,18 +71,12 @@ describe('c4-backend visual vocabulary', () => {
     }
   });
 
-  it('describes every role and every verb', () => {
+  it('describes every role', () => {
     for (const r of c4Backend.roles) expect(r.description).toMatch(/\S/);
-    for (const v of c4Backend.verbs) expect(v.description).toMatch(/\S/);
   });
 
-  it('includes the default verb "uses" so a defaulted connection is valid', () => {
-    expect(c4Backend.verbs.some((v) => v.id === 'uses')).toBe(true);
-  });
-
-  it('covers all five verb classes', () => {
-    expect(new Set(c4Backend.verbs.map((v) => v.class)))
-      .toEqual(new Set(['dataAccess', 'messaging', 'control', 'user', 'traceability']));
+  it('declares no verb vocabulary — a connection says what it does in its label', () => {
+    expect((c4Backend as unknown as Record<string, unknown>).verbs).toBeUndefined();
   });
 
   it('has retired intent', () => {
@@ -109,13 +103,8 @@ describe('c4-backend visual vocabulary', () => {
   });
 });
 
-describe('traceability verbs', () => {
-  it('offers a traceability class for non-runtime links', () => {
-    const trace = c4Backend.verbs.filter((v) => v.class === 'traceability').map((v) => v.id);
-    expect(trace.sort()).toEqual(['implements', 'satisfies']);
-  });
-
-  it('gives every verb a class the schema knows', () => {
+describe('profile shape', () => {
+  it('still parses against the profile schema with no verbs', () => {
     expect(() => ProfileSchema.parse(c4Backend)).not.toThrow();
   });
 });

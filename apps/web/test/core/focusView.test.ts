@@ -7,7 +7,7 @@ import { emptyModel } from '@hyphae/schema';
 import { clipLabel } from '@/features/canvas/reactflow';
 
 const base = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
-const e = { label: '', verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+const e = { label: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
 
 /** sys › (ca, cb containers); ca has comps a1,a2; cb has comp b1; ext is external. */
 function model() {

@@ -21,7 +21,7 @@ const mk = (over: Partial<Node>): Node => ({
   codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
 });
 const conn = (over: Partial<Connection>): Connection => ({
-  id: 'c', from: 'a1', to: 'b1', label: '', verb: 'uses', object: '', description: '', direction: 'Unidirectional',
+  id: 'c', from: 'a1', to: 'b1', label: '', description: '', direction: 'Unidirectional',
   realizedBy: [], codeRefs: [], fields: {}, ...over,
 });
 

@@ -9,7 +9,7 @@ function model(): HyphaeModel {
     parentId: null, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
   });
   m.connections.push({
-    id: 'c1', from: 'api', to: 'api', fields: {}, label: '', verb: 'uses', object: '',
+    id: 'c1', from: 'api', to: 'api', fields: {}, label: '',
     description: 'self', direction: 'Unidirectional', realizedBy: [], codeRefs: [],
   });
   return m;
@@ -63,7 +63,7 @@ describe('MCP tool handlers', () => {
     // a dangling connection endpoint surfaces an issue
     const api = fakeApi({ getModel: async () => {
       const m = model();
-      m.connections.push({ id: 'c2', from: 'api', to: 'ghost', fields: {}, label: '', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [] });
+      m.connections.push({ id: 'c2', from: 'api', to: 'ghost', fields: {}, label: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [] });
       return m;
     } });
     const issues = (await buildTools(api).validate_model({})) as Array<{ kind: string; ref: string }>;
@@ -115,7 +115,7 @@ describe('MCP tool handlers', () => {
 
   it('update_connections reports per-item issues on partial failure', async () => {
     const api = fakeApi({ updateConnection: async () => ({ issues: [{ kind: 'dangling-endpoint', ref: 'c', message: 'no' }] }) });
-    const r = await buildTools(api).update_connections({ updates: [{ id: 'c1', verb: 'reads' }] });
+    const r = await buildTools(api).update_connections({ updates: [{ id: 'c1', label: 'reads the row' }] });
     expect(r).toEqual({ results: [{ issues: [{ kind: 'dangling-endpoint', ref: 'c', message: 'no' }] }] });
   });
 
@@ -177,12 +177,12 @@ describe('MCP tool handlers', () => {
 
   it('describe_profile returns kinds and documented fields', async () => {
     const r = (await buildTools(fakeApi()).describe_profile({})) as {
-      nodeKinds: Array<{ id: string }>; verbs: Array<{ id: string }>;
+      nodeKinds: Array<{ id: string }>;
       commonNodeFields: Array<{ key: string }>; patternKinds: Array<{ id: string }>;
     };
     expect(r.nodeKinds.map((k) => k.id)).toContain('Container');
     expect('connectionKinds' in r).toBe(false);
-    expect(r.verbs.map((v) => v.id)).toContain('reads');
+    expect('verbs' in r).toBe(false); // the verb vocabulary is gone; a label says what an edge does
     expect(r.commonNodeFields.map((f) => f.key)).toContain('responsibilities');
     expect(Array.isArray((r as { patternKinds?: unknown[] }).patternKinds)).toBe(true);
   });
@@ -201,11 +201,11 @@ function graphModel(): HyphaeModel {
     { id: 'n3', name: 'Widget', type: 'Component', description: 'beta widget', parentId: 'cb', ...base },
     { id: 'n4', name: 'Sink', type: 'Component', description: '', parentId: 'cb', ...base },
   );
-  const e = { label: '', verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+  const e = { label: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
   m.connections.push(
     { id: 'e1', from: 'n1', to: 'n2', ...e },
     { id: 'e2', from: 'n1', to: 'n3', ...e },
-    { id: 'e3', from: 'n2', to: 'n1', ...e, verb: 'publishes' },
+    { id: 'e3', from: 'n2', to: 'n1', ...e },
     { id: 'e4', from: 'n4', to: 'n1', ...e },
     { id: 'e5', from: 'n3', to: 'n4', ...e },
   );
@@ -268,12 +268,6 @@ describe('MCP query tools', () => {
     expect(both.nodes.map((n) => n.id).sort()).toEqual(['n1', 'n2', 'n3', 'n4']);
   });
 
-  it('get_subgraph filters by verb class', async () => {
-    const r = (await buildTools(api()).get_subgraph({ nodeId: 'n1', depth: 1, verbClass: 'messaging' })) as { nodes: Array<{ id: string }>; connections: unknown[] };
-    expect(r.nodes.map((n) => n.id).sort()).toEqual(['n1', 'n2']);
-    expect(r.connections).toHaveLength(1);
-  });
-
   it('get_subgraph honors depth', async () => {
     const r = (await buildTools(api()).get_subgraph({ nodeId: 'n1', depth: 2, direction: 'out' })) as { nodes: Array<{ id: string }> };
     expect(r.nodes.map((n) => n.id).sort()).toEqual(['n1', 'n2', 'n3', 'n4']);
@@ -327,12 +321,12 @@ function connModel(): HyphaeModel {
     { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
     { id: 'ext', name: 'Ext', type: 'ExternalSystem', parentId: null, ...base },
   );
-  const e = { label: '', verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+  const e = { label: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
   m.connections.push(
-    { id: 'x1', from: 'a1', to: 'b1', ...e, verb: 'reads', label: 'reads the profile row' }, // dataAccess
-    { id: 'x2', from: 'a1', to: 'ext', ...e, verb: 'publishes' },  // messaging
-    { id: 'x3', from: 'b1', to: 'ext', ...e, verb: 'invokes' },    // control
-    { id: 'x4', from: 'a1', to: 'a2', ...e, verb: 'reads' },       // dataAccess
+    { id: 'x1', from: 'a1', to: 'b1', ...e, label: 'reads the profile row' },
+    { id: 'x2', from: 'a1', to: 'ext', ...e },
+    { id: 'x3', from: 'b1', to: 'ext', ...e },
+    { id: 'x4', from: 'a1', to: 'a2', ...e },
   );
   return m;
 }
@@ -343,11 +337,6 @@ describe('list_connections', () => {
 
   it('lists all connections by default', async () => {
     expect(ids(await buildTools(api()).list_connections({}))).toEqual(['x1', 'x2', 'x3', 'x4']);
-  });
-
-  it('filters by verb and verbClass', async () => {
-    expect(ids(await buildTools(api()).list_connections({ verbClass: 'dataAccess' }))).toEqual(['x1', 'x4']);
-    expect(ids(await buildTools(api()).list_connections({ verb: 'invokes' }))).toEqual(['x3']);
   });
 
   it('returns each connection label, which is what the diagram draws', async () => {
@@ -394,7 +383,7 @@ describe('list_connections', () => {
   it('caps edges to the max layer: a Component edge is dropped, a Container edge kept', async () => {
     const withContainerEdge = () => {
       const m = connModel();
-      m.connections.push({ id: 'cc', from: 'ca', to: 'cb', fields: {}, label: '', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [] });
+      m.connections.push({ id: 'cc', from: 'ca', to: 'cb', fields: {}, label: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [] });
       return m;
     };
     const a = fakeApi({ getModel: async () => withContainerEdge() });
@@ -410,10 +399,10 @@ describe('rollup_connections', () => {
   const api = () => fakeApi({ getModel: async () => connModel() });
 
   it('layer:Container returns derived container edges with realizedBy expanded', async () => {
-    const r = (await buildTools(api()).rollup_connections({ layer: 'Container' })) as Array<{ from: string; to: string; realizedBy: Array<{ id: string; verb: string }> }>;
+    const r = (await buildTools(api()).rollup_connections({ layer: 'Container' })) as unknown as Array<{ from: string; to: string; realizedBy: Array<{ id: string; description: string }> }>;
     expect(r.map((e) => `${e.from}->${e.to}`).sort()).toEqual(['ca->cb', 'ca->ext', 'cb->ext']);
     const caCb = r.find((e) => e.from === 'ca' && e.to === 'cb')!;
-    expect(caCb.realizedBy).toEqual([{ id: 'x1', fromName: 'A1', toName: 'B1', verb: 'reads', object: '', description: '' }]);
+    expect(caCb.realizedBy).toEqual([{ id: 'x1', fromName: 'A1', toName: 'B1', description: '' }]);
   });
 
   it('layer:Context collapses internal edges to the System, keeping external edges', async () => {
