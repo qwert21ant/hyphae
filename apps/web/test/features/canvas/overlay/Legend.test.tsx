@@ -46,12 +46,12 @@ describe('Legend role swatches', () => {
   });
 });
 
-describe('Legend verb classes', () => {
-  it('lists every verb class in the profile, derived not hardcoded', () => {
+describe('Legend edges section', () => {
+  // The verb-class key is gone with the verbs; what an edge says now lives entirely in its label,
+  // and the legend has to say so rather than promising a colour code that no longer exists.
+  it('describes a solid edge as one authored connection labelled with what it does', () => {
     const { getByText } = openLegend();
-    for (const cls of new Set(c4Backend.verbs.map((v) => v.class))) {
-      expect(getByText(new RegExp(cls)), cls).toBeTruthy();
-    }
+    expect(getByText(/label = what it does/)).toBeTruthy();
   });
 });
 

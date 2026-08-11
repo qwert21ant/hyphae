@@ -10,7 +10,7 @@ const node = (over: Record<string, unknown>): Node => ({
   codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
 } as Node);
 const conn = (over: Record<string, unknown>): Connection => ({
-  id: 'e', from: 'a', to: 'b', verb: 'uses', object: '', description: '',
+  id: 'e', from: 'a', to: 'b', label: '', verb: 'uses', object: '', description: '',
   direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {}, ...over,
 } as Connection);
 function model(over: Partial<HyphaeModel> = {}): HyphaeModel {
@@ -183,7 +183,7 @@ describe('ref anchoring', () => {
 
 describe('role and verb validation', () => {
   const base = { root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } };
-  const edge = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+  const edge = { label: '', verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
 
   function model(): HyphaeModel {
     const m = emptyModel();
@@ -237,7 +237,7 @@ describe('role and verb validation', () => {
 
 describe('realizedBy validation', () => {
   const base = { root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } };
-  const edge = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+  const edge = { label: '', verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
 
   /** Two containers wired at the Component layer by e1, plus an authored Container edge `up`
    *  that claims e1 — the shape Phase 3 of the modeling skill produces. */
@@ -286,7 +286,7 @@ describe('realizedBy validation', () => {
 
 describe('flow validation', () => {
   const nbase = { root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } };
-  const edge = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+  const edge = { label: '', verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
 
   function flowModel(): HyphaeModel {
     const m = emptyModel();

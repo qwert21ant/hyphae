@@ -51,10 +51,8 @@ const PAIRS: Array<[string, string]> = [
   ['--tx-1', '--alt-1-bg'], ['--tx-1', '--alt-2-bg'], ['--tx-1', '--alt-3-bg'],
   ['--tx-2', '--alt-1-bg'], ['--tx-2', '--alt-2-bg'], ['--tx-2', '--alt-3-bg'],
   ['--tx-3', '--alt-1-bg'], ['--tx-3', '--alt-2-bg'], ['--tx-3', '--alt-3-bg'],
-  // verb hues are edge-label text, and the label sits on --surface-2
-  ['--verb-dataAccess', '--surface-2'], ['--verb-messaging', '--surface-2'],
-  ['--verb-control', '--surface-2'], ['--verb-user', '--surface-2'],
-  ['--verb-traceability', '--surface-2'], ['--edge-derived', '--surface-2'],
+  // the edge line is also edge-label text, and the label sits on --surface-2
+  ['--edge-line', '--surface-2'], ['--edge-derived', '--surface-2'],
   ['--accent-text', '--surface-1'], ['--accent-text', '--surface-2'], ['--accent-text', '--alt-3-bg'],
   ['--warn', '--surface-1'], ['--warn', '--surface-2'],
   ['--accent-on', '--accent'],

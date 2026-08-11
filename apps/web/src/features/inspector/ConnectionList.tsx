@@ -1,6 +1,5 @@
 import { useStore } from '@/state/store';
-import { c4Backend, verbClassOf, type Connection } from '@hyphae/schema';
-import { VERB_CLASS_COLOR } from '@/core/verbColors';
+import type { Connection } from '@hyphae/schema';
 
 /** A read-only list of connections: each endpoint name focuses its node, and the row selects the
  *  connection (to inspect it / drill its own realizedBy). Reused by the rollup-edge and the
@@ -20,12 +19,9 @@ export function ConnectionList({ connections }: { connections: Connection[] }) {
   return (
     <ul className="rollup-list">
       {connections.map((c) => {
-        // The verb class is per connection, so this is the one place a token has to reach a
-        // runtime value rather than living in chrome.css directly.
-        const cls = verbClassOf(c4Backend, c.verb) ?? 'control';
         return (
           <li className="rollup-item" key={c.id} onClick={() => select(c.id)} style={{ cursor: 'pointer' }}>
-            <span className="conn__dot" style={{ background: VERB_CLASS_COLOR[cls] }} />
+            <span className="conn__dot" style={{ background: 'var(--edge-line)' }} />
             <button className="rollup-link" onClick={(ev) => { ev.stopPropagation(); setFocus(c.from); }}>{nameOf(c.from)}</button>
             {parentNameOf(c.from) && <small className="rollup-meta"> ({parentNameOf(c.from)})</small>}
             {' → '}

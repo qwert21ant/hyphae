@@ -5,7 +5,6 @@ import { externalConnections, partitionConnections } from '@/core/connections';
 import { stepReveal } from '@/core/stepReveal';
 import { emptyModel } from '@hyphae/schema';
 import { clipLabel } from '@/features/canvas/reactflow';
-import { VERB_CLASS_COLOR } from '@/core/verbColors';
 
 const base = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
 const e = { label: '', verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
@@ -69,15 +68,15 @@ describe('buildFocusView', () => {
     // fanned apart by FloatingEdge instead.
     const m = model();
     m.connections.push(
-      { id: 'fwd', from: 'a1', to: 'a2', ...e, verb: 'reads', object: 'palette' },
-      { id: 'rev', from: 'a2', to: 'a1', ...e, verb: 'invokes', object: 'access' },
+      { id: 'fwd', from: 'a1', to: 'a2', ...e, label: 'reads palette' },
+      { id: 'rev', from: 'a2', to: 'a1', ...e, label: 'invokes access' },
     );
     const v = buildFocusView(m, 'ca');
     const between = v.edges.filter((x) => [x.from, x.to].sort().join() === 'a1,a2');
     expect(between).toHaveLength(2);
     expect(between.every((x) => x.derived === false)).toBe(true);
-    expect(v.edges.find((x) => x.id === 'fwd')).toMatchObject({ from: 'a1', to: 'a2', verb: 'reads', direction: 'Unidirectional' });
-    expect(v.edges.find((x) => x.id === 'rev')).toMatchObject({ from: 'a2', to: 'a1', verb: 'invokes', direction: 'Unidirectional' });
+    expect(v.edges.find((x) => x.id === 'fwd')).toMatchObject({ from: 'a1', to: 'a2', label: 'reads palette', direction: 'Unidirectional' });
+    expect(v.edges.find((x) => x.id === 'rev')).toMatchObject({ from: 'a2', to: 'a1', label: 'invokes access', direction: 'Unidirectional' });
   });
 
   it('keeps direct connections separate while still collapsing the rolled-up ones on the same pair', () => {
@@ -158,10 +157,10 @@ describe('buildFocusView', () => {
   it('honors the connection filter', () => {
     const m = model();
     m.connections.push(
-      { id: 'i1', from: 'a1', to: 'a2', ...e },                        // uses → control
-      { id: 'i2', from: 'a2', to: 'a1', ...e, verb: 'reads' },            // dataAccess
+      { id: 'i1', from: 'a1', to: 'a2', ...e, fields: { tier: 'core' } },
+      { id: 'i2', from: 'a2', to: 'a1', ...e, fields: { tier: 'edge' } },
     );
-    const v = buildFocusView(m, 'ca', { verbClasses: ['control'], fields: {} });
+    const v = buildFocusView(m, 'ca', { fields: { tier: ['core'] } });
     expect(v.edges.map((x) => x.id)).toEqual(['i1']);
   });
 });
@@ -467,35 +466,28 @@ describe('edge labels', () => {
   it('returns an empty string for an unlabelled edge', () => {
     expect(clipLabel('')).toBe('');
   });
-
-  it('has a colour for every verb class', () => {
-    for (const c of ['dataAccess', 'messaging', 'control', 'user'] as const) {
-      expect(VERB_CLASS_COLOR[c]).toMatch(/^var\(--/);
-    }
-  });
 });
 
-describe('buildFocusView — verb and object', () => {
-  it('carries verb and object onto a 1:1 edge', () => {
+describe('buildFocusView — label', () => {
+  it('carries the label onto a 1:1 edge', () => {
     const m = model();
     m.connections.push({ id: 'x', from: 'sys', to: 'ext', ...e });
-    m.connections[0].verb = 'reads';
-    m.connections[0].object = 'clips';
+    m.connections[0].label = 'reads clips';
     const v = buildFocusView(m, null);
     const edge = v.edges.find((x) => !x.derived && x.count === 1);
-    expect(edge).toMatchObject({ verb: 'reads', object: 'clips' });
+    expect(edge).toMatchObject({ label: 'reads clips' });
   });
 
-  it('leaves verb undefined on a derived edge, which aggregates several verbs', () => {
+  it('leaves label undefined on a derived edge, which aggregates several connections', () => {
     const m = model();
     m.connections.push(
-      { id: 'authored', from: 'ca', to: 'cb', ...e, verb: 'reads' },
-      { id: 'realize', from: 'a1', to: 'b1', ...e, verb: 'writes' },
+      { id: 'authored', from: 'ca', to: 'cb', ...e, label: 'reads' },
+      { id: 'realize', from: 'a1', to: 'b1', ...e, label: 'writes' },
     );
     const v = buildFocusView(m, 'sys');
     const derived = v.edges.filter((x) => x.derived);
     expect(derived.length).toBeGreaterThan(0);
-    for (const de of derived) expect(de.verb).toBeUndefined();
+    for (const de of derived) expect(de.label).toBeUndefined();
   });
 });
 
@@ -544,21 +536,21 @@ describe('stepReveal', () => {
   });
 });
 
-describe('connection filter by verb class', () => {
-  it('keeps only edges whose verb belongs to a selected class', () => {
+describe('connection filter by field', () => {
+  it('keeps only edges whose field value is selected', () => {
     const m = model();
     m.connections.push(
-      { id: 'r', from: 'a1', to: 'a2', ...e, verb: 'reads', object: '' },      // dataAccess
-      { id: 'p', from: 'a1', to: 'a2', ...e, verb: 'publishes', object: '' },  // messaging
+      { id: 'r', from: 'a1', to: 'a2', ...e, fields: { tier: 'core' } },
+      { id: 'p', from: 'a1', to: 'a2', ...e, fields: { tier: 'edge' } },
     );
-    const view = buildFocusView(m, 'ca', { verbClasses: ['messaging'], fields: {} });
+    const view = buildFocusView(m, 'ca', { fields: { tier: ['edge'] } });
     expect(view.edges.flatMap((ed) => ed.realizedBy)).toEqual(['p']);
   });
 
-  it('an empty verbClasses list filters nothing', () => {
+  it('an empty field selection filters nothing', () => {
     const m = model();
-    m.connections.push({ id: 'r', from: 'a1', to: 'a2', ...e, verb: 'reads', object: '' });
-    const view = buildFocusView(m, 'ca', { verbClasses: [], fields: {} });
+    m.connections.push({ id: 'r', from: 'a1', to: 'a2', ...e, fields: { tier: 'core' } });
+    const view = buildFocusView(m, 'ca', { fields: { tier: [] } });
     expect(view.edges.flatMap((ed) => ed.realizedBy)).toEqual(['r']);
   });
 });

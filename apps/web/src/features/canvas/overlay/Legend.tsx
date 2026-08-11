@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { c4Backend, verbClasses } from '@hyphae/schema';
-import { LAYER_COLOR, VERB_CLASS_COLOR } from '@/core/verbColors';
+import { c4Backend } from '@hyphae/schema';
+import { LAYER_COLOR } from '@/core/verbColors';
 import { SHAPE_LABEL } from '@/features/canvas/shapes';
 import { NodeShape } from '@/features/canvas/nodes/NodeShape';
 
@@ -33,7 +33,7 @@ export function Legend() {
             </div>
           ))}
           <div className="legend__group">Edges</div>
-          <div className="legend__row"><span className="legend__line" />solid — one authored connection (label = verb + object)</div>
+          <div className="legend__row"><span className="legend__line" />solid — one authored connection (label = what it does)</div>
           <div className="legend__row"><span className="legend__line legend__line--dashed" />dashed purple — derived rollup (label = count)</div>
           <div className="legend__row"><span className="legend__line legend__line--mixed" />no arrowhead — mixed directions</div>
           <div className="legend__group">Roles</div>
@@ -45,16 +45,6 @@ export function Legend() {
               {SHAPE_LABEL[r.shape]}
             </div>
           ))}
-          <div className="legend__group">Edge verbs</div>
-          {verbClasses(c4Backend).map((cls) => {
-            const verbs = c4Backend.verbs.filter((v) => v.class === cls).map((v) => v.id);
-            return (
-              <div className="legend__row" key={cls}>
-                <span className="legend__line" style={{ borderTopColor: VERB_CLASS_COLOR[cls] }} />
-                {cls} — {verbs.slice(0, 3).join(', ')}{verbs.length > 3 ? '…' : ''}
-              </div>
-            );
-          })}
         </div>
       )}
     </div>

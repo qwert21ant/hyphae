@@ -48,7 +48,6 @@ type State = {
   setOffViewSteps: (orders: number[]) => void;
   setAudience: (a: Audience) => void;
   setTheme: (t: Theme) => void;
-  toggleConnVerbClass: (value: string) => void;
   toggleConnField: (key: string, value: string) => void;
   clearConnFilter: () => void;
   toggleExternal: (id: string) => void;
@@ -70,7 +69,7 @@ export const useStore = create<State>((set, get) => {
     selectedFlowId: null,
     selectedPatternId: null,
     ownVersion: 0,
-    connFilter: { verbClasses: [], fields: {} },
+    connFilter: { fields: {} },
     audience: initialAudience,
     theme: initialTheme(),
     expandedExternals: new Set<string>(),
@@ -131,20 +130,13 @@ export const useStore = create<State>((set, get) => {
     setTheme: (theme) => set({ theme }),
     setEdgeStyle: (edgeStyle) => set({ edgeStyle }),
 
-    toggleConnVerbClass: (value) =>
-      set((s) => {
-        const verbClasses = s.connFilter.verbClasses.includes(value)
-          ? s.connFilter.verbClasses.filter((v) => v !== value)
-          : [...s.connFilter.verbClasses, value];
-        return { connFilter: { ...s.connFilter, verbClasses } };
-      }),
     toggleConnField: (key, value) =>
       set((s) => {
         const cur = s.connFilter.fields[key] ?? [];
         const next = cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value];
         return { connFilter: { ...s.connFilter, fields: { ...s.connFilter.fields, [key]: next } } };
       }),
-    clearConnFilter: () => set({ connFilter: { verbClasses: [], fields: {} } }),
+    clearConnFilter: () => set({ connFilter: { fields: {} } }),
 
     setNodePosition: (id, p) => set((s) => ({ nodePositions: { ...s.nodePositions, [id]: p } })),
     // Bulk form, so dragging a region commits all of its children in ONE update rather than one

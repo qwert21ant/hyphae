@@ -77,7 +77,7 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
     let p = pairs.get(key);
     if (!p) { p = { a, b, entries: [] }; pairs.set(key, p); }
     // Direct = both endpoints map to themselves, so nothing about this connection is summarised.
-    p.entries.push({ id: c.id, from, to, direction: c.direction, label: c.label, verb: c.verb, object: c.object, direct: from === c.from && to === c.to });
+    p.entries.push({ id: c.id, from, to, direction: c.direction, label: c.label, direct: from === c.from && to === c.to });
   }
 
   const edges: FocusEdge[] = [];

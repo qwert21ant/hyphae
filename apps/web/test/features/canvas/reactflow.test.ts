@@ -1,9 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { focusViewToFlow, highlightSets, GROUP_GRIP } from '@/features/canvas/reactflow';
-import { layerColorOf, LAYER_COLOR, VERB_CLASS_COLOR } from '@/core/verbColors';
+import { layerColorOf, LAYER_COLOR } from '@/core/verbColors';
 import type { FocusView } from '@/core/focusView';
 import type { Edge as FlowEdge } from '@xyflow/react';
-import { c4Backend } from '@hyphae/schema';
 
 const node = (id: string, type = 'Component') =>
   ({ id, name: id, type, parentId: null, description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} }) as any;
@@ -225,11 +224,10 @@ describe('highlightSets', () => {
   });
 });
 
-it('gives every profile verb class a distinct colour', () => {
-  const classes = [...new Set(c4Backend.verbs.map((v) => v.class))];
-  const colors = classes.map((c) => VERB_CLASS_COLOR[c]);
-  expect(colors.every(Boolean)).toBe(true);
-  expect(new Set(colors).size).toBe(classes.length);
-  // Violet means "derived rollup edge" everywhere else; one colour, one meaning.
-  expect(colors).not.toContain('var(--edge-derived)');
+it('draws every authored edge in the one neutral line colour, never the derived violet', () => {
+  const { edges } = focusViewToFlow(view, pos);
+  const real = edges.find((e) => e.id === 'i')!;
+  expect(real.style?.stroke).toBe('var(--edge-line)');
+  // Violet means "derived rollup edge" and nothing else; one colour, one meaning.
+  expect(real.style?.stroke).not.toBe('var(--edge-derived)');
 });

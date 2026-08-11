@@ -12,7 +12,7 @@ function model(): HyphaeModel {
     { id: 'ca', name: 'Api', type: 'Container', parentId: 'sys', ...base, description: 'edge service' },
     { id: 'cmp', name: 'Auth', type: 'Component', parentId: 'ca', ...base },
   );
-  m.connections.push({ id: 'x1', from: 'cmp', to: 'cmp', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} });
+  m.connections.push({ id: 'x1', from: 'cmp', to: 'cmp', label: '', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} });
   return m;
 }
 

@@ -9,7 +9,7 @@ function model(): HyphaeModel {
     parentId: null, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
   });
   m.connections.push({
-    id: 'c1', from: 'api', to: 'api', fields: {}, verb: 'uses', object: '',
+    id: 'c1', from: 'api', to: 'api', fields: {}, label: '', verb: 'uses', object: '',
     description: 'self', direction: 'Unidirectional', realizedBy: [], codeRefs: [],
   });
   return m;
@@ -63,7 +63,7 @@ describe('MCP tool handlers', () => {
     // a dangling connection endpoint surfaces an issue
     const api = fakeApi({ getModel: async () => {
       const m = model();
-      m.connections.push({ id: 'c2', from: 'api', to: 'ghost', fields: {}, verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [] });
+      m.connections.push({ id: 'c2', from: 'api', to: 'ghost', fields: {}, label: '', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [] });
       return m;
     } });
     const issues = (await buildTools(api).validate_model({})) as Array<{ kind: string; ref: string }>;
@@ -201,7 +201,7 @@ function graphModel(): HyphaeModel {
     { id: 'n3', name: 'Widget', type: 'Component', description: 'beta widget', parentId: 'cb', ...base },
     { id: 'n4', name: 'Sink', type: 'Component', description: '', parentId: 'cb', ...base },
   );
-  const e = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+  const e = { label: '', verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
   m.connections.push(
     { id: 'e1', from: 'n1', to: 'n2', ...e },
     { id: 'e2', from: 'n1', to: 'n3', ...e },
@@ -394,7 +394,7 @@ describe('list_connections', () => {
   it('caps edges to the max layer: a Component edge is dropped, a Container edge kept', async () => {
     const withContainerEdge = () => {
       const m = connModel();
-      m.connections.push({ id: 'cc', from: 'ca', to: 'cb', fields: {}, verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [] });
+      m.connections.push({ id: 'cc', from: 'ca', to: 'cb', fields: {}, label: '', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [] });
       return m;
     };
     const a = fakeApi({ getModel: async () => withContainerEdge() });

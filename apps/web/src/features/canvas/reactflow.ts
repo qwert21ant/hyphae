@@ -1,8 +1,8 @@
 import { MarkerType, type Node as FlowNode, type Edge as FlowEdge } from '@xyflow/react';
-import { c4Backend, layerOfType, roleOfNode, roleDefOf, verbClassOf, type Node as ModelNode } from '@hyphae/schema';
+import { c4Backend, layerOfType, roleOfNode, roleDefOf, type Node as ModelNode } from '@hyphae/schema';
 import type { FocusView, FocusEdge } from '@/core/focusView';
 import { NODE_W, NODE_H, PAD, LABEL_H, type XY } from './layout';
-import { layerColorOf, VERB_CLASS_COLOR } from '@/core/verbColors';
+import { layerColorOf } from '@/core/verbColors';
 
 /** The node data every node renderer reads: name, the on-diagram purpose, tech chip, and shape. */
 export function nodeVisual(n: ModelNode) {
@@ -31,7 +31,9 @@ export function clipLabel(label: string): string {
 }
 
 function realEdge(e: FocusEdge): FlowEdge {
-  const color = VERB_CLASS_COLOR[verbClassOf(c4Backend, e.verb ?? 'uses') ?? 'control'];
+  // Every authored edge takes the one neutral line colour. Hue on an edge used to mean verb class;
+  // with the verb vocabulary gone it means nothing, so it is not spent here.
+  const color = 'var(--edge-line)';
   return {
     id: e.id,
     type: 'floating',
