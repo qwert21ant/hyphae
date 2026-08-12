@@ -6,7 +6,7 @@ function model(): HyphaeModel {
   const m = emptyModel();
   m.nodes.push({
     id: 'api', name: 'API', type: 'Container', description: 'edge', fields: { summary: 'Edge API' },
-    parentId: null, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+    parentId: null, root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
   });
   m.connections.push({
     id: 'c1', from: 'api', to: 'api', fields: {}, label: '',
@@ -54,8 +54,8 @@ describe('MCP tool handlers', () => {
     const clean = fakeApi({ getModel: async () => {
       const m = emptyModel();
       m.nodes.push(
-        { id: 'sys', name: 'Sys', type: 'System', description: '', fields: { summary: 'x' }, parentId: null, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
-        { id: 'api', name: 'API', type: 'Container', description: 'edge', fields: { summary: 'Edge API' }, parentId: 'sys', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
+        { id: 'sys', name: 'Sys', type: 'System', description: '', fields: { summary: 'x' }, parentId: null, root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
+        { id: 'api', name: 'API', type: 'Container', description: 'edge', fields: { summary: 'Edge API' }, parentId: 'sys', root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
       );
       return m;
     } });
@@ -74,8 +74,8 @@ describe('MCP tool handlers', () => {
       const m = model();
       // add two lone (orphan) components under the existing container — neither has a connection
       m.nodes.push(
-        { id: 'comp', name: 'Comp', type: 'Component', parentId: 'api', description: 'does work', fields: {}, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
-        { id: 'orph', name: 'Orph', type: 'Component', parentId: 'api', description: '', fields: {}, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
+        { id: 'comp', name: 'Comp', type: 'Component', parentId: 'api', description: 'does work', fields: {}, root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
+        { id: 'orph', name: 'Orph', type: 'Component', parentId: 'api', description: '', fields: {}, root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
       );
       return m;
     } });
@@ -191,7 +191,7 @@ describe('MCP tool handlers', () => {
 
 function graphModel(): HyphaeModel {
   const m = emptyModel();
-  const base = { fields: {}, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' };
+  const base = { fields: {}, root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' };
   m.nodes.push(
     { id: 'sys', name: 'Sys', type: 'System', description: '', parentId: null, ...base },
     { id: 'ca', name: 'Alpha', type: 'Container', description: '', parentId: 'sys', ...base },
@@ -229,7 +229,7 @@ describe('MCP query tools', () => {
   it('list_nodes query caps at 25 rows by default; explicit limit overrides and plain enumeration is uncapped', async () => {
     const big = () => {
       const m = emptyModel();
-      for (let i = 0; i < 30; i++) m.nodes.push({ id: `w${i}`, name: `Widget ${i}`, type: 'Component', description: '', parentId: null, fields: {}, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
+      for (let i = 0; i < 30; i++) m.nodes.push({ id: `w${i}`, name: `Widget ${i}`, type: 'Component', description: '', parentId: null, fields: {}, root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
       return m;
     };
     const a = fakeApi({ getModel: async () => big() });
@@ -311,7 +311,7 @@ describe('MCP query tools', () => {
 
 function connModel(): HyphaeModel {
   const m = emptyModel();
-  const base = { description: '', fields: {}, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' };
+  const base = { description: '', fields: {}, root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' };
   m.nodes.push(
     { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
     { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },

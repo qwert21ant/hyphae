@@ -17,7 +17,7 @@ import { useStore } from '@/state/store';
 import { emptyModel, type Node, type Connection } from '@hyphae/schema';
 
 const mk = (over: Partial<Node>): Node => ({
-  id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null,
+  id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null, foundational: false,
   codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
 });
 const conn = (over: Partial<Connection>): Connection => ({

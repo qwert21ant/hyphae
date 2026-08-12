@@ -6,7 +6,7 @@ import type { Node } from '../src/node';
 import type { Connection } from '../src/connection';
 
 const node = (over: Record<string, unknown>): Node => ({
-  id: 'x', name: 'X', type: 'Component', parentId: null, description: '', root: null, role: null,
+  id: 'x', name: 'X', type: 'Component', parentId: null, description: '', root: null, role: null, foundational: false,
   codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
 } as Node);
 const conn = (over: Record<string, unknown>): Connection => ({
@@ -66,7 +66,7 @@ describe('validateModel', () => {
 });
 
 describe('containment', () => {
-  const base = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
+  const base = { description: '', root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
   function withParent(parentType: string) {
     const m = emptyModel();
     m.nodes.push(
@@ -113,7 +113,7 @@ describe('containment', () => {
 import { isDirectoryRef } from '../src/ref';
 
 describe('ref anchoring', () => {
-  const base = { codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, root: null, role: null };
+  const base = { codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, root: null, role: null, foundational: false };
 
   function anchoredModel(): HyphaeModel {
     const m = emptyModel();
@@ -182,7 +182,7 @@ describe('ref anchoring', () => {
 });
 
 describe('role validation', () => {
-  const base = { root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } };
+  const base = { root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } };
   const edge = { label: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
 
   function model(): HyphaeModel {
@@ -234,7 +234,7 @@ describe('role validation', () => {
 });
 
 describe('realizedBy validation', () => {
-  const base = { root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } };
+  const base = { root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } };
   const edge = { label: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
 
   /** Two containers wired at the Component layer by e1, plus an authored Container edge `up`
@@ -283,7 +283,7 @@ describe('realizedBy validation', () => {
 });
 
 describe('flow validation', () => {
-  const nbase = { root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } };
+  const nbase = { root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } };
   const edge = { label: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
 
   function flowModel(): HyphaeModel {
@@ -352,7 +352,7 @@ describe('flow validation', () => {
 });
 
 describe('pattern validation', () => {
-  const base = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } };
+  const base = { description: '', root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: { summary: 's' } };
   const patternModel = () => {
     const m = emptyModel();
     m.nodes.push(

@@ -4,7 +4,7 @@ import { isEmptyValue, Row, ListRow, NodeLink, FieldRow } from '@/features/inspe
 import type { FieldDef, Node } from '@hyphae/schema';
 
 const mk = (over: Partial<Node>): Node => ({
-  id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null,
+  id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null, foundational: false,
   codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
 });
 const def = (over: Partial<FieldDef>): FieldDef => ({ key: 'k', type: 'text', description: 'd', ...over });

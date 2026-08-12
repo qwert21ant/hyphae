@@ -6,7 +6,7 @@ import type { HyphaeModel } from '../src/model';
 function model(): HyphaeModel {
   const m = emptyModel();
   const base = {
-    description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {},
+    description: '', root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {},
   };
   m.nodes.push(
     { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
