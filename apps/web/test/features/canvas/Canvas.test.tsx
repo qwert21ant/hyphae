@@ -132,6 +132,18 @@ describe('Canvas navigation (real React Flow)', () => {
   // rebuilds the node objects — which is what blanked the canvas). Assert on that stylesheet.
   const hlCss = (container: HTMLElement) => container.querySelector('style[data-hyphae-hl]')!.textContent ?? '';
 
+  it('hides a foundational external\'s edges at rest and reveals them on hover', () => {
+    // React Flow draws no edges in jsdom, so suppression is only observable in the generated sheet.
+    // `x` is a1 -> b1; at focus `ca` it maps onto the external `cb`, which is marked foundational.
+    const m = model();
+    m.nodes.find((n) => n.id === 'cb')!.foundational = true;
+    useStore.setState({ model: m, focusId: 'ca', selectedId: null });
+    const { container } = render(<Canvas />);
+    expect(hlCss(container)).toMatch(/\{opacity:0[;}]/);   // hidden with nothing active
+    fireEvent.mouseEnter(node(container, 'cb')!);
+    expect(hlCss(container)).not.toMatch(/\{opacity:0[;}]/); // the shelved node's own hover reveals it
+  });
+
   it('hovering a node dims the rest softly (via CSS) and leaves the arrays/selection untouched', () => {
     useStore.setState({ model: twoContainers(), focusId: 'sys', selectedId: null });
     const { container } = render(<Canvas />);

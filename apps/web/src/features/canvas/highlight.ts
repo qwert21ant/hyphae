@@ -9,6 +9,11 @@ export type HighlightArgs = {
   accent: string;
   dimEdge: number;
   dimNode: number;
+  /** Edges that exist in the graph but are not drawn at rest — a foundational node's fan. Hidden by
+   *  id here rather than filtered out of the edge array, because that is what lets the highlight
+   *  machinery reveal them: the reveal IS an opacity change, and an edge that was never built could
+   *  not be revealed at all. */
+  shelvedEdges?: Set<string>;
 };
 
 /**
@@ -21,15 +26,27 @@ export type HighlightArgs = {
  * reference, hiding it until re-measured; restyling in CSS avoids that churn.
  */
 export function highlightCss({
-  hi, activeId, flowActive, patternActive, strong, accent, dimEdge, dimNode,
+  hi, activeId, flowActive, patternActive, strong, accent, dimEdge, dimNode, shelvedEdges,
 }: HighlightArgs): string {
+  const esc = (id: string) => id.replace(/["\\]/g, '\\$&');
   // Always-on transitions so both dimming and un-dimming animate.
   const trans =
     '.hyphae-canvas .react-flow__node{transition:opacity .15s ease,box-shadow .15s ease}'
     + '.hyphae-canvas .react-flow__edge,.hyphae-canvas .react-flow__edge .react-flow__edge-path{transition:opacity .15s ease,stroke-width .15s ease}'
     + `.hyphae-canvas .${EDGE_LABEL_CLASS}{transition:opacity .15s ease}`;
-  if (patternActive || (!activeId && !flowActive)) return trans;
-  const esc = (id: string) => id.replace(/["\\]/g, '\\$&');
+
+  // A shelved edge is hidden UNLESS it is in the highlight set, so hovering or selecting the shelved
+  // node — or a flow stepping through it — reveals it through the very same set the rest of this
+  // function uses. The two id lists are disjoint by construction, so their equal-specificity rules
+  // cannot fight; and keyed on [data-id] (0,3,0) this also outranks the generic dim rule below
+  // (0,2,0), which would otherwise fade a shelved edge INTO view whenever another node was active.
+  const hidden = [...(shelvedEdges ?? [])].filter((id) => !hi.edges.has(id));
+  const hide = hidden.length
+    ? `${hidden.map((id) => `.hyphae-canvas .react-flow__edge[data-id="${esc(id)}"]`).join(',')}{opacity:0;pointer-events:none}`
+      + `${hidden.map((id) => `.hyphae-canvas .${EDGE_LABEL_CLASS}[data-edge-id="${esc(id)}"]`).join(',')}{opacity:0}`
+    : '';
+
+  if (patternActive || (!activeId && !flowActive)) return trans + hide;
   const nodeSel = [...hi.nodes].map((id) => `.hyphae-canvas .react-flow__node[data-id="${esc(id)}"]`);
   const edgeSel = [...hi.edges].map((id) => `.hyphae-canvas .react-flow__edge[data-id="${esc(id)}"]`);
   // Edge labels live in the portal, not in the edge's <g> — they need their own dim/restore pair
@@ -38,11 +55,11 @@ export function highlightCss({
   const rules = [
     trans,
     // Dim everything except the focus-region backdrop, then restore + emphasize the highlighted set.
-    `.hyphae-canvas .react-flow__node:not(.react-flow__node-region):not(.react-flow__node-ghostGroup){opacity:${dimNode}}`,
+    `.hyphae-canvas .react-flow__node:not(.react-flow__node-region):not(.react-flow__node-ghostGroup):not(.react-flow__node-shelf){opacity:${dimNode}}`,
     `.hyphae-canvas .react-flow__edge{opacity:${dimEdge}}`,
     `.hyphae-canvas .${EDGE_LABEL_CLASS}{opacity:${dimEdge}}`,
   ];
-  // !important: the dim rule's two :not() pseudo-classes give it specificity (0,4,0), which
+  // !important: the dim rule's three :not() pseudo-classes give it specificity (0,5,0), which
   // outranks this [data-id] restore (0,3,0) — without !important the active node would stay dimmed.
   // No border-radius here: the ring's corners are the node wrapper's corners, and a radius that
   // only exists while highlighted snaps back to 0 while the shadow is still fading out. It is a
@@ -65,5 +82,6 @@ export function highlightCss({
       );
     }
   }
+  if (hide) rules.push(hide);
   return rules.join('');
 }

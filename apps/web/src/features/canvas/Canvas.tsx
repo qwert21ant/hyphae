@@ -124,8 +124,15 @@ export function Canvas() {
     [flowActive, overlay, activeId, edges, childIds],
   );
 
+  // Read from the UNDECORATED `edges`, like `present` and `hi` above — a flow's ephemeral step edges
+  // are never shelved, and reaching for `displayEdges` here would change what the highlight is about.
+  const shelvedEdges = useMemo(
+    () => new Set(edges.filter((e) => (e.data as { shelved?: boolean } | undefined)?.shelved).map((e) => e.id)),
+    [edges],
+  );
+
   const css = highlightCss({
-    hi, activeId, flowActive, patternActive: !!patternFlow, strong, accent, dimEdge, dimNode,
+    hi, activeId, flowActive, patternActive: !!patternFlow, strong, accent, dimEdge, dimNode, shelvedEdges,
   });
 
   const shownNodes = patternFlow ? patternFlow.nodes : rfNodes;
