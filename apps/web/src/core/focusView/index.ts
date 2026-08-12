@@ -1,2 +1,2 @@
 export { buildFocusView, representative } from './buildFocusView';
-export type { FocusView, FocusEdge, ConnFilter, Audience } from './types';
+export type { FocusView, FocusEdge, ShelfItem, ConnFilter, Audience } from './types';

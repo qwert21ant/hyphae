@@ -554,3 +554,59 @@ describe('connection filter by field', () => {
     expect(view.edges.flatMap((ed) => ed.realizedBy)).toEqual(['r']);
   });
 });
+
+describe('buildFocusView — the foundational shelf', () => {
+  /** The shared model, with connections crossing out of the `ca` focus and one node marked. */
+  const fanned = (foundationalId?: string) => {
+    const m = model();
+    m.connections.push(
+      { id: 'i', from: 'a1', to: 'a2', ...e },   // inner: stays an ordinary edge
+      { id: 'x', from: 'a1', to: 'b1', ...e },   // crosses out: maps onto the external `cb`
+      { id: 'y', from: 'a2', to: 'b1', ...e },
+    );
+    if (foundationalId) m.nodes.find((n) => n.id === foundationalId)!.foundational = true;
+    return m;
+  };
+
+  it('leaves the view untouched when nothing is marked', () => {
+    const v = buildFocusView(fanned(), 'ca');
+    expect(v.shelf ?? []).toEqual([]);
+    expect(v.edges.some((ed) => ed.shelved)).toBe(false);
+    expect(v.externals.map((n) => n.id)).toEqual(['cb']);
+  });
+
+  it('moves a foundational external off the columns and onto the shelf', () => {
+    const v = buildFocusView(fanned('cb'), 'ca');
+    expect(v.shelf?.map((s) => s.node.id)).toEqual(['cb']);
+    expect(v.externals.map((n) => n.id)).not.toContain('cb');
+  });
+
+  it('marks every edge touching a shelved node as shelved, and keeps drawing the rest', () => {
+    const v = buildFocusView(fanned('cb'), 'ca');
+    const touching = v.edges.filter((ed) => ed.from === 'cb' || ed.to === 'cb');
+    expect(touching.length).toBeGreaterThan(0);
+    expect(touching.every((ed) => ed.shelved)).toBe(true);
+    expect(v.edges.filter((ed) => ed.from !== 'cb' && ed.to !== 'cb').every((ed) => !ed.shelved)).toBe(true);
+  });
+
+  it('counts the shelved edges, not the underlying connections', () => {
+    const v = buildFocusView(fanned('cb'), 'ca');
+    expect(v.shelf?.[0].count).toBe(v.edges.filter((ed) => ed.shelved).length);
+    expect(v.shelf?.[0].count).toBe(2);   // a1->cb and a2->cb; the inner a1->a2 is not one of them
+  });
+
+  it('draws a foundational node normally inside its own container', () => {
+    // 'a1' is a child of the focus, so it is never an external and never shelved.
+    const v = buildFocusView(fanned('a1'), 'ca');
+    expect(v.shelf ?? []).toEqual([]);
+    expect(v.children.map((n) => n.id)).toContain('a1');
+    expect(v.edges.some((ed) => ed.shelved)).toBe(false);
+  });
+
+  it('offers no expand affordance on a shelved node', () => {
+    const plain = buildFocusView(fanned(), 'ca');
+    expect(plain.expandableExternalIds?.has('cb')).toBe(true);   // it would expand to reveal b1
+    const shelved = buildFocusView(fanned('cb'), 'ca');
+    expect(shelved.expandableExternalIds?.has('cb')).toBe(false);
+  });
+});
