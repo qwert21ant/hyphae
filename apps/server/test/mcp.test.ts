@@ -539,6 +539,44 @@ describe('MCP pattern tools', () => {
   });
 });
 
+import { z } from 'zod';
+import { registerAll } from '../src/mcp/register';
+
+describe('MCP node write shape', () => {
+  /** The input schemas the tools are actually REGISTERED with, by tool name. The handlers take an
+   *  opaque record, so this registration is the only place a node field can be silently stripped:
+   *  Zod drops unknown keys, so a field missing here never reaches the server at all. */
+  function registeredSchemas(): Map<string, Record<string, z.ZodTypeAny>> {
+    const captured = new Map<string, Record<string, z.ZodTypeAny>>();
+    const server = {
+      registerTool: (name: string, def: { inputSchema?: Record<string, z.ZodTypeAny> }) => {
+        if (def.inputSchema) captured.set(name, def.inputSchema);
+      },
+    };
+    registerAll(server as never, buildTools(fakeApi()));
+    return captured;
+  }
+
+  it('carries a foundational mark through create_nodes', () => {
+    const shape = registeredSchemas().get('create_nodes')!;
+    expect(z.object(shape).parse({ nodes: [{ name: 'Settings', type: 'Component', foundational: true }] }))
+      .toEqual({ nodes: [{ name: 'Settings', type: 'Component', foundational: true }] });
+  });
+
+  it('carries a foundational mark through update_nodes', () => {
+    const shape = registeredSchemas().get('update_nodes')!;
+    expect(z.object(shape).parse({ updates: [{ id: 'n1', foundational: false }] }))
+      .toEqual({ updates: [{ id: 'n1', foundational: false }] });
+  });
+
+  it('forwards the mark to the API as part of the patch', async () => {
+    const seen: Array<[string, unknown]> = [];
+    const api = fakeApi({ updateNode: async (id, patch) => { seen.push([id, patch]); return { node: { id }, version: 1 }; } });
+    await buildTools(api).update_nodes({ updates: [{ id: 'n1', foundational: true }] });
+    expect(seen).toEqual([['n1', { foundational: true }]]);
+  });
+});
+
 describe('MCP pattern write shape', () => {
   it('accepts a full pattern item and rejects a missing name', () => {
     expect(() => patternItemSchema.parse({ name: 'P', kind: 'pipeline', members: [{ name: 'M', ref: 'x.ts' }], transitions: [{ from: 'M', to: 'M' }] })).not.toThrow();
