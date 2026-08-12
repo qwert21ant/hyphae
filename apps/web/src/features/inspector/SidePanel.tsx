@@ -39,6 +39,11 @@ export function SidePanel() {
         <div className="panel__chips">
           <span className="chip">{node.type}</span>
           {node.role && <span className="chip" title="Shape archetype, overriding this node kind's default.">{node.role}</span>}
+          {node.foundational && (
+            <span className="chip" title="Foundational: this node's edges are not drawn when it appears outside the container being focused — it sits on the shelf with a count instead. Every connection is still listed below.">
+              foundational
+            </span>
+          )}
         </div>
         {fields.filter(onDiagram).map((def) => (
           <FieldRow key={def.key} def={def} value={node.fields[def.key]} nodes={nodes} onNavigate={revealNode} />

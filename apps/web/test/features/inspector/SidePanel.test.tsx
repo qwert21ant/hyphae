@@ -198,6 +198,29 @@ describe('SidePanel', () => {
     expect(useStore.getState().selectedId).toBe('c1');
   });
 
+  it('marks a foundational node in the header chips', () => {
+    seed({ nodes: [mk({ id: 'f1', name: 'Settings', foundational: true })] }, 'f1');
+    const { container } = render(<SidePanel />);
+    expect([...container.querySelectorAll('.chip')].map((c) => c.textContent)).toEqual(['Component', 'foundational']);
+  });
+
+  it('shows no such chip on an ordinary node', () => {
+    seed({ nodes: [mk({ id: 'n1', name: 'Plain' })] }, 'n1');
+    render(<SidePanel />);
+    expect(screen.queryByText('foundational')).toBeNull();
+  });
+
+  it('still lists every connection of a foundational node', () => {
+    // The shelf changes only the resting picture; the panel is where nothing is ever hidden.
+    seed({
+      nodes: [mk({ id: 'f1', name: 'Settings', foundational: true }), mk({ id: 'a1', name: 'A1' }), mk({ id: 'a2', name: 'A2' })],
+      connections: [conn({ id: 'r1', from: 'a1', to: 'f1' }), conn({ id: 'r2', from: 'a2', to: 'f1' })],
+    }, 'f1');
+    render(<SidePanel />);
+    expect(screen.getByText(/connections · 2/i)).toBeTruthy();
+    expect(screen.getByText(/incoming · 2/i)).toBeTruthy();
+  });
+
   it('splits the selected node connections into Outgoing and Incoming sections', () => {
     seed({
       nodes: [mk({ id: 'ca', name: 'Alpha', type: 'Container' }), mk({ id: 'a1', name: 'A1', parentId: 'ca' }), mk({ id: 'ext', name: 'Ext', type: 'System' })],
