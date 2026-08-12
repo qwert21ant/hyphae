@@ -42,6 +42,8 @@ function realEdge(e: FocusEdge): FlowEdge {
     label: clipLabel(e.label ?? ''),
     style: { stroke: color },
     labelStyle: { fill: color, fontWeight: 500 },
+    // Conditional, so an unshelved edge's `data` stays absent exactly as it was.
+    ...(e.shelved ? { data: { shelved: true } } : {}),
     ...markers(e.direction, color),
   };
 }
@@ -53,7 +55,7 @@ function derivedEdge(e: FocusEdge): FlowEdge {
     source: e.from,
     target: e.to,
     label: String(e.count),
-    data: { derived: true, count: e.count, realizedBy: e.realizedBy },
+    data: { derived: true, count: e.count, realizedBy: e.realizedBy, ...(e.shelved ? { shelved: true } : {}) },
     selectable: true,
     focusable: true,
     deletable: false,
@@ -83,6 +85,10 @@ const BOUNDARY_Z = -1;
  *  GroupNode/GhostGroupNode, which render it, and with canvas.css, which makes it the one part of a
  *  pointer-transparent box that takes pointer events. */
 export const GROUP_GRIP = 'region__handle';
+
+/** React Flow node id of the shelf band. Not a model id — the band is chrome, and no node in a
+ *  Hyphae model has a `__…__` id. */
+export const SHELF_ID = '__shelf__';
 
 export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nodes: FlowNode[]; edges: FlowEdge[] } {
   const nodes: FlowNode[] = [];
@@ -149,6 +155,41 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nod
       zIndex: BOUNDARY_Z,
       dragHandle: `.${GROUP_GRIP}`,
       selectable: false,
+    });
+  }
+
+  // The shelf: the foundational nodes whose edges are not drawn, inside an inert band. Emitted before
+  // the children so the band paints behind everything, like the other two containment boxes.
+  const shelf = view.shelf ?? [];
+  const shelfPos = shelf.map((s) => pos[s.node.id]).filter(Boolean) as XY[];
+  if (shelfPos.length) {
+    const minX = Math.min(...shelfPos.map((p) => p.x));
+    const minY = Math.min(...shelfPos.map((p) => p.y));
+    const maxX = Math.max(...shelfPos.map((p) => p.x + NODE_W));
+    const maxY = Math.max(...shelfPos.map((p) => p.y + NODE_H));
+    const width = maxX - minX + 2 * PAD;
+    const height = maxY - minY + LABEL_H + 2 * PAD;
+    nodes.push({
+      id: SHELF_ID,
+      type: 'shelf',
+      position: { x: minX - PAD, y: minY - LABEL_H - PAD },
+      data: { label: 'Foundational' },
+      style: { width, height, pointerEvents: 'none' as const },
+      initialWidth: width,
+      initialHeight: height,
+      zIndex: BOUNDARY_Z,
+      // No dragHandle, and not draggable: furniture. A hoverable band would dim the whole graph on
+      // the way past, and a grab cursor would promise a drag that does not exist.
+      selectable: false,
+      draggable: false,
+    });
+  }
+  for (const s of shelf) {
+    nodes.push({
+      id: s.node.id, type: 'ghost', position: pos[s.node.id] ?? { x: 0, y: 0 },
+      // No `expandable`: a shelved node is furniture, not a collapsed group.
+      data: { ...nodeVisual(s.node), shelfCount: s.count },
+      initialWidth: NODE_W, initialHeight: NODE_H,
     });
   }
 

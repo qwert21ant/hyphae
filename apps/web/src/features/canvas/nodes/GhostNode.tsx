@@ -15,7 +15,7 @@ const sides: Array<{ id: string; position: Position }> = [
   { id: 'l', position: Position.Left },
 ];
 
-export type GhostNodeData = NodeBoxData & { expandable?: boolean };
+export type GhostNodeData = NodeBoxData & { expandable?: boolean; shelfCount?: number };
 
 // A node borrowed from a higher layer (e.g. an ExternalSystem shown on the Container layer so its
 // connection is visible). Tinted by its own C4 layer, but dashed + italic to read as "not native".
@@ -57,6 +57,23 @@ export function GhostNode({ id, data }: NodeProps) {
           title="Expand connections"
           style={{ position: 'absolute', top: 2, right: 4, cursor: 'pointer', border: 'none', background: 'transparent', fontSize: 14, lineHeight: 1, padding: 0, fontStyle: 'normal' }}
         >＋</button>
+      )}
+      {typeof d.shelfCount === 'number' && (
+        // One mark, on the hub itself, replacing a fan of near-identical lines — the INVERSION of the
+        // deleted hub-quieting feature, which put a chip on each of the N dependants instead.
+        // `typeof … === 'number'`, not truthiness: a shelved node whose every edge was filtered out
+        // shows `◂ 0`, which is information, and 0 would otherwise vanish. fontStyle normal because
+        // the surrounding ghost box is italic and a count is not prose.
+        <div
+          title={`${d.shelfCount} connections to nodes in this view are not drawn — hover or select to reveal them`}
+          style={{
+            position: 'absolute', top: 2, left: 4, zIndex: 1,
+            fontSize: 9, fontStyle: 'normal', lineHeight: 1.6,
+            color: 'var(--tx-2)', background: 'var(--chip)', borderRadius: 3, padding: '0 4px',
+          }}
+        >
+          ◂ {d.shelfCount}
+        </div>
       )}
       <div style={{ position: 'relative', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name ?? ''}</div>
       {d.summary && (

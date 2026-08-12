@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { focusViewToFlow, highlightSets, GROUP_GRIP } from '@/features/canvas/reactflow';
+import { focusViewToFlow, highlightSets, GROUP_GRIP, SHELF_ID } from '@/features/canvas/reactflow';
 import { layerColorOf, LAYER_COLOR } from '@/core/verbColors';
 import type { FocusView } from '@/core/focusView';
 import type { Edge as FlowEdge } from '@xyflow/react';
@@ -230,4 +230,48 @@ it('draws every authored edge in the one neutral line colour, never the derived 
   expect(real.style?.stroke).toBe('var(--edge-line)');
   // Violet means "derived rollup edge" and nothing else; one colour, one meaning.
   expect(real.style?.stroke).not.toBe('var(--edge-derived)');
+});
+
+describe('focusViewToFlow — the shelf', () => {
+  const shelfView = (): FocusView => ({
+    ...view,
+    shelf: [{ node: node('found', 'Container'), count: 7 }],
+    edges: [
+      ...view.edges,
+      { id: 's1', from: 'found', to: 'a1', count: 1, derived: false, realizedBy: ['s1'], label: 'owns', shelved: true },
+    ],
+  });
+  const shelfPos = { ...pos, found: { x: 0, y: 600 } };
+
+  it('draws a shelf node as a ghost carrying its count', () => {
+    const { nodes } = focusViewToFlow(shelfView(), shelfPos);
+    const n = nodes.find((x) => x.id === 'found')!;
+    expect(n.type).toBe('ghost');
+    expect((n.data as { shelfCount?: number }).shelfCount).toBe(7);
+    // Furniture, not a collapsed group: no expand affordance.
+    expect((n.data as { expandable?: boolean }).expandable).toBeUndefined();
+  });
+
+  it('draws an inert band wrapping the shelf nodes', () => {
+    const { nodes } = focusViewToFlow(shelfView(), shelfPos);
+    const band = nodes.find((x) => x.id === SHELF_ID)!;
+    expect(band.type).toBe('shelf');
+    expect(band.selectable).toBe(false);
+    expect(band.draggable).toBe(false);
+    expect(band.dragHandle).toBeUndefined();
+    expect((band.style as { pointerEvents?: string }).pointerEvents).toBe('none');
+    // Its title strip sits above its members, like every other containment box.
+    expect(band.position.y).toBeLessThan(shelfPos.found.y);
+  });
+
+  it('draws no band when nothing is shelved', () => {
+    const { nodes } = focusViewToFlow(view, pos);
+    expect(nodes.find((x) => x.id === SHELF_ID)).toBeUndefined();
+  });
+
+  it('flags a shelved edge in its data and leaves the others alone', () => {
+    const { edges } = focusViewToFlow(shelfView(), shelfPos);
+    expect((edges.find((ed) => ed.id === 's1')!.data as { shelved?: boolean }).shelved).toBe(true);
+    expect((edges.find((ed) => ed.id === 'i')!.data as { shelved?: boolean } | undefined)?.shelved).toBeUndefined();
+  });
 });

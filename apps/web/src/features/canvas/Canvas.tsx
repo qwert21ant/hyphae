@@ -11,6 +11,7 @@ import { NodeBox } from '@/features/canvas/nodes/NodeBox';
 import { GhostNode } from '@/features/canvas/nodes/GhostNode';
 import { GhostGroupNode } from '@/features/canvas/nodes/GhostGroupNode';
 import { PatternMemberNode } from '@/features/canvas/nodes/PatternMemberNode';
+import { ShelfBand } from '@/features/canvas/nodes/ShelfBand';
 import { FloatingEdge } from '@/features/canvas/edges/FloatingEdge';
 import { highlightCss } from './highlight';
 import { useCanvasView } from './useCanvasView';
@@ -19,7 +20,7 @@ import { useDrillNavigation } from './useDrillNavigation';
 import { FilterPanel } from '@/features/canvas/overlay/FilterPanel';
 import { Legend } from '@/features/canvas/overlay/Legend';
 
-const nodeTypes = { region: GroupNode, node: NodeBox, ghost: GhostNode, ghostGroup: GhostGroupNode, patternMember: PatternMemberNode };
+const nodeTypes = { region: GroupNode, node: NodeBox, ghost: GhostNode, ghostGroup: GhostGroupNode, patternMember: PatternMemberNode, shelf: ShelfBand };
 const edgeTypes = { floating: FloatingEdge };
 
 // Colour minimap dots by layer (regions muted) so the overview reads like the canvas. The MiniMap
