@@ -114,7 +114,7 @@ Every task's requirements implicitly include this section.
 - Produces: `Node.foundational: boolean` — non-optional in the inferred output type, defaulting to
   `false`. Every later task reads `n.foundational`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `packages/schema/test/node.test.ts`:
 
@@ -129,12 +129,12 @@ Append to `packages/schema/test/node.test.ts`:
   });
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `cd C:/projects/hyphae/packages/schema && pnpm vitest run test/node.test.ts`
 Expected: FAIL — both new cases, `expected undefined to be false` / `to be true`.
 
-- [ ] **Step 3: Declare the field**
+- [x] **Step 3: Declare the field**
 
 In `packages/schema/src/node.ts`, insert immediately after the `role` declaration (line 13):
 
@@ -148,12 +148,12 @@ In `packages/schema/src/node.ts`, insert immediately after the `role` declaratio
   foundational: z.boolean().default(false),
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `cd C:/projects/hyphae/packages/schema && pnpm vitest run test/node.test.ts`
 Expected: PASS, and the whole file green.
 
-- [ ] **Step 5: Fix the node fixtures the new field breaks**
+- [x] **Step 5: Fix the node fixtures the new field breaks**
 
 `Node` gains a non-optional property, so every test fixture that builds a `Node` **object literal**
 without a cast now fails to compile. `packages/schema` and `apps/server` build with `tsc -p`, which
@@ -191,7 +191,7 @@ const base = { description: '', root: null, role: null, foundational: false, cod
 Do **not** "fix" a fixture by adding an `as any` cast, and do **not** touch the four pre-existing
 typecheck errors (three `TS2698` spreads plus a `Model` import in `Altimeter.test.tsx`).
 
-- [ ] **Step 6: Run the full verification**
+- [x] **Step 6: Run the full verification**
 
 ```bash
 cd C:/projects/hyphae && pnpm -r test
@@ -201,7 +201,7 @@ cd C:/projects/hyphae && pnpm --filter @hyphae/web typecheck
 
 Expected: 734 green (732 + 2 new schema tests); build clean; typecheck at exactly 4 errors.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd C:/projects/hyphae && git status --short   # confirm no *.json model is staged
@@ -243,7 +243,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 The tool handlers in `apps/server/src/mcp/tools/nodes.ts` pass an opaque `Record<string, unknown>`
 straight to the API, so `coreNodeFields` is the only gate. Adding it there covers both tools.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `apps/server/test/mcp.test.ts`, inside the same `describe` that holds the other
 `create_nodes` / `update_nodes` cases (mirror whatever `fakeApi()`/`buildTools` helper those use — read
@@ -262,7 +262,7 @@ lines 80-110 first and match the local style):
   });
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `cd C:/projects/hyphae/apps/server && pnpm vitest run test/mcp.test.ts -t foundational`
 Expected: FAIL — `expected false to be true`, because nothing strips it yet at the *handler* level but
@@ -270,7 +270,7 @@ nothing sets it either if `fakeApi` parses through `NodeSchema`. If it passes im
 is not parsing through the schema — that is fine, keep the test as the regression guard for the
 registration in Step 3 and note it in the commit body.
 
-- [ ] **Step 3: Add the field to the tool's input schema**
+- [x] **Step 3: Add the field to the tool's input schema**
 
 In `apps/server/src/mcp/register.ts`, inside `coreNodeFields`, after the `role` entry:
 
@@ -279,12 +279,12 @@ In `apps/server/src/mcp/register.ts`, inside `coreNodeFields`, after the `role` 
       .describe('Mark this node as foundational: infrastructure the rest of the model naturally leans on (a composition root, a settings/config store, a shared logger). The viewer then stops drawing its edges when it appears OUTSIDE the container being focused and parks it on a shelf with a count of them instead, so one mark replaces a fan of near-identical lines. Set it by judgement, on a handful of nodes at most — it is not a degree threshold, and marking a genuine participant hides real structure. The connections themselves are unaffected and every query still returns them.'),
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `cd C:/projects/hyphae/apps/server && pnpm vitest run test/mcp.test.ts`
 Expected: PASS, whole file green.
 
-- [ ] **Step 5: Run the full verification**
+- [x] **Step 5: Run the full verification**
 
 ```bash
 cd C:/projects/hyphae && pnpm -r test
@@ -293,7 +293,7 @@ cd C:/projects/hyphae && pnpm -r build
 
 Expected: 735 green; build clean.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd C:/projects/hyphae && git status --short
@@ -331,7 +331,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   shelved?: boolean;          // true when either endpoint is on the shelf — drawn, but hidden at rest
   ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add to `apps/web/test/core/focusView.test.ts`. The file's `model()` helper builds
 `sys › (ca[a1,a2], cb[b1]) + ext`; read it first, then add a local helper that marks a node
@@ -388,13 +388,13 @@ describe('buildFocusView — the foundational shelf', () => {
 });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `cd C:/projects/hyphae/apps/web && pnpm vitest run test/core/focusView.test.ts -t shelf`
 Expected: FAIL — `v.shelf` is `undefined`, so `.map` throws / `expect(undefined).toEqual([])` fails
 on the marked cases. The "nothing is marked" case should already pass (it is the no-regression guard).
 
-- [ ] **Step 3: Extend the types**
+- [x] **Step 3: Extend the types**
 
 In `apps/web/src/core/focusView/types.ts`, add to `FocusEdge`:
 
@@ -419,7 +419,7 @@ export type ShelfItem = { node: Node; count: number };
 Re-export `ShelfItem` from `apps/web/src/core/focusView/index.ts` alongside the existing type
 exports (read the file and match how `FocusEdge`/`FocusView` are re-exported).
 
-- [ ] **Step 4: Partition the shelf in `buildFocusView`**
+- [x] **Step 4: Partition the shelf in `buildFocusView`**
 
 In `apps/web/src/core/focusView/buildFocusView.ts`, replace the block that currently computes
 `externals` (lines 102-107) with:
@@ -469,14 +469,14 @@ and add `shelf` to the return:
 `externalGroups` already derives its `childIds` from `externals`, so a shelved node simply does not
 appear as a group member — no change needed there.
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `cd C:/projects/hyphae/apps/web && pnpm vitest run test/core/focusView.test.ts`
 Expected: PASS — the whole file, not just the new describe. `buildFocusView` is the most
 widely-depended-on pure function here, so a regression in the older cases matters more than the new
 ones passing.
 
-- [ ] **Step 6: Run the full verification**
+- [x] **Step 6: Run the full verification**
 
 ```bash
 cd C:/projects/hyphae && pnpm -r test
@@ -485,7 +485,7 @@ cd C:/projects/hyphae && pnpm --filter @hyphae/web typecheck
 
 Expected: 741 green; typecheck at exactly 4 errors.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd C:/projects/hyphae && git status --short
@@ -527,7 +527,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 **Why this matters:** a node with **no base slot gets no position** and renders at the origin on top of
 everything else. If the shelf boxes stack in a corner after Task 5, the bug is here.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add to `apps/web/test/features/canvas/layout.test.ts`. The file already has a `node()` helper (cast
 `as any`) and a shared `view` literal — read them, then add:
@@ -587,13 +587,13 @@ describe('layoutFocusView — the shelf', () => {
 
 Add `SHELF_GAP` to the `@/features/canvas/layout` import list at the top of the test file.
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `cd C:/projects/hyphae/apps/web && pnpm vitest run test/features/canvas/layout.test.ts -t shelf`
 Expected: FAIL — `SHELF_GAP` is not exported (an import error, so the whole file fails to collect).
 That is the expected red; fix it in Step 3.
 
-- [ ] **Step 3: Add the constant and place the band**
+- [x] **Step 3: Add the constant and place the band**
 
 In `apps/web/src/features/canvas/layout.ts`, next to `ROW_GAP` / `MEMBER_PITCH`:
 
@@ -639,13 +639,13 @@ node takes no part in the column-stacking machinery below it:
 `gutterGeometry` reads only `view.children` and `view.externals`, so it already ignores the shelf —
 correct, since a wide shelf must not widen a gutter.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `cd C:/projects/hyphae/apps/web && pnpm vitest run test/features/canvas/layout.test.ts`
 Expected: PASS, whole file green — including `crossings.real.test.ts`'s neighbours under
 `test/features/canvas/edges/`, which the next step covers.
 
-- [ ] **Step 5: Run the full verification**
+- [x] **Step 5: Run the full verification**
 
 ```bash
 cd C:/projects/hyphae && pnpm -r test
@@ -654,7 +654,7 @@ cd C:/projects/hyphae && pnpm --filter @hyphae/web typecheck
 
 Expected: 747 green; typecheck at exactly 4 errors.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd C:/projects/hyphae && git status --short
@@ -698,7 +698,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   // a shelved edge's FlowEdge carries:  data.shelved === true
   ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add to `apps/web/test/features/canvas/reactflow.test.ts` (it has a `node()` helper cast `as any` and a
 shared `view`; read them first):
@@ -781,14 +781,14 @@ describe('GhostNode', () => {
 });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 ```bash
 cd C:/projects/hyphae/apps/web && pnpm vitest run test/features/canvas/reactflow.test.ts test/features/canvas/nodes/GhostNode.test.tsx
 ```
 Expected: FAIL — `SHELF_ID` is not exported (collect error) and `◂ 16` is not in the DOM.
 
-- [ ] **Step 3: Create the band component**
+- [x] **Step 3: Create the band component**
 
 `apps/web/src/features/canvas/nodes/ShelfBand.tsx`:
 
@@ -813,7 +813,7 @@ export function ShelfBand({ data }: NodeProps) {
 }
 ```
 
-- [ ] **Step 4: Style the band**
+- [x] **Step 4: Style the band**
 
 In `apps/web/src/features/canvas/canvas.css`, immediately after the `.region--ghost` rule (source
 order is the cascade, and both are single-class `.region` modifiers, so a modifier must come after the
@@ -838,7 +838,7 @@ class it narrows):
 `transparent` is a keyword, not a colour literal, so `tokens.test.ts` is satisfied; every `var()` here
 already exists in both themes.
 
-- [ ] **Step 5: Emit the band and the shelf boxes**
+- [x] **Step 5: Emit the band and the shelf boxes**
 
 In `apps/web/src/features/canvas/reactflow.ts`, next to `GROUP_GRIP`:
 
@@ -899,7 +899,7 @@ and in `derivedEdge`, change the `data` line to:
 Both use a conditional spread so an unshelved edge's `data` is byte-identical to before — the existing
 `reactflow.test.ts` assertions on `data` must keep passing.
 
-- [ ] **Step 6: Register the node type and keep shelved edges out of routing**
+- [x] **Step 6: Register the node type and keep shelved edges out of routing**
 
 In `apps/web/src/features/canvas/Canvas.tsx`, import the component and extend `nodeTypes`:
 
@@ -936,7 +936,7 @@ rather than defaulting to `'child'`:
     for (const s of view.shelf ?? []) k[s.node.id] = 'external';
 ```
 
-- [ ] **Step 7: Render the count chip**
+- [x] **Step 7: Render the count chip**
 
 In `apps/web/src/features/canvas/nodes/GhostNode.tsx`, extend the data type:
 
@@ -967,7 +967,7 @@ and insert, immediately after the `{d.expandable && …}` block:
 Note `typeof … === 'number'`, not truthiness: a shelved node whose every edge was filtered out shows
 `◂ 0`, which is information, and `0` would otherwise vanish.
 
-- [ ] **Step 8: Run the tests to verify they pass**
+- [x] **Step 8: Run the tests to verify they pass**
 
 ```bash
 cd C:/projects/hyphae/apps/web && pnpm vitest run test/features/canvas
@@ -976,7 +976,7 @@ Expected: PASS — including `Canvas.test.tsx` and `reactflow.test.ts`'s pre-exi
 renders zero edges in jsdom, so do **not** try to assert the band or the chip through a rendered
 `<Canvas />`; the assertions above are on the pure function and on the component in isolation.
 
-- [ ] **Step 9: Run the full verification**
+- [x] **Step 9: Run the full verification**
 
 ```bash
 cd C:/projects/hyphae && pnpm -r test
@@ -986,7 +986,7 @@ cd C:/projects/hyphae && pnpm --filter @hyphae/web typecheck
 
 Expected: 754 green; build clean; typecheck at exactly 4 errors.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 cd C:/projects/hyphae && git status --short
@@ -1033,7 +1033,7 @@ returns a hovered/selected node's adjacent edges, so if a shelved edge exists in
 hidden only by a rule keyed on its id, hovering the shelved node reveals it with no new machinery —
 and a flow that traverses one reveals it too, for free.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `apps/web/test/features/canvas/highlight.test.ts`:
 
@@ -1114,7 +1114,7 @@ Read the surrounding cases first and match how they seed the store and settle th
 `loadModel()` (`await new Promise(r => setTimeout(r, 0))` where the existing tests do it) — the store
 is a module-level singleton and the async load will otherwise overwrite the seeded model.
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 ```bash
 cd C:/projects/hyphae/apps/web && pnpm vitest run test/features/canvas/highlight.test.ts test/features/canvas/Canvas.test.tsx
@@ -1122,7 +1122,7 @@ cd C:/projects/hyphae/apps/web && pnpm vitest run test/features/canvas/highlight
 Expected: FAIL — `shelvedEdges` is not a known property of `HighlightArgs` (TS error in the test),
 and no `opacity:0` rule is produced.
 
-- [ ] **Step 3: Teach `highlightCss` about shelved edges**
+- [x] **Step 3: Teach `highlightCss` about shelved edges**
 
 In `apps/web/src/features/canvas/highlight.ts`, add to `HighlightArgs`:
 
@@ -1178,7 +1178,7 @@ The extra `:not()` takes that selector to specificity (0,5,0); the restore rule 
 `!important`, so it still wins. The comment on that `!important` mentions (0,4,0) — update the number
 to (0,5,0) so it does not go stale.
 
-- [ ] **Step 4: Pass the shelved set in from the canvas**
+- [x] **Step 4: Pass the shelved set in from the canvas**
 
 In `apps/web/src/features/canvas/Canvas.tsx`, after the `hi` memo:
 
@@ -1199,7 +1199,7 @@ and pass it:
   });
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 ```bash
 cd C:/projects/hyphae/apps/web && pnpm vitest run test/features/canvas
@@ -1207,7 +1207,7 @@ cd C:/projects/hyphae/apps/web && pnpm vitest run test/features/canvas
 Expected: PASS. If `Canvas.test.tsx > "double-clicking a childless Component drills into it"` fails,
 re-run once — it is known-flaky and pre-existing.
 
-- [ ] **Step 6: Run the full verification**
+- [x] **Step 6: Run the full verification**
 
 ```bash
 cd C:/projects/hyphae && pnpm -r test
@@ -1216,7 +1216,7 @@ cd C:/projects/hyphae && pnpm --filter @hyphae/web typecheck
 
 Expected: 761 green; typecheck at exactly 4 errors.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd C:/projects/hyphae && git status --short
@@ -1256,7 +1256,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 already listed in full — **verify that with the test below rather than assuming it, and change nothing
 if it holds.** All this task adds is a statement of the mark itself, next to the existing `role` chip.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add to `apps/web/test/features/inspector/SidePanel.test.tsx` (it has an `mk(over)` node fixture and
 seeds the store — read the surrounding cases and match them):
@@ -1282,7 +1282,7 @@ seeds the store — read the surrounding cases and match them):
 
 Fill in the seeding from the neighbouring cases — do not invent a new harness.
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 ```bash
 cd C:/projects/hyphae/apps/web && pnpm vitest run test/features/inspector/SidePanel.test.tsx
@@ -1290,7 +1290,7 @@ cd C:/projects/hyphae/apps/web && pnpm vitest run test/features/inspector/SidePa
 Expected: FAIL on the first case — no `foundational` text. The third case may already pass; that is
 the point of it.
 
-- [ ] **Step 3: Add the chip**
+- [x] **Step 3: Add the chip**
 
 In `apps/web/src/features/inspector/SidePanel.tsx`, in the node header's `panel__chips` row, after the
 `role` chip:
@@ -1305,14 +1305,14 @@ In `apps/web/src/features/inspector/SidePanel.tsx`, in the node header's `panel_
 
 No new CSS: `.chip` already exists in `inspector.css`.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 ```bash
 cd C:/projects/hyphae/apps/web && pnpm vitest run test/features/inspector/SidePanel.test.tsx
 ```
 Expected: PASS, whole file green.
 
-- [ ] **Step 5: Run the full verification**
+- [x] **Step 5: Run the full verification**
 
 ```bash
 cd C:/projects/hyphae && pnpm -r test
@@ -1321,7 +1321,7 @@ cd C:/projects/hyphae && pnpm --filter @hyphae/web typecheck
 
 Expected: 764 green; typecheck at exactly 4 errors.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd C:/projects/hyphae && git status --short
@@ -1358,7 +1358,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 same branch as the behaviour. The dated files under `docs/superpowers/` are historical records: read
 them, do not rewrite them (this plan is the exception — tick its boxes).
 
-- [ ] **Step 1: Document the field in the model docs**
+- [x] **Step 1: Document the field in the model docs**
 
 In `docs/MODEL.md`, add `foundational` to the core node-field list on line 70 and a sentence after the
 `role` explanation on line 73, along these lines (match the surrounding prose, do not paste verbatim):
@@ -1372,7 +1372,7 @@ In `docs/SPEC.md`, add `foundational` to the Core field list at line 127, and ad
 recording that the shelf and its chip are **form** (a band, a count) with no hue and no luminance-only
 distinction — the same rule that made a pattern's kind a chip.
 
-- [ ] **Step 2: Document the behaviour in the README**
+- [x] **Step 2: Document the behaviour in the README**
 
 In `README.md`'s "Reading the diagram" section, describe the shelf: a foundational node appearing
 outside the focused container is drawn on a band below the graph with a `◂ n` count instead of its
@@ -1380,7 +1380,7 @@ edges; hovering or selecting it draws them; the inspector always lists them in f
 as an ordinary member inside its own container. Mention that `create_nodes` / `update_nodes` take
 `foundational` where the MCP tool list covers node fields.
 
-- [ ] **Step 3: Tell the skill when to mark a node**
+- [x] **Step 3: Tell the skill when to mark a node**
 
 In `skills/building-architecture-models/SKILL.md`, in the Components phase near the `role` guidance,
 add guidance in the skill's voice: after the connection pass, look at what carries a large fan of
@@ -1390,7 +1390,7 @@ it at a handful per model, and say why: it is a judgement call, and marking a ge
 hides real structure. Cross-reference the connection rule already in the skill — an edge earns its
 place by saying something the two node names do not.
 
-- [ ] **Step 4: Record the invariants in `CLAUDE.md`**
+- [x] **Step 4: Record the invariants in `CLAUDE.md`**
 
 Add to "Invariants that bite" (match the existing entries' density and voice):
 
@@ -1412,7 +1412,7 @@ Add to "Invariants that bite" (match the existing entries' density and voice):
 Update the `pnpm -r test` baseline in Commands to the number Task 7 finished at, with the per-package
 split, and add `nodes/ShelfBand` to the `features/canvas/nodes/` line in the file map.
 
-- [ ] **Step 5: Verify nothing contradicts the code**
+- [x] **Step 5: Verify nothing contradicts the code**
 
 Re-read each edited passage against the code as shipped. The schema in `packages/schema` wins any
 disagreement. Then:
@@ -1422,7 +1422,7 @@ cd C:/projects/hyphae && pnpm -r test
 ```
 Expected: unchanged from Task 7 (docs only).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd C:/projects/hyphae && git status --short
@@ -1456,7 +1456,7 @@ that file is permanently untracked — **never `git add` it.**
 **Initial marks, from the spec: `Baritone` (24 edges) and `Settings` (16). No others** — the census
 showed the next-worst fans are 7 and 5, which are not yet worth the treatment.
 
-- [ ] **Step 1: Get the server up on the real model**
+- [x] **Step 1: Get the server up on the real model**
 
 ```bash
 cd C:/projects/hyphae && HYPHAE_FILE=$PWD/apps/server/hyphae-baritone.json pnpm server
@@ -1472,7 +1472,7 @@ Two traps that cost real time:
   `powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter 'ProcessId=<pid>' | Select-Object -ExpandProperty CommandLine"`
   to confirm before killing anything.
 
-- [ ] **Step 2: Back the model up before writing to it**
+- [x] **Step 2: Back the model up before writing to it**
 
 Git is not a safety net for this file.
 
@@ -1481,14 +1481,14 @@ cp C:/projects/hyphae/apps/server/hyphae-baritone.json "$SCRATCH/hyphae-baritone
 ```
 (`$SCRATCH` = this session's scratchpad directory.)
 
-- [ ] **Step 3: Find the two node ids**
+- [x] **Step 3: Find the two node ids**
 
 Use the MCP: `list_nodes` with `query: "Baritone"` and `query: "Settings"`. Ids are UUIDs and
 **component names repeat across containers**, so use the parent name in the enriched rows to pick the
 right one — `Baritone` is the composition root with 24 outbound edges and `Settings` is the config
 store with degree 16. Confirm each with `list_connections` (`nodeId`) before writing.
 
-- [ ] **Step 4: Mark them**
+- [x] **Step 4: Mark them**
 
 ```
 update_nodes({ updates: [
@@ -1509,7 +1509,7 @@ curl --noproxy '*' -s -X PATCH http://localhost:5173/api/nodes/<id> \
 Check the exact route and method in `apps/server/src/routes.ts` first, and remember the server rejects
 a bad write with **422 plus the specific issues** — read them and retry rather than guessing.
 
-- [ ] **Step 5: Verify the model and measure the effect**
+- [x] **Step 5: Verify the model and measure the effect**
 
 ```
 validate_model()    → expect []
@@ -1527,7 +1527,7 @@ The numbers the shelf has to remove **from the canvas** without removing them fr
 (`Minecraft Client` fans 7 into Mixin Launch Layer and `Event System` 5 — those stay unmarked, by
 design.)
 
-- [ ] **Step 6: Check the real model through the pure functions**
+- [x] **Step 6: Check the real model through the pure functions**
 
 Synthetic fixtures agreed with the buggy code the last time a focus bug was hunted here; the real
 model did not. Write a throwaway probe, print what you need, then **delete it**:
@@ -1542,7 +1542,7 @@ model did not. Write a throwaway probe, print what you need, then **delete it**:
 Confirm: at focus `Process Layer` the shelf holds `Baritone` with a count of 10, ten edges are marked
 shelved, and every shelf slot is below every other node. Then delete the file.
 
-- [ ] **Step 7: Confirm nothing model-shaped is staged, and report**
+- [x] **Step 7: Confirm nothing model-shaped is staged, and report**
 
 ```bash
 cd C:/projects/hyphae && git status --short
@@ -1607,3 +1607,69 @@ tests), `GhostNodeData.shelfCount?: number` (Task 5), `HighlightArgs.shelvedEdge
    before. Expected, and visible only to the user.
 3. **The MCP may be running stale code** at Task 9, since it caches at spawn. Step 4 has the
    HTTP fallback.
+
+---
+
+## Deviations and findings (written after execution)
+
+All nine tasks landed. Executed **inline** (`superpowers:executing-plans`) rather than
+subagent-driven: this session's harness restricts spawning agents to an explicit user request.
+
+**1. The plan's central omission — a marked node was never the node on screen.** Task 9's real-model
+probe found the shelf **empty at every container focus**, with the marks correctly set and every unit
+test green. Root cause: `mapEndpoint` summarises an endpoint into its *focus-layer* representative, so
+a marked **Component** (`Baritone`, in `Core Runtime`) reaching a **Container** focus was drawn as the
+`Core Runtime` ghost. The mark sat on a node that never appeared, and the ten lines it was meant to
+remove stayed on screen, merely re-attributed to the parent's box. Every task 1–8 test passed
+throughout, because the synthetic fixtures marked a node that was *already* the external
+representative — exactly the failure mode `CLAUDE.md` warns about, and the reason its guidance says to
+drive the pure functions over the real model.
+
+Fixed in `0252afc` by making a foundational node outside the focus represent **itself**, at whatever
+layer it lives on (skipped when its representative is *inside* the focus, or a marked descendant would
+drop a Component into a Container's cluster). Measured effect, real model:
+
+| focus | drawn before | after | shelf |
+|---|---|---|---|
+| Process Layer | 38 | **27** | Baritone:10, Settings:1 |
+| Behavior Layer | 20 | **12** | Baritone:4, Settings:4 |
+| Utilities & Schematics | 23 | **18** | Baritone:5 |
+| Command System | 32 | **28** | Settings:3, Baritone:1 |
+
+Those per-node counts (10 / 5 / 4) are exactly what the spec predicted, which is what makes it clear
+this was the spec's intent rather than an extension of it.
+
+**2. The MCP could not perform task 9's write.** As the handoff warned, the MCP process caches its code
+at spawn time, so its `update_nodes` param schema had no `foundational` and Zod stripped it. Used the
+documented fallback — `curl --noproxy '*' -X PATCH http://localhost:5173/nodes/<id>`. Note the API has
+**no `/api` prefix**: the routes are `/model`, `/nodes/:id`.
+
+**3. A stale server was squatting :5173** — running the pre-change schema, so it would have stripped
+the field too. Confirmed it held the right model and that the file on disk matched it (nothing
+pending), backed the model up to the scratchpad, killed PID 15380, restarted on current code.
+
+**4. Test-count arithmetic in the plan was wrong** (it predicted 734→764 by adding test *cases*; several
+tasks added more than planned). Real progression: 732 → 734 → 735 → 743 → 749 → 757 → 766 → 769 → **771**.
+
+**5. Task 2's test was rewritten.** The plan's version called the tool handlers, but `fakeApi` does not
+parse through `NodeSchema`, so it could not fail for the right reason. Replaced with one that captures
+the schemas the tools are *registered* with — the registration is the only place a node field can be
+silently stripped.
+
+**6. Two extra fixes taken in passing.** `docs/SPEC.md` §9 still said a connection is a "verb + object"
+and that hue "belongs entirely to the verb classes", both left stale by Part 2 on this same branch.
+The new `GhostNode` test casts props through `NodeProps` rather than `never`, so it does not add a
+fifth error to the typecheck floor the way the older node tests would have.
+
+**7. No visual verification was possible** — there is no browser or screenshot tooling in this
+environment. Every claim above is from the test suite and from pure functions run over the real model.
+
+## Open questions for the next round
+
+- **A shelf item with `count: 1`.** At a Component focus the shelf routinely holds one edge behind a
+  chip (`◂ 1`), which loses information for no density gain. A *display* threshold (shelve only at
+  count ≥ 2 or 3) is not the authorship threshold the spec forbids, but the spec says the edges are
+  not drawn unconditionally, so this was left as specced.
+- **The reveal is a fan from one mid-side point** (`fallbackRoute`), by the plan's design decision 2.
+  Worth re-judging once someone has looked at it.
+- **`fitView` now includes the shelf**, so a focus with one zooms out slightly further than before.
