@@ -75,7 +75,9 @@ node's **archetype** — the shape/icon it draws with (actor, service, datastore
 external, UI surface …) — from the profile. `foundational` marks a node the rest of the model
 naturally leans on — a composition root, a settings store. It changes no relationship: the viewer
 stops *drawing* its edges where it appears outside the container being focused, and states their
-count instead. It is **authored**, deliberately not derived from a degree threshold, because a
+count instead. Such a node also **represents itself** rather than rolling up into its focus-layer
+ancestor, so a marked Component is the thing shelved at a Container focus — otherwise the mark would
+be summarised into its parent's box and the fan would stay on screen. It is **authored**, deliberately not derived from a degree threshold, because a
 threshold cannot tell infrastructure from a busy participant. Everything domain-specific
 (`responsibilities`, `invariants`, `technology`, …) is a **profile field**, stored in `fields`
 and validated against the active profile. The concrete node **types** come from the profile;

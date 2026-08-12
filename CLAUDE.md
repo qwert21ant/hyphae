@@ -91,7 +91,7 @@ resolving nothing, depending on which one you missed.
     pnpm server         # API + SSE on :5173, owns ./hyphae.json (override with HYPHAE_FILE)
     pnpm web            # viewer on :3000, proxies the API
     pnpm mcp            # MCP server — an HTTP client of the above, so the server must be running
-    pnpm -r test        # baseline 769 green: schema 145, server 109, web 515 (37 files)
+    pnpm -r test        # baseline 771 green: schema 145, server 109, web 517 (37 files)
     pnpm -r build
     pnpm --filter @hyphae/web typecheck   # tsc --noEmit — NOT part of build; see below
 
@@ -274,8 +274,17 @@ index — and adding an overlap metric next to the crossing one.
   past, and `cursor: grab` would promise a drag that does not exist. It is excluded from
   `highlightCss`'s node dim rule alongside `region` and `ghostGroup`, which is why that selector
   carries three `:not()`s and specificity (0,5,0).
-- **`foundational` shelves a node only where it is EXTERNAL to the focus** — automatic, since a child
-  of the focus is in `view.children` and never reaches `externals`. The accepted cost is that focusing
+- **A foundational node outside the focus REPRESENTS ITSELF** (`unexpandedRep` in `buildFocusView`),
+  instead of rolling up into its focus-layer ancestor. Without that the mark almost never fires: the
+  marked node is typically a Component and the focus a Container, so it was summarised into its
+  parent's ghost and its fan stayed on screen merely re-attributed to the parent. Measured on the real
+  model, this is the difference between the shelf doing nothing and `Process Layer` dropping from 38
+  drawn edges to 27. The shelf is layer-agnostic furniture, so a Component drawn there beside
+  Container ghosts is intended.
+- **`foundational` shelves a node only where it is EXTERNAL to the focus** — a child of the focus is in
+  `view.children` and never reaches `externals`, and the self-representation above is explicitly
+  skipped when the representative is inside, or a marked *descendant* of the focus would drop a
+  Component into a Container's cluster. The accepted cost is that focusing
   a container still shows its own foundational child pulling lines from its siblings; the alternative
   removes a container's own child from its own cluster, which makes containment lie. The shelf is
   placed *last* in `layoutFocusView`, from the true bottom of every other slot, so left/right stay the

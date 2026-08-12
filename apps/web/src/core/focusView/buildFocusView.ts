@@ -24,7 +24,19 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
   const inside = new Set<string>(children.map((n) => n.id));
   if (focusId) inside.add(focusId);
 
-  const unexpandedRep = (id: string): string => tree.representativeAt(id, focusId, focusLayer);
+  const unexpandedRep = (id: string): string => {
+    const rep = tree.representativeAt(id, focusId, focusLayer);
+    // A FOUNDATIONAL node outside the focus represents ITSELF, at whatever layer it lives on.
+    // Without this the mark almost never fires: the marked node is typically a Component and the
+    // focus a Container, so it would be summarised into its parent container's ghost — and the fan it
+    // was marked to remove stays on screen, merely re-attributed to the parent. The shelf is
+    // layer-agnostic furniture, so drawing a Component there beside Container ghosts is fine; an
+    // expanded external already puts finer children in the same columns.
+    // Only when the representative is OUTSIDE: a marked descendant of the focus must keep rolling up
+    // into the child that contains it, or a Component lands inside a Container's cluster.
+    if (rep !== id && !inside.has(rep) && tree.get(id)?.foundational) return id;
+    return rep;
+  };
   const mapEndpoint = (id: string): string => {
     const rep = unexpandedRep(id);
     if (expandedExternals.has(rep)) return tree.childOf(id, rep) ?? rep;

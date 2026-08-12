@@ -603,6 +603,26 @@ describe('buildFocusView — the foundational shelf', () => {
     expect(v.edges.some((ed) => ed.shelved)).toBe(false);
   });
 
+  it('shelves the marked node itself, not the ancestor it would roll up into', () => {
+    // The case the real model is made of: the marked node is a COMPONENT and the focus is a
+    // CONTAINER, so `b1` would normally be summarised into its parent `cb` and drawn as that ghost.
+    // Then the mark never fires and the fan stays on screen — which is the whole thing it exists to
+    // remove. A foundational node outside the focus therefore represents itself, at its own layer.
+    const v = buildFocusView(fanned('b1'), 'ca');
+    expect(v.shelf?.map((s) => s.node.id)).toEqual(['b1']);
+    expect(v.shelf?.[0].count).toBe(2);              // a1->b1 and a2->b1, no longer collapsed onto cb
+    expect(v.externals.map((n) => n.id)).not.toContain('cb'); // the ghost it was hiding behind is gone
+    expect(v.edges.filter((ed) => ed.shelved).length).toBe(2);
+  });
+
+  it('still draws a marked descendant of the focus as an ordinary member', () => {
+    // `b1` is a grandchild of the focus `sys` via `cb`, so it is INSIDE and must keep rolling up into
+    // the child `cb` — self-representing here would drop a Component into a Container cluster.
+    const v = buildFocusView(fanned('b1'), 'sys');
+    expect(v.shelf ?? []).toEqual([]);
+    expect(v.children.map((n) => n.id).sort()).toEqual(['ca', 'cb']);
+  });
+
   it('offers no expand affordance on a shelved node', () => {
     const plain = buildFocusView(fanned(), 'ca');
     expect(plain.expandableExternalIds?.has('cb')).toBe(true);   // it would expand to reveal b1
