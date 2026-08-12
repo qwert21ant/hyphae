@@ -125,10 +125,11 @@ touching the core.
 ### 6.2 Nodes
 
 **Core (same for all profiles):** `id`, `name`, `type` (profile node kind), **`role`**
-(archetype → shape/icon), `description`, `parentId` (the sole carrier of "what it is made of"),
-**`root`** (optional directory Ref anchoring this subtree on disk — §6.10), `codeRefs` /
-`docRefs`, `createdAt` / `updatedAt`, and a `fields` bag. `layer` / `category` are derived from
-`type`, not stored.
+(archetype → shape/icon), **`foundational`** (authored: infrastructure the model leans on, drawn on
+the shelf instead of in the graph where it is external to the focus — §9), `description`, `parentId`
+(the sole carrier of "what it is made of"), **`root`** (optional directory Ref anchoring this subtree
+on disk — §6.10), `codeRefs` / `docRefs`, `createdAt` / `updatedAt`, and a `fields` bag.
+`layer` / `category` are derived from `type`, not stored.
 
 **`fields` (profile domain fields):** e.g. in `c4-backend` `responsibilities` (list),
 `invariants` (list) on all; `technology` (text) on Container/Component. Every field and enum
@@ -311,16 +312,22 @@ Built into the core, and unchanged by the visual repositioning:
 - **Diagram-first, model-backed.** The user reads the architecture off the diagram; a node's
   position in a view is a hint, not the truth.
 - **Meaning on the canvas, detail in the panel.** Node = role shape + name + one-line purpose;
-  connection = verb + object. Full fields, invariants, codeRefs, and incoming/outgoing lists
-  are side-panel.
+  connection = its `label`, one free-text phrase. Full fields, invariants, codeRefs, and
+  incoming/outgoing lists are side-panel.
 - **Legibility budget.** Cap what is shown at rest; roll up dense fans; push depth into
   drill-down, Flows, Patterns, and the panel. A legend explains role shapes and
-  solid-vs-derived edges.
+  solid-vs-derived edges. A node the model **leans on** rather than talks to is marked
+  `foundational` and moves to a **shelf** — a band below the graph, out of the flow — where it states
+  the number of this view's edges it carries as a chip instead of drawing them. This is authored, not
+  a threshold: it spends the budget where the *author* knows an edge says nothing, and nothing is
+  hidden — hovering or selecting the node draws its edges, and the panel always lists them.
 - **Luminance is state, hue is meaning.** Altitude (Context → Container → Component), selection and
   focus are expressed as light level. The chromatic budget is almost entirely **unspent**: the verb
   classes that used to own it are gone, and a hue must mean something or not exist. Violet means a
   derived rollup edge, `--accent` interaction, `--warn` an invalid flow/pattern — and that is all.
-  Every authored edge takes one neutral `--edge-line`. Dark is the default; the light
+  Every authored edge takes one neutral `--edge-line`. A structural distinction reaches for a
+  difference in **form** instead: a pattern's kind is a chip, and the shelf is a band plus a count,
+  never a colour and never a luminance step on its own. Dark is the default; the light
   theme is warm paper rather than an inversion. Every value comes from
   `apps/web/src/styles/tokens.css`.
 - **A dragged position is a reading aid, not a fact about the model.** Manual positions last for the
@@ -329,8 +336,8 @@ Built into the core, and unchanged by the visual repositioning:
   would be model data, and it is not. A containment box is grabbed by its title bar and carries its
   contents, because the box is *derived from* its contents: it has no position of its own to move.
 - **Edge form carries routing, not meaning.** Curved and squared are the same edges drawn two ways —
-  the choice is the reader's, and neither encodes anything about the connection. Hue still belongs
-  entirely to the verb classes; a lane, a corner radius and a rotated label are differences in form.
+  the choice is the reader's, and neither encodes anything about the connection. A lane, a corner
+  radius and a rotated label are differences in form, and form is what a structural distinction gets.
 - **One tool call — one model operation.** An MCP write is atomic: reparenting a component is a
   `parentId` change; deleting a node cascades to remove its connections, and any flow step that
   referenced it is marked ↗ in the outline as undrawable.

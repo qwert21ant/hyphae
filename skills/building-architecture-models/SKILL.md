@@ -206,6 +206,20 @@ obligations on every write. Call `describe_profile` for the exact vocabularies.
   a verb meaning nothing, 79% had no description, and 73 labels merely paraphrased an endpoint's
   name. Cutting those took it to 180 edges and made the diagram legible for the first time.
   **Prefer twenty edges that say something to two hundred that do not.**
+- **Mark the handful of nodes the model *leans on* as `foundational`.** Some nodes fail the edge test
+  above over and over, not because the labels are lazy but because the relationship genuinely says
+  nothing: a composition root that constructs everything, a settings store nearly every component
+  reads, a shared logger. The relationships are *true* — deleting them loses a fact — so instead set
+  `foundational: true` on the node (`create_nodes` or `update_nodes`). The viewer then stops drawing
+  its edges wherever it appears outside the container being focused and shows a count on the node
+  instead; hovering it draws them, and the panel always lists them.
+
+  Do this **after** the connection pass, when you can see which nodes carry a large fan of
+  near-identical edges. It is a judgement call and it is **not** a degree threshold: a busy node that
+  is a genuine participant in the stories the model tells must stay in the graph, or the diagram
+  starts hiding real structure. **A handful per model.** On the 112-node Baritone model exactly two
+  nodes qualified — the composition root (24 edges) and the settings store (16); the next-worst fans
+  were 7 and 5, which are just normal.
 - **`fields.technology` is one canonical name** — "Vue", "PostgreSQL", "Go". Not a version
   ("Java 17"), not a dependency list ("Netty, Jackson, Guava"): the canvas ellipsizes a long value
   into nothing readable. Put the stack detail in `description` instead.

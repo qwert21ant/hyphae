@@ -28,7 +28,7 @@ schema in `packages/schema` wins any disagreement.
                      highlight.ts  flowEdges.ts  layout.ts  reactflow.ts
                      shapes.ts  patternView.ts  flowOverlay.ts  canvas.css
                      nodes/    NodeBox  NodeShape  GroupNode  GhostNode
-                               GhostGroupNode  PatternMemberNode
+                               GhostGroupNode  PatternMemberNode  ShelfBand
                      edges/    FloatingEdge.tsx  ports.ts  lanes.ts  paths.ts
                                routeEdges.ts
                      overlay/  Legend.tsx  FilterPanel.tsx
@@ -91,7 +91,7 @@ resolving nothing, depending on which one you missed.
     pnpm server         # API + SSE on :5173, owns ./hyphae.json (override with HYPHAE_FILE)
     pnpm web            # viewer on :3000, proxies the API
     pnpm mcp            # MCP server — an HTTP client of the above, so the server must be running
-    pnpm -r test        # baseline 732 green: schema 143, server 106, web 483 (35 files)
+    pnpm -r test        # baseline 769 green: schema 145, server 109, web 515 (37 files)
     pnpm -r build
     pnpm --filter @hyphae/web typecheck   # tsc --noEmit — NOT part of build; see below
 
@@ -257,6 +257,29 @@ index — and adding an overlap metric next to the crossing one.
 - **`expandedExternals` is for nodes OUTSIDE the focus.** Expanded groups are laid out in the
   external columns, so expanding a node that is drawn *inside* the view stacks a group box over the
   cluster. `stepReveal` (`core/stepReveal.ts`) guards this.
+- **A shelved edge is hidden, not removed.** A `foundational` node's edges stay in `view.edges` and in
+  the React Flow array carrying `data.shelved`, because the reveal on hover is an *opacity* change:
+  `highlightCss` hides them by id and the existing `highlightSets` reveals them, so a flow stepping
+  through one reveals it for free. Filter them out of the edge array instead and hovering a
+  foundational node reveals nothing. The hide rule is keyed on `[data-id]` (0,3,0) precisely so it
+  outranks the generic dim rule (0,2,0), which would otherwise fade a shelved edge *into* view
+  whenever some other node was active.
+- **Shelved edges are excluded from `routeEdges`, on purpose** (`useCanvasView`'s `displayEdges`).
+  They take `fallbackRoute`'s mid-side anchor, so a reveal draws as a fan from one point. Routing them
+  would spend ports on the in-view nodes and lanes in the gutter on invisible lines — exactly the
+  space the shelf exists to give back.
+- **The shelf band is inert chrome.** React Flow node id `SHELF_ID` (`__shelf__`, not a model id),
+  `pointerEvents: 'none'`, not selectable, not draggable, no handles, and deliberately **not**
+  `.region__handle` — if the band could become `hoveredId` it would dim the whole graph on the way
+  past, and `cursor: grab` would promise a drag that does not exist. It is excluded from
+  `highlightCss`'s node dim rule alongside `region` and `ghostGroup`, which is why that selector
+  carries three `:not()`s and specificity (0,5,0).
+- **`foundational` shelves a node only where it is EXTERNAL to the focus** — automatic, since a child
+  of the focus is in `view.children` and never reaches `externals`. The accepted cost is that focusing
+  a container still shows its own foundational child pulling lines from its siblings; the alternative
+  removes a container's own child from its own cluster, which makes containment lie. The shelf is
+  placed *last* in `layoutFocusView`, from the true bottom of every other slot, so left/right stay the
+  external columns.
 - **Pattern member React Flow nodes are keyed by member NAME, not a node id.** Never use one as a
   focus id; navigate via the member's `nodeId` — `drill()` in `features/canvas/useDrillNavigation.ts`
   checks ids against `model.nodes`.

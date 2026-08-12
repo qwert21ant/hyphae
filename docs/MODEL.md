@@ -67,12 +67,16 @@ Profile-independent. Always the same.
 
 ### 3.1 Node
 Any addressable entity in the model. **The node core is lightweight and profile-independent:**
-`id` / `name` / `type` / `role` / `description` / `parentId` (structure) / `root` / `codeRefs` /
-`docRefs` / `createdAt` / `updatedAt` and a `fields` bag (domain values). `root` is an optional
-directory **Ref** (§3.7) that anchors this node's subtree on disk; refs below it resolve
+`id` / `name` / `type` / `role` / `foundational` / `description` / `parentId` (structure) / `root` /
+`codeRefs` / `docRefs` / `createdAt` / `updatedAt` and a `fields` bag (domain values). `root` is an
+optional directory **Ref** (§3.7) that anchors this node's subtree on disk; refs below it resolve
 against it. `role` selects the
 node's **archetype** — the shape/icon it draws with (actor, service, datastore, queue,
-external, UI surface …) — from the profile. Everything domain-specific
+external, UI surface …) — from the profile. `foundational` marks a node the rest of the model
+naturally leans on — a composition root, a settings store. It changes no relationship: the viewer
+stops *drawing* its edges where it appears outside the container being focused, and states their
+count instead. It is **authored**, deliberately not derived from a degree threshold, because a
+threshold cannot tell infrastructure from a busy participant. Everything domain-specific
 (`responsibilities`, `invariants`, `technology`, …) is a **profile field**, stored in `fields`
 and validated against the active profile. The concrete node **types** come from the profile;
 `layer` / `category` are derived from `type`.

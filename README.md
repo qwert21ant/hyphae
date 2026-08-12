@@ -47,7 +47,12 @@ fan apart instead of stacking.
 **Derived cross-layer edges** — component connections rolled up to the altitude you are viewing —
 are dashed violet and carry a count, unless an authored higher-level connection claims them via
 `realizedBy`. Selecting or hovering a node/edge highlights its neighborhood and dims the rest,
-labels included. The **audience toggle** (stakeholder / full) hides derived edges for a clean
+labels included.
+A node marked **`foundational`** — infrastructure the rest of the model leans on, like a composition
+root or a settings store — is drawn on a **shelf**: a labelled band below the graph, with a `◂ n`
+chip counting the edges it has to nodes in this view instead of drawing them. Hovering or selecting
+it draws them, and the inspector always lists them in full. Inside its own container it is an
+ordinary member; the shelf applies only where it is external to the container you are focused on. The **audience toggle** (stakeholder / full) hides derived edges for a clean
 read; the connection filter panel (profile fields) and the legend are generated from the
 profile.
 
@@ -61,7 +66,8 @@ bound to a real node links back into the model. A pattern's row carries its **ki
 its `anchor` — the node it describes — as a link beside the name, so both read without opening it.
 
 **The inspector.** Selecting a node or a connection shows its detail in the right-hand panel, as
-text — the browser does not write the model. A node shows its name, type, role, the fields the
+text — the browser does not write the model. A node shows its name, type, role, a `foundational`
+chip when it carries the mark, the fields the
 canvas draws (`summary`, `technology`), description, `root`, `codeRefs`/`docRefs`, the remaining
 **profile-defined fields** for its kind (`responsibilities`, `invariants`, …), its parent, and its
 incoming/outgoing connections. A field with no value renders no row at all, so a short panel means a
@@ -131,6 +137,9 @@ Write tools: `create_nodes`, `update_nodes`, `delete_nodes`, `create_connections
 `update_connections`, `delete_connections`, `create_flows`, `update_flows`, `delete_flows`,
 `create_patterns`, `update_patterns`, `delete_patterns`.
 
+`create_nodes` / `update_nodes` take the node core — including `role` and **`foundational`** (mark a
+node the model leans on so the viewer shelves it instead of drawing its fan; a judgement call on a
+handful of nodes, never a degree threshold).
 Domain values go in a `fields` bag validated against the profile; the write tools' params are built
 from the active profile. Creates take an array and **echo identity** — `{created:[{id,name},…]}` in
 input order — so nothing needs a follow-up `list_nodes` to map names back to ids.
