@@ -30,7 +30,7 @@ diagrams no one can read at a glance.
    "stores clip"). Everything deeper lives in the side panel.
 3. **A small set of orthogonal axes.** A diagram is a projection of one or two axes, not a
    separate entity.
-4. **Mechanisms are universal; the type vocabulary is profiled.** Node, connection, verb,
+4. **Mechanisms are universal; the type vocabulary is profiled.** Node, connection,
    flow, pattern, data entity, and view work the same for a server, a frontend, a CLI. Only
    the profile vocabulary changes.
 5. **Anti-redundancy as a rule.** A new first-class entity is introduced only if it needs to
@@ -49,7 +49,7 @@ axes at once.
 | **Dependencies / Collaboration** | who does what to whom | connection **label** | dependency graph, collaboration diagram |
 | **Behavior** | what happens over time | `flows`, state-machine `patterns` | numbered flow overlay, sequence, state chart |
 | **Data** | what data it operates on | `dataTypes` + connection `carries` *(reserved)* | ERD, data-flow |
-| **Intent** | why, which requirements/decisions | `requirements`, `decisions` *(reserved)* + `traceability`-class connections | traceability matrix, decision map |
+| **Intent** | why, which requirements/decisions | `requirements`, `decisions` *(reserved)* + connections whose `label` states the trace | traceability matrix, decision map |
 | **Presentation** | how to view it | `views` | layouts, filters, saved views |
 
 The key idea: **many diagrams, few axes.** A numbered flow and a state chart are both the
@@ -96,9 +96,6 @@ A first-class edge, and the main carrier of on-diagram meaning. Core:
   the reserved requirement-traceability link (§6): it is also how a Component or Container
   connection records that it realizes a declared interface — the honest half of the retired
   `Realization` kind.
-- **`object`** is what the action acts on: a short noun, or a reference to a `DataEntity`
-  (§3.5), linking the edge into the data model ("reads → Camera").
-
 > `Composition` was once a separate kind — removed; structure lives only in `parentId`.
 
 ### 3.3 Flow
@@ -183,7 +180,7 @@ An entity is first-class if it is referenced independently (by `id`). The full l
 | Entity | Axis / role | Why first-class |
 |--------|-------------|-----------------|
 | **Node** | Structure / Dependencies | the base addressable block |
-| **Connection** | Dependencies / Data / Intent | carries semantics (verb + object), not just an arrow |
+| **Connection** | Dependencies / Data / Intent | carries semantics (a free-text `label`), not just an arrow |
 | **Flow** | Behavior | a scenario reuses nodes/connections |
 | **Pattern** | overlay on Structure/Behavior | a named shape addressed and rendered separately (absorbs StateMachine) |
 | **DataEntity** | Data | a data object reused by many nodes/connections |
@@ -195,7 +192,7 @@ An entity is first-class if it is referenced independently (by `id`). The full l
 - `responsibilities`, local `invariants`, `technology`, etc. — **profile
   fields** in the node/connection `fields` bag. (A cross-cutting invariant → a Requirement.)
 - containment — `parentId`, not a connection entity.
-- a connection's action — the `verb`/`object` **core fields**, not a separate entity.
+- a connection's action — the `label` **core field**, not a separate entity.
 - **a Ref** — a string value (§3.7), not an entity. It is never addressed by id; it is a
   pointer *out* of the model. Likewise a node's `root` is a field, not an entity.
 - node positions — inside a View.
@@ -207,13 +204,13 @@ No → a field.
 
 ## 5. Profiles (the type vocabulary)
 
-A profile is a declarative vocabulary of node types, roles, verbs, and pattern kinds for a
+A profile is a declarative vocabulary of node types, roles, and pattern kinds for a
 specific class of projects. It changes the vocabulary, not the mechanisms.
 
-A profile is a **meta-schema**: it declares node kinds (with a `role`/archetype), the **verb**
-vocabulary (with classes), **pattern** kinds, and their **fields** (with a description of each
-field and each enum value — for the LLM and editor tooltips). There is no separate connection
-kind — a connection's meaning is its `verb` + `object` alone.
+A profile is a **meta-schema**: it declares node kinds (with a `role`/archetype), **pattern**
+kinds, and their **fields** (with a description of each field and each enum value — for the LLM and
+editor tooltips). There is no separate connection kind and no verb vocabulary — a connection's
+meaning is its free-text `label` alone.
 
 ```
 Profile {
@@ -224,9 +221,6 @@ Profile {
       role,                              // archetype/shape (actor|service|datastore|queue|external|ui|…)
       layer, allowedParents:[...], allowedChildren:[...],
       fields: [FieldDef] }               // domain fields of this node kind
-  ]
-  verbs: [
-    { id, class: dataAccess|messaging|control|user|traceability, description }
   ]
   patternKinds: [
     { id, description, renderer,         // pipeline|middleware|state-machine|layered|event-bus|…
@@ -260,13 +254,15 @@ disallowed enum, missing required, dangling ref — all rejected).
 | **cli** | Program · Command · Subcommand · Flag · Handler |
 | **desktop** | App · Window · Panel · Menu · Action · Service |
 
-All profiles use the same Connection / verb / Flow / Pattern / DataEntity / View. Frontend
+All profiles use the same Connection / Flow / Pattern / DataEntity / View. Frontend
 navigation = a Flow over Route nodes; a screen's UI modes = a `state-machine` Pattern; a
 request middleware = a `middleware` Pattern; a form ↔ DTO = a `carries` ref on a connection.
 No special per-profile engine.
 
-LLM-friendliness is preserved: node types, verbs, and pattern kinds are still a **closed,
-finite, described** vocabulary — declarative rather than hardcoded.
+LLM-friendliness is preserved: node types and pattern kinds are still a **closed,
+finite, described** vocabulary — declarative rather than hardcoded. A connection's `label` is the
+one deliberately open slot: a closed verb list was tried and removed, because half the edges ended
+up on a verb that said nothing.
 
 ---
 
@@ -279,21 +275,21 @@ a queryable, verifiable knowledge graph:
 Requirement ──traceability──> Node ──codeRefs──> code   (reserved: Requirement not built yet)
 Decision    ──traceability──> Node                (why it is this way)  (reserved)
 Flow.steps  ──via────────────> Connection          (scenario → connections)
-Connection  ──verb/object────> DataEntity          (what data, what action)
+Connection  ──carries────────> DataEntity          (what data it moves)  (reserved)
 Connection  ──realizedBy─────> Connection          (upper layer → lower)
 Pattern     ──members────────> Node | Ref          (recognized shape over structure or code)
 Node        ──parentId───────> Node                (structure)
 Node        ──root───────────> directory Ref       (anchors all refs in its subtree)
 ```
 
-The `traceability` verb class (`implements` / `satisfies`, §3.2) is what a requirement→component or
-decision→component connection would use; the `Requirement`/`Decision` node kinds themselves stay
-reserved (§4) until a later phase.
+A requirement→component or decision→component connection would simply say so in its `label`
+(`implements`, `satisfies`); the `Requirement`/`Decision` node kinds themselves stay reserved (§4)
+until a later phase.
 
 What it gives an LLM agent:
-- "Which requirements does component X implement, and where in the code" — the `traceability`
-  verb class → `codeRefs`.
-- "What data does this flow move, and who stores it" — connection `verb`/`object`/`carries` → `DataEntity` owners.
+- "Which requirements does component X implement, and where in the code" — the tracing
+  connection → `codeRefs`.
+- "What data does this flow move, and who stores it" — connection `carries` → `DataEntity` owners.
 - "What is the internal shape of this component" — its `Pattern` (pipeline/middleware/…).
 - "What breaks if I change connection A→B" — `realizedBy` downward + the flows that use it.
 
@@ -307,7 +303,7 @@ architecture **legible *and* queryable *and* verifiable** at once.
 Rules that keep the model from sprawling and duplicating:
 
 1. **One truth per fact.** "What it is made of" — only `parentId`. A connection's action —
-   only `verb`/`object`. A data schema — only a `DataEntity` ref, not an inline string.
+   only its `label`. A data schema — only a `DataEntity` ref, not an inline string.
 2. **An entity only if it is addressable.** See §4. Otherwise — a field.
 3. **A diagram ≠ an entity.** A new visualization is a projection of existing axes.
 4. **Static shape vs temporal scenario are different.** `Pattern` = arrangement,
@@ -332,7 +328,7 @@ HyphaeModel {
   metadata { name, description, createdAt, updatedAt }
   activeProfile                 // profile id
   nodes:         [Node]         // Structure + Dependencies (role drives shape)
-  connections:   [Connection]   // Dependencies / Data / Intent (verb + object)
+  connections:   [Connection]   // Dependencies / Data / Intent (a free-text label)
   flows:         [Flow]         // Behavior (horizontal)  — built
   patterns:      [Pattern]      // overlay shapes (absorbs state machines) — built
   dataTypes:     [DataType]     // Data                   — reserved
@@ -355,7 +351,7 @@ free text until Phase D lands. `requirements`/`decisions` remain reserved. See t
 | Axis / concept | Entities | When rendered |
 |----------------|----------|--------------------|
 | Structure | Node, parentId, role | Phase A |
-| Dependencies / Collaboration | Connection, verb/object | Phase A |
+| Dependencies / Collaboration | Connection, label | Phase A |
 | Behavior | Flow | Phase B |
 | overlay shapes | Pattern (incl. state-machine) | Phase C |
 | Data | DataEntity, carries/owns | Phase D |

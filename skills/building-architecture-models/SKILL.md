@@ -140,7 +140,13 @@ A standalone consistency pass over an existing model. The Phase-3 tail already r
 1. **Coverage sweep.** Call `model_gaps` — one read returns orphan Components (zero connections) and thin/name-echoing descriptions (with inbound/outbound degree, so a thin hub — high inbound but an empty/echoing description — stands out). Separate likely-real gaps from legitimately standalone components (`standaloneComponents` are expected).
    Also call `list_flows` and flag any flow with `valid:false` — a later node/connection deletion
    can leave a flow dangling; fix or delete it with `update_flows`/`delete_flows`.
-2. **CHECKPOINT: show the flagged gaps.** Wait for confirmation of which to fix.
+   **Density pass.** `model_gaps` finds nodes with too few edges; this is the opposite check. Sort the
+   nodes by degree (`rollup_connections`, or `list_connections({nodeId})` on the top few) and look at
+   whoever leads by a wide margin. If a node's edges are near-identical and say nothing a reader
+   cannot infer — a composition root, a settings store — it is a `foundational` candidate, not a
+   modelling gap. See **The visual vocabulary** for the rule and the cap of a handful per model.
+2. **CHECKPOINT: show the flagged gaps** — and the `foundational` candidates, with their degrees, as
+   a separate list. Wait for confirmation of which to fix and which to mark.
 3. For confirmed gaps, **re-dispatch the owning container's subagent** (same `references/subagent-prompt.md`) to add the missing intra-container edges or descriptions. The orchestrator must not write intra-container edges itself.
 4. Idempotent (create-or-skip), so Verify can be re-run until clean.
 
@@ -213,6 +219,11 @@ obligations on every write. Call `describe_profile` for the exact vocabularies.
   `foundational: true` on the node (`create_nodes` or `update_nodes`). The viewer then stops drawing
   its edges wherever it appears outside the container being focused and shows a count on the node
   instead; hovering it draws them, and the panel always lists them.
+
+  **Mark the Component that actually has the fan — never its Container.** The composition root is a
+  Component; its container (`Core Runtime`) is a genuine participant, and marking that would shelf a
+  real part of the architecture. A marked Component is shelved by name even when you are looking at
+  Container altitude, so marking the thing itself is both correct and sufficient.
 
   Do this **after** the connection pass, when you can see which nodes carry a large fan of
   near-identical edges. It is a judgement call and it is **not** a degree threshold: a busy node that
