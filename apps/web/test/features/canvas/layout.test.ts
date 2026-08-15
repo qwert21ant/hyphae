@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   layoutFocusView, resolveViewPositions, groupBoxHeight, NODE_W, NODE_H, PAD, LABEL_H, ROW_GAP, MEMBER_PITCH,
-  GRID_COLS, applyDragOverrides, dragCommit, gutterGeometry, type DragState, type XY,
+  GRID_COLS, SHELF_GAP, applyDragOverrides, dragCommit, gutterGeometry, type DragState, type XY,
 } from '@/features/canvas/layout';
 import { gutterWidth } from '@/features/canvas/edges/lanes';
 import type { FocusView } from '@/core/focusView';
@@ -382,5 +382,53 @@ describe('gutters sized from lane demand', () => {
     const left = g.clusterMinX - g.leftGutterX;
     const right = pos.out0.x - g.rightGutterX;
     expect(left).toBeGreaterThan(right);
+  });
+});
+
+describe('layoutFocusView — the shelf', () => {
+  const shelfView = (): FocusView => ({
+    ...view,
+    shelf: [{ node: node('found', 'Container'), count: 3 }],
+    edges: [
+      ...view.edges,
+      { id: 's1', from: 'found', to: 'a1', count: 1, derived: false, realizedBy: ['s1'], shelved: true },
+    ],
+  });
+
+  it('gives every shelf node a slot', () => {
+    const pos = layoutFocusView(shelfView());
+    expect(pos['found']).toBeDefined();
+  });
+
+  it('puts the shelf below every other placed node', () => {
+    const pos = layoutFocusView(shelfView());
+    const others = Object.entries(pos).filter(([id]) => id !== 'found').map(([, p]) => p.y + NODE_H);
+    expect(pos['found'].y).toBeGreaterThanOrEqual(Math.max(...others) + SHELF_GAP);
+  });
+
+  it('does not put a shelf node in an external column', () => {
+    const pos = layoutFocusView(shelfView());
+    expect(pos['found'].x).not.toBe(pos['cb'].x);
+  });
+
+  it('spaces a row of shelf nodes so the boxes cannot overlap', () => {
+    const v = shelfView();
+    v.shelf = [
+      { node: node('f1', 'Container'), count: 1 },
+      { node: node('f2', 'Container'), count: 2 },
+    ];
+    const pos = layoutFocusView(v);
+    expect(Math.abs(pos['f1'].x - pos['f2'].x)).toBeGreaterThanOrEqual(NODE_W);
+    expect(pos['f1'].y).toBe(pos['f2'].y);
+  });
+
+  it('keeps a shelf slot through resolveViewPositions', () => {
+    const v = shelfView();
+    const pos = resolveViewPositions(v, layoutFocusView(v));
+    expect(pos['found']).toBeDefined();
+  });
+
+  it('changes nothing when the shelf is empty', () => {
+    expect(layoutFocusView({ ...view, shelf: [] })).toEqual(layoutFocusView(view));
   });
 });

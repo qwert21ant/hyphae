@@ -68,6 +68,19 @@
  * discipline (see above) rules out. So the ghost box stays altitude-neutral by construction — the
  * focus region is the one thing this task's brightness ramp applies to. */
 .region--ghost { border: 1.5px dashed var(--rule); background: var(--surface-2); }
+/* The foundational shelf. An outline with NO fill: it needs to read as a tray the graph is resting
+ * things on, and it must not paint over the edges revealed inside it when a shelved node is hovered.
+ * Distinguished from the graph by FORM and position — a band of its own below everything, dashed like
+ * the ghosts it holds — never by a hue (docs/SPEC.md §9). */
+.region--shelf { border: 1px dashed var(--rule); background: transparent; }
+/* Same metrics as .region__handle so the two title strips read as the same kind of label, minus the
+ * grab affordance and the pointer events — nothing on this box is interactive. */
+.shelf__label {
+  position: absolute; top: 0; left: 0; right: 0; height: 22px;
+  padding: var(--s-1) var(--s-5); box-sizing: border-box;
+  font-size: var(--t-micro); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--tx-3);
+}
 .region__handle {
   position: absolute; top: 0; left: 0; right: 0; height: 22px;
   padding: var(--s-1) var(--s-5); box-sizing: border-box;

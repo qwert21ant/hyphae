@@ -6,13 +6,13 @@ import type { HyphaeModel } from '../src/model';
 function model(): HyphaeModel {
   const m = emptyModel();
   m.metadata.name = 'Demo';
-  const base = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
+  const base = { description: '', root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
   m.nodes.push(
     { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base, description: 'the system' },
     { id: 'ca', name: 'Api', type: 'Container', parentId: 'sys', ...base, description: 'edge service' },
     { id: 'cmp', name: 'Auth', type: 'Component', parentId: 'ca', ...base },
   );
-  m.connections.push({ id: 'x1', from: 'cmp', to: 'cmp', verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} });
+  m.connections.push({ id: 'x1', from: 'cmp', to: 'cmp', label: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [], fields: {} });
   return m;
 }
 

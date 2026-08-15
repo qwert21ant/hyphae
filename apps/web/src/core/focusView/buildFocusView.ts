@@ -24,7 +24,19 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
   const inside = new Set<string>(children.map((n) => n.id));
   if (focusId) inside.add(focusId);
 
-  const unexpandedRep = (id: string): string => tree.representativeAt(id, focusId, focusLayer);
+  const unexpandedRep = (id: string): string => {
+    const rep = tree.representativeAt(id, focusId, focusLayer);
+    // A FOUNDATIONAL node outside the focus represents ITSELF, at whatever layer it lives on.
+    // Without this the mark almost never fires: the marked node is typically a Component and the
+    // focus a Container, so it would be summarised into its parent container's ghost — and the fan it
+    // was marked to remove stays on screen, merely re-attributed to the parent. The shelf is
+    // layer-agnostic furniture, so drawing a Component there beside Container ghosts is fine; an
+    // expanded external already puts finer children in the same columns.
+    // Only when the representative is OUTSIDE: a marked descendant of the focus must keep rolling up
+    // into the child that contains it, or a Component lands inside a Container's cluster.
+    if (rep !== id && !inside.has(rep) && tree.get(id)?.foundational) return id;
+    return rep;
+  };
   const mapEndpoint = (id: string): string => {
     const rep = unexpandedRep(id);
     if (expandedExternals.has(rep)) return tree.childOf(id, rep) ?? rep;
@@ -77,7 +89,7 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
     let p = pairs.get(key);
     if (!p) { p = { a, b, entries: [] }; pairs.set(key, p); }
     // Direct = both endpoints map to themselves, so nothing about this connection is summarised.
-    p.entries.push({ id: c.id, from, to, direction: c.direction, verb: c.verb, object: c.object, direct: from === c.from && to === c.to });
+    p.entries.push({ id: c.id, from, to, direction: c.direction, label: c.label, direct: from === c.from && to === c.to });
   }
 
   const edges: FocusEdge[] = [];
@@ -104,7 +116,27 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
     if (!inside.has(ed.from)) shownExternalIds.add(ed.from);
     if (!inside.has(ed.to)) shownExternalIds.add(ed.to);
   }
-  const externals = [...shownExternalIds].map((id) => tree.get(id)).filter((n): n is Node => !!n);
+  const shown = [...shownExternalIds].map((id) => tree.get(id)).filter((n): n is Node => !!n);
+
+  // A foundational node is shelved only where it is EXTERNAL to the focus — which is automatic here,
+  // since a child of the focus is in `children` and never reaches this list. Inside its own container
+  // it stays an ordinary member, and the fan it causes there is an accepted cost: the alternative
+  // removes a container's own child from its own cluster, which makes containment lie.
+  const shelfNodes = shown.filter((n) => n.foundational);
+  const shelfIds = new Set(shelfNodes.map((n) => n.id));
+  const externals = shown.filter((n) => !shelfIds.has(n.id));
+
+  // Not drawn at rest, but still BUILT: highlight.ts reveals an edge by changing its opacity, so an
+  // edge that was never created could not be revealed on hover. The count is EDGES in this view — one
+  // mark saying how many things here lean on this node — not connections, and not its model degree.
+  const shelfCount: Record<string, number> = {};
+  for (const ed of shownEdges) {
+    const ends = new Set([ed.from, ed.to].filter((id) => shelfIds.has(id)));
+    if (!ends.size) continue;
+    ed.shelved = true;
+    for (const id of ends) shelfCount[id] = (shelfCount[id] ?? 0) + 1;
+  }
+  const shelf = shelfNodes.map((node) => ({ node, count: shelfCount[node.id] ?? 0 }));
 
   // Which shown, collapsed, focus-peer externals would reveal a finer participating child if expanded.
   // Computed from the surviving connections (not the rendered edges), so a finer child that got
@@ -114,7 +146,8 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
     if (!mapped.has(c.id)) continue;
     for (const origId of [c.from, c.to]) {
       const rep = unexpandedRep(origId);
-      if (inside.has(rep) || expandedExternals.has(rep) || expandableExternalIds.has(rep)) continue;
+      // A shelved node is furniture, not a collapsed group: it gets no expand affordance.
+      if (inside.has(rep) || shelfIds.has(rep) || expandedExternals.has(rep) || expandableExternalIds.has(rep)) continue;
       if (!shownExternalIds.has(rep)) continue;                       // only externals actually rendered
       if (tree.representativeWith(rep, focusLayer) !== rep) continue; // focus-peer reps only (not members)
       const child = tree.childOf(origId, rep);
@@ -131,5 +164,5 @@ export function buildFocusView(model: HyphaeModel, focusId: string | null, filte
     if (childIds.length && parent) externalGroups.push({ id: extId, name: parent.name, childIds });
   }
 
-  return { focusId, focusNode, children, externals, edges: shownEdges, externalGroups, expandableExternalIds };
+  return { focusId, focusNode, children, externals, shelf, edges: shownEdges, externalGroups, expandableExternalIds };
 }

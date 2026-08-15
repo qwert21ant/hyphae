@@ -1,16 +1,16 @@
-import { c4Backend, modelOverview, nodeAtOrAboveLayer, refOwners, resolveRef, resolveRoot, verbClassOf } from '@hyphae/schema';
+import { c4Backend, modelOverview, nodeAtOrAboveLayer, refOwners, resolveRef, resolveRoot } from '@hyphae/schema';
 import type { HyphaeApi } from '../api';
 
 export function buildQueryTools(api: HyphaeApi) {
   return {
     model_overview: async (_: Record<string, never>) => modelOverview(await api.getModel()),
-    get_subgraph: async ({ nodeId, depth, direction, verbClass, containment, maxLayer = 'Component' }: { nodeId: string; depth?: number; direction?: 'in' | 'out' | 'both'; verbClass?: string; containment?: 'down' | 'up' | 'both' | 'none'; maxLayer?: string }) => {
+    get_subgraph: async ({ nodeId, depth, direction, containment, maxLayer = 'Component' }: { nodeId: string; depth?: number; direction?: 'in' | 'out' | 'both'; containment?: 'down' | 'up' | 'both' | 'none'; maxLayer?: string }) => {
       const model = await api.getModel();
       if (!model.nodes.some((n) => n.id === nodeId)) return { error: `node ${nodeId} not found` };
       const maxDepth = depth ?? 1;
       const dir = direction ?? 'both';
       const cont = containment ?? 'down';
-      const edges = verbClass ? model.connections.filter((c) => verbClassOf(c4Backend, c.verb) === verbClass) : model.connections;
+      const edges = model.connections;
       const byId = new Map(model.nodes.map((n) => [n.id, n]));
       const childrenByParent = new Map<string, string[]>();
       const parentOf = new Map<string, string | null>();

@@ -17,11 +17,11 @@ import { useStore } from '@/state/store';
 import { emptyModel, type Node, type Connection } from '@hyphae/schema';
 
 const mk = (over: Partial<Node>): Node => ({
-  id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null,
+  id: 'x', name: 'X', type: 'Component', description: '', parentId: null, root: null, role: null, foundational: false,
   codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {}, ...over,
 });
 const conn = (over: Partial<Connection>): Connection => ({
-  id: 'c', from: 'a1', to: 'b1', verb: 'uses', object: '', description: '', direction: 'Unidirectional',
+  id: 'c', from: 'a1', to: 'b1', label: '', description: '', direction: 'Unidirectional',
   realizedBy: [], codeRefs: [], fields: {}, ...over,
 });
 
@@ -143,14 +143,13 @@ describe('SidePanel', () => {
   it('renders a connection as text with no form control and no delete button', () => {
     seed({
       nodes: [mk({ id: 'a1', name: 'A1' }), mk({ id: 'b1', name: 'B1' })],
-      connections: [conn({ id: 'conn1', verb: 'reads', object: 'camera list', description: 'Polls the feed' })],
+      connections: [conn({ id: 'conn1', label: 'reads the camera list', description: 'Polls the feed' })],
     }, 'conn1');
     const { container } = render(<SidePanel />);
     // "Connection" is .panel__name text now, not a heading.
     expect(container.querySelector('.panel__name')?.textContent).toBe('Connection');
     expect(screen.getByText('A1 → B1')).toBeTruthy();
-    expect(screen.getByText('reads')).toBeTruthy();
-    expect(screen.getByText('camera list')).toBeTruthy();
+    expect(screen.getByText('reads the camera list')).toBeTruthy();
     expect(screen.getByText('Unidirectional')).toBeTruthy();
     expect(screen.getByText('Polls the feed')).toBeTruthy();
     expect(container.querySelector('input, select, textarea')).toBeNull();
@@ -197,6 +196,29 @@ describe('SidePanel', () => {
     const list = document.querySelector('.rollup-list')!;
     fireEvent.click(list.querySelector('li')!);
     expect(useStore.getState().selectedId).toBe('c1');
+  });
+
+  it('marks a foundational node in the header chips', () => {
+    seed({ nodes: [mk({ id: 'f1', name: 'Settings', foundational: true })] }, 'f1');
+    const { container } = render(<SidePanel />);
+    expect([...container.querySelectorAll('.chip')].map((c) => c.textContent)).toEqual(['Component', 'foundational']);
+  });
+
+  it('shows no such chip on an ordinary node', () => {
+    seed({ nodes: [mk({ id: 'n1', name: 'Plain' })] }, 'n1');
+    render(<SidePanel />);
+    expect(screen.queryByText('foundational')).toBeNull();
+  });
+
+  it('still lists every connection of a foundational node', () => {
+    // The shelf changes only the resting picture; the panel is where nothing is ever hidden.
+    seed({
+      nodes: [mk({ id: 'f1', name: 'Settings', foundational: true }), mk({ id: 'a1', name: 'A1' }), mk({ id: 'a2', name: 'A2' })],
+      connections: [conn({ id: 'r1', from: 'a1', to: 'f1' }), conn({ id: 'r2', from: 'a2', to: 'f1' })],
+    }, 'f1');
+    render(<SidePanel />);
+    expect(screen.getByText(/connections · 2/i)).toBeTruthy();
+    expect(screen.getByText(/incoming · 2/i)).toBeTruthy();
   });
 
   it('splits the selected node connections into Outgoing and Incoming sections', () => {

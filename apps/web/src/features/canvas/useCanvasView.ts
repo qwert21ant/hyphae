@@ -82,12 +82,19 @@ export function useCanvasView(): CanvasView {
     const k: Record<string, NodeKind> = {};
     for (const n of view.children) k[n.id] = 'child';
     for (const n of view.externals) k[n.id] = 'external';
+    for (const s of view.shelf ?? []) k[s.node.id] = 'external';
     return k;
   }, [view]);
 
   const displayEdges = useMemo(() => {
+    // Shelved edges are deliberately NOT routed: routing them would spend ports on the in-view nodes
+    // and lanes in the gutter on lines nobody can see, which is exactly the space the shelf exists to
+    // give back. They fall through to fallbackRoute (edges/routeEdges.ts) — a mid-side anchor on both
+    // ends — so a reveal draws as a fan from one point on the shelved box, which reads as "these all
+    // come from this one thing".
+    const routable = decorated.filter((e) => !(e.data as { shelved?: boolean } | undefined)?.shelved);
     const routes = routeEdges(
-      decorated.map((e) => ({ id: e.id, source: e.source, target: e.target })),
+      routable.map((e) => ({ id: e.id, source: e.source, target: e.target })),
       positions, kinds, gutterGeometry(view, positions),
     );
     return decorated.map((e) => (routes[e.id] ? { ...e, data: { ...e.data, route: routes[e.id] } } : e));

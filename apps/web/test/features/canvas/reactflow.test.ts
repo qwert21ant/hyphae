@@ -1,9 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { focusViewToFlow, highlightSets, GROUP_GRIP } from '@/features/canvas/reactflow';
-import { layerColorOf, LAYER_COLOR, VERB_CLASS_COLOR } from '@/core/verbColors';
+import { focusViewToFlow, highlightSets, GROUP_GRIP, SHELF_ID } from '@/features/canvas/reactflow';
+import { layerColorOf, LAYER_COLOR } from '@/core/layerColors';
 import type { FocusView } from '@/core/focusView';
 import type { Edge as FlowEdge } from '@xyflow/react';
-import { c4Backend } from '@hyphae/schema';
 
 const node = (id: string, type = 'Component') =>
   ({ id, name: id, type, parentId: null, description: '', codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} }) as any;
@@ -14,7 +13,7 @@ const view: FocusView = {
   children: [node('a1'), node('a2')],
   externals: [node('cb', 'Container')],
   edges: [
-    { id: 'i', from: 'a1', to: 'a2', count: 1, derived: false, realizedBy: ['i'] },
+    { id: 'i', from: 'a1', to: 'a2', count: 1, derived: false, realizedBy: ['i'], label: 'reads settings' },
     { id: 'ext:a1->cb', from: 'a1', to: 'cb', count: 3, derived: true, realizedBy: ['e1', 'e2', 'e3'] },
   ],
 };
@@ -37,10 +36,10 @@ describe('focusViewToFlow', () => {
     expect(region.dragHandle).toBe(`.${GROUP_GRIP}`);
   });
 
-  it('renders a real edge with its kind label and a derived edge with a count label', () => {
+  it('renders a real edge with its own label and a derived edge with a count label', () => {
     const { edges } = focusViewToFlow(view, pos);
     const real = edges.find((e) => e.id === 'i')!;
-    expect(real.label).toBe('uses');
+    expect(real.label).toBe('reads settings');
     expect((real.data as { derived?: boolean } | undefined)?.derived).toBeFalsy();
     const derived = edges.find((e) => e.id === 'ext:a1->cb')!;
     expect(derived.label).toBe('3');
@@ -225,11 +224,54 @@ describe('highlightSets', () => {
   });
 });
 
-it('gives every profile verb class a distinct colour', () => {
-  const classes = [...new Set(c4Backend.verbs.map((v) => v.class))];
-  const colors = classes.map((c) => VERB_CLASS_COLOR[c]);
-  expect(colors.every(Boolean)).toBe(true);
-  expect(new Set(colors).size).toBe(classes.length);
-  // Violet means "derived rollup edge" everywhere else; one colour, one meaning.
-  expect(colors).not.toContain('var(--edge-derived)');
+it('draws every authored edge in the one neutral line colour, never the derived violet', () => {
+  const { edges } = focusViewToFlow(view, pos);
+  const real = edges.find((e) => e.id === 'i')!;
+  expect(real.style?.stroke).toBe('var(--edge-line)');
+  // Violet means "derived rollup edge" and nothing else; one colour, one meaning.
+  expect(real.style?.stroke).not.toBe('var(--edge-derived)');
+});
+
+describe('focusViewToFlow — the shelf', () => {
+  const shelfView = (): FocusView => ({
+    ...view,
+    shelf: [{ node: node('found', 'Container'), count: 7 }],
+    edges: [
+      ...view.edges,
+      { id: 's1', from: 'found', to: 'a1', count: 1, derived: false, realizedBy: ['s1'], label: 'owns', shelved: true },
+    ],
+  });
+  const shelfPos = { ...pos, found: { x: 0, y: 600 } };
+
+  it('draws a shelf node as a ghost carrying its count', () => {
+    const { nodes } = focusViewToFlow(shelfView(), shelfPos);
+    const n = nodes.find((x) => x.id === 'found')!;
+    expect(n.type).toBe('ghost');
+    expect((n.data as { shelfCount?: number }).shelfCount).toBe(7);
+    // Furniture, not a collapsed group: no expand affordance.
+    expect((n.data as { expandable?: boolean }).expandable).toBeUndefined();
+  });
+
+  it('draws an inert band wrapping the shelf nodes', () => {
+    const { nodes } = focusViewToFlow(shelfView(), shelfPos);
+    const band = nodes.find((x) => x.id === SHELF_ID)!;
+    expect(band.type).toBe('shelf');
+    expect(band.selectable).toBe(false);
+    expect(band.draggable).toBe(false);
+    expect(band.dragHandle).toBeUndefined();
+    expect((band.style as { pointerEvents?: string }).pointerEvents).toBe('none');
+    // Its title strip sits above its members, like every other containment box.
+    expect(band.position.y).toBeLessThan(shelfPos.found.y);
+  });
+
+  it('draws no band when nothing is shelved', () => {
+    const { nodes } = focusViewToFlow(view, pos);
+    expect(nodes.find((x) => x.id === SHELF_ID)).toBeUndefined();
+  });
+
+  it('flags a shelved edge in its data and leaves the others alone', () => {
+    const { edges } = focusViewToFlow(shelfView(), shelfPos);
+    expect((edges.find((ed) => ed.id === 's1')!.data as { shelved?: boolean }).shelved).toBe(true);
+    expect((edges.find((ed) => ed.id === 'i')!.data as { shelved?: boolean } | undefined)?.shelved).toBeUndefined();
+  });
 });

@@ -1,8 +1,8 @@
 import { MarkerType, type Node as FlowNode, type Edge as FlowEdge } from '@xyflow/react';
-import { c4Backend, layerOfType, roleOfNode, roleDefOf, verbClassOf, type Node as ModelNode } from '@hyphae/schema';
+import { c4Backend, layerOfType, roleOfNode, roleDefOf, type Node as ModelNode } from '@hyphae/schema';
 import type { FocusView, FocusEdge } from '@/core/focusView';
 import { NODE_W, NODE_H, PAD, LABEL_H, type XY } from './layout';
-import { layerColorOf, VERB_CLASS_COLOR } from '@/core/verbColors';
+import { layerColorOf } from '@/core/layerColors';
 
 /** The node data every node renderer reads: name, the on-diagram purpose, tech chip, and shape. */
 export function nodeVisual(n: ModelNode) {
@@ -20,28 +20,30 @@ function markers(direction: string | undefined, color?: string): Pick<FlowEdge, 
   return { markerEnd: arrow, ...(direction === 'Bidirectional' ? { markerStart: arrow } : {}) };
 }
 
-const OBJECT_CAP = 24;
+// A label carries the whole meaning of the edge now, so it gets more room than the old 24-char
+// object cap allowed — but still a cap, because an unbounded label wrecks the layout.
+const LABEL_CAP = 40;
 
-/** "reads camera list" — the verb, plus the object when there is one, capped so a long
- *  object cannot wreck the layout. */
-export function edgeLabel(verb: string, object: string): string {
-  const obj = object.trim();
-  if (!obj) return verb;
-  const clipped = obj.length > OBJECT_CAP ? `${obj.slice(0, OBJECT_CAP - 1)}…` : obj;
-  return `${verb} ${clipped}`;
+/** The edge's label, trimmed and clipped to something a diagram can carry. */
+export function clipLabel(label: string): string {
+  const t = label.trim();
+  return t.length > LABEL_CAP ? `${t.slice(0, LABEL_CAP - 1)}…` : t;
 }
 
 function realEdge(e: FocusEdge): FlowEdge {
-  const verb = e.verb ?? 'uses';
-  const color = VERB_CLASS_COLOR[verbClassOf(c4Backend, verb) ?? 'control'];
+  // Every authored edge takes the one neutral line colour. Hue on an edge used to mean verb class;
+  // with the verb vocabulary gone it means nothing, so it is not spent here.
+  const color = 'var(--edge-line)';
   return {
     id: e.id,
     type: 'floating',
     source: e.from,
     target: e.to,
-    label: edgeLabel(verb, e.object ?? ''),
+    label: clipLabel(e.label ?? ''),
     style: { stroke: color },
     labelStyle: { fill: color, fontWeight: 500 },
+    // Conditional, so an unshelved edge's `data` stays absent exactly as it was.
+    ...(e.shelved ? { data: { shelved: true } } : {}),
     ...markers(e.direction, color),
   };
 }
@@ -53,7 +55,7 @@ function derivedEdge(e: FocusEdge): FlowEdge {
     source: e.from,
     target: e.to,
     label: String(e.count),
-    data: { derived: true, count: e.count, realizedBy: e.realizedBy },
+    data: { derived: true, count: e.count, realizedBy: e.realizedBy, ...(e.shelved ? { shelved: true } : {}) },
     selectable: true,
     focusable: true,
     deletable: false,
@@ -83,6 +85,10 @@ const BOUNDARY_Z = -1;
  *  GroupNode/GhostGroupNode, which render it, and with canvas.css, which makes it the one part of a
  *  pointer-transparent box that takes pointer events. */
 export const GROUP_GRIP = 'region__handle';
+
+/** React Flow node id of the shelf band. Not a model id — the band is chrome, and no node in a
+ *  Hyphae model has a `__…__` id. */
+export const SHELF_ID = '__shelf__';
 
 export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nodes: FlowNode[]; edges: FlowEdge[] } {
   const nodes: FlowNode[] = [];
@@ -149,6 +155,41 @@ export function focusViewToFlow(view: FocusView, pos: Record<string, XY>): { nod
       zIndex: BOUNDARY_Z,
       dragHandle: `.${GROUP_GRIP}`,
       selectable: false,
+    });
+  }
+
+  // The shelf: the foundational nodes whose edges are not drawn, inside an inert band. Emitted before
+  // the children so the band paints behind everything, like the other two containment boxes.
+  const shelf = view.shelf ?? [];
+  const shelfPos = shelf.map((s) => pos[s.node.id]).filter(Boolean) as XY[];
+  if (shelfPos.length) {
+    const minX = Math.min(...shelfPos.map((p) => p.x));
+    const minY = Math.min(...shelfPos.map((p) => p.y));
+    const maxX = Math.max(...shelfPos.map((p) => p.x + NODE_W));
+    const maxY = Math.max(...shelfPos.map((p) => p.y + NODE_H));
+    const width = maxX - minX + 2 * PAD;
+    const height = maxY - minY + LABEL_H + 2 * PAD;
+    nodes.push({
+      id: SHELF_ID,
+      type: 'shelf',
+      position: { x: minX - PAD, y: minY - LABEL_H - PAD },
+      data: { label: 'Foundational' },
+      style: { width, height, pointerEvents: 'none' as const },
+      initialWidth: width,
+      initialHeight: height,
+      zIndex: BOUNDARY_Z,
+      // No dragHandle, and not draggable: furniture. A hoverable band would dim the whole graph on
+      // the way past, and a grab cursor would promise a drag that does not exist.
+      selectable: false,
+      draggable: false,
+    });
+  }
+  for (const s of shelf) {
+    nodes.push({
+      id: s.node.id, type: 'ghost', position: pos[s.node.id] ?? { x: 0, y: 0 },
+      // No `expandable`: a shelved node is furniture, not a collapsed group.
+      data: { ...nodeVisual(s.node), shelfCount: s.count },
+      initialWidth: NODE_W, initialHeight: NODE_H,
     });
   }
 

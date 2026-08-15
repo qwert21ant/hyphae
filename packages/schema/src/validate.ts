@@ -1,7 +1,7 @@
 import type { HyphaeModel } from './model';
 import type { Profile, FieldDef } from './profile';
 import { allowedParentTypes, c4Backend } from './profiles/c4-backend';
-import { nodeFields, connectionFields, roleDefOf, verbDefOf } from './profile';
+import { nodeFields, connectionFields, roleDefOf } from './profile';
 import type { Node } from './node';
 import { isDirectoryRef, resolveRoot, resolveRef } from './ref';
 
@@ -11,7 +11,7 @@ export type Issue = {
     | 'dangling-realizedBy'
     | 'unknown-field' | 'bad-field-type' | 'bad-enum-value' | 'missing-required-field' | 'bad-ref'
     | 'unanchored-ref' | 'bad-root'
-    | 'unknown-role' | 'unknown-verb'
+    | 'unknown-role'
     | 'bad-flow-endpoint' | 'bad-flow-via' | 'bad-flow-scope'
     | 'pattern-unknown-kind' | 'pattern-member-double-bind' | 'pattern-member-bad-node'
     | 'pattern-bad-anchor' | 'pattern-unanchored-ref' | 'pattern-bad-transition'
@@ -132,9 +132,6 @@ export function validateModel(model: HyphaeModel, profile: Profile): Issue[] {
       if (!connIds.has(id)) {
         issues.push({ kind: 'dangling-realizedBy', ref: c.id, message: `realizedBy references missing connection "${id}"` });
       }
-    }
-    if (!verbDefOf(profile, c.verb)) {
-      issues.push({ kind: 'unknown-verb', ref: c.id, message: `Unknown verb "${c.verb}"` });
     }
     issues.push(...validateFields(c.fields, connectionFields(profile), nodeById, c.id));
   }

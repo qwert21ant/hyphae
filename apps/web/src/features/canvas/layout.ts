@@ -27,6 +27,12 @@ export const GRID_COLS = 4;
 // the boxes overlap — derived from NODE_H rather than hardcoded so growing the box can't break it.
 export const ROW_GAP = NODE_H + 12;
 export const MEMBER_PITCH = ROW_GAP; // expanded-group members stack at the same pitch as externals
+/**
+ * The empty band between the graph and the shelf. Derived from ROW_GAP, and deliberately LARGER than
+ * it: at the external columns' own row pitch the shelf would read as one more row of that column
+ * rather than as a separate place, which is the whole thing it exists to be.
+ */
+export const SHELF_GAP = ROW_GAP + PAD;
 
 /** The rendered height of an expanded group's box wrapping `n` members. */
 export function groupBoxHeight(n: number): number {
@@ -151,6 +157,23 @@ export function layoutFocusView(view: FocusView): Record<string, XY> {
   placeColumn(incoming, minX - gutterWidth(laneDemand(incoming)) - NODE_W);
   placeColumn(outgoing, maxX + gutterWidth(laneDemand(outgoing)));
 
+  // The shelf: a band along the bottom, under the cluster, the isolated-child grid AND both external
+  // columns — left and right are already spoken for. Every other slot is final by now, so `pos` is the
+  // true bottom of the drawing. Ordered by id so the band is stable across runs, and wrapped at
+  // GRID_COLS like the isolated-child grid so a heavily-marked model does not grow one endless row.
+  const shelfIds = (view.shelf ?? []).map((s) => s.node.id).sort(byId);
+  if (shelfIds.length) {
+    const placed = Object.values(pos);
+    const bottom = placed.length ? Math.max(...placed.map((p) => p.y + NODE_H)) : NODE_H;
+    const cols = Math.min(GRID_COLS, shelfIds.length);
+    const pitchX = NODE_W + NODE_SEP;
+    const bandW = (cols - 1) * pitchX + NODE_W;
+    const left = (minX + maxX) / 2 - bandW / 2;   // centred on the children cluster, not the whole drawing
+    shelfIds.forEach((id, i) => {
+      pos[id] = { x: left + (i % cols) * pitchX, y: bottom + SHELF_GAP + Math.floor(i / cols) * ROW_GAP };
+    });
+  }
+
   return pos;
 }
 
@@ -255,6 +278,9 @@ export function resolveViewPositions(view: FocusView, base: Record<string, XY>):
   const pos: Record<string, XY> = {};
   for (const n of view.children) if (base[n.id]) pos[n.id] = base[n.id];
   if (view.focusNode && base[view.focusNode.id]) pos[view.focusNode.id] = base[view.focusNode.id];
+  // A shelf node keeps its base slot verbatim: it is in no column, so the group-expansion offsets
+  // below have nothing to say about it.
+  for (const s of view.shelf ?? []) if (base[s.node.id]) pos[s.node.id] = base[s.node.id];
 
   const groups = view.externalGroups ?? [];
   const memberIds = new Set(groups.flatMap((g) => g.childIds));

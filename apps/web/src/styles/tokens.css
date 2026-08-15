@@ -1,9 +1,11 @@
 /* The single source of every design value. Nothing but custom properties belongs in this file.
  *
  * The system has one rule: LUMINANCE IS STATE, HUE IS MEANING. Altitude (--alt-*), selection and
- * focus are expressed as light level, which leaves the whole chromatic budget for the five verb
- * classes — the one thing on the canvas that genuinely needs colour to be told apart. Adding a
- * hue to anything structural breaks the system, not just the palette.
+ * focus are expressed as light level. The chromatic budget is now almost entirely UNSPENT: the verb
+ * classes that used to own it are gone, and a hue must mean something or not exist. What is left
+ * with a hue means exactly one thing each — violet is a derived rollup edge, --accent is
+ * interaction, --warn is an invalid flow or pattern. Adding a hue to anything structural breaks the
+ * system, not just the palette.
  *
  * Dark is the default. The light theme is warm paper rather than an inversion, so the two do not
  * read as the same design with the lamp turned off. */
@@ -39,11 +41,7 @@
   --alt-3-bd: #6B747C;
 
   /* hue — meaning only */
-  --verb-dataAccess: #5B9DD9;
-  --verb-messaging: #D9944E;
-  --verb-control: #8896A3;     /* the baseline: deliberately the least chromatic */
-  --verb-user: #D6789F;
-  --verb-traceability: #4FB6A0;
+  --edge-line: #8896A3;        /* every authored edge; deliberately the least chromatic thing here */
   --edge-derived: #9B7EDB;     /* violet keeps its existing exclusive meaning */
 
   /* interaction and status */
@@ -86,9 +84,9 @@
 }
 
 /* Warm paper. The altitude ramp densifies with depth here instead of brightening — the same
- * reading of "closer to you", not an inversion of it. The verb hues are markedly darker than a
- * tint of their dark counterparts because they are used as edge-label TEXT on --surface-2, where
- * a naive tint measures 3.6-4.3:1. See contrast.test.ts. */
+ * reading of "closer to you", not an inversion of it. The edge line is markedly darker than a tint
+ * of its dark counterpart because it is used as edge-label TEXT on --surface-2, where a naive tint
+ * measures 3.6-4.3:1. See contrast.test.ts. */
 [data-theme="light"] {
   color-scheme: light;
 
@@ -110,11 +108,7 @@
   --alt-3-bg: #DAD4C7;
   --alt-3-bd: #7A7264;
 
-  --verb-dataAccess: #265C8C;
-  --verb-messaging: #8F5214;
-  --verb-control: #5A6570;
-  --verb-user: #8F3566;
-  --verb-traceability: #176356;
+  --edge-line: #5A6570;
   --edge-derived: #6D4FB0;
 
   --accent: #B98A12;

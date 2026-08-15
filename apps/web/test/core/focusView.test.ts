@@ -4,11 +4,10 @@ import { breadcrumbPath } from '@/core/breadcrumb';
 import { externalConnections, partitionConnections } from '@/core/connections';
 import { stepReveal } from '@/core/stepReveal';
 import { emptyModel } from '@hyphae/schema';
-import { edgeLabel } from '@/features/canvas/reactflow';
-import { VERB_CLASS_COLOR } from '@/core/verbColors';
+import { clipLabel } from '@/features/canvas/reactflow';
 
-const base = { description: '', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
-const e = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+const base = { description: '', root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't', fields: {} };
+const e = { label: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
 
 /** sys › (ca, cb containers); ca has comps a1,a2; cb has comp b1; ext is external. */
 function model() {
@@ -69,15 +68,15 @@ describe('buildFocusView', () => {
     // fanned apart by FloatingEdge instead.
     const m = model();
     m.connections.push(
-      { id: 'fwd', from: 'a1', to: 'a2', ...e, verb: 'reads', object: 'palette' },
-      { id: 'rev', from: 'a2', to: 'a1', ...e, verb: 'invokes', object: 'access' },
+      { id: 'fwd', from: 'a1', to: 'a2', ...e, label: 'reads palette' },
+      { id: 'rev', from: 'a2', to: 'a1', ...e, label: 'invokes access' },
     );
     const v = buildFocusView(m, 'ca');
     const between = v.edges.filter((x) => [x.from, x.to].sort().join() === 'a1,a2');
     expect(between).toHaveLength(2);
     expect(between.every((x) => x.derived === false)).toBe(true);
-    expect(v.edges.find((x) => x.id === 'fwd')).toMatchObject({ from: 'a1', to: 'a2', verb: 'reads', direction: 'Unidirectional' });
-    expect(v.edges.find((x) => x.id === 'rev')).toMatchObject({ from: 'a2', to: 'a1', verb: 'invokes', direction: 'Unidirectional' });
+    expect(v.edges.find((x) => x.id === 'fwd')).toMatchObject({ from: 'a1', to: 'a2', label: 'reads palette', direction: 'Unidirectional' });
+    expect(v.edges.find((x) => x.id === 'rev')).toMatchObject({ from: 'a2', to: 'a1', label: 'invokes access', direction: 'Unidirectional' });
   });
 
   it('keeps direct connections separate while still collapsing the rolled-up ones on the same pair', () => {
@@ -158,10 +157,10 @@ describe('buildFocusView', () => {
   it('honors the connection filter', () => {
     const m = model();
     m.connections.push(
-      { id: 'i1', from: 'a1', to: 'a2', ...e },                        // uses → control
-      { id: 'i2', from: 'a2', to: 'a1', ...e, verb: 'reads' },            // dataAccess
+      { id: 'i1', from: 'a1', to: 'a2', ...e, fields: { tier: 'core' } },
+      { id: 'i2', from: 'a2', to: 'a1', ...e, fields: { tier: 'edge' } },
     );
-    const v = buildFocusView(m, 'ca', { verbClasses: ['control'], fields: {} });
+    const v = buildFocusView(m, 'ca', { fields: { tier: ['core'] } });
     expect(v.edges.map((x) => x.id)).toEqual(['i1']);
   });
 });
@@ -450,48 +449,45 @@ describe('breadcrumbPath', () => {
 });
 
 describe('edge labels', () => {
-  it('joins verb and object', () => {
-    expect(edgeLabel('reads', 'camera list')).toBe('reads camera list');
+  it('returns a short label unchanged', () => {
+    expect(clipLabel('reads settings')).toBe('reads settings');
   });
 
-  it('degrades to the verb alone when there is no object', () => {
-    expect(edgeLabel('publishes', '')).toBe('publishes');
+  it('trims surrounding whitespace', () => {
+    expect(clipLabel('  reads settings  ')).toBe('reads settings');
   });
 
-  it('caps a long object so the label stays readable', () => {
-    const label = edgeLabel('reads', 'an extremely long object name that would wreck the layout');
-    expect(label.length).toBeLessThanOrEqual(36);
+  it('clips a label longer than the cap and marks it with an ellipsis', () => {
+    const label = clipLabel('constructs at startup and owns for the whole session');
+    expect(label).toHaveLength(40);
     expect(label.endsWith('…')).toBe(true);
   });
 
-  it('has a colour for every verb class', () => {
-    for (const c of ['dataAccess', 'messaging', 'control', 'user'] as const) {
-      expect(VERB_CLASS_COLOR[c]).toMatch(/^var\(--/);
-    }
+  it('returns an empty string for an unlabelled edge', () => {
+    expect(clipLabel('')).toBe('');
   });
 });
 
-describe('buildFocusView — verb and object', () => {
-  it('carries verb and object onto a 1:1 edge', () => {
+describe('buildFocusView — label', () => {
+  it('carries the label onto a 1:1 edge', () => {
     const m = model();
     m.connections.push({ id: 'x', from: 'sys', to: 'ext', ...e });
-    m.connections[0].verb = 'reads';
-    m.connections[0].object = 'clips';
+    m.connections[0].label = 'reads clips';
     const v = buildFocusView(m, null);
     const edge = v.edges.find((x) => !x.derived && x.count === 1);
-    expect(edge).toMatchObject({ verb: 'reads', object: 'clips' });
+    expect(edge).toMatchObject({ label: 'reads clips' });
   });
 
-  it('leaves verb undefined on a derived edge, which aggregates several verbs', () => {
+  it('leaves label undefined on a derived edge, which aggregates several connections', () => {
     const m = model();
     m.connections.push(
-      { id: 'authored', from: 'ca', to: 'cb', ...e, verb: 'reads' },
-      { id: 'realize', from: 'a1', to: 'b1', ...e, verb: 'writes' },
+      { id: 'authored', from: 'ca', to: 'cb', ...e, label: 'reads' },
+      { id: 'realize', from: 'a1', to: 'b1', ...e, label: 'writes' },
     );
     const v = buildFocusView(m, 'sys');
     const derived = v.edges.filter((x) => x.derived);
     expect(derived.length).toBeGreaterThan(0);
-    for (const de of derived) expect(de.verb).toBeUndefined();
+    for (const de of derived) expect(de.label).toBeUndefined();
   });
 });
 
@@ -540,21 +536,97 @@ describe('stepReveal', () => {
   });
 });
 
-describe('connection filter by verb class', () => {
-  it('keeps only edges whose verb belongs to a selected class', () => {
+describe('connection filter by field', () => {
+  it('keeps only edges whose field value is selected', () => {
     const m = model();
     m.connections.push(
-      { id: 'r', from: 'a1', to: 'a2', ...e, verb: 'reads', object: '' },      // dataAccess
-      { id: 'p', from: 'a1', to: 'a2', ...e, verb: 'publishes', object: '' },  // messaging
+      { id: 'r', from: 'a1', to: 'a2', ...e, fields: { tier: 'core' } },
+      { id: 'p', from: 'a1', to: 'a2', ...e, fields: { tier: 'edge' } },
     );
-    const view = buildFocusView(m, 'ca', { verbClasses: ['messaging'], fields: {} });
+    const view = buildFocusView(m, 'ca', { fields: { tier: ['edge'] } });
     expect(view.edges.flatMap((ed) => ed.realizedBy)).toEqual(['p']);
   });
 
-  it('an empty verbClasses list filters nothing', () => {
+  it('an empty field selection filters nothing', () => {
     const m = model();
-    m.connections.push({ id: 'r', from: 'a1', to: 'a2', ...e, verb: 'reads', object: '' });
-    const view = buildFocusView(m, 'ca', { verbClasses: [], fields: {} });
+    m.connections.push({ id: 'r', from: 'a1', to: 'a2', ...e, fields: { tier: 'core' } });
+    const view = buildFocusView(m, 'ca', { fields: { tier: [] } });
     expect(view.edges.flatMap((ed) => ed.realizedBy)).toEqual(['r']);
+  });
+});
+
+describe('buildFocusView — the foundational shelf', () => {
+  /** The shared model, with connections crossing out of the `ca` focus and one node marked. */
+  const fanned = (foundationalId?: string) => {
+    const m = model();
+    m.connections.push(
+      { id: 'i', from: 'a1', to: 'a2', ...e },   // inner: stays an ordinary edge
+      { id: 'x', from: 'a1', to: 'b1', ...e },   // crosses out: maps onto the external `cb`
+      { id: 'y', from: 'a2', to: 'b1', ...e },
+    );
+    if (foundationalId) m.nodes.find((n) => n.id === foundationalId)!.foundational = true;
+    return m;
+  };
+
+  it('leaves the view untouched when nothing is marked', () => {
+    const v = buildFocusView(fanned(), 'ca');
+    expect(v.shelf ?? []).toEqual([]);
+    expect(v.edges.some((ed) => ed.shelved)).toBe(false);
+    expect(v.externals.map((n) => n.id)).toEqual(['cb']);
+  });
+
+  it('moves a foundational external off the columns and onto the shelf', () => {
+    const v = buildFocusView(fanned('cb'), 'ca');
+    expect(v.shelf?.map((s) => s.node.id)).toEqual(['cb']);
+    expect(v.externals.map((n) => n.id)).not.toContain('cb');
+  });
+
+  it('marks every edge touching a shelved node as shelved, and keeps drawing the rest', () => {
+    const v = buildFocusView(fanned('cb'), 'ca');
+    const touching = v.edges.filter((ed) => ed.from === 'cb' || ed.to === 'cb');
+    expect(touching.length).toBeGreaterThan(0);
+    expect(touching.every((ed) => ed.shelved)).toBe(true);
+    expect(v.edges.filter((ed) => ed.from !== 'cb' && ed.to !== 'cb').every((ed) => !ed.shelved)).toBe(true);
+  });
+
+  it('counts the shelved edges, not the underlying connections', () => {
+    const v = buildFocusView(fanned('cb'), 'ca');
+    expect(v.shelf?.[0].count).toBe(v.edges.filter((ed) => ed.shelved).length);
+    expect(v.shelf?.[0].count).toBe(2);   // a1->cb and a2->cb; the inner a1->a2 is not one of them
+  });
+
+  it('draws a foundational node normally inside its own container', () => {
+    // 'a1' is a child of the focus, so it is never an external and never shelved.
+    const v = buildFocusView(fanned('a1'), 'ca');
+    expect(v.shelf ?? []).toEqual([]);
+    expect(v.children.map((n) => n.id)).toContain('a1');
+    expect(v.edges.some((ed) => ed.shelved)).toBe(false);
+  });
+
+  it('shelves the marked node itself, not the ancestor it would roll up into', () => {
+    // The case the real model is made of: the marked node is a COMPONENT and the focus is a
+    // CONTAINER, so `b1` would normally be summarised into its parent `cb` and drawn as that ghost.
+    // Then the mark never fires and the fan stays on screen — which is the whole thing it exists to
+    // remove. A foundational node outside the focus therefore represents itself, at its own layer.
+    const v = buildFocusView(fanned('b1'), 'ca');
+    expect(v.shelf?.map((s) => s.node.id)).toEqual(['b1']);
+    expect(v.shelf?.[0].count).toBe(2);              // a1->b1 and a2->b1, no longer collapsed onto cb
+    expect(v.externals.map((n) => n.id)).not.toContain('cb'); // the ghost it was hiding behind is gone
+    expect(v.edges.filter((ed) => ed.shelved).length).toBe(2);
+  });
+
+  it('still draws a marked descendant of the focus as an ordinary member', () => {
+    // `b1` is a grandchild of the focus `sys` via `cb`, so it is INSIDE and must keep rolling up into
+    // the child `cb` — self-representing here would drop a Component into a Container cluster.
+    const v = buildFocusView(fanned('b1'), 'sys');
+    expect(v.shelf ?? []).toEqual([]);
+    expect(v.children.map((n) => n.id).sort()).toEqual(['ca', 'cb']);
+  });
+
+  it('offers no expand affordance on a shelved node', () => {
+    const plain = buildFocusView(fanned(), 'ca');
+    expect(plain.expandableExternalIds?.has('cb')).toBe(true);   // it would expand to reveal b1
+    const shelved = buildFocusView(fanned('cb'), 'ca');
+    expect(shelved.expandableExternalIds?.has('cb')).toBe(false);
   });
 });

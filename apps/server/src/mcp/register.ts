@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { c4Backend, verbClasses } from '@hyphae/schema';
+import { c4Backend } from '@hyphae/schema';
 import { flowItemSchema, flowStepSchema, patternItemSchema, patternMemberSchema, patternTransitionSchema, fieldsShape, text } from './params';
 import type { buildTools } from './tools/index';
 
@@ -33,10 +33,8 @@ export function registerAll(server: McpServer, tools: ReturnType<typeof buildToo
   server.registerTool(
     'list_connections',
     {
-      description: 'Query raw connections across the model. Filters (all optional, AND-combined): verb (an exact verb id), verbClass (dataAccess/messaging/control/user/traceability), nodeId (edges touching exactly this node — use to inspect one node\'s edges), containerId (edges touching that container or any of its descendants), crossingBoundary (true = endpoints in different owning containers — i.e. inter-container / external edges; false = intra-container only), involvingExternal (an endpoint is an ExternalSystem). Supports offset/limit. Each result is enriched with fromName/toName and fromContainer/toContainer. By default edges among Component-and-above nodes are returned; pass maxLayer to cap at a shallower layer. For DERIVED higher-level edges (component edges aggregated to Container/Context level) use rollup_connections.',
+      description: 'Query raw connections across the model. Filters (all optional, AND-combined): nodeId (edges touching exactly this node — use to inspect one node\'s edges), containerId (edges touching that container or any of its descendants), crossingBoundary (true = endpoints in different owning containers — i.e. inter-container / external edges; false = intra-container only), involvingExternal (an endpoint is an ExternalSystem). Supports offset/limit. Each result is enriched with fromName/toName and fromContainer/toContainer. By default edges among Component-and-above nodes are returned; pass maxLayer to cap at a shallower layer. For DERIVED higher-level edges (component edges aggregated to Container/Context level) use rollup_connections.',
       inputSchema: {
-        verb: z.enum(c4Backend.verbs.map((v) => v.id) as [string, ...string[]]).optional().describe('Only connections with this exact verb.'),
-        verbClass: z.enum(verbClasses(c4Backend) as [string, ...string[]]).optional().describe('Only connections whose verb belongs to this class.'),
         nodeId: z.string().optional().describe('A node id; keep only edges whose from or to is exactly this node.'),
         containerId: z.string().optional().describe('A container node id; keep only edges touching it or one of its descendants.'),
         crossingBoundary: z.boolean().optional().describe('true = only edges whose endpoints belong to different containers (inter-container/external); false = only intra-container edges.'),
@@ -63,12 +61,11 @@ export function registerAll(server: McpServer, tools: ReturnType<typeof buildToo
   server.registerTool(
     'get_subgraph',
     {
-      description: 'Local subgraph around a node: BFS to `depth` hops (default 1). Traverses BOTH connection edges (`direction` out/in/both, default both; optional `verbClass` filter) AND containment (`containment` down/up/both/none, default down). So get_subgraph on a Container returns its child Components (depth 1) and their wiring (depth 2). Traversal stops at Component-and-above by default; pass maxLayer to cap at a shallower layer. Returns the reached node summaries and every connection among them. Use this to explore around a node instead of dumping the whole model.',
+      description: 'Local subgraph around a node: BFS to `depth` hops (default 1). Traverses BOTH connection edges (`direction` out/in/both, default both) AND containment (`containment` down/up/both/none, default down). So get_subgraph on a Container returns its child Components (depth 1) and their wiring (depth 2). Traversal stops at Component-and-above by default; pass maxLayer to cap at a shallower layer. Returns the reached node summaries and every connection among them. Use this to explore around a node instead of dumping the whole model.',
       inputSchema: {
         nodeId: z.string(),
         depth: z.number().optional().describe('Max hops from the root, default 1. Containment and connection steps both count.'),
         direction: z.enum(['in', 'out', 'both']).optional().describe('Which connection edges to follow: out (from→to), in (to→from), or both (default).'),
-        verbClass: z.enum(verbClasses(c4Backend) as [string, ...string[]]).optional().describe('Only traverse connections whose verb belongs to this class.'),
         containment: z.enum(['down', 'up', 'both', 'none']).optional().describe('Follow parentId links: down = into children (default), up = to parents, both, or none. Default down means a Container returns its Components.'),
         maxLayer: z.enum(c4Backend.layers as [string, ...string[]]).optional().describe('Deepest layer to traverse/return (default Component, the deepest layer). Nodes below it are not visited.'),
       },
@@ -82,6 +79,8 @@ export function registerAll(server: McpServer, tools: ReturnType<typeof buildToo
       .describe('Optional directory Ref (must end with "/") anchoring this node\'s subtree on disk, e.g. "endpoints/media_gateway/". Refs on this node and its descendants resolve against it, and roots chain down the containment tree — a System declares the repo root, a Container its subtree, and Components stay short and relative. A codeRef on a node with no anchoring root anywhere in its ancestors is a validation issue.'),
     role: z.string().nullable().optional()
       .describe('Archetype that decides this node\'s shape on the diagram — a role id from describe_profile (actor, service, datastore, queue, external, ui). Omit or null to use the node kind\'s default. Set it when a Component is really a database, cache, or queue: that is where the diagram gains meaning, since every Component defaults to a plain service box.'),
+    foundational: z.boolean().optional()
+      .describe('Mark this node as foundational: infrastructure the rest of the model naturally leans on (a composition root, a settings/config store, a shared logger). The viewer then stops drawing its edges when it appears OUTSIDE the container being focused and parks it on a shelf with a count of them instead, so one mark replaces a fan of near-identical lines. Set it by judgement, on a handful of nodes at most — it is not a degree threshold, and marking a genuine participant hides real structure. The connections themselves are unaffected and every query still returns them.'),
     description: z.string().optional(),
     codeRefs: z.array(z.string()).optional()
       .describe('Refs into the source, relative to the nearest ancestor root. Syntax decides the kind: "src/views/cctv/" directory, "src/main.ts" file, "src/main.ts#getRouter" symbol, "src/main.ts#L10-L40" line range, "src/views/**/*.vue" glob.'),
@@ -97,17 +96,15 @@ export function registerAll(server: McpServer, tools: ReturnType<typeof buildToo
   const coreConnFields = {
     description: z.string().optional(),
     direction: z.enum(['Unidirectional', 'Bidirectional']).optional(),
-    verb: z.string().optional()
-      .describe('The business action this edge performs — a verb id from describe_profile (reads, writes, publishes, invokes, views, …). Shown on the diagram and colored by verb class. Defaults to "uses"; pick something more specific whenever one fits, because "uses" carries almost no information.'),
-    object: z.string().optional()
-      .describe('What the action acts on — a short noun such as "camera list" or "clip". Rendered after the verb ("reads camera list"). Keep it under about 24 characters so the label stays readable.'),
+    label: z.string().optional()
+      .describe('What this edge says, in your own words — the ONLY text drawn on the diagram. State something a reader cannot infer from the two node names ("constructs at startup and owns for the session"), not a restatement of the target ("uses the mine process"). Keep it under about 40 characters. An edge with nothing worth saying here should not be created.'),
     realizedBy: z.array(z.string()).optional()
       .describe('Ids of lower-layer connections this edge aggregates/describes (e.g. a Container↔Container edge realizedBy the Component↔Component edges that explain it). Bound edges are excluded from rollup.'),
     fields: z.object(fieldsShape('connection')).partial().optional(),
   };
   const connItem = z.object({ from: z.string(), to: z.string(), ...coreConnFields });
   server.registerTool('create_connections', {
-    description: "Create one OR MANY connections in a single call (single write = one-element array). Each item: from, to (existing node ids), verb + object (what the edge does and to what — this is the diagram label), and optional realizedBy to bind lower-layer edges. Best-effort: {created:[{id,from,to},...]} in input order on full success, else {results:[{id,from,to}|{issues}]}. Use the echoed ids to fill `realizedBy` on a higher-layer edge without re-listing.",
+    description: "Create one OR MANY connections in a single call (single write = one-element array). Each item: from, to (existing node ids), label (what the edge says — this is the diagram label), and optional realizedBy to bind lower-layer edges. Best-effort: {created:[{id,from,to},...]} in input order on full success, else {results:[{id,from,to}|{issues}]}. Use the echoed ids to fill `realizedBy` on a higher-layer edge without re-listing.",
     inputSchema: { connections: z.array(connItem) },
   }, async (a) => text(await tools.create_connections(a)));
 
@@ -134,7 +131,7 @@ export function registerAll(server: McpServer, tools: ReturnType<typeof buildToo
   }, async (a) => text(await tools.delete_connections(a)));
 
   server.registerTool('describe_profile', {
-    description: 'The active profile: its layers, node kinds, roles, verbs (with their classes), pattern kinds, and the documented custom fields (with enum values and descriptions) valid for each. Call this to learn what `type`, `role` and `verb` values are available before creating nodes/connections.',
+    description: 'The active profile: its layers, node kinds, roles, pattern kinds, and the documented custom fields (with enum values and descriptions) valid for each. Call this to learn what `type` and `role` values are available before creating nodes/connections.',
     inputSchema: {},
   }, async () => text(await tools.describe_profile({})));
 

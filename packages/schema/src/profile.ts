@@ -25,14 +25,6 @@ export const RoleDefSchema = z.object({
   shape: ShapeSchema,
 });
 
-export const VerbClassSchema = z.enum(['dataAccess', 'messaging', 'control', 'user', 'traceability']);
-
-export const VerbDefSchema = z.object({
-  id: z.string(),
-  class: VerbClassSchema,
-  description: z.string(),
-});
-
 /** Which built-in renderer draws a pattern kind. The profile names it; the code owns the geometry. */
 export const PatternRendererSchema = z.enum([
   'pipeline', 'middleware', 'state-machine', 'layered', 'event-bus',
@@ -70,7 +62,6 @@ export const ProfileSchema = z.object({
   layers: z.array(z.string()),       // ordered, top -> bottom
   nodeKinds: z.array(NodeKindSchema),
   roles: z.array(RoleDefSchema).default([]),
-  verbs: z.array(VerbDefSchema).default([]),
   patternKinds: z.array(PatternKindDefSchema).default([]),
   commonNodeFields: z.array(FieldDefSchema).default([]),
   commonConnectionFields: z.array(FieldDefSchema).default([]),
@@ -83,8 +74,6 @@ export type Profile = z.infer<typeof ProfileSchema>;
 export type NodeKind = z.infer<typeof NodeKindSchema>;
 export type Shape = z.infer<typeof ShapeSchema>;
 export type RoleDef = z.infer<typeof RoleDefSchema>;
-export type VerbClass = z.infer<typeof VerbClassSchema>;
-export type VerbDef = z.infer<typeof VerbDefSchema>;
 export type PatternRenderer = z.infer<typeof PatternRendererSchema>;
 export type PatternKindDef = z.infer<typeof PatternKindDefSchema>;
 
@@ -93,18 +82,6 @@ export const layerOfType = (profile: Profile, type: string): string | undefined 
 
 export const roleDefOf = (profile: Profile, roleId: string): RoleDef | undefined =>
   profile.roles.find((r) => r.id === roleId);
-
-export const verbDefOf = (profile: Profile, verbId: string): VerbDef | undefined =>
-  profile.verbs.find((v) => v.id === verbId);
-
-export const verbClassOf = (profile: Profile, verbId: string): VerbClass | undefined =>
-  verbDefOf(profile, verbId)?.class;
-
-/** The distinct verb classes actually in use by this profile's verbs, in profile order. This is
- *  the single authority for "which classes exist" — deriving it from the verbs (rather than from
- *  `VerbClassSchema.options`) means a class added to the schema without a verb never shows up in
- *  a filter or legend where it would match nothing. */
-export const verbClasses = (profile: Profile): VerbClass[] => [...new Set(profile.verbs.map((v) => v.class))];
 
 export const patternKindDefOf = (profile: Profile, kindId: string): PatternKindDef | undefined =>
   profile.patternKinds.find((k) => k.id === kindId);

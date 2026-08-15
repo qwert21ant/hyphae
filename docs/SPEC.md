@@ -21,9 +21,10 @@ not two copies.
 
 Two north stars, in order:
 1. **Human-diagram-first.** A reader learns the architecture from the picture: node roles
-   (shapes/icons), connections labeled with a **business action + object** ("reads camera
-   list", "stores clip"), numbered **Flows** for scenarios, and **Patterns** (pipeline,
-   middleware, state machine, …) that show internal shape without a class graph.
+   (shapes/icons), connections carrying a **one-phrase label** that says what the edge does
+   ("reads the camera list", "stores the clip"), numbered **Flows** for scenarios, and
+   **Patterns** (pipeline, middleware, state machine, …) that show internal shape without a
+   class graph.
 2. **LLM still core.** The model humans read is the model the LLM reads and writes. Structured
    fields, stable ids, and MCP make it queryable and verifiable; the end goal is the reverse
    flow — the user edits the top-level model → the AI cascades a rebuild of the lower levels →
@@ -33,7 +34,7 @@ The core premise stays: the model must describe **any** type of project — a se
 frontend, a CLI, a desktop app — not only a C4 backend. This is achieved through a small set
 of **orthogonal axes** (structure, dependencies, behavior, data, intent, presentation) over
 universal mechanisms. The project type changes only the **profile vocabulary** (node types,
-roles, verbs, pattern kinds); the engine is shared. Details in [MODEL.md](./MODEL.md).
+roles, pattern kinds); the engine is shared. Details in [MODEL.md](./MODEL.md).
 
 The metaphor in the name: hyphae are the threads of a mycelium — the invisible fabric
 connecting code, architectural knowledge, and AI agents.
@@ -43,7 +44,7 @@ connecting code, architectural knowledge, and AI agents.
 ## 2. Goals
 
 - A visual viewer whose **diagrams are legible on their own**: node roles as shapes/icons,
-  connections labeled with a business verb + object, detail in the side panel.
+  connections labeled with one phrase saying what the edge does, detail in the side panel.
 - **Flows** bound to the model — numbered step-sequences overlaid on the diagram for scenarios
   ("user views live feed").
 - **Patterns** — a profile-driven overlay entity that renders architectural motifs
@@ -105,8 +106,8 @@ A local web application on the Structurizr Lite model:
 
 A node's layer is a derivative of the **profile** + the node's category. A profile is a
 declarative vocabulary: node types (each with a `role`/archetype), containment rules,
-the **verb** vocabulary, and **pattern** kinds. There is no separate connection kind — a
-connection's meaning is its `verb` + `object` alone.
+and **pattern** kinds. There is no separate connection kind and no verb vocabulary — a
+connection's meaning is its free-text `label` alone.
 
 The primary profile is `c4-backend`:
 
@@ -119,16 +120,17 @@ The primary profile is `c4-backend`:
 | ~~Code~~ | ~~Classes / functions~~ | **Removed** — code = `codeRefs` + Patterns |
 
 A fixed-but-profiled vocabulary is kept for LLM-friendliness. Future profiles
-(frontend / cli / desktop) define their own layers, roles, verbs, and pattern kinds without
+(frontend / cli / desktop) define their own layers, roles, and pattern kinds without
 touching the core.
 
 ### 6.2 Nodes
 
 **Core (same for all profiles):** `id`, `name`, `type` (profile node kind), **`role`**
-(archetype → shape/icon), `description`, `parentId` (the sole carrier of "what it is made of"),
-**`root`** (optional directory Ref anchoring this subtree on disk — §6.10), `codeRefs` /
-`docRefs`, `createdAt` / `updatedAt`, and a `fields` bag. `layer` / `category` are derived from
-`type`, not stored.
+(archetype → shape/icon), **`foundational`** (authored: infrastructure the model leans on, drawn on
+the shelf instead of in the graph where it is external to the focus — §9), `description`, `parentId`
+(the sole carrier of "what it is made of"), **`root`** (optional directory Ref anchoring this subtree
+on disk — §6.10), `codeRefs` / `docRefs`, `createdAt` / `updatedAt`, and a `fields` bag.
+`layer` / `category` are derived from `type`, not stored.
 
 **`fields` (profile domain fields):** e.g. in `c4-backend` `responsibilities` (list),
 `invariants` (list) on all; `technology` (text) on Container/Component. Every field and enum
@@ -141,17 +143,16 @@ the rest is side-panel detail.
 
 A first-class entity and the main carrier of on-diagram meaning.
 
-**Core:** `id`, `from`, `to`, **`verb`** (profile business action), **`object`** (short noun or a
-`DataEntity` ref), `description`, `direction`, `realizedBy` (cross-layer aggregation),
-`codeRefs`, and a `fields` bag. There is no separate connection kind — verb and object alone
-carry an edge's meaning.
+**Core:** `id`, `from`, `to`, **`label`** (free text — what this edge does), `description`,
+`direction`, `realizedBy` (cross-layer aggregation), `codeRefs`, and a `fields` bag. There is no
+separate connection kind, and no verb vocabulary — the label alone carries an edge's meaning.
 
-- **`verb`** is shown on the edge and colored by class — *data access* (reads / writes /
-  stores / modifies / aggregates …), *messaging* (publishes / subscribes / notifies …),
-  *control* (invokes / triggers / requests), *user* (views / submits / navigates),
-  *traceability* (implements / satisfies — §6.8). It replaces the former low-signal `intent`,
-  and the connection `type` (kind) and `transport` field it once overlapped with — both retired.
-- **`object`** links the action to a `DataEntity` when relevant ("reads → Camera").
+- **`label`** is the only text drawn on the edge. It must say something a reader **cannot infer
+  from the two node names**: "constructs at startup and owns for the session", not "uses the mine
+  process". An edge with nothing worth saying there should not exist. This is the rule that replaced
+  the `verb` + `object` pair, which measured 50% `uses`/`invokes` and 79% undescribed on a real
+  model — see `docs/superpowers/specs/2026-08-12-model-legibility-design.md`.
+- **`description`** is the optional long form, shown in the inspector rather than on the canvas.
 
 > `Composition` is removed — containment is only `parentId`.
 
@@ -214,7 +215,7 @@ authored as **Pattern members** carrying a `ref`, not as a ref list.
 ### 6.8 Reserved axes (schema present, tools and rendering later)
 
 - `requirements` — **Intent axis.** Requirement nodes (Functional | Quality | Constraint),
-  traced from nodes/flows via the `traceability` verb class (`implements` / `satisfies`).
+  traced from nodes/flows by a connection whose `label` states the trace (`implements`, `satisfies`).
 - `decisions` — **Intent axis.** ADR nodes (context / choice / consequences / status).
 
 ### 6.9 Views
@@ -291,12 +292,14 @@ Built into the core, and unchanged by the visual repositioning:
 - **JSON Schema as the contract.** Zod schemas are the source of truth → viewer TS types, JSON
   Schema, the granular API, and the MCP tools.
 - **Stable IDs on everything.** The LLM references a specific node/connection across messages.
-- **Free text + structured fields.** `description` is semantics; `responsibilities` /
-  `invariants` and the new `verb`/`object`/`carries` are addressable structure.
-- **Closed, described vocabularies.** Node types, roles, verbs, and pattern kinds are finite
+- **Free text + structured fields.** `description` and a connection's `label` are semantics;
+  `responsibilities` / `invariants` / `carries` are addressable structure.
+- **Closed, described vocabularies.** Node types, roles, and pattern kinds are finite
   and documented per profile — easy for an LLM to fill correctly and for the editor to tooltip.
-- **Traceability as a graph.** Requirement ↔ Node ↔ Code and Connection ↔ DataEntity via the
-  `traceability` verb class / `realizedBy` / `carries` / `codeRefs`. The LLM walks "requirement →
+  A connection's `label` is the one deliberately open slot; a closed verb list was tried and
+  removed, because half the edges ended up on a verb that said nothing.
+- **Traceability as a graph.** Requirement ↔ Node ↔ Code and Connection ↔ DataEntity via
+  `realizedBy` / `carries` / `codeRefs`. The LLM walks "requirement →
   component → code" and "flow → connections → data" to verify implementation and find gaps.
 - **Text export.** Render the graph into compact plain text for a prompt.
 - **MCP server (read + write).** Read: `describe_profile`, `model_overview`, `get_node`,
@@ -312,14 +315,22 @@ Built into the core, and unchanged by the visual repositioning:
 - **Diagram-first, model-backed.** The user reads the architecture off the diagram; a node's
   position in a view is a hint, not the truth.
 - **Meaning on the canvas, detail in the panel.** Node = role shape + name + one-line purpose;
-  connection = verb + object. Full fields, invariants, codeRefs, and incoming/outgoing lists
-  are side-panel.
+  connection = its `label`, one free-text phrase. Full fields, invariants, codeRefs, and
+  incoming/outgoing lists are side-panel.
 - **Legibility budget.** Cap what is shown at rest; roll up dense fans; push depth into
-  drill-down, Flows, Patterns, and the panel. A legend explains role shapes, verb-class colors,
-  and solid-vs-derived edges.
+  drill-down, Flows, Patterns, and the panel. A legend explains role shapes and
+  solid-vs-derived edges. A node the model **leans on** rather than talks to is marked
+  `foundational` and moves to a **shelf** — a band below the graph, out of the flow — where it states
+  the number of this view's edges it carries as a chip instead of drawing them. This is authored, not
+  a threshold: it spends the budget where the *author* knows an edge says nothing, and nothing is
+  hidden — hovering or selecting the node draws its edges, and the panel always lists them.
 - **Luminance is state, hue is meaning.** Altitude (Context → Container → Component), selection and
-  focus are expressed as light level; the chromatic budget belongs to the five verb classes, which
-  are the one thing on the canvas that needs colour to be told apart. Dark is the default; the light
+  focus are expressed as light level. The chromatic budget is almost entirely **unspent**: the verb
+  classes that used to own it are gone, and a hue must mean something or not exist. Violet means a
+  derived rollup edge, `--accent` interaction, `--warn` an invalid flow/pattern — and that is all.
+  Every authored edge takes one neutral `--edge-line`. A structural distinction reaches for a
+  difference in **form** instead: a pattern's kind is a chip, and the shelf is a band plus a count,
+  never a colour and never a luminance step on its own. Dark is the default; the light
   theme is warm paper rather than an inversion. Every value comes from
   `apps/web/src/styles/tokens.css`.
 - **A dragged position is a reading aid, not a fact about the model.** Manual positions last for the
@@ -328,8 +339,8 @@ Built into the core, and unchanged by the visual repositioning:
   would be model data, and it is not. A containment box is grabbed by its title bar and carries its
   contents, because the box is *derived from* its contents: it has no position of its own to move.
 - **Edge form carries routing, not meaning.** Curved and squared are the same edges drawn two ways —
-  the choice is the reader's, and neither encodes anything about the connection. Hue still belongs
-  entirely to the verb classes; a lane, a corner radius and a rotated label are differences in form.
+  the choice is the reader's, and neither encodes anything about the connection. A lane, a corner
+  radius and a rotated label are differences in form, and form is what a structural distinction gets.
 - **One tool call — one model operation.** An MCP write is atomic: reparenting a component is a
   `parentId` change; deleting a node cascades to remove its connections, and any flow step that
   referenced it is marked ↗ in the outline as undrawable.
@@ -385,7 +396,7 @@ Each phase is a projection of the axes already laid down in the schema.
 | Phase | | Status |
 |-------|---|--------|
 | A0 | Refs and roots | **shipped** |
-| A | Visual language (roles/shapes, verb + object) | **shipped** |
+| A | Visual language (roles/shapes, connection label) | **shipped** |
 | B | Flows | **shipped** |
 | C | Patterns | **shipped** |
 | E | Retire the Code node layer | **shipped** |
@@ -400,7 +411,9 @@ Each phase is a projection of the axes already laid down in the schema.
 
 ### Phase A — Visual language — shipped
 - Node **roles** → shapes/icons (profile-declared); render name + one-line purpose + tech chip.
-- Connection **verb + object** on the edge; color by verb class; retire `intent`.
+- Connection **`label`** on the edge — one neutral line colour, no hue by class; retire `intent`.
+  (Shipped first as `verb` + `object` coloured by verb class; both were removed once measurement
+  showed the vocabulary carried no signal — see §6.3.)
 - On-diagram-label vs side-panel-detail split; legend.
 - Reuses the existing focus view, floating edges, containment regions, side panel.
 
@@ -422,7 +435,7 @@ Each phase is a projection of the axes already laid down in the schema.
   an existing model is recreated, not folded — and `schemaVersion` stays `1`.
 
 ### Ongoing — configurable profiles
-- The verb, role, and pattern vocabularies are all profile-declared, so a new project type is a
+- The role and pattern vocabularies are all profile-declared, so a new project type is a
   new profile, not a new engine. Ship frontend / cli / desktop profiles after the core.
 
 ### Later
@@ -438,8 +451,9 @@ Each phase is a projection of the axes already laid down in the schema.
   Deferred until a real multi-repo model exists.
 - **Ref drift policy.** When a ref stops resolving on disk, is that a validation error, a
   `model_gaps` warning, or an auto-repair attempt?
-- **Verb vocabulary shape.** Closed profile-declared verb list vs a small closed core + free
-  object text. Leaning: closed `verb`, free-or-ref `object`.
+- **Shelving threshold.** A `foundational` node on the shelf can carry a count of 1, which hides one
+  edge behind a chip for no gain in density. Is a *display* minimum (shelve only at ≥ 2 or 3) worth
+  it, given the authored mark itself must never become a threshold?
 - **Pattern membership.** Can a node belong to two Patterns? How is pipeline ordering authored?
 - **Data projection scope.** How much ERD (entity relationships, cardinality) in Phase D vs
   defer.

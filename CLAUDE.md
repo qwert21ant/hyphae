@@ -28,7 +28,7 @@ schema in `packages/schema` wins any disagreement.
                      highlight.ts  flowEdges.ts  layout.ts  reactflow.ts
                      shapes.ts  patternView.ts  flowOverlay.ts  canvas.css
                      nodes/    NodeBox  NodeShape  GroupNode  GhostNode
-                               GhostGroupNode  PatternMemberNode
+                               GhostGroupNode  PatternMemberNode  ShelfBand
                      edges/    FloatingEdge.tsx  ports.ts  lanes.ts  paths.ts
                                routeEdges.ts
                      overlay/  Legend.tsx  FilterPanel.tsx
@@ -37,7 +37,7 @@ schema in `packages/schema` wins any disagreement.
                      fieldLayout.ts  inspector.css
         toolbar/     Toolbar.tsx  Altimeter.tsx  SearchBox.tsx  toolbar.css
       core/          NodeTree.ts  stepReveal.ts  connections.ts  breadcrumb.ts
-                     hashRoute.ts  verbColors.ts
+                     hashRoute.ts  layerColors.ts
                      focusView/  index.ts  buildFocusView.ts  edges.ts  types.ts
       state/         store.ts  api.ts  theme.ts
       styles/        tokens.css  base.css
@@ -78,12 +78,13 @@ resolving nothing, depending on which one you missed.
    a feature's components, hooks or stylesheet, and must not be where a helper lands merely because
    no feature wanted it. Being imported by two features is *not* the test, and never was:
    `breadcrumb.ts` has one caller (the toolbar), `connections.ts` one (the inspector), `hashRoute.ts`
-   one (`App.tsx`), and `NodeTree.ts` is used only by its `core/` neighbours. A non-canvas file
-   importing `features/canvas/*` internals is a layering bug — that is why `core/verbColors.ts`
-   exists: `VERB_CLASS_COLOR`, `LAYER_COLOR` and `layerColorOf` are read by
-   `features/inspector/ConnectionList.tsx` as well as by the canvas's own `overlay/FilterPanel.tsx`,
-   `overlay/Legend.tsx` and `reactflow.ts`, so they left `reactflow.ts` and the React Flow adapters
-   stayed behind. Importing a feature's public *component* (`App.tsx` importing `Canvas`) is fine.
+   one (`App.tsx`), `NodeTree.ts` is used only by its `core/` neighbours, and `core/layerColors.ts`
+   is now read only by the canvas (`reactflow.ts`, `overlay/Legend.tsx`) — each is in `core/` because
+   it is pure over `@hyphae/schema`, not because two features happened to want it. A non-canvas file
+   importing `features/canvas/*` internals is a layering bug; importing a feature's public
+   *component* (`App.tsx` importing `Canvas`) is fine. `layerColors.ts` was `verbColors.ts` until the
+   verb vocabulary and `VERB_CLASS_COLOR` went — what is left is `LAYER_COLOR`/`layerColorOf`, the
+   node-type → altitude mapping, and the old name had stopped describing it.
 
 ## Commands
 
@@ -91,7 +92,7 @@ resolving nothing, depending on which one you missed.
     pnpm server         # API + SSE on :5173, owns ./hyphae.json (override with HYPHAE_FILE)
     pnpm web            # viewer on :3000, proxies the API
     pnpm mcp            # MCP server — an HTTP client of the above, so the server must be running
-    pnpm -r test        # baseline 693 green: schema 147, server 107, web 439 (29 files)
+    pnpm -r test        # baseline 771 green: schema 145, server 109, web 517 (37 files)
     pnpm -r build
     pnpm --filter @hyphae/web typecheck   # tsc --noEmit — NOT part of build; see below
 
@@ -145,8 +146,9 @@ These cost real time when rediscovered:
 ## Styling — the rules the suite enforces
 
 The viewer has one design rule: **luminance is state, hue is meaning.** Altitude, selection and focus
-are light levels with no hue; the five `--verb-*` tokens own the whole chromatic budget; violet means
-only "rolled-up edge", `--accent` only interaction, `--warn` only an invalid flow/pattern. Giving a
+are light levels with no hue; the chromatic budget is almost entirely unspent since the verb classes
+were removed, and every authored edge takes the neutral `--edge-line`; violet means only
+"rolled-up edge", `--accent` only interaction, `--warn` only an invalid flow/pattern. Giving a
 structural distinction a hue, or a semantic one only a luminance step, is a design bug — reach for a
 difference in **form** instead (this is why a pattern's kind is a chip, not a colour). `docs/SPEC.md`
 §9 states the rule; `apps/web/src/styles/tokens.css` is the authoritative value for every colour,
@@ -256,6 +258,38 @@ index — and adding an overlap metric next to the crossing one.
 - **`expandedExternals` is for nodes OUTSIDE the focus.** Expanded groups are laid out in the
   external columns, so expanding a node that is drawn *inside* the view stacks a group box over the
   cluster. `stepReveal` (`core/stepReveal.ts`) guards this.
+- **A shelved edge is hidden, not removed.** A `foundational` node's edges stay in `view.edges` and in
+  the React Flow array carrying `data.shelved`, because the reveal on hover is an *opacity* change:
+  `highlightCss` hides them by id and the existing `highlightSets` reveals them, so a flow stepping
+  through one reveals it for free. Filter them out of the edge array instead and hovering a
+  foundational node reveals nothing. The hide rule is keyed on `[data-id]` (0,3,0) precisely so it
+  outranks the generic dim rule (0,2,0), which would otherwise fade a shelved edge *into* view
+  whenever some other node was active.
+- **Shelved edges are excluded from `routeEdges`, on purpose** (`useCanvasView`'s `displayEdges`).
+  They take `fallbackRoute`'s mid-side anchor, so a reveal draws as a fan from one point. Routing them
+  would spend ports on the in-view nodes and lanes in the gutter on invisible lines — exactly the
+  space the shelf exists to give back.
+- **The shelf band is inert chrome.** React Flow node id `SHELF_ID` (`__shelf__`, not a model id),
+  `pointerEvents: 'none'`, not selectable, not draggable, no handles, and deliberately **not**
+  `.region__handle` — if the band could become `hoveredId` it would dim the whole graph on the way
+  past, and `cursor: grab` would promise a drag that does not exist. It is excluded from
+  `highlightCss`'s node dim rule alongside `region` and `ghostGroup`, which is why that selector
+  carries three `:not()`s and specificity (0,5,0).
+- **A foundational node outside the focus REPRESENTS ITSELF** (`unexpandedRep` in `buildFocusView`),
+  instead of rolling up into its focus-layer ancestor. Without that the mark almost never fires: the
+  marked node is typically a Component and the focus a Container, so it was summarised into its
+  parent's ghost and its fan stayed on screen merely re-attributed to the parent. Measured on the real
+  model, this is the difference between the shelf doing nothing and `Process Layer` dropping from 38
+  drawn edges to 27. The shelf is layer-agnostic furniture, so a Component drawn there beside
+  Container ghosts is intended.
+- **`foundational` shelves a node only where it is EXTERNAL to the focus** — a child of the focus is in
+  `view.children` and never reaches `externals`, and the self-representation above is explicitly
+  skipped when the representative is inside, or a marked *descendant* of the focus would drop a
+  Component into a Container's cluster. The accepted cost is that focusing
+  a container still shows its own foundational child pulling lines from its siblings; the alternative
+  removes a container's own child from its own cluster, which makes containment lie. The shelf is
+  placed *last* in `layoutFocusView`, from the true bottom of every other slot, so left/right stay the
+  external columns.
 - **Pattern member React Flow nodes are keyed by member NAME, not a node id.** Never use one as a
   focus id; navigate via the member's `nodeId` — `drill()` in `features/canvas/useDrillNavigation.ts`
   checks ids against `model.nodes`.

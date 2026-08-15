@@ -29,4 +29,12 @@ describe('NodeSchema', () => {
     const n = NodeSchema.parse({ id: 'a', name: 'A', type: 'Component', createdAt: 't', updatedAt: 't', role: 'datastore' });
     expect(n.role).toBe('datastore');
   });
+  it('defaults foundational to false', () => {
+    const n = NodeSchema.parse({ id: 'a', name: 'A', type: 'Component', createdAt: 't', updatedAt: 't' });
+    expect(n.foundational).toBe(false);
+  });
+  it('keeps an explicit foundational mark', () => {
+    const n = NodeSchema.parse({ id: 'a', name: 'A', type: 'Container', createdAt: 't', updatedAt: 't', foundational: true });
+    expect(n.foundational).toBe(true);
+  });
 });

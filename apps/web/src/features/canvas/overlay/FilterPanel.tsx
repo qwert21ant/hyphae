@@ -1,24 +1,5 @@
 import { useStore } from '@/state/store';
-import { c4Backend, connectionFields, verbClasses, type FieldDef } from '@hyphae/schema';
-import { VERB_CLASS_COLOR } from '@/core/verbColors';
-
-function VerbClassGroup() {
-  const selected = useStore((s) => s.connFilter.verbClasses);
-  const toggle = useStore((s) => s.toggleConnVerbClass);
-  const classes = verbClasses(c4Backend);
-  return (
-    <div className="filter__group">
-      <div className="filter__label">Verb class</div>
-      {classes.map((cls) => (
-        <label className="filter__option" key={cls}>
-          <input type="checkbox" checked={selected.includes(cls)} onChange={() => toggle(cls)} />
-          <span className="filter__swatch" style={{ background: VERB_CLASS_COLOR[cls] }} />
-          {cls}
-        </label>
-      ))}
-    </div>
-  );
-}
+import { c4Backend, connectionFields, type FieldDef } from '@hyphae/schema';
 
 function FieldGroup({ def }: { def: FieldDef }) {
   const selected = useStore((s) => s.connFilter.fields[def.key] ?? []);
@@ -60,7 +41,7 @@ function LayoutGroup() {
 export function FilterPanel() {
   const filter = useStore((s) => s.connFilter);
   const clear = useStore((s) => s.clearConnFilter);
-  const active = filter.verbClasses.length + Object.values(filter.fields).reduce((a, v) => a + v.length, 0);
+  const active = Object.values(filter.fields).reduce((a, v) => a + v.length, 0);
   const enumFields = connectionFields(c4Backend).filter((f) => f.type === 'enum');
   return (
     <div className="float filter">
@@ -68,7 +49,6 @@ export function FilterPanel() {
         <strong className="filter__title">Connections</strong>
         {active > 0 && <button className="filter__clear" onClick={clear}>clear</button>}
       </div>
-      <VerbClassGroup />
       <LayoutGroup />
       {enumFields.map((f) => <FieldGroup key={f.key} def={f} />)}
     </div>

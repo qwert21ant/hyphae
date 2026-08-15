@@ -23,28 +23,6 @@ export const c4Backend: Profile = {
     { id: 'external', shape: 'hexagon', description: 'A system outside this model’s ownership.' },
     { id: 'ui', shape: 'titled-rectangle', description: 'A user-facing surface (screen, view, widget).' },
   ],
-  verbs: [
-    { id: 'reads', class: 'dataAccess', description: 'Reads data from the target without changing it.' },
-    { id: 'writes', class: 'dataAccess', description: 'Writes data to the target.' },
-    { id: 'stores', class: 'dataAccess', description: 'Persists data in the target for later retrieval.' },
-    { id: 'modifies', class: 'dataAccess', description: 'Changes data that already exists in the target.' },
-    { id: 'aggregates', class: 'dataAccess', description: 'Combines data from the target into a derived view.' },
-    { id: 'deletes', class: 'dataAccess', description: 'Removes data from the target.' },
-    { id: 'queries', class: 'dataAccess', description: 'Runs a search or filtered lookup against the target.' },
-    { id: 'publishes', class: 'messaging', description: 'Emits an event or message to the target.' },
-    { id: 'subscribes', class: 'messaging', description: 'Receives events or messages from the target.' },
-    { id: 'sends', class: 'messaging', description: 'Sends a directed message to the target.' },
-    { id: 'notifies', class: 'messaging', description: 'Informs the target that something happened.' },
-    { id: 'invokes', class: 'control', description: 'Calls an operation on the target and uses the result.' },
-    { id: 'triggers', class: 'control', description: 'Starts a process or job on the target.' },
-    { id: 'requests', class: 'control', description: 'Asks the target for a service or resource.' },
-    { id: 'uses', class: 'control', description: 'General dependency — the neutral default when nothing more specific fits.' },
-    { id: 'views', class: 'user', description: 'A person looks at information presented by the target.' },
-    { id: 'submits', class: 'user', description: 'A person sends input to the target.' },
-    { id: 'navigates', class: 'user', description: 'A person moves to the target surface.' },
-    { id: 'implements', class: 'traceability', description: 'Implements a functional requirement or a declared interface.' },
-    { id: 'satisfies', class: 'traceability', description: 'Meets a quality requirement (performance, security, availability).' },
-  ],
   patternKinds: [
     { id: 'pipeline', renderer: 'pipeline', ordered: true, description: 'Ordered stages data flows through in sequence (e.g. decode → normalize → persist). Members are the stages, in array order.' },
     { id: 'middleware', renderer: 'middleware', ordered: true, description: 'A request passes through an ordered chain of interceptors (e.g. auth → log → handler).' },
@@ -56,7 +34,7 @@ export const c4Backend: Profile = {
     { key: 'responsibilities', type: 'list', description: 'What this node is responsible for (one item per line).' },
     { key: 'invariants', type: 'list', description: 'Conditions that always hold true for this node.' },
   ],
-  // Empty by design: verb + object + description carry a connection's meaning. The array stays
+  // Empty by design: the connection's label and description carry its meaning. The array stays
   // so a custom profile can define its own connection fields.
   commonConnectionFields: [],
   nodeKinds: [

@@ -26,7 +26,7 @@ describe('viewer store', () => {
       'model', 'focusId', 'selectedId', 'selectedFlowId', 'selectedPatternId', 'ownVersion',
       'connFilter', 'audience', 'theme', 'expandedExternals', 'offViewStepOrders',
       'setModel', 'syncFromServer', 'setFocus', 'revealNode', 'revealStep', 'select',
-      'selectFlow', 'selectPattern', 'setOffViewSteps', 'setAudience', 'setTheme', 'toggleConnVerbClass',
+      'selectFlow', 'selectPattern', 'setOffViewSteps', 'setAudience', 'setTheme',
       'toggleConnField', 'clearConnFilter', 'toggleExternal',
       // Manual layout: view state, not a model write.
       'nodePositions', 'setNodePosition', 'setNodePositions', 'resetNodePositions',
@@ -175,21 +175,21 @@ describe('revealStep', () => {
   });
 });
 
-describe('connection verb-class filter', () => {
-  beforeEach(() => useStore.setState({ connFilter: { verbClasses: [], fields: {} } }));
+describe('connection field filter', () => {
+  beforeEach(() => useStore.setState({ connFilter: { fields: {} } }));
 
-  it('toggles a verb class on and off', () => {
-    useStore.getState().toggleConnVerbClass('messaging');
-    expect(useStore.getState().connFilter.verbClasses).toEqual(['messaging']);
-    useStore.getState().toggleConnVerbClass('messaging');
-    expect(useStore.getState().connFilter.verbClasses).toEqual([]);
+  it('toggles a field value on and off', () => {
+    useStore.getState().toggleConnField('tier', 'core');
+    expect(useStore.getState().connFilter.fields.tier).toEqual(['core']);
+    useStore.getState().toggleConnField('tier', 'core');
+    expect(useStore.getState().connFilter.fields.tier).toEqual([]);
   });
 
   it('clearConnFilter empties both groups', () => {
-    useStore.getState().toggleConnVerbClass('control');
+    useStore.getState().toggleConnField('tier', 'core');
     useStore.getState().toggleConnField('anything', 'x');
     useStore.getState().clearConnFilter();
-    expect(useStore.getState().connFilter).toEqual({ verbClasses: [], fields: {} });
+    expect(useStore.getState().connFilter).toEqual({ fields: {} });
   });
 });
 

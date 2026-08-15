@@ -6,10 +6,10 @@ function model(): HyphaeModel {
   const m = emptyModel();
   m.nodes.push({
     id: 'api', name: 'API', type: 'Container', description: 'edge', fields: { summary: 'Edge API' },
-    parentId: null, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+    parentId: null, root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
   });
   m.connections.push({
-    id: 'c1', from: 'api', to: 'api', fields: {}, verb: 'uses', object: '',
+    id: 'c1', from: 'api', to: 'api', fields: {}, label: '',
     description: 'self', direction: 'Unidirectional', realizedBy: [], codeRefs: [],
   });
   return m;
@@ -54,8 +54,8 @@ describe('MCP tool handlers', () => {
     const clean = fakeApi({ getModel: async () => {
       const m = emptyModel();
       m.nodes.push(
-        { id: 'sys', name: 'Sys', type: 'System', description: '', fields: { summary: 'x' }, parentId: null, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
-        { id: 'api', name: 'API', type: 'Container', description: 'edge', fields: { summary: 'Edge API' }, parentId: 'sys', root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
+        { id: 'sys', name: 'Sys', type: 'System', description: '', fields: { summary: 'x' }, parentId: null, root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
+        { id: 'api', name: 'API', type: 'Container', description: 'edge', fields: { summary: 'Edge API' }, parentId: 'sys', root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
       );
       return m;
     } });
@@ -63,7 +63,7 @@ describe('MCP tool handlers', () => {
     // a dangling connection endpoint surfaces an issue
     const api = fakeApi({ getModel: async () => {
       const m = model();
-      m.connections.push({ id: 'c2', from: 'api', to: 'ghost', fields: {}, verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [] });
+      m.connections.push({ id: 'c2', from: 'api', to: 'ghost', fields: {}, label: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [] });
       return m;
     } });
     const issues = (await buildTools(api).validate_model({})) as Array<{ kind: string; ref: string }>;
@@ -74,8 +74,8 @@ describe('MCP tool handlers', () => {
       const m = model();
       // add two lone (orphan) components under the existing container — neither has a connection
       m.nodes.push(
-        { id: 'comp', name: 'Comp', type: 'Component', parentId: 'api', description: 'does work', fields: {}, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
-        { id: 'orph', name: 'Orph', type: 'Component', parentId: 'api', description: '', fields: {}, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
+        { id: 'comp', name: 'Comp', type: 'Component', parentId: 'api', description: 'does work', fields: {}, root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
+        { id: 'orph', name: 'Orph', type: 'Component', parentId: 'api', description: '', fields: {}, root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' },
       );
       return m;
     } });
@@ -115,7 +115,7 @@ describe('MCP tool handlers', () => {
 
   it('update_connections reports per-item issues on partial failure', async () => {
     const api = fakeApi({ updateConnection: async () => ({ issues: [{ kind: 'dangling-endpoint', ref: 'c', message: 'no' }] }) });
-    const r = await buildTools(api).update_connections({ updates: [{ id: 'c1', verb: 'reads' }] });
+    const r = await buildTools(api).update_connections({ updates: [{ id: 'c1', label: 'reads the row' }] });
     expect(r).toEqual({ results: [{ issues: [{ kind: 'dangling-endpoint', ref: 'c', message: 'no' }] }] });
   });
 
@@ -177,12 +177,12 @@ describe('MCP tool handlers', () => {
 
   it('describe_profile returns kinds and documented fields', async () => {
     const r = (await buildTools(fakeApi()).describe_profile({})) as {
-      nodeKinds: Array<{ id: string }>; verbs: Array<{ id: string }>;
+      nodeKinds: Array<{ id: string }>;
       commonNodeFields: Array<{ key: string }>; patternKinds: Array<{ id: string }>;
     };
     expect(r.nodeKinds.map((k) => k.id)).toContain('Container');
     expect('connectionKinds' in r).toBe(false);
-    expect(r.verbs.map((v) => v.id)).toContain('reads');
+    expect('verbs' in r).toBe(false); // the verb vocabulary is gone; a label says what an edge does
     expect(r.commonNodeFields.map((f) => f.key)).toContain('responsibilities');
     expect(Array.isArray((r as { patternKinds?: unknown[] }).patternKinds)).toBe(true);
   });
@@ -191,7 +191,7 @@ describe('MCP tool handlers', () => {
 
 function graphModel(): HyphaeModel {
   const m = emptyModel();
-  const base = { fields: {}, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' };
+  const base = { fields: {}, root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' };
   m.nodes.push(
     { id: 'sys', name: 'Sys', type: 'System', description: '', parentId: null, ...base },
     { id: 'ca', name: 'Alpha', type: 'Container', description: '', parentId: 'sys', ...base },
@@ -201,11 +201,11 @@ function graphModel(): HyphaeModel {
     { id: 'n3', name: 'Widget', type: 'Component', description: 'beta widget', parentId: 'cb', ...base },
     { id: 'n4', name: 'Sink', type: 'Component', description: '', parentId: 'cb', ...base },
   );
-  const e = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+  const e = { label: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
   m.connections.push(
     { id: 'e1', from: 'n1', to: 'n2', ...e },
     { id: 'e2', from: 'n1', to: 'n3', ...e },
-    { id: 'e3', from: 'n2', to: 'n1', ...e, verb: 'publishes' },
+    { id: 'e3', from: 'n2', to: 'n1', ...e },
     { id: 'e4', from: 'n4', to: 'n1', ...e },
     { id: 'e5', from: 'n3', to: 'n4', ...e },
   );
@@ -229,7 +229,7 @@ describe('MCP query tools', () => {
   it('list_nodes query caps at 25 rows by default; explicit limit overrides and plain enumeration is uncapped', async () => {
     const big = () => {
       const m = emptyModel();
-      for (let i = 0; i < 30; i++) m.nodes.push({ id: `w${i}`, name: `Widget ${i}`, type: 'Component', description: '', parentId: null, fields: {}, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
+      for (let i = 0; i < 30; i++) m.nodes.push({ id: `w${i}`, name: `Widget ${i}`, type: 'Component', description: '', parentId: null, fields: {}, root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' });
       return m;
     };
     const a = fakeApi({ getModel: async () => big() });
@@ -266,12 +266,6 @@ describe('MCP query tools', () => {
     expect(out.nodes.map((n) => n.id).sort()).toEqual(['n1', 'n2', 'n3']);
     const both = (await buildTools(api()).get_subgraph({ nodeId: 'n1', depth: 1, direction: 'both' })) as { nodes: Array<{ id: string }> };
     expect(both.nodes.map((n) => n.id).sort()).toEqual(['n1', 'n2', 'n3', 'n4']);
-  });
-
-  it('get_subgraph filters by verb class', async () => {
-    const r = (await buildTools(api()).get_subgraph({ nodeId: 'n1', depth: 1, verbClass: 'messaging' })) as { nodes: Array<{ id: string }>; connections: unknown[] };
-    expect(r.nodes.map((n) => n.id).sort()).toEqual(['n1', 'n2']);
-    expect(r.connections).toHaveLength(1);
   });
 
   it('get_subgraph honors depth', async () => {
@@ -317,7 +311,7 @@ describe('MCP query tools', () => {
 
 function connModel(): HyphaeModel {
   const m = emptyModel();
-  const base = { description: '', fields: {}, root: null, role: null, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' };
+  const base = { description: '', fields: {}, root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't' };
   m.nodes.push(
     { id: 'sys', name: 'Sys', type: 'System', parentId: null, ...base },
     { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', ...base },
@@ -327,12 +321,12 @@ function connModel(): HyphaeModel {
     { id: 'b1', name: 'B1', type: 'Component', parentId: 'cb', ...base },
     { id: 'ext', name: 'Ext', type: 'ExternalSystem', parentId: null, ...base },
   );
-  const e = { verb: 'uses', object: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
+  const e = { label: '', description: '', direction: 'Unidirectional' as const, realizedBy: [], codeRefs: [], fields: {} };
   m.connections.push(
-    { id: 'x1', from: 'a1', to: 'b1', ...e, verb: 'reads' },       // dataAccess
-    { id: 'x2', from: 'a1', to: 'ext', ...e, verb: 'publishes' },  // messaging
-    { id: 'x3', from: 'b1', to: 'ext', ...e, verb: 'invokes' },    // control
-    { id: 'x4', from: 'a1', to: 'a2', ...e, verb: 'reads' },       // dataAccess
+    { id: 'x1', from: 'a1', to: 'b1', ...e, label: 'reads the profile row' },
+    { id: 'x2', from: 'a1', to: 'ext', ...e },
+    { id: 'x3', from: 'b1', to: 'ext', ...e },
+    { id: 'x4', from: 'a1', to: 'a2', ...e },
   );
   return m;
 }
@@ -345,9 +339,9 @@ describe('list_connections', () => {
     expect(ids(await buildTools(api()).list_connections({}))).toEqual(['x1', 'x2', 'x3', 'x4']);
   });
 
-  it('filters by verb and verbClass', async () => {
-    expect(ids(await buildTools(api()).list_connections({ verbClass: 'dataAccess' }))).toEqual(['x1', 'x4']);
-    expect(ids(await buildTools(api()).list_connections({ verb: 'invokes' }))).toEqual(['x3']);
+  it('returns each connection label, which is what the diagram draws', async () => {
+    const rows = (await buildTools(api()).list_connections({})) as Array<Record<string, unknown>>;
+    expect(rows.find((r) => r.id === 'x1')?.label).toBe('reads the profile row');
   });
 
   it('never returns the retired type/transport fields', async () => {
@@ -389,7 +383,7 @@ describe('list_connections', () => {
   it('caps edges to the max layer: a Component edge is dropped, a Container edge kept', async () => {
     const withContainerEdge = () => {
       const m = connModel();
-      m.connections.push({ id: 'cc', from: 'ca', to: 'cb', fields: {}, verb: 'uses', object: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [] });
+      m.connections.push({ id: 'cc', from: 'ca', to: 'cb', fields: {}, label: '', description: '', direction: 'Unidirectional', realizedBy: [], codeRefs: [] });
       return m;
     };
     const a = fakeApi({ getModel: async () => withContainerEdge() });
@@ -405,10 +399,10 @@ describe('rollup_connections', () => {
   const api = () => fakeApi({ getModel: async () => connModel() });
 
   it('layer:Container returns derived container edges with realizedBy expanded', async () => {
-    const r = (await buildTools(api()).rollup_connections({ layer: 'Container' })) as Array<{ from: string; to: string; realizedBy: Array<{ id: string; verb: string }> }>;
+    const r = (await buildTools(api()).rollup_connections({ layer: 'Container' })) as unknown as Array<{ from: string; to: string; realizedBy: Array<{ id: string; description: string }> }>;
     expect(r.map((e) => `${e.from}->${e.to}`).sort()).toEqual(['ca->cb', 'ca->ext', 'cb->ext']);
     const caCb = r.find((e) => e.from === 'ca' && e.to === 'cb')!;
-    expect(caCb.realizedBy).toEqual([{ id: 'x1', fromName: 'A1', toName: 'B1', verb: 'reads', object: '', description: '' }]);
+    expect(caCb.realizedBy).toEqual([{ id: 'x1', fromName: 'A1', toName: 'B1', description: '' }]);
   });
 
   it('layer:Context collapses internal edges to the System, keeping external edges', async () => {
@@ -542,6 +536,44 @@ describe('MCP pattern tools', () => {
     const r = await tools.create_patterns({ patterns: [{ name: 'P', kind: 'pipeline', members: [{ name: 'Decode', ref: 'd.ts' }] }] });
     expect(r).toEqual({ created: [{ id: 'p9', name: 'P' }] });
     expect(seen[0]).toMatchObject({ name: 'P', kind: 'pipeline', members: [{ name: 'Decode', ref: 'd.ts' }] });
+  });
+});
+
+import { z } from 'zod';
+import { registerAll } from '../src/mcp/register';
+
+describe('MCP node write shape', () => {
+  /** The input schemas the tools are actually REGISTERED with, by tool name. The handlers take an
+   *  opaque record, so this registration is the only place a node field can be silently stripped:
+   *  Zod drops unknown keys, so a field missing here never reaches the server at all. */
+  function registeredSchemas(): Map<string, Record<string, z.ZodTypeAny>> {
+    const captured = new Map<string, Record<string, z.ZodTypeAny>>();
+    const server = {
+      registerTool: (name: string, def: { inputSchema?: Record<string, z.ZodTypeAny> }) => {
+        if (def.inputSchema) captured.set(name, def.inputSchema);
+      },
+    };
+    registerAll(server as never, buildTools(fakeApi()));
+    return captured;
+  }
+
+  it('carries a foundational mark through create_nodes', () => {
+    const shape = registeredSchemas().get('create_nodes')!;
+    expect(z.object(shape).parse({ nodes: [{ name: 'Settings', type: 'Component', foundational: true }] }))
+      .toEqual({ nodes: [{ name: 'Settings', type: 'Component', foundational: true }] });
+  });
+
+  it('carries a foundational mark through update_nodes', () => {
+    const shape = registeredSchemas().get('update_nodes')!;
+    expect(z.object(shape).parse({ updates: [{ id: 'n1', foundational: false }] }))
+      .toEqual({ updates: [{ id: 'n1', foundational: false }] });
+  });
+
+  it('forwards the mark to the API as part of the patch', async () => {
+    const seen: Array<[string, unknown]> = [];
+    const api = fakeApi({ updateNode: async (id, patch) => { seen.push([id, patch]); return { node: { id }, version: 1 }; } });
+    await buildTools(api).update_nodes({ updates: [{ id: 'n1', foundational: true }] });
+    expect(seen).toEqual([['n1', { foundational: true }]]);
   });
 });
 

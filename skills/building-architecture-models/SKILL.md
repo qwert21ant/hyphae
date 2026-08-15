@@ -101,7 +101,7 @@ Subagents never touch other packages or shared nodes.
    - Group the crossing component edges by the **ordered pair of owning containers**. `A→B` and
      `B→A` are two different pairs.
    - For **every** such pair, create **one** `Container→Container` connection carrying a real
-     `verb` + `object` and a `realizedBy` listing the ids of that pair's crossing component edges.
+     a `label` and a `realizedBy` listing the ids of that pair's crossing component edges.
      Take those ids from step 4's `create_connections` response — it echoes them.
    - One edge per pair however many component edges it aggregates: this edge is the container-level
      summary, so name what the pair is *for* ("serves frame data"), not the union of everything
@@ -117,7 +117,7 @@ Subagents never touch other packages or shared nodes.
 
 Mechanical part (do this before showing the gate, so the human sees only real decisions):
 1. **Resolve** each reported endpoint to a node id by **(container[, component], name)** — never bare name.
-2. **Dedupe** identical resolved edges (same from/to/verb) into one.
+2. **Dedupe** identical resolved edges (same from/to/label) into one.
 3. **Surface only**: amendments that *conflict* between subagents, and new ExternalSystem nodes/edges. Identical or non-overlapping amendments need no human decision — apply them.
 
 Never resolve a conflict by last-write-wins; a genuine disagreement is always a human decision at the gate.
@@ -134,13 +134,19 @@ optional and additive: a model with zero flows is complete.
 
 ### Phase 5 — Verify (optional, re-runnable)
 A standalone consistency pass over an existing model. The Phase-3 tail already runs this sweep inline (its checkpoint folded into GATE 2), so Phase 5 is only needed as a **re-run** — any time after the initial build. Read-mostly: gaps are filled by the owning subagent, never by the orchestrator inventing edges.
-0. **Structural check.** Call `validate_model` — it returns any structural/field issues (bad containment, dangling/bad endpoints, unknown or missing-required fields, bad enum values, bad refs, unknown roles, unknown verbs, stale `realizedBy` claims) in one read. Fix those first. Empty means structurally clean.
+0. **Structural check.** Call `validate_model` — it returns any structural/field issues (bad containment, dangling/bad endpoints, unknown or missing-required fields, bad enum values, bad refs, unknown roles, stale `realizedBy` claims) in one read. Fix those first. Empty means structurally clean.
    A `dangling-realizedBy` means a higher-layer edge claims a connection that no longer exists (usually its component edge was deleted): drop the stale id with `update_connections`, or delete the container edge if nothing is left below it — while it dangles, that pair falls back to a derived rollup.
    Two of these are about ref anchoring (see **Refs and roots**): `unanchored-ref` means a node carries relative `codeRefs` but no ancestor declares a `root` — fix by setting `root` on the owning **Container**, not by rewriting every ref to be repo-relative. `bad-root` means a declared `root` is not a directory Ref (needs a trailing `/`, no `*` or `#`). One missing Container root typically accounts for every `unanchored-ref` in its subtree, so fix roots first and re-run before touching anything else.
 1. **Coverage sweep.** Call `model_gaps` — one read returns orphan Components (zero connections) and thin/name-echoing descriptions (with inbound/outbound degree, so a thin hub — high inbound but an empty/echoing description — stands out). Separate likely-real gaps from legitimately standalone components (`standaloneComponents` are expected).
    Also call `list_flows` and flag any flow with `valid:false` — a later node/connection deletion
    can leave a flow dangling; fix or delete it with `update_flows`/`delete_flows`.
-2. **CHECKPOINT: show the flagged gaps.** Wait for confirmation of which to fix.
+   **Density pass.** `model_gaps` finds nodes with too few edges; this is the opposite check. Sort the
+   nodes by degree (`rollup_connections`, or `list_connections({nodeId})` on the top few) and look at
+   whoever leads by a wide margin. If a node's edges are near-identical and say nothing a reader
+   cannot infer — a composition root, a settings store — it is a `foundational` candidate, not a
+   modelling gap. See **The visual vocabulary** for the rule and the cap of a handful per model.
+2. **CHECKPOINT: show the flagged gaps** — and the `foundational` candidates, with their degrees, as
+   a separate list. Wait for confirmation of which to fix and which to mark.
 3. For confirmed gaps, **re-dispatch the owning container's subagent** (same `references/subagent-prompt.md`) to add the missing intra-container edges or descriptions. The orchestrator must not write intra-container edges itself.
 4. Idempotent (create-or-skip), so Verify can be re-run until clean.
 
@@ -186,13 +192,45 @@ obligations on every write. Call `describe_profile` for the exact vocabularies.
   One line, under ~70 characters, saying what the thing is *for* — it is what the node shows on
   the canvas. `description` is still where the long explanation goes; it is side-panel only.
   Omitting `summary` is a `missing-required-field` issue.
-- **Every connection carries a `verb`** from the profile's verb vocabulary, plus a short
-  `object` noun where one applies — "reads camera list", "publishes frame". The verb defaults to
-  `uses`, which renders but says nothing; a diagram full of `uses` is the failure mode this
-  replaces. Pick the specific verb.
-  The vocabulary is **closed**: a verb that is not in `describe_profile`'s list is an
-  `unknown-verb` issue and the write is rejected. Read the list before you write and choose the
-  nearest declared verb — do not invent one and repair it after a rejection.
+- **An edge earns its place by saying something a reader cannot infer from the two node names.**
+  This is the single rule for connections, and it is the one this skill previously got wrong. A
+  connection carries a free-text **`label`** — the only text drawn on the canvas — plus an optional
+  longer `description`.
+
+  The test is mechanical. Write the label, then read the sentence
+  *"`<from name>` `<label>` `<to name>`"* and ask what a reader learns beyond "these two are
+  connected". If the answer is nothing, **do not create the edge.**
+
+      BAD   Baritone  triggers mine process    MineProcess     <- restates the target's name
+      BAD   Process Contracts  uses            Pathing Goals   <- asserts only that a dep exists
+      BAD   PathingBehavior  reads settings    Settings        <- true of nearly every component
+      GOOD  GameEventHandler  calls back for player context while dispatching  Baritone
+      GOOD  A* Search Engine  hands the node chain to          Path Result Assembler
+
+  Containment already implies that things inside a container depend on each other, so an edge that
+  only re-states a dependency is pure noise. Measured on a real 411-edge model: half the edges used
+  a verb meaning nothing, 79% had no description, and 73 labels merely paraphrased an endpoint's
+  name. Cutting those took it to 180 edges and made the diagram legible for the first time.
+  **Prefer twenty edges that say something to two hundred that do not.**
+- **Mark the handful of nodes the model *leans on* as `foundational`.** Some nodes fail the edge test
+  above over and over, not because the labels are lazy but because the relationship genuinely says
+  nothing: a composition root that constructs everything, a settings store nearly every component
+  reads, a shared logger. The relationships are *true* — deleting them loses a fact — so instead set
+  `foundational: true` on the node (`create_nodes` or `update_nodes`). The viewer then stops drawing
+  its edges wherever it appears outside the container being focused and shows a count on the node
+  instead; hovering it draws them, and the panel always lists them.
+
+  **Mark the Component that actually has the fan — never its Container.** The composition root is a
+  Component; its container (`Core Runtime`) is a genuine participant, and marking that would shelf a
+  real part of the architecture. A marked Component is shelved by name even when you are looking at
+  Container altitude, so marking the thing itself is both correct and sufficient.
+
+  Do this **after** the connection pass, when you can see which nodes carry a large fan of
+  near-identical edges. It is a judgement call and it is **not** a degree threshold: a busy node that
+  is a genuine participant in the stories the model tells must stay in the graph, or the diagram
+  starts hiding real structure. **A handful per model.** On the 112-node Baritone model exactly two
+  nodes qualified — the composition root (24 edges) and the settings store (16); the next-worst fans
+  were 7 and 5, which are just normal.
 - **`fields.technology` is one canonical name** — "Vue", "PostgreSQL", "Go". Not a version
   ("Java 17"), not a dependency list ("Netty, Jackson, Guava"): the canvas ellipsizes a long value
   into nothing readable. Put the stack detail in `description` instead.
@@ -282,12 +320,12 @@ Guidance:
 - The orchestrator writing an intra-container edge to "fix" a model_gaps flag → re-dispatch the owning subagent instead.
 - Skipping a gate to "save time" → all gates (GATE 1, GATE 2) are mandatory.
 - Creating a Component / Container / System without `fields.summary` → `missing-required-field`; the node renders as a bare box.
-- Leaving every connection on the default `uses` verb → the diagram carries no more meaning than before; pick real verbs.
+- Writing a label that paraphrases the target node's name ("triggers mine process" → `MineProcess`) → that edge carries nothing; either say what is actually true of it or do not create it.
 - Leaving the container level as a pure derived rollup when crossing edges exist → author one
   Container↔Container connection per ordered container pair, `realizedBy` the crossing component
   edges (Phase 3 step 5).
-- Using a `verb` that is not in `describe_profile`'s vocabulary, then "sanitizing" it after the
-  rejection → read the vocabulary first and pick a declared verb.
+- Creating an edge per call site between two components → one relationship, one edge. If twelve
+  components all read one config node, that is a fact about the config node, not twelve edges.
 - Putting a version number or a dependency list in `fields.technology` → one canonical name; the
   detail goes in `description`.
 - Calling `list_nodes` after a create to map names back to ids → the create response already

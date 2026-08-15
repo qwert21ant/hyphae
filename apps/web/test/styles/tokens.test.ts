@@ -37,7 +37,7 @@ describe('tokens.css', () => {
       '--sub', '--surface-1', '--surface-2', '--surface-3', '--rule', '--chip',
       '--tx-1', '--tx-2', '--tx-3',
       '--alt-1-bg', '--alt-1-bd', '--alt-2-bg', '--alt-2-bd', '--alt-3-bg', '--alt-3-bd',
-      '--verb-dataAccess', '--verb-messaging', '--verb-control', '--verb-user', '--verb-traceability',
+      '--edge-line',
       '--edge-derived', '--accent', '--accent-text', '--accent-soft', '--accent-on', '--warn',
     ]) {
       expect(dark.has(name), `${name} missing from :root`).toBe(true);
@@ -80,16 +80,13 @@ describe('tokens.css', () => {
     expect(unused, `tokens declared in :root but never referenced: ${unused.join(', ')}`).toEqual([]);
   });
 
-  // Two --verb-* tokens sharing a hex would still pass "gives every profile verb class a distinct
-  // colour" in reactflow.test.ts (that test only checks the var() NAMES are distinct, which is
-  // trivially true) — nothing would notice the palette had actually collapsed. Parse the real hex
-  // and compare in both theme blocks.
-  it('gives every verb hue a distinct hex value, in both themes', () => {
-    const VERB_NAMES = ['--verb-dataAccess', '--verb-messaging', '--verb-control', '--verb-user', '--verb-traceability'];
+  // The verb vocabulary is gone, and with it the only thing hue ever meant on an edge. A stray
+  // --verb-* token surviving in either theme would be a hue that means nothing — the exact failure
+  // SPEC.md section 9 forbids.
+  it('declares no verb tokens, in either theme', () => {
     for (const [label, t] of [['dark', dark], ['light', light]] as const) {
-      const hexes = VERB_NAMES.map((n) => t.get(n));
-      expect(hexes.every(Boolean), `${label}: a verb token is missing`).toBe(true);
-      expect(new Set(hexes).size, `${label}: two verb hues share a hex`).toBe(hexes.length);
+      const verbs = [...t.keys()].filter((n) => n.startsWith('--verb-'));
+      expect(verbs, `${label}: --verb-* tokens survived the verb removal`).toEqual([]);
     }
   });
 });
