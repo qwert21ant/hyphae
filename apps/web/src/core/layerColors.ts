@@ -1,5 +1,8 @@
 import { c4Backend, layerOfType } from '@hyphae/schema';
 
+// Was `verbColors.ts`, back when it also held VERB_CLASS_COLOR. The verb vocabulary is gone and
+// hue with it, so what remains is the one mapping the design still spends: node type -> altitude.
+
 /** Tint each node by its C4 layer so altitude is readable at a glance — the design's core encoding,
  *  expressed as luminance with no hue at all (see styles/tokens.css). These are `var()` references,
  *  not values, so switching themes repaints the diagram with no React re-render and therefore no

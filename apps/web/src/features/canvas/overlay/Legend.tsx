@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { c4Backend } from '@hyphae/schema';
-import { LAYER_COLOR } from '@/core/verbColors';
+import { LAYER_COLOR } from '@/core/layerColors';
 import { SHAPE_LABEL } from '@/features/canvas/shapes';
 import { NodeShape } from '@/features/canvas/nodes/NodeShape';
 
@@ -9,7 +9,7 @@ import { NodeShape } from '@/features/canvas/nodes/NodeShape';
 const SWATCH_W = 20;
 const SWATCH_H = 14;
 
-// Per-item data — LAYER_COLOR/VERB_CLASS_COLOR already resolve to var(...) references, so these
+// Per-item data — LAYER_COLOR already resolves to var(...) references, so these
 // stay inline, exactly like the connection dot's per-item colour.
 const swatch = (bg: string, border: string) => ({ background: bg, borderColor: border });
 

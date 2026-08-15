@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { focusViewToFlow, highlightSets, GROUP_GRIP, SHELF_ID } from '@/features/canvas/reactflow';
-import { layerColorOf, LAYER_COLOR } from '@/core/verbColors';
+import { layerColorOf, LAYER_COLOR } from '@/core/layerColors';
 import type { FocusView } from '@/core/focusView';
 import type { Edge as FlowEdge } from '@xyflow/react';
 

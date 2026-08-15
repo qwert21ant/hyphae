@@ -37,7 +37,7 @@ schema in `packages/schema` wins any disagreement.
                      fieldLayout.ts  inspector.css
         toolbar/     Toolbar.tsx  Altimeter.tsx  SearchBox.tsx  toolbar.css
       core/          NodeTree.ts  stepReveal.ts  connections.ts  breadcrumb.ts
-                     hashRoute.ts  verbColors.ts
+                     hashRoute.ts  layerColors.ts
                      focusView/  index.ts  buildFocusView.ts  edges.ts  types.ts
       state/         store.ts  api.ts  theme.ts
       styles/        tokens.css  base.css
@@ -78,12 +78,13 @@ resolving nothing, depending on which one you missed.
    a feature's components, hooks or stylesheet, and must not be where a helper lands merely because
    no feature wanted it. Being imported by two features is *not* the test, and never was:
    `breadcrumb.ts` has one caller (the toolbar), `connections.ts` one (the inspector), `hashRoute.ts`
-   one (`App.tsx`), and `NodeTree.ts` is used only by its `core/` neighbours. A non-canvas file
-   importing `features/canvas/*` internals is a layering bug — that is why `core/verbColors.ts`
-   exists: `VERB_CLASS_COLOR`, `LAYER_COLOR` and `layerColorOf` are read by
-   `features/inspector/ConnectionList.tsx` as well as by the canvas's own `overlay/FilterPanel.tsx`,
-   `overlay/Legend.tsx` and `reactflow.ts`, so they left `reactflow.ts` and the React Flow adapters
-   stayed behind. Importing a feature's public *component* (`App.tsx` importing `Canvas`) is fine.
+   one (`App.tsx`), `NodeTree.ts` is used only by its `core/` neighbours, and `core/layerColors.ts`
+   is now read only by the canvas (`reactflow.ts`, `overlay/Legend.tsx`) — each is in `core/` because
+   it is pure over `@hyphae/schema`, not because two features happened to want it. A non-canvas file
+   importing `features/canvas/*` internals is a layering bug; importing a feature's public
+   *component* (`App.tsx` importing `Canvas`) is fine. `layerColors.ts` was `verbColors.ts` until the
+   verb vocabulary and `VERB_CLASS_COLOR` went — what is left is `LAYER_COLOR`/`layerColorOf`, the
+   node-type → altitude mapping, and the old name had stopped describing it.
 
 ## Commands
 

@@ -2,7 +2,7 @@ import { MarkerType, type Node as FlowNode, type Edge as FlowEdge } from '@xyflo
 import { c4Backend, layerOfType, roleOfNode, roleDefOf, type Node as ModelNode } from '@hyphae/schema';
 import type { FocusView, FocusEdge } from '@/core/focusView';
 import { NODE_W, NODE_H, PAD, LABEL_H, type XY } from './layout';
-import { layerColorOf } from '@/core/verbColors';
+import { layerColorOf } from '@/core/layerColors';
 
 /** The node data every node renderer reads: name, the on-diagram purpose, tech chip, and shape. */
 export function nodeVisual(n: ModelNode) {
