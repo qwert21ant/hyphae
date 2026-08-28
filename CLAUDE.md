@@ -112,7 +112,9 @@ These cost real time when rediscovered:
   it with plain values rather than render the canvas; the existing `hlCss` tests stay as the
   integration guard.
 - A component rendering React Flow `Handle`s needs a `ReactFlowProvider` wrapper in tests
-  (`NodeBox.test.tsx`, `PatternMemberNode.test.tsx`).
+  (`NodeBox`, `GhostNode`, `PatternMemberNode`, `Legend`). Cast the props through `NodeProps`, not
+  through `never` — spreading a `never` is a TS2698, which is three of the four typecheck-floor
+  errors; `GhostNode.test.tsx` shows the form that does not add a fifth.
 - **The resizable panels need jsdom stubs.** `react-resizable-panels` calls `ResizeObserver`,
   `matchMedia` and `setPointerCapture`, none of which jsdom implements; `apps/web/test/setup.ts`
   provides them. Elements are never measured, so panel *sizes* are untestable — assert the
@@ -161,8 +163,8 @@ Four of these are tests, not preferences (`test/styles/tokens.test.ts`, `test/st
 - **Every token declared in `:root` must be referenced somewhere**, and every `var()` must resolve.
   Both directions fail the suite, so moving a rule's last use of a token kills the token.
 - **Every colour token must exist in both themes.**
-- **33 foreground/background pairs are measured at 4.5:1, in both themes.** When one fails, retune
-  the token — **never** loosen the threshold.
+- **29 foreground/background pairs are measured at 4.5:1, in both themes** (58 assertions). When one
+  fails, retune the token — **never** loosen the threshold.
 
 Conventions the suite does *not* enforce — jsdom loads no stylesheet, so nothing below is testable:
 
@@ -207,8 +209,11 @@ Conventions the suite does *not* enforce — jsdom loads no stylesheet, so nothi
   break; assert the relationship (gap ≥ 120) instead.
 - **`curved` is the default edge style for a measured reason.** An external column feeding a cluster
   is a converging *fan*, and orthogonal runs sweep across one another's lanes going in: on Baritone
-  API, free-anchor 476 crossings, curved 530, squared 657. Do not "fix" the default back to squared
-  without re-measuring — `crossings.real.test.ts` records the budget. **Squared reads as the more
+  API, free-anchor 476 crossings, curved 530, squared 657 — measured on the 411-connection model, so
+  compare those three to each other and to nothing else. Do not "fix" the default back to squared
+  without re-measuring — `crossings.real.test.ts` records the budget, re-baselined 2026-08-28 to
+  {34, 51, 7, 20} once the cut and the shelf made the old numbers pass by a factor of ~20. Those
+  budgets are a property of the **model**, so re-measure and reset them whenever it is rebuilt. **Squared reads as the more
   structured of the two** and is the better default once the known gap below is closed.
 
 **Known gap — `squared` draws collinear overlapping segments.** Reported after the router shipped;

@@ -14,19 +14,35 @@ import type { HyphaeModel } from '@hyphae/schema';
  * in `curved`), because an external column feeding a cluster is a converging FAN and orthogonal
  * runs sweep across one another's lanes. That trade was made deliberately — see the store comment
  * on `edgeStyle` — so the useful guards are the invariants the design actually promises.
+ *
+ * Those three figures are from 2026-08-11, on the 411-connection model. They compare two routers at
+ * equal fidelity and are not comparable to the budget below, which is a different, much smaller
+ * graph.
  */
 const model = loadRealModel();
 
-/** Crossing counts measured 2026-08-11 in `squared`, the denser of the two styles. A budget, not a
- *  target: it exists so a later change cannot silently tangle the graph further. */
+/**
+ * Crossing counts measured 2026-08-28 in `squared`, the denser of the two styles. A budget, not a
+ * target: it exists so a later change cannot silently tangle the graph further.
+ *
+ * Re-baselined from {725, 475, 260, 120}, which were measured before the connection cut took the
+ * model from 411 edges to 195 and had been passing by a factor of ~20 ever since — a budget that
+ * loose guards nothing. Re-measure and reset these whenever the model itself is rebuilt; they are a
+ * property of this model, not of the router alone.
+ */
 const CROSSING_BUDGET: Record<string, number> = {
-  'Baritone API': 725,
-  'Process Layer': 475,
-  'Utilities & Schematics': 260,
-  'Command System': 120,
+  'Baritone API': 34,
+  'Process Layer': 51,
+  'Utilities & Schematics': 7,
+  'Command System': 20,
 };
 
 type Routed = { view: ReturnType<typeof buildFocusView>; pos: Record<string, XY>; routes: Record<string, Route> };
+
+/** The edges the viewer actually routes. `useCanvasView` withholds a shelved edge from routeEdges —
+ *  it is not drawn at rest, and spending ports and lanes on it is the very cost the shelf removes —
+ *  so measuring it here would budget for lines nobody sees. */
+const drawnEdges = (view: ReturnType<typeof buildFocusView>) => view.edges.filter((e) => !e.shelved);
 
 function routeFocus(m: HyphaeModel, focusId: string): Routed {
   const view = buildFocusView(m, focusId, undefined, 'full', new Set<string>());
@@ -34,8 +50,11 @@ function routeFocus(m: HyphaeModel, focusId: string): Routed {
   const kinds: Record<string, NodeKind> = {};
   for (const n of view.children) kinds[n.id] = 'child';
   for (const n of view.externals) kinds[n.id] = 'external';
+  // A shelf node is outside the focus; without this it falls through to 'child' and chooseSides
+  // faces it as though it stood in the cluster.
+  for (const s of view.shelf ?? []) kinds[s.node.id] = 'external';
   const routes = routeEdges(
-    view.edges.map((e) => ({ id: e.id, source: e.from, target: e.to })),
+    drawnEdges(view).map((e) => ({ id: e.id, source: e.from, target: e.to })),
     pos, kinds, gutterGeometry(view, pos),
   );
   return { view, pos, routes };
@@ -44,7 +63,7 @@ function routeFocus(m: HyphaeModel, focusId: string): Routed {
 const anchors = ({ view, pos, routes }: Routed) => {
   const box = (nid: string) => ({ ...pos[nid], width: NODE_W, height: NODE_H });
   const out: { s: XY; t: XY }[] = [];
-  for (const e of view.edges) {
+  for (const e of drawnEdges(view)) {
     const r = routes[e.id];
     if (!r) continue;
     out.push({
@@ -60,7 +79,7 @@ describe('the router on the real model', () => {
     const m = model!;
     for (const { name, id } of realFocusIds(m)) {
       const r = routeFocus(m, id);
-      const drawable = r.view.edges.filter((e) => r.pos[e.from] && r.pos[e.to]);
+      const drawable = drawnEdges(r.view).filter((e) => r.pos[e.from] && r.pos[e.to]);
       expect(Object.keys(r.routes).length, name).toBe(drawable.length);
     }
   });
@@ -85,7 +104,7 @@ describe('the router on the real model', () => {
       const r = routeFocus(m, id);
       const box = (nid: string) => ({ ...r.pos[nid], width: NODE_W, height: NODE_H });
       const lines: XY[][] = [];
-      for (const e of r.view.edges) {
+      for (const e of drawnEdges(r.view)) {
         const rt = r.routes[e.id];
         if (!rt) continue;
         const s = { ...portPoint(box(e.from), rt.sourceSide, rt.sourcePort, rt.sourcePortCount), side: rt.sourceSide };
