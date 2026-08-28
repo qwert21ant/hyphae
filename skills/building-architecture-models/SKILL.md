@@ -60,7 +60,7 @@ Cost ≈ turns × context size. To avoid carrying a huge context across many tur
 
 ### Phase 1 — Map + GATE 1
 1. Call `model_overview` (idempotent read).
-2. **Create the System first, then the Containers — two `create_nodes` calls.** A Container's `parentId` must be the System's id, which only exists *after* the System is created; you cannot reference a not-yet-created id inside the same batch, and a Container written with no `parentId` is an orphan (a `missing-parent` issue). So: first create the System (a one-element array) and read back its id; then create all Containers in one `create_nodes` call, each with `parentId` set to that System id. Every System and Container write MUST include `fields.summary` — a one-line purpose shown on the diagram; see **The visual vocabulary** below. Domain values (`responsibilities`, `invariants`, `technology` for Containers) go in each item's `fields` bag — call `describe_profile` to see each kind's fields.
+2. **Create the System first, then the Containers — two `create_nodes` calls.** A Container's `parentId` must be the System's id, which only exists *after* the System is created; you cannot reference a not-yet-created id inside the same batch, and a Container written with no `parentId` is an orphan (a `missing-parent` issue). So: first create the System (a one-element array) and read back its id; then create all Containers in one `create_nodes` call, each with `parentId` set to that System id. Every System and Container write MUST include `fields.summary` — a one-line purpose shown on the diagram; see **The visual vocabulary** below. Domain values (`responsibilities`, `rules`, `technology` for Containers) go in each item's `fields` bag — call `describe_profile` to see each kind's fields.
    **Give every Container a `root`** — its package path from Phase 0, relative to the repo root, with a trailing slash (`apps/server/`, `endpoints/media_gateway/backend/`). This anchors every `codeRef` written beneath it; see **Refs and roots** below. A Container without a root makes every ref in its subtree an `unanchored-ref` issue.
 3. Write the plan artifact to `.hyphae/model-plan.md` in the target repo. REQUIRED REFERENCE: `references/plan-artifact-template.md`.
 4. **GATE 1: stop and show the user the container map + drift notes + per-container drill/skip list. Wait for approval/edits before continuing.**
@@ -87,7 +87,13 @@ Subagents never touch other packages or shared nodes.
    - cross-package connections — resolve each endpoint to an id by **(container, name)**, not by bare name (component names repeat across containers); dedupe,
    - proposed amendments to System / Containers (`update_nodes`),
    - new ExternalSystem nodes + edges to them.
-2. **Coverage sweep (context still hot).** Call `model_gaps` once — it returns orphan Components and thin/name-echoing descriptions (with degree) in a single read. Carry the flags into GATE 2 as *candidates*, separating likely-real gaps from legitimately standalone components (a component a subagent listed under `standaloneComponents` is expected — not a gap).
+2. **Coverage sweep (context still hot).** Call `model_gaps` once — it returns orphan Components and thin/name-echoing descriptions (with degree) in a single read. It also returns `bloatedProse` —
+   prose that is over the length budget, reads as code (identifier density), or restates a
+   `responsibilities` item it sits beside. Each entry names the reason and the measurement. Carry the
+   flags into GATE 2 as *candidates*, separating likely-real gaps from legitimately standalone
+   components (a component a subagent listed under `standaloneComponents` is expected — not a gap);
+   fix `bloatedProse` by rewriting against the four-slot table in **The visual vocabulary**, never by
+   deleting the field.
 3. **GATE 2 (conditional hard-stop).** Always show the reconcile summary. **STOP and wait for the
    user only when there is a genuine decision: a conflicting amendment between subagents, or a new
    ExternalSystem (a trust boundary).** A conflict is never resolved last-write-wins — that is always
@@ -140,6 +146,10 @@ A standalone consistency pass over an existing model. The Phase-3 tail already r
 1. **Coverage sweep.** Call `model_gaps` — one read returns orphan Components (zero connections) and thin/name-echoing descriptions (with inbound/outbound degree, so a thin hub — high inbound but an empty/echoing description — stands out). Separate likely-real gaps from legitimately standalone components (`standaloneComponents` are expected).
    Also call `list_flows` and flag any flow with `valid:false` — a later node/connection deletion
    can leave a flow dangling; fix or delete it with `update_flows`/`delete_flows`.
+   `model_gaps` also returns `bloatedProse` — prose that is over the length budget, reads as code
+   (identifier density), or restates a `responsibilities` item it sits beside. Each entry names the
+   reason and the measurement. Treat these as candidates like every other flag: fix by rewriting
+   the prose against the four-slot table in **The visual vocabulary**, never by deleting the field.
    **Density pass.** `model_gaps` finds nodes with too few edges; this is the opposite check. Sort the
    nodes by degree (`rollup_connections`, or `list_connections({nodeId})` on the top few) and look at
    whoever leads by a wide margin. If a node's edges are near-identical and say nothing a reader
@@ -192,6 +202,48 @@ obligations on every write. Call `describe_profile` for the exact vocabularies.
   One line, under ~70 characters, saying what the thing is *for* — it is what the node shows on
   the canvas. `description` is still where the long explanation goes; it is side-panel only.
   Omitting `summary` is a `missing-required-field` issue.
+- **Prose names the responsibility; refs name the code.** The single rule for node prose, and the
+  counterpart to the edge test below. A node's text must stay true after a refactor that renames
+  every symbol inside it. If renaming a class breaks your description, the description is in the
+  wrong layer — code belongs in `codeRefs` and Patterns, which exist to hold it.
+
+      BAD   "Every game tick, onTick() drains a PathEvent queue (toDispatch, a
+             LinkedBlockingQueue filled by queuePathEvent), then calls tickPath(), a
+             hand-rolled state machine guarded by pathPlanLock and pathCalcLock."
+      GOOD  "Owns the path the bot is currently walking. Searches run off the game thread, so
+             a path can be replaced mid-walk; the component exists to make that swap invisible
+             to everything downstream."
+
+  Measured on the 112-node Baritone model, the worst description ran to 2,177 characters of
+  method and lock names — a code walkthrough duplicating what its own `codeRefs` already pointed
+  at, and stale the moment anyone renamed a method.
+
+- **The four prose slots divide the work and never repeat each other.** Each fact lives in exactly
+  one of them. This is the rule most often broken: a third of the real model's `responsibilities`
+  were already ≥60% restated by their own node's description.
+
+  | Slot | Carries | Test |
+  |---|---|---|
+  | `fields.summary` | what it is *for*, one line, on canvas | Would a stranger know why this box exists? |
+  | `fields.responsibilities` | what it is **accountable for** | *"The system relies on `<name>` to ___"* |
+  | `fields.rules` | what **always holds** | *"You can count on this even when ___"* |
+  | `description` | only what a list cannot carry: why it exists, the trade-off it embodies, how it participates in the system's stories | Does a sentence restate a list item? Cut it. |
+
+      responsibilities
+        BAD   "Runs the per-tick state machine: advance, fail-over, splice, or start a calc"
+        GOOD  "Keeps exactly one path being walked at a time, and replaces it before it runs out"
+      rules
+        BAD   "findPathInNewThread() must only be called while holding pathCalcLock"
+        GOOD  "Never hands out a path computed from a position the player has already left"
+
+  If a fact is enumerable it goes in a list and is **not** repeated in prose. When both hold it,
+  the prose is what gets cut — the list is the scannable form.
+
+- **Panel prose takes two inline marks:** `**bold**` and `` `code` ``. They render in
+  `description`, `responsibilities` and `rules`; canvas text (`summary`, a connection's `label`)
+  takes none and shows them literally. A code span is for a name that is **part of the system's
+  contract** — a config key, an environment variable, a wire-protocol field, a published API name.
+  Never an internal class or method: those are exactly what the rule above removes.
 - **An edge earns its place by saying something a reader cannot infer from the two node names.**
   This is the single rule for connections, and it is the one this skill previously got wrong. A
   connection carries a free-text **`label`** — the only text drawn on the canvas — plus an optional
@@ -336,3 +388,10 @@ Guidance:
 - A Pattern `ref` member with no `anchor` → `pattern-unanchored-ref`; set the anchor to the Component.
 - Two members in one Pattern sharing a `name` → breaks transitions and renderer keys; make them unique.
 - Leaving a `list_flows` `valid:false` flow unfixed → fix or delete it (Phase 4 self-check / Phase 5).
+- A `description` that names a method, a lock, a private field or a line number → that is a code
+  comment; move it to `codeRefs` or a Pattern and say what the node is *for* instead.
+- A `fields.rules` entry stating a call order, a lock protocol or a null check → not a rule; a rule
+  is a promise about behaviour that survives a rename.
+- A `description` sentence that restates a `responsibilities` item → cut the sentence, keep the
+  list entry.
+- A code span on an internal class or method name → code spans are for contract names only.
