@@ -79,7 +79,7 @@ count instead. Such a node also **represents itself** rather than rolling up int
 ancestor, so a marked Component is the thing shelved at a Container focus — otherwise the mark would
 be summarised into its parent's box and the fan would stay on screen. It is **authored**, deliberately not derived from a degree threshold, because a
 threshold cannot tell infrastructure from a busy participant. Everything domain-specific
-(`responsibilities`, `invariants`, `technology`, …) is a **profile field**, stored in `fields`
+(`responsibilities`, `rules`, `technology`, …) is a **profile field**, stored in `fields`
 and validated against the active profile. The concrete node **types** come from the profile;
 `layer` / `category` are derived from `type`.
 
@@ -189,8 +189,8 @@ An entity is first-class if it is referenced independently (by `id`). The full l
 | **View** | Presentation | a named saved view |
 
 **What is NOT first-class (profile fields, not entities):**
-- `responsibilities`, local `invariants`, `technology`, etc. — **profile
-  fields** in the node/connection `fields` bag. (A cross-cutting invariant → a Requirement.)
+- `responsibilities`, local `rules`, `technology`, etc. — **profile
+  fields** in the node/connection `fields` bag. (A cross-cutting rule → a Requirement.)
 - containment — `parentId`, not a connection entity.
 - a connection's action — the `label` **core field**, not a separate entity.
 - **a Ref** — a string value (§3.7), not an entity. It is never addressed by id; it is a
@@ -310,13 +310,19 @@ Rules that keep the model from sprawling and duplicating:
    `Flow` = traversal; do not express one as the other.
 5. **A project type = a profile, not an engine.** Express new project types via the common
    mechanisms + a profile, never new entities.
-6. **Local goes inline, global becomes a node.** A single node's invariant — a field;
+6. **Local goes inline, global becomes a node.** A single node's rule — a field;
    cross-cutting — a Requirement.
 7. **Code is refs + shape, not nodes.** A Component's internals are `codeRefs` + an optional
    Pattern, never a class-per-node graph.
 8. **One ref concept, one anchor.** Every pointer out of the model is a Ref (§3.7); every Ref
    is anchored by the nearest ancestor `root`. A base path is declared once on the containment
    tree, never repeated per ref.
+9. **Prose names the responsibility; refs name the code.** A node's or connection's prose must
+   stay true after a refactor that renames every symbol inside it. If renaming a class breaks your
+   description, the description is in the wrong layer: the code belongs in `codeRefs` or a Pattern,
+   both of which exist to hold it. The three prose slots divide the work and never repeat each
+   other — `summary` says what it is for, `responsibilities` what it is accountable for, `rules`
+   what always holds, and `description` carries only what a list structurally cannot.
 
 ---
 
@@ -362,5 +368,5 @@ free text until Phase D lands. `requirements`/`decisions` remain reserved. See t
 
 ---
 
-*Concept version: 0.3 — the business-legible rethink. To be updated alongside the
+*Concept version: 0.4 — business-legible prose. To be updated alongside the
 `packages/schema` schema.*

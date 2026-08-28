@@ -133,8 +133,9 @@ on disk — §6.10), `codeRefs` / `docRefs`, `createdAt` / `updatedAt`, and a `f
 `layer` / `category` are derived from `type`, not stored.
 
 **`fields` (profile domain fields):** e.g. in `c4-backend` `responsibilities` (list),
-`invariants` (list) on all; `technology` (text) on Container/Component. Every field and enum
-value is described; values are strictly validated.
+`rules` (list) on all; `technology` (text) on Container/Component. Every field and enum
+value is described; values are strictly validated. The three prose slots never repeat each
+other — see MODEL.md §7 principle 9.
 
 On the diagram a node renders as its **role shape + name + a one-line purpose (+ tech chip)**;
 the rest is side-panel detail.
@@ -293,7 +294,7 @@ Built into the core, and unchanged by the visual repositioning:
   Schema, the granular API, and the MCP tools.
 - **Stable IDs on everything.** The LLM references a specific node/connection across messages.
 - **Free text + structured fields.** `description` and a connection's `label` are semantics;
-  `responsibilities` / `invariants` / `carries` are addressable structure.
+  `responsibilities` / `rules` / `carries` are addressable structure.
 - **Closed, described vocabularies.** Node types, roles, and pattern kinds are finite
   and documented per profile — easy for an LLM to fill correctly and for the editor to tooltip.
   A connection's `label` is the one deliberately open slot; a closed verb list was tried and
@@ -315,8 +316,14 @@ Built into the core, and unchanged by the visual repositioning:
 - **Diagram-first, model-backed.** The user reads the architecture off the diagram; a node's
   position in a view is a hint, not the truth.
 - **Meaning on the canvas, detail in the panel.** Node = role shape + name + one-line purpose;
-  connection = its `label`, one free-text phrase. Full fields, invariants, codeRefs, and
+  connection = its `label`, one free-text phrase. Full fields, rules, codeRefs, and
   incoming/outgoing lists are side-panel.
+- **Prose names the responsibility; refs name the code.** Node and connection prose must survive a
+  refactor that renames every symbol inside it; code detail belongs in `codeRefs` and Patterns.
+  Panel prose carries two inline marks — `**bold**` and `` `code` `` — and a code span is for a
+  name that is part of the system's contract, never an internal symbol. Canvas text takes no marks.
+  `model_gaps` measures all of this: an over-budget description, code-shaped prose, and a
+  responsibility its own description already states.
 - **Legibility budget.** Cap what is shown at rest; roll up dense fans; push depth into
   drill-down, Flows, Patterns, and the panel. A legend explains role shapes and
   solid-vs-derived edges. A node the model **leans on** rather than talks to is marked
@@ -400,6 +407,7 @@ Each phase is a projection of the axes already laid down in the schema.
 | B | Flows | **shipped** |
 | C | Patterns | **shipped** |
 | E | Retire the Code node layer | **shipped** |
+| F | Business-legible prose | **shipped** |
 | D | Data axis | not started |
 
 ### Phase A0 — Refs and roots (foundation) — shipped
@@ -434,6 +442,21 @@ Each phase is a projection of the axes already laid down in the schema.
   Pattern. Keep `realizedBy` aggregation between surviving altitudes. No migration ships —
   an existing model is recreated, not folded — and `schemaVersion` stays `1`.
 
+### Phase F — Business-legible prose — shipped
+- Reword the node field vocabulary toward domain language: `invariants` renamed to `rules`
+  (behavioural promises, never a lock protocol or a call ordering), `responsibilities` redefined
+  to accountability language. No migration ships — `schemaVersion` stays `1`, following the
+  Phase E precedent; a model carrying the old key reports `unknown-field` until rebuilt.
+- `model_gaps` gains `bloatedProse[]`: three independent reasons — `over-budget` (description
+  over 600 chars), `code-shaped` (identifier density over 15 per 100 words), and
+  `restates-description` (a `responsibilities` item ≥0.8 word-covered by its own node's
+  description) — each threshold the measured p90 of the real Baritone model.
+- Two inline marks in panel prose, `**bold**` and `` `code` ``, rendered by a new pure module
+  (`apps/web/src/core/richText.ts`) into React elements, never HTML. Canvas text (`summary`,
+  `label`) stays plain.
+- Adds anti-redundancy principle 9 to `MODEL.md` §7 — prose names the responsibility, refs name
+  the code — and the four-slot division of labour it depends on.
+
 ### Ongoing — configurable profiles
 - The role and pattern vocabularies are all profile-declared, so a new project type is a
   new profile, not a new engine. Ship frontend / cli / desktop profiles after the core.
@@ -460,10 +483,16 @@ Each phase is a projection of the axes already laid down in the schema.
 - **Legibility caps.** Concrete at-rest limits (max edges/nodes before rollup kicks in).
 - **Profiles: built-in or plugins.** Do frontend/cli/desktop stay built-in vocabularies or
   become loadable plugins with their own validators.
+- **Threshold drift.** The `bloatedProse` thresholds (600 chars, 15 identifiers/100 words, 0.8
+  coverage) are the p90 of one model snapshot. Re-derive them after every rebuild, or treat them
+  as fixed constants?
+- **`rules` on connections.** `commonConnectionFields` stays empty. If connection prose proves to
+  want the same slot as `rules`, it is a one-line profile addition — but nothing measured says it
+  does yet.
 
 ---
 
 *The final Zod schemas are a separate artifact in `packages/schema`. The model concept is
 [MODEL.md](./MODEL.md).*
 
-*Spec version: 0.3 — the business-legible rethink. To be updated as decisions are made.*
+*Spec version: 0.4 — business-legible prose. To be updated as decisions are made.*
