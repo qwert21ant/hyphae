@@ -1,4 +1,5 @@
 import type { FieldDef, Node } from '@hyphae/schema';
+import { renderRichText } from '@/core/richText';
 import { fieldLayout, type FieldLayout } from './fieldLayout';
 
 /** Read-only counterparts of the inspector's old editable controls: the model is authored by agents
@@ -13,6 +14,13 @@ export function isEmptyValue(value: unknown): boolean {
     || (Array.isArray(value) && value.length === 0);
 }
 
+/** Prose gets its two inline marks; anything already an element (a NodeLink, say) passes through.
+ *  Applied here rather than at each call site so every prose slot the panel renders behaves the
+ *  same — node and connection descriptions, and every list item. Canvas text never comes through
+ *  this file, which is why summaries and edge labels stay literally plain. */
+const prose = (children: React.ReactNode): React.ReactNode =>
+  typeof children === 'string' ? renderRichText(children) : children;
+
 /** A labelled value, in one of two treatments: a scannable grid row for a scalar, or a stacked
  *  block at full panel width for prose or a list. `fieldLayout()` decides which. */
 export function Row({ label, title, layout = 'grid', children }: {
@@ -22,14 +30,14 @@ export function Row({ label, title, layout = 'grid', children }: {
     return (
       <div className="field field--stack" title={title}>
         <span className="field__label hy-micro">{label}</span>
-        <div className="field__value">{children}</div>
+        <div className="field__value">{prose(children)}</div>
       </div>
     );
   }
   return (
     <div className="field field--grid" title={title}>
       <span className="field__label hy-micro">{label}</span>
-      <span className="field__value">{children}</span>
+      <span className="field__value">{prose(children)}</span>
     </div>
   );
 }
@@ -43,7 +51,7 @@ export function ListRow({ label, title, items }: { label: string; title?: string
     <div className="field field--stack" title={title}>
       <span className="field__label hy-micro">{label}</span>
       <ul className="field__list">
-        {items.map((item, i) => <li key={`${i}:${item}`}>{item}</li>)}
+        {items.map((item, i) => <li key={`${i}:${item}`}>{renderRichText(item)}</li>)}
       </ul>
     </div>
   );

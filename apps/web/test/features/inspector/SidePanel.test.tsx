@@ -64,6 +64,13 @@ describe('SidePanel', () => {
     expect(screen.queryByRole('button', { name: /delete/i })).toBeNull();
   });
 
+  it('formats marks in a node description', () => {
+    seed({ nodes: [mk({ id: 'a1', description: 'reads `TZ` at **startup**' })] }, 'a1');
+    const { container } = render(<SidePanel />);
+    expect(container.querySelector('code.rich-code')?.textContent).toBe('TZ');
+    expect(container.querySelector('strong')?.textContent).toBe('startup');
+  });
+
   it('renders the profile field values a node has', () => {
     seed({ nodes: [mk({ id: 'a1', fields: { summary: 'Stores clips', technology: 'Go' } })] }, 'a1');
     render(<SidePanel />);
