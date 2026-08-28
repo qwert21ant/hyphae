@@ -153,3 +153,33 @@ describe('FieldRow', () => {
     expect(container.querySelector('input, select, textarea')).toBeNull();
   });
 });
+
+describe('rich text in prose', () => {
+  it('formats marks in a Row value', () => {
+    const { container } = render(<Row label="description">{'set **always** via `TZ`'}</Row>);
+    expect(container.querySelector('strong')?.textContent).toBe('always');
+    expect(container.querySelector('code.rich-code')?.textContent).toBe('TZ');
+  });
+
+  it('formats marks in each ListRow item', () => {
+    const { container } = render(<ListRow label="rules" items={['never reads `TZ` twice', 'plain one']} />);
+    expect(container.querySelectorAll('li')).toHaveLength(2);
+    expect(container.querySelector('code.rich-code')?.textContent).toBe('TZ');
+  });
+
+  it('formats a list-typed FieldRow, so rules and responsibilities both get it', () => {
+    const { container } = render(
+      <FieldRow def={def({ key: 'rules', type: 'list' })} value={['holds **one** lock-free path']}
+        nodes={nodes} onNavigate={vi.fn()} />,
+    );
+    expect(container.querySelector('strong')?.textContent).toBe('one');
+  });
+
+  it('leaves a non-prose Row value alone', () => {
+    // A NodeLink child is an element, not a string — it must pass through untouched.
+    const { container } = render(
+      <Row label="parent"><NodeLink id="a1" nodes={nodes} onNavigate={vi.fn()} /></Row>,
+    );
+    expect(container.querySelector('button')?.textContent).toBe('A1');
+  });
+});

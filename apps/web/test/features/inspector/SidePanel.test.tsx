@@ -64,6 +64,42 @@ describe('SidePanel', () => {
     expect(screen.queryByRole('button', { name: /delete/i })).toBeNull();
   });
 
+  it('formats marks in a node description', () => {
+    seed({ nodes: [mk({ id: 'a1', description: 'reads `TZ` at **startup**' })] }, 'a1');
+    const { container } = render(<SidePanel />);
+    expect(container.querySelector('code.rich-code')?.textContent).toBe('TZ');
+    expect(container.querySelector('strong')?.textContent).toBe('startup');
+  });
+
+  it('formats marks in a connection description', () => {
+    seed({
+      nodes: [mk({ id: 'a1', name: 'A1' }), mk({ id: 'b1', name: 'B1' })],
+      connections: [conn({ id: 'conn1', description: 'polls `TZ` on **startup**' })],
+    }, 'conn1');
+    const { container } = render(<SidePanel />);
+    expect(container.querySelector('code.rich-code')?.textContent).toBe('TZ');
+    expect(container.querySelector('strong')?.textContent).toBe('startup');
+  });
+
+  // Finding 3 of the whole-branch review: the panel formats every prose string it displays,
+  // including the two fields that stay literally plain on the CANVAS (summary, a connection's
+  // label). This pins that resolution so it stays intentional rather than accidental.
+  it('renders marks in a node summary and a connection label, even though the canvas draws both plain', () => {
+    seed({ nodes: [mk({ id: 'a1', fields: { summary: 'Reads **the** `TZ` config' } })] }, 'a1');
+    const node = render(<SidePanel />);
+    expect(node.container.querySelector('strong')?.textContent).toBe('the');
+    expect(node.container.querySelector('code.rich-code')?.textContent).toBe('TZ');
+    node.unmount();
+
+    seed({
+      nodes: [mk({ id: 'a1', name: 'A1' }), mk({ id: 'b1', name: 'B1' })],
+      connections: [conn({ id: 'conn1', label: 'reads **the** `TZ` config' })],
+    }, 'conn1');
+    const { container } = render(<SidePanel />);
+    expect(container.querySelector('strong')?.textContent).toBe('the');
+    expect(container.querySelector('code.rich-code')?.textContent).toBe('TZ');
+  });
+
   it('renders the profile field values a node has', () => {
     seed({ nodes: [mk({ id: 'a1', fields: { summary: 'Stores clips', technology: 'Go' } })] }, 'a1');
     render(<SidePanel />);
@@ -77,13 +113,13 @@ describe('SidePanel', () => {
     expect(screen.queryByText('root')).toBeNull();
     expect(screen.queryByText('codeRefs')).toBeNull();
     expect(screen.queryByText('summary')).toBeNull();
-    expect(screen.queryByText('invariants')).toBeNull();
+    expect(screen.queryByText('rules')).toBeNull();
     expect(screen.queryByText('role')).toBeNull();
   });
 
   it('renders codeRefs and a list field as list items', () => {
     seed({
-      nodes: [mk({ id: 'a1', codeRefs: ['src/main.ts', 'src/util.ts'], fields: { invariants: ['always x'] } })],
+      nodes: [mk({ id: 'a1', codeRefs: ['src/main.ts', 'src/util.ts'], fields: { rules: ['always x'] } })],
     }, 'a1');
     const { container } = render(<SidePanel />);
     const items = [...container.querySelectorAll('li')].map((li) => li.textContent);
@@ -127,7 +163,7 @@ describe('SidePanel', () => {
           codeRefs: ['src/a1/index.ts'], docRefs: ['https://example.com/a1'],
           fields: {
             summary: 'Stores clips', technology: 'Go',
-            responsibilities: ['persist clips'], invariants: ['never loses a write'],
+            responsibilities: ['persist clips'], rules: ['never loses a write'],
           },
         }),
       ],
@@ -136,7 +172,7 @@ describe('SidePanel', () => {
     const labels = [...container.querySelectorAll('.field > span:first-child')].map((el) => el.textContent);
     expect(labels).toEqual([
       'summary', 'technology', 'description', 'root',
-      'codeRefs', 'docRefs', 'responsibilities', 'invariants', 'parent',
+      'codeRefs', 'docRefs', 'responsibilities', 'rules', 'parent',
     ]);
   });
 

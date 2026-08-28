@@ -45,7 +45,8 @@ filesystem):
 - **Discovery:** `query` (concept → execution flows), `context` (360° of one symbol), `cypher`
   (structural queries), `route_map`/`group_list` (entrypoints/packages).
 - **Edges & importance:** `impact` (blast radius / fan-in — high fan-in marks an important element),
-  graph relations `CALLS`/`IMPORTS`/`IMPLEMENTS`/`EXTENDS` → a hyphae connection's `verb` + `object`.
+  graph relations `CALLS`/`IMPORTS`/`IMPLEMENTS`/`EXTENDS` → a hyphae connection's `label` (there is
+  no verb vocabulary; write what the relation means in the domain, not the relation name itself).
 - **codeRefs:** every symbol carries a `filePath`; record `path#SymbolName` as the node's `codeRefs`.
   gitnexus reports `filePath` **repo-relative**, but refs are stored **relative to the owning
   Container's `root`** — strip the container's root prefix before writing

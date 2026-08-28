@@ -69,7 +69,7 @@ its `anchor` — the node it describes — as a link beside the name, so both re
 text — the browser does not write the model. A node shows its name, type, role, a `foundational`
 chip when it carries the mark, the fields the
 canvas draws (`summary`, `technology`), description, `root`, `codeRefs`/`docRefs`, the remaining
-**profile-defined fields** for its kind (`responsibilities`, `invariants`, …), its parent, and its
+**profile-defined fields** for its kind (`responsibilities`, `rules`, …), its parent, and its
 incoming/outgoing connections. A field with no value renders no row at all, so a short panel means a
 thinly described node — use the `model_gaps` MCP tool to audit that properly. The parent, and any
 `ref`-typed field, are clickable and reveal their target. A connection's meaning is its **`label`**
@@ -131,7 +131,9 @@ documented fields — call it first), `model_overview`, `get_node`, `list_nodes`
 `crossingBoundary`, `involvingExternal`), `rollup_connections` (derived higher-layer edges), `get_subgraph`, `list_flows` /
 `get_flow`, `list_patterns` / `get_pattern`, `resolve_refs` (resolve a node's refs against its
 anchoring `root`), `validate_model` (structural/field issues), `model_gaps` (coverage/quality gaps
-— orphan components, thin/name-echoing descriptions).
+— orphan components, thin/name-echoing descriptions, and bloated prose: an over-budget
+description, code-shaped identifier density, or a `responsibilities` item already restated by its
+own node's description).
 
 Write tools: `create_nodes`, `update_nodes`, `delete_nodes`, `create_connections`,
 `update_connections`, `delete_connections`, `create_flows`, `update_flows`, `delete_flows`,

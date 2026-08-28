@@ -35,13 +35,23 @@ describe('profile meta-schema', () => {
     expect('connectionKinds' in c4Backend).toBe(false);
   });
 
-  it('effective node fields = common (responsibilities, invariants) then per-kind (summary, technology)', () => {
+  it('effective node fields = common (responsibilities, rules) then per-kind (summary, technology)', () => {
     const keys = nodeFields(c4Backend, 'Component').map((f) => f.key);
-    expect(keys).toEqual(['responsibilities', 'invariants', 'summary', 'technology']);
+    expect(keys).toEqual(['responsibilities', 'rules', 'summary', 'technology']);
   });
 
   it('a node kind with no own fields beyond summary gets the common fields plus summary', () => {
-    expect(nodeFields(c4Backend, 'System').map((f) => f.key)).toEqual(['responsibilities', 'invariants', 'summary']);
+    expect(nodeFields(c4Backend, 'System').map((f) => f.key)).toEqual(['responsibilities', 'rules', 'summary']);
+  });
+
+  it('has retired invariants — the word invited code-level preconditions', () => {
+    expect(c4Backend.commonNodeFields.some((f) => f.key === 'invariants')).toBe(false);
+  });
+
+  it('describes rules and responsibilities in domain terms, banning code detail', () => {
+    const byKey = Object.fromEntries(c4Backend.commonNodeFields.map((f) => [f.key, f]));
+    expect(byKey['rules'].description).toMatch(/never a code-level precondition/i);
+    expect(byKey['responsibilities'].description).toMatch(/The system relies on/i);
   });
 
   it('ships no connection fields — the label and description carry the meaning', () => {

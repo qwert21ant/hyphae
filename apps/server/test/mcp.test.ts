@@ -86,6 +86,24 @@ describe('MCP tool handlers', () => {
     expect(g.orphanNodes.map((n) => n.id)).toEqual(['comp', 'orph']); // both components have no edges
     expect(g.thinDescriptions.some((t) => t.id === 'orph' && t.reason === 'empty')).toBe(true);
   });
+
+  it('model_gaps also flags bloated, code-shaped and restated prose', async () => {
+    const api = fakeApi({ getModel: async () => {
+      const m = model();
+      // pure code-shaped prose, short but dense enough to trip the density flag
+      m.nodes.push({
+        id: 'codey', name: 'Codey', type: 'Component', parentId: 'api',
+        description: 'Calls onTick() then reads pathPlanLock and writes CachedRegion from Main.java',
+        fields: {}, root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+      });
+      return m;
+    } });
+    const g = (await buildTools(api).model_gaps({})) as {
+      bloatedProse: Array<{ id: string; kind: string; reason: string }>;
+    };
+    expect(g.bloatedProse.some((b) => b.id === 'codey' && b.kind === 'node' && b.reason === 'code-shaped')).toBe(true);
+  });
+
   it('create_nodes echoes id + name on full success', async () => {
     const r = await buildTools(fakeApi()).create_nodes({ nodes: [{ name: 'X', type: 'Component' }] });
     expect(r).toEqual({ created: [{ id: 'new', name: 'X' }] });
@@ -224,6 +242,21 @@ describe('MCP query tools', () => {
   it('list_nodes query respects type + parentId filters', async () => {
     const r = (await buildTools(api()).list_nodes({ query: 'widget', type: 'Component', parentId: 'ca' })) as Array<{ id: string }>;
     expect(r.map((n) => n.id)).toEqual(['n1']);
+  });
+
+  it('searches the rules field by default, not the retired invariants key', async () => {
+    // Seed a node whose ONLY match for the query is inside fields.rules.
+    const withRules = fakeApi({ getModel: async () => {
+      const m = graphModel();
+      m.nodes.push({
+        id: 'cache', name: 'Cache', type: 'Component', parentId: 'ca', description: '',
+        fields: { rules: ['Never returns a lossy approximation of a value it has not yet computed'] },
+        root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+      });
+      return m;
+    } });
+    const r = (await buildTools(withRules).list_nodes({ query: 'lossy approximation' })) as Array<{ name: string }>;
+    expect(r.map((n) => n.name)).toContain('Cache');
   });
 
   it('list_nodes query caps at 25 rows by default; explicit limit overrides and plain enumeration is uncapped', async () => {

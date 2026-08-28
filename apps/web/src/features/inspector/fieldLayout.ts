@@ -3,7 +3,7 @@ import type { FieldType } from '@hyphae/schema';
 export type FieldLayout = 'grid' | 'stack';
 
 /** Past this a value stops being a scalar you scan and becomes prose you read. Chosen against the
- *  Baritone model: summaries sit well under it, descriptions and invariants well over. */
+ *  Baritone model: summaries sit well under it, descriptions and rules well over. */
 const PROSE_CHARS = 64;
 
 /**

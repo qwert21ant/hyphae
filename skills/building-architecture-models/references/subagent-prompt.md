@@ -23,7 +23,7 @@ against it, so write refs **relative to that root** — `src/api/Client.ts`, nev
 All hyphae tools use the `mcp__hyphae__` prefix (e.g. `mcp__hyphae__describe_profile`).
 
 Steps:
-0. Call `mcp__hyphae__describe_profile` first to learn the current node kinds, verbs (with their classes), fields, and enum values.
+0. Call `mcp__hyphae__describe_profile` first to learn the current node kinds, roles, pattern kinds, fields, and enum values.
 1. Call `mcp__hyphae__model_overview` and `mcp__hyphae__list_nodes` first. Note which Components already exist under your container (match by name + parentId) — reuse them, never duplicate.
 2. Analyze {{PACKAGE_PATH}} to full depth using the analysis loop for a {{ARCHETYPE}}: find its key modules/components, their responsibilities, and their dependencies.
 3. **Components.** Create all your Components in one `mcp__hyphae__create_nodes` call (domain values
@@ -31,8 +31,36 @@ Steps:
    `fields.summary` is REQUIRED — one line under ~70 characters saying what the component is for; it
    is what the diagram shows. Put the long form in `description`. Set `role` only when the component
    is really a datastore, queue, or UI surface. Put other domain values (`responsibilities`,
-   `invariants`, `technology`) in the `fields` bag where known — `describe_profile` (step 0) lists
-   the valid keys. `fields.technology` is ONE canonical name ("Vue", "PostgreSQL", "Go") — no
+   `rules`, `technology`) in the `fields` bag where known — `describe_profile` (step 0) lists the
+   valid keys.
+
+   **Prose names the responsibility; refs name the code.** Everything you write must stay true
+   after a refactor that renames every symbol inside the component. A method name, a lock, a
+   private field or a line number in a `description` is a code comment — put the code in
+   `codeRefs` (step 3a) and say what the component is *for* instead.
+
+   The four slots divide the work and **never repeat each other**:
+     summary          what it is for, one line, on canvas
+     responsibilities what it is accountable for — "The system relies on <name> to ___"
+     rules            what always holds — a promise that survives a rename, never a lock
+                      protocol, call ordering or null check
+     description      ONLY what a list cannot carry: why it exists, the trade-off it embodies,
+                      how it participates in the system's stories
+
+       responsibilities  BAD  "Runs the per-tick state machine: advance, fail-over, or start a calc"
+                         GOOD "Keeps exactly one path being walked at a time, and replaces it
+                               before it runs out"
+       rules             BAD  "findPathInNewThread() must only be called while holding pathCalcLock"
+                         GOOD "Never hands out a path computed from a position the player has
+                               already left"
+
+   If a fact is enumerable it goes in a list and is NOT repeated in `description`.
+
+   `description`, `responsibilities` and `rules` take two inline marks: `**bold**` and `` `code` ``.
+   A code span is for a name that is part of the system's contract — a config key, an environment
+   variable, a wire-protocol field. Never an internal class or method.
+
+   `fields.technology` is ONE canonical name ("Vue", "PostgreSQL", "Go") — no
    version numbers, no dependency lists; the canvas ellipsizes a long value. Stack detail goes in
    `description`. Omit `root` (the orchestrator owns it) and omit any field you do not know rather
    than passing an empty string.
@@ -57,18 +85,27 @@ Steps:
    `event-bus` render as a plain member list (no bespoke shape yet), so reach for `pipeline`/
    `state-machine` when one genuinely fits.
 4. Create all intra-container edges in one `mcp__hyphae__create_connections` call, ONLY when BOTH
-   endpoints are your own Components. Set a `verb` from the profile's verb vocabulary, and a short
-   `object` noun where one applies ("reads camera list"). Do not leave the verb at its `uses`
-   default when a specific verb fits.
-   The verb vocabulary is CLOSED: a verb outside `describe_profile`'s list is rejected as an
-   `unknown-verb` issue, so pick a declared verb up front rather than inventing one and fixing it
-   after a rejection.
+   endpoints are your own Components. Each edge carries a free-text `label` — the only text drawn
+   on the diagram. There is NO verb vocabulary; the label alone carries the meaning.
+   **An edge earns its place by saying something a reader cannot infer from the two node names.**
+   The test is mechanical: read the sentence *"`<from name>` `<label>` `<to name>`"* and ask what a
+   reader learns beyond "these two are connected". If the answer is nothing, **do not create the
+   edge.**
+
+       BAD   Process Contracts  uses           Pathing Goals   <- asserts only that a dep exists
+       BAD   PathingBehavior    reads settings Settings        <- true of nearly every component
+       GOOD  A* Search Engine   hands the node chain to        Path Result Assembler
+
+   Containment already implies that things inside a container depend on each other. Prefer twenty
+   edges that say something to two hundred that do not.
 5. On any `422`, read the returned `issues` and fix the input; never blind-retry.
-6. Before returning, **self-review**: re-read each component you wrote. If its `description` / `responsibilities` / `invariants` assert a relationship to another of YOUR components — phrases like "implements", "depends on", "used by", "built on", "all others depend on it" — make sure a matching connection exists, and add any that are missing. Then check for any of your components left with **zero connections**: either wire it, or list it under `standaloneComponents` with a reason.
+6. Before returning, **self-review**: re-read each component you wrote. If its `description` / `responsibilities` / `rules` assert a relationship to another of YOUR components — phrases like "implements", "depends on", "used by", "built on", "all others depend on it" — make sure a matching connection exists, and add any that are missing. Then check for any of your components left with **zero connections**: either wire it, or list it under `standaloneComponents` with a reason.
+   Also check each component for the two prose faults: a `description` that names methods or locks,
+   and a `description` sentence that restates a `responsibilities` item. Fix both before returning.
 
 You MUST NOT: create the Container itself, create nodes under any other container, create ExternalSystem nodes, or create cross-package connections. Report those instead.
 
-For every cross-package dependency, name the **target's container** (`toContainer`) as well as the target node name. Component names repeat across containers (e.g. several packages each have a `Contracts`), so a bare name is ambiguous — the orchestrator resolves the endpoint by (container, name). Include a `verb` from the profile's verb vocabulary (plus a short `object` noun where one applies) so the orchestrator does not fall back to the `uses` default when it creates the edge.
+For every cross-package dependency, name the **target's container** (`toContainer`) as well as the target node name. Component names repeat across containers (e.g. several packages each have a `Contracts`), so a bare name is ambiguous — the orchestrator resolves the endpoint by (container, name). Include a `label` that passes the step-4 test, so the orchestrator creates an edge that says something rather than one that merely asserts a dependency.
 
 **Write this JSON report to `{{REPORT_FILE}}`** (create parent dirs):
 
@@ -81,10 +118,10 @@ For every cross-package dependency, name the **target's container** (`toContaine
     { "from": "<your component name>",
       "toContainer": "<the container/package that owns the target, or \"external\" for an external system>",
       "to": "<target node name within that container (or the external system name)>",
-      "verb": "<verb id from describe_profile, e.g. reads|writes|invokes|publishes>", "object": "<short noun, optional>", "why": "..." }
+      "label": "<free text: what this edge does, passing the test in step 4>", "why": "..." }
   ],
   "upwardFindings": {
-    "ownContainer": [ "new responsibility / invariant / tech correction for this container" ],
+    "ownContainer": [ "new responsibility / rule / tech correction for this container" ],
     "system": [ "amendment to the System node" ],
     "siblingContainers": [ { "container": "<name>", "amendment": "..." } ],
     "newExternalSystems": [ { "name": "...", "description": "...", "interaction": "..." } ]
