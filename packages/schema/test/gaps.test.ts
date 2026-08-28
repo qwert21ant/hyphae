@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { modelGaps } from '../src/gaps';
+import { modelGaps, identifierDensity, wordCoverage } from '../src/gaps';
 import { emptyModel } from '../src/model';
 import { c4Backend } from '../src/profiles/c4-backend';
 import type { HyphaeModel } from '../src/model';
@@ -86,5 +86,47 @@ describe('missingRefs', () => {
     m.nodes[0].root = null;
     const gaps = modelGaps(m, c4Backend, { checkDisk: { cwd: '.', exists: () => false } });
     expect(gaps.missingRefs).toEqual([]);
+  });
+});
+
+describe('identifierDensity', () => {
+  it('is zero for prose with no code shapes', () => {
+    expect(identifierDensity('Keeps exactly one path being walked at a time')).toBe(0);
+  });
+
+  it('counts camelCase, call syntax and source file names', () => {
+    // 8 words, 3 hits -> 37.5 per 100
+    expect(identifierDensity('it calls onTick() and reads pathPlanLock from Main.java')).toBeGreaterThan(15);
+  });
+
+  it('scores a CamelCase product name below the threshold in ordinary prose', () => {
+    // One proper noun in a long clean sentence must not trip the 15/100 flag.
+    const prose = 'Stores the recorded clip and its metadata durably, so that a viewer can replay '
+      + 'any camera from the last thirty days without the capture service being reachable. '
+      + 'Runs on PostgreSQL.';
+    expect(identifierDensity(prose)).toBeLessThan(15);
+  });
+
+  it('is zero for empty text', () => {
+    expect(identifierDensity('')).toBe(0);
+  });
+});
+
+describe('wordCoverage', () => {
+  it('is 1 when every content word of the item appears in the description', () => {
+    expect(wordCoverage('Owns the active goal', 'This component owns the active goal and more')).toBe(1);
+  });
+
+  it('ignores stopwords and very short words', () => {
+    // "of the a" are stopwords; only "cache" and "chunk" count, both present.
+    expect(wordCoverage('a cache of the chunk', 'the chunk cache')).toBe(1);
+  });
+
+  it('is low when the item says something the description does not', () => {
+    expect(wordCoverage('Rejects negative movement costs', 'Handles alpha ingest')).toBeLessThan(0.5);
+  });
+
+  it('is zero for an item with no content words', () => {
+    expect(wordCoverage('of the', 'anything at all')).toBe(0);
   });
 });

@@ -27,6 +27,56 @@ const COMPONENT_LAYER = 'Component';
 /** lowercase, keep alphanumerics, collapse runs of anything else to a single space, trim. */
 const normalize = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
+/** Shapes that mean "this is a code identifier, not prose": camelCase, a call, a source file name.
+ *  Deliberately NOT an exhaustive identifier grammar — this is a density signal, not a parser. */
+const CODE_SHAPES: RegExp[] = [
+  /\b[a-z][a-z0-9]*[A-Z]\w*/g,                              // camelCase
+  /\b\w+\(\)/g,                                             // call syntax
+  /\b\w+\.(java|ts|tsx|js|py|go|rs|cs|rb|json|gradle|toml)\b/g, // source file names
+  /\b[A-Z][a-z0-9]+[A-Z]\w*/g,                              // PascalCase
+];
+
+/**
+ * Code-identifier hits per 100 words. Measured p90 on the real 112-node model is 16.1, so
+ * BLOAT_DENSITY sits at 15.
+ *
+ * A genuinely CamelCase product name (PostgreSQL, TypeScript) scores as an identifier, and that
+ * is accepted: two proper nouns in a 60-word description score about 3, so the flag only fires at
+ * pathological density. Do NOT "fix" this with an allow-list of product names — the list would
+ * never be complete and the threshold already absorbs the noise.
+ */
+export function identifierDensity(text: string): number {
+  const words = (text.match(/\S+/g) ?? []).length;
+  if (words === 0) return 0;
+  let hits = 0;
+  for (const re of CODE_SHAPES) hits += (text.match(re) ?? []).length;
+  return (hits / words) * 100;
+}
+
+/** Words carrying no topical signal, dropped before comparing an item against a description. */
+const STOPWORDS = new Set(
+  ('a an the and or of to in on for with by is are be it its this that as at from into over per '
+   + 'not no all any each every which when while so if then than').split(' '),
+);
+
+const contentWords = (s: string): string[] =>
+  (s.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((w) => w.length > 2 && !STOPWORDS.has(w));
+
+/**
+ * The fraction of `item`'s content words that also appear in `hay` — how much of a list entry the
+ * node's own description already says.
+ *
+ * Word overlap, not phrase overlap, on purpose: measured on the real model, bigram coverage of
+ * responsibilities sits near zero at every percentile while word coverage reaches 0.80 at p90.
+ * The duplication is the same facts *reworded*, so a phrase test finds almost nothing.
+ */
+export function wordCoverage(item: string, hay: string): number {
+  const words = contentWords(item);
+  if (words.length === 0) return 0;
+  const haystack = new Set(contentWords(hay));
+  return words.filter((w) => haystack.has(w)).length / words.length;
+}
+
 /**
  * Coverage / quality gaps in a model (advisory — flags candidates, never mutates or fixes):
  * orphan Component-layer nodes (zero edges) and Component-and-above nodes whose description is
