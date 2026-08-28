@@ -77,13 +77,13 @@ describe('SidePanel', () => {
     expect(screen.queryByText('root')).toBeNull();
     expect(screen.queryByText('codeRefs')).toBeNull();
     expect(screen.queryByText('summary')).toBeNull();
-    expect(screen.queryByText('invariants')).toBeNull();
+    expect(screen.queryByText('rules')).toBeNull();
     expect(screen.queryByText('role')).toBeNull();
   });
 
   it('renders codeRefs and a list field as list items', () => {
     seed({
-      nodes: [mk({ id: 'a1', codeRefs: ['src/main.ts', 'src/util.ts'], fields: { invariants: ['always x'] } })],
+      nodes: [mk({ id: 'a1', codeRefs: ['src/main.ts', 'src/util.ts'], fields: { rules: ['always x'] } })],
     }, 'a1');
     const { container } = render(<SidePanel />);
     const items = [...container.querySelectorAll('li')].map((li) => li.textContent);
@@ -127,7 +127,7 @@ describe('SidePanel', () => {
           codeRefs: ['src/a1/index.ts'], docRefs: ['https://example.com/a1'],
           fields: {
             summary: 'Stores clips', technology: 'Go',
-            responsibilities: ['persist clips'], invariants: ['never loses a write'],
+            responsibilities: ['persist clips'], rules: ['never loses a write'],
           },
         }),
       ],
@@ -136,7 +136,7 @@ describe('SidePanel', () => {
     const labels = [...container.querySelectorAll('.field > span:first-child')].map((el) => el.textContent);
     expect(labels).toEqual([
       'summary', 'technology', 'description', 'root',
-      'codeRefs', 'docRefs', 'responsibilities', 'invariants', 'parent',
+      'codeRefs', 'docRefs', 'responsibilities', 'rules', 'parent',
     ]);
   });
 
