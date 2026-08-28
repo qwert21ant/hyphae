@@ -195,8 +195,11 @@ resolve to, or `path` to reverse-look-up which nodes claim a file. More than one
 
 ## The visual vocabulary
 
-The diagram is meant to be readable without opening the side panel, which puts three
-obligations on every write. Call `describe_profile` for the exact vocabularies.
+Node and connection text is split between two surfaces — a handful of fields drawn on the canvas
+(`summary`, `technology`, shape) and the rest held for the side panel (`description`,
+`responsibilities`, `rules`) — and every rule below exists to keep one of those surfaces honest:
+what the canvas may never go without, what the two prose surfaces must never repeat, and which
+inline marks the panel is willing to render. Call `describe_profile` for the exact vocabularies.
 
 - **`fields.summary` is required** on System / Actor / ExternalSystem / Container / Component.
   One line, under ~70 characters, saying what the thing is *for* — it is what the node shows on
@@ -239,11 +242,14 @@ obligations on every write. Call `describe_profile` for the exact vocabularies.
   If a fact is enumerable it goes in a list and is **not** repeated in prose. When both hold it,
   the prose is what gets cut — the list is the scannable form.
 
-- **Panel prose takes two inline marks:** `**bold**` and `` `code` ``. They render in
-  `description`, `responsibilities` and `rules`; canvas text (`summary`, a connection's `label`)
-  takes none and shows them literally. A code span is for a name that is **part of the system's
-  contract** — a config key, an environment variable, a wire-protocol field, a published API name.
-  Never an internal class or method: those are exactly what the rule above removes.
+- **Panel prose takes two inline marks:** `**bold**` and `` `code` ``. They render wherever the
+  **panel** shows prose — `description`, `responsibilities`, `rules`, and also a node's `summary`
+  and a connection's `label`, since the panel formats every string it displays. The **canvas**
+  draws `summary` and `label` without interpreting marks, which is why an author should not put
+  them there: a `summary` written as `Reads **the** config` shows literal asterisks on the canvas
+  and bold in the panel. A code span is for a name that is **part of the system's contract** — a
+  config key, an environment variable, a wire-protocol field, a published API name. Never an
+  internal class or method: those are exactly what the rule above removes.
 - **An edge earns its place by saying something a reader cannot infer from the two node names.**
   This is the single rule for connections, and it is the one this skill previously got wrong. A
   connection carries a free-text **`label`** — the only text drawn on the canvas — plus an optional

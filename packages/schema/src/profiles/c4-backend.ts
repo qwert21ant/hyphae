@@ -33,11 +33,11 @@ export const c4Backend: Profile = {
   commonNodeFields: [
     {
       key: 'responsibilities', type: 'list',
-      description: 'What this node is accountable for in the system, in the language of the domain — one item per entry. Each item must pass: "The system relies on <name> to ___". Name the capability, not the mechanism: a method it calls, a lock it holds or a class it constructs is not a responsibility. Do not repeat these in `description` — the list is the scannable form, and the description is for what a list cannot carry. Supports `**bold**` and `` `code` `` (a code span is for a name that is part of the system\'s contract — a config key, an environment variable, a wire-protocol field — never an internal class or method).',
+      description: 'What this node is accountable for in the system, in the language of the domain — one item per entry. Each item must pass: "The system relies on <name> to ___". Name the capability, not the mechanism: a method it calls, a lock it holds or a class it constructs is not a responsibility. Do not repeat these in `description` — the list is the scannable form, and the description is for what a list cannot carry. Supports **bold** and `code` (a code span is for a name that is part of the system\'s contract — a config key, an environment variable, a wire-protocol field — never an internal class or method).',
     },
     {
       key: 'rules', type: 'list',
-      description: 'Conditions that always hold, stated as promises about the system\'s behaviour that a reader could not guess from the node\'s name — e.g. "Never hands out a path computed from a position the player has already left". Never a code-level precondition: not a lock protocol, not a call ordering, not a null check. If the statement stops being true when a method is renamed, it is a code comment and belongs in the code. Supports `**bold**` and `` `code` `` (contract names only, never an internal symbol).',
+      description: 'Conditions that always hold, stated as promises about the system\'s behaviour that a reader could not guess from the node\'s name — e.g. "Never hands out a path computed from a position the player has already left". Never a code-level precondition: not a lock protocol, not a call ordering, not a null check. If the statement stops being true when a method is renamed, it is a code comment and belongs in the code. Supports **bold** and `code` (contract names only, never an internal symbol).',
     },
   ],
   // Empty by design: the connection's label and description carry its meaning. The array stays

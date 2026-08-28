@@ -1,6 +1,6 @@
 # Business-Legible Prose Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Turn node and connection prose from a code walkthrough into an architecture description — by renaming `invariants` to `rules`, measuring prose quality in `model_gaps`, and rendering bold/code spans in the inspector.
 
@@ -37,7 +37,7 @@
 - Consumes: nothing.
 - Produces: `c4Backend.commonNodeFields` is `[responsibilities, rules]`. `nodeFields(c4Backend, 'Component')` returns keys `['responsibilities', 'rules', 'summary', 'technology']`; for `'System'`, `['responsibilities', 'rules', 'summary']`. Tasks 2, 4, 6, 7 and 8 all depend on the key being exactly `rules`.
 
-- [ ] **Step 1: Update the two failing profile tests**
+- [x] **Step 1: Update the two failing profile tests**
 
 In `packages/schema/test/c4-backend.test.ts`, replace the two field-order tests (currently naming `invariants`):
 
@@ -66,12 +66,12 @@ And add, in the same `describe('profile meta-schema')` block:
   });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `cd packages/schema && npx vitest run test/c4-backend.test.ts`
 Expected: FAIL — the field-order tests report `invariants` where `rules` is expected, and the two new tests fail on `undefined`/no match.
 
-- [ ] **Step 3: Rename and rewrite the two FieldDefs**
+- [x] **Step 3: Rename and rewrite the two FieldDefs**
 
 In `packages/schema/src/profiles/c4-backend.ts`, replace the `commonNodeFields` array (lines 33-36) with:
 
@@ -88,12 +88,12 @@ In `packages/schema/src/profiles/c4-backend.ts`, replace the `commonNodeFields` 
   ],
 ```
 
-- [ ] **Step 4: Run the schema suite**
+- [x] **Step 4: Run the schema suite**
 
 Run: `cd packages/schema && npx vitest run`
 Expected: PASS. Note any failure in `validate.test.ts` — a fixture there may seed `fields: { invariants: [...] }`, which now correctly produces `unknown-field`. If so, that fixture is asserting the *old* vocabulary; fix it in the next step rather than reverting the profile.
 
-- [ ] **Step 5: Pin the no-migration decision**
+- [x] **Step 5: Pin the no-migration decision**
 
 Add to `packages/schema/test/validate.test.ts` (inside the existing top-level `describe`):
 
@@ -113,12 +113,12 @@ Add to `packages/schema/test/validate.test.ts` (inside the existing top-level `d
 
 Check the file's existing imports and node-fixture helper first and reuse them — it may already have a `nodeBase` spread like `gaps.test.ts` does, in which case use that instead of the inline literal. The `missing-parent` issue this node also produces is irrelevant to the assertion.
 
-- [ ] **Step 6: Run the schema suite again**
+- [x] **Step 6: Run the schema suite again**
 
 Run: `cd packages/schema && npx vitest run`
 Expected: PASS, all green.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git status --short
@@ -151,7 +151,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   `identifierDensity(text: string): number` (hits per 100 words, `0` for empty text)
   `wordCoverage(item: string, hay: string): number` (0..1, `0` for an item with no content words)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `packages/schema/test/gaps.test.ts`:
 
@@ -201,12 +201,12 @@ describe('wordCoverage', () => {
 
 Add `identifierDensity` and `wordCoverage` to the existing `import { modelGaps } from '../src/gaps';` line.
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run: `cd packages/schema && npx vitest run test/gaps.test.ts`
 Expected: FAIL — `identifierDensity is not a function`.
 
-- [ ] **Step 3: Implement the two helpers**
+- [x] **Step 3: Implement the two helpers**
 
 Add to `packages/schema/src/gaps.ts`, below the existing `normalize` constant:
 
@@ -262,12 +262,12 @@ export function wordCoverage(item: string, hay: string): number {
 }
 ```
 
-- [ ] **Step 4: Run to verify they pass**
+- [x] **Step 4: Run to verify they pass**
 
 Run: `cd packages/schema && npx vitest run test/gaps.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git status --short
@@ -295,7 +295,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - Consumes: `identifierDensity`, `wordCoverage` from Task 2.
 - Produces: `ModelGaps` gains `bloatedProse: BloatedProse[]`. Task 4 and Task 8 depend on the field name and the three `reason` values.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `packages/schema/test/gaps.test.ts`. Note this builds its own model — the shared `model()` fixture has short clean descriptions and must stay that way, since the existing thin/orphan tests assert against it.
 
@@ -375,12 +375,12 @@ describe('modelGaps bloatedProse', () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run: `cd packages/schema && npx vitest run test/gaps.test.ts`
 Expected: FAIL — `Cannot read properties of undefined (reading 'filter')`, since `bloatedProse` does not exist.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `packages/schema/src/gaps.ts`, add the type and thresholds near the top, beside `ThinDescription`:
 
@@ -457,17 +457,17 @@ Add `bloatedProse` to the returned object.
 
 Note two things the code above relies on: `inbound`/`outbound` are the degree maps already built at the top of `modelGaps`, and a connection's degree is looked up by *connection* id, which is never in those maps — so a connection always reports `0/0`. That is correct: degree is a node property, and the field exists on the shared shape.
 
-- [ ] **Step 4: Run to verify they pass**
+- [x] **Step 4: Run to verify they pass**
 
 Run: `cd packages/schema && npx vitest run`
 Expected: PASS, whole schema package green.
 
-- [ ] **Step 5: Check the barrel export**
+- [x] **Step 5: Check the barrel export**
 
 Run: `grep -n "ThinDescription\|ModelGaps\|OrphanNode" packages/schema/src/index.ts`
 If those types are re-exported there, add `BloatedProse` alongside them in the same style. If `index.ts` uses a blanket `export * from './gaps'`, no change is needed.
 
-- [ ] **Step 6: Run the full suite and commit**
+- [x] **Step 6: Run the full suite and commit**
 
 Run: `pnpm -r test`
 Expected: server and web still green; schema up by 7 tests.
@@ -502,7 +502,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - Consumes: Task 1's `rules` key.
 - Produces: nothing downstream.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to `apps/server/test/mcp.test.ts` (place it beside the existing `list_nodes` tests and reuse that file's model-seeding helper — read the surrounding tests first and match their style):
 
@@ -515,12 +515,12 @@ Add to `apps/server/test/mcp.test.ts` (place it beside the existing `list_nodes`
   });
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `cd apps/server && npx vitest run test/mcp.test.ts`
 Expected: FAIL — the default search list still names `invariants`, so a value stored under `rules` is never searched.
 
-- [ ] **Step 3: Update both hardcoded lists**
+- [x] **Step 3: Update both hardcoded lists**
 
 `apps/server/src/mcp/tools/nodes.ts:18` — change the default array:
 
@@ -534,12 +534,12 @@ Expected: FAIL — the default search list still names `invariants`, so a value 
         fields: z.array(z.string()).optional().describe('Restrict which fields `query` searches (core fields or any documented `fields` key — see describe_profile). Default: name, description, technology, responsibilities, rules.'),
 ```
 
-- [ ] **Step 4: Run to verify it passes**
+- [x] **Step 4: Run to verify it passes**
 
 Run: `cd apps/server && npx vitest run`
 Expected: PASS, server package green.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git status --short
@@ -567,7 +567,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 Note the test file is `.tsx`, not `.ts` — it renders JSX. It still mirrors `src/core/richText.ts`, which is the convention.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `apps/web/test/core/richText.test.tsx`:
 
@@ -629,12 +629,12 @@ describe('renderRichText', () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run: `cd apps/web && npx vitest run test/core/richText.test.tsx`
 Expected: FAIL — cannot resolve `@/core/richText`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `apps/web/src/core/richText.ts`:
 
@@ -683,14 +683,14 @@ export function renderRichText(text: string): ReactNode {
 }
 ```
 
-- [ ] **Step 4: Run to verify they pass**
+- [x] **Step 4: Run to verify they pass**
 
 Run: `cd apps/web && npx vitest run test/core/richText.test.tsx`
 Expected: PASS, 11 tests.
 
 If the "does not nest" case fails, the alternation order is wrong — the code branch must come first in `MARK`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git status --short
@@ -725,7 +725,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 `SidePanel.tsx` needs **no change** — it passes prose as `children` into `Row`, and `Row` is where the formatting is applied. Confirm this while implementing; if a description is passed some other way, format it at that call site instead.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add to `apps/web/test/features/inspector/FieldRows.test.tsx`:
 
@@ -798,12 +798,12 @@ describe('inspector.css', () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run: `cd apps/web && npx vitest run test/features/inspector/`
 Expected: FAIL — no `<strong>`/`<code>` produced, and `.rich-code` has no rule.
 
-- [ ] **Step 3: Format prose in `FieldRows.tsx`**
+- [x] **Step 3: Format prose in `FieldRows.tsx`**
 
 Add the import: `import { renderRichText } from '@/core/richText';`
 
@@ -824,7 +824,7 @@ In `ListRow`, wrap the item: `<li key={`${i}:${item}`}>{renderRichText(item)}</l
 
 `FieldRow`'s `list` branch already delegates to `ListRow`, and its scalar branch already goes through `Row`, so both are covered with no further change.
 
-- [ ] **Step 4: Add the CSS rule**
+- [x] **Step 4: Add the CSS rule**
 
 In `apps/web/src/features/inspector/inspector.css`, add after the `.field__list` rule (~line 57). It must sit below `.field__value`/`.field__list` in source order, since those are equal-specificity class selectors and source order is the cascade:
 
@@ -838,17 +838,17 @@ In `apps/web/src/features/inspector/inspector.css`, add after the `.field__list`
 }
 ```
 
-- [ ] **Step 5: Run the web suite**
+- [x] **Step 5: Run the web suite**
 
 Run: `cd apps/web && npx vitest run`
 Expected: PASS. `test/styles/tokens.test.ts` must stay green — the rule adds no literal and no new token.
 
-- [ ] **Step 6: Typecheck**
+- [x] **Step 6: Typecheck**
 
 Run: `pnpm --filter @hyphae/web typecheck`
 Expected: exactly **4** errors, the known pre-existing floor. A 5th is yours.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git status --short
@@ -881,7 +881,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 Docs only — no tests. The schema wins any disagreement, so read the shipped `c4-backend.ts` before writing.
 
-- [ ] **Step 1: `docs/MODEL.md`**
+- [x] **Step 1: `docs/MODEL.md`**
 
 §3.1 (line ~82): change `` (`responsibilities`, `invariants`, `technology`, …) `` to `` (`responsibilities`, `rules`, `technology`, …) ``.
 
@@ -902,7 +902,7 @@ Docs only — no tests. The schema wins any disagreement, so read the shipped `c
 
 Bump the version line at the foot to `Concept version: 0.4 — business-legible prose.`
 
-- [ ] **Step 2: `docs/SPEC.md`**
+- [x] **Step 2: `docs/SPEC.md`**
 
 §6.2 (line ~135): change the `fields` paragraph to name `rules` instead of `invariants`, and add a sentence: "The three prose slots never repeat each other — see MODEL.md §7 principle 9."
 
@@ -925,16 +925,16 @@ Bump the version line at the foot to `Concept version: 0.4 — business-legible 
 
 Bump the version line at the foot to `Spec version: 0.4 — business-legible prose.`
 
-- [ ] **Step 3: `README.md`**
+- [x] **Step 3: `README.md`**
 
 Run `grep -n "invariants" README.md` and update each hit to `rules`. Where the MCP tool list documents `model_gaps`, add that it also reports bloated/code-shaped/restating prose.
 
-- [ ] **Step 4: Verify no stale references remain**
+- [x] **Step 4: Verify no stale references remain**
 
 Run: `grep -rn "invariants" --include=*.md --include=*.ts --include=*.tsx . | grep -v "docs/superpowers/" | grep -v node_modules`
 Expected: only the deliberate historical mentions — the `validate.test.ts` no-migration test from Task 1, and any line explaining the rename. `docs/superpowers/` is excluded because those are dated historical records and must not be rewritten.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git status --short
@@ -962,7 +962,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 This task carries the incidental defect fix. `subagent-prompt.md` is deliberately self-contained ("This prompt is complete"), so every rule must be restated there rather than cross-referenced.
 
-- [ ] **Step 1: Add the node prose section to `SKILL.md`**
+- [x] **Step 1: Add the node prose section to `SKILL.md`**
 
 In *The visual vocabulary*, after the `fields.summary` bullet and before the edge bullet, insert:
 
@@ -1011,11 +1011,11 @@ In *The visual vocabulary*, after the `fields.summary` bullet and before the edg
   Never an internal class or method: those are exactly what the rule above removes.
 ```
 
-- [ ] **Step 2: Rename `invariants` through `SKILL.md`**
+- [x] **Step 2: Rename `invariants` through `SKILL.md`**
 
 Run `grep -n "invariants" skills/building-architecture-models/SKILL.md` and change each to `rules` — including the Phase 1 field list (~line 63) and the Phase 2 Components bullet (~line 74).
 
-- [ ] **Step 3: Add the red flags**
+- [x] **Step 3: Add the red flags**
 
 In *Red flags — STOP*, append:
 
@@ -1029,7 +1029,7 @@ In *Red flags — STOP*, append:
 - A code span on an internal class or method name → code spans are for contract names only.
 ```
 
-- [ ] **Step 4: Add the new gap flags to Phase 5**
+- [x] **Step 4: Add the new gap flags to Phase 5**
 
 In Phase 5 step 1, after the sentence describing `model_gaps`, add:
 
@@ -1042,7 +1042,7 @@ In Phase 5 step 1, after the sentence describing `model_gaps`, add:
 
 Add the same flags to the GATE 2 coverage sweep in Phase 3 step 2, which calls `model_gaps` inline.
 
-- [ ] **Step 5: Fix `subagent-prompt.md` — the stale verb vocabulary**
+- [x] **Step 5: Fix `subagent-prompt.md` — the stale verb vocabulary**
 
 This is the incidental defect. Replace **step 0**:
 
@@ -1084,7 +1084,7 @@ And in the paragraph below the "You MUST NOT" line, replace the final sentence (
 Include a `label` that passes the step-4 test, so the orchestrator creates an edge that says something rather than one that merely asserts a dependency.
 ```
 
-- [ ] **Step 6: Add the prose rules to `subagent-prompt.md`**
+- [x] **Step 6: Add the prose rules to `subagent-prompt.md`**
 
 In step 3 (**Components**), replace the sentence naming the domain fields with:
 
@@ -1126,12 +1126,12 @@ Also change step 6's self-review list from "`description` / `responsibilities` /
    and a `description` sentence that restates a `responsibilities` item. Fix both before returning.
 ```
 
-- [ ] **Step 7: Verify the skill is self-consistent**
+- [x] **Step 7: Verify the skill is self-consistent**
 
 Run: `grep -rn "verb\|invariants" skills/building-architecture-models/`
 Expected: no hit instructing an agent to *set* a verb or fill `invariants`. A hit explaining that the verb vocabulary was removed is fine.
 
-- [ ] **Step 8: Full verification**
+- [x] **Step 8: Full verification**
 
 Run: `pnpm -r test`
 Expected: all green, above the 771 baseline.
@@ -1142,7 +1142,7 @@ Expected: clean.
 Run: `pnpm --filter @hyphae/web typecheck`
 Expected: exactly 4 errors (the known floor).
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git status --short

@@ -69,6 +69,12 @@ const CODE_SHAPES: RegExp[] = [
  * call-syntax pattern). That is deliberate and load-bearing: BLOAT_DENSITY was calibrated by
  * running this exact regex set over the real model, so de-duplicating the patterns would lower
  * every score against a threshold derived with them. Re-measure before changing the set.
+ *
+ * A camelCase or PascalCase contract name used as a code span (`` `userId` `` for a wire-protocol
+ * field, exactly what the `responsibilities` FieldDef invites) also matches CODE_SHAPES, so
+ * following that guidance can nudge a node's own score up slightly. Not reachable in practice —
+ * it takes many such spans to approach 15/100 words — and the commoner contract-name shapes
+ * (SCREAMING_CASE keys, hyphenated header names) do not match this regex set at all.
  */
 export function identifierDensity(text: string): number {
   const words = (text.match(/\S+/g) ?? []).length;

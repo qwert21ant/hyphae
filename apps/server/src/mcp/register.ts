@@ -81,7 +81,8 @@ export function registerAll(server: McpServer, tools: ReturnType<typeof buildToo
       .describe('Archetype that decides this node\'s shape on the diagram — a role id from describe_profile (actor, service, datastore, queue, external, ui). Omit or null to use the node kind\'s default. Set it when a Component is really a database, cache, or queue: that is where the diagram gains meaning, since every Component defaults to a plain service box.'),
     foundational: z.boolean().optional()
       .describe('Mark this node as foundational: infrastructure the rest of the model naturally leans on (a composition root, a settings/config store, a shared logger). The viewer then stops drawing its edges when it appears OUTSIDE the container being focused and parks it on a shelf with a count of them instead, so one mark replaces a fan of near-identical lines. Set it by judgement, on a handful of nodes at most — it is not a degree threshold, and marking a genuine participant hides real structure. The connections themselves are unaffected and every query still returns them.'),
-    description: z.string().optional(),
+    description: z.string().optional()
+      .describe('The long-form explanation — panel-only, never drawn on the canvas (that\'s `fields.summary`). Prose must stay true after a refactor that renames every symbol inside it: a method, a lock, a class or a line number belongs in `codeRefs` or a Pattern, not here. Carries only what the structured fields structurally cannot — why this node exists, the trade-off it embodies, how it participates in the system\'s stories — and must not restate `responsibilities` in prose form; if a fact is enumerable, the list is where it lives. Supports `**bold**` and `` `code` ``: a code span is for a name that is part of the system\'s contract — a config key, an environment variable, a wire-protocol field, a published API name — never an internal class or method.'),
     codeRefs: z.array(z.string()).optional()
       .describe('Refs into the source, relative to the nearest ancestor root. Syntax decides the kind: "src/views/cctv/" directory, "src/main.ts" file, "src/main.ts#getRouter" symbol, "src/main.ts#L10-L40" line range, "src/views/**/*.vue" glob.'),
     docRefs: z.array(z.string()).optional(),
@@ -94,7 +95,8 @@ export function registerAll(server: McpServer, tools: ReturnType<typeof buildToo
   }, async (a) => text(await tools.create_nodes(a)));
 
   const coreConnFields = {
-    description: z.string().optional(),
+    description: z.string().optional()
+      .describe('The long-form explanation of this edge — panel-only, never drawn on the canvas (that\'s `label`). Prose must stay true after a refactor that renames every symbol inside it: code detail belongs in the endpoint nodes\' `codeRefs` or a Pattern, not here. Supports `**bold**` and `` `code` ``: a code span is for a name that is part of the system\'s contract — a config key, an environment variable, a wire-protocol field, a published API name — never an internal class or method.'),
     direction: z.enum(['Unidirectional', 'Bidirectional']).optional(),
     label: z.string().optional()
       .describe('What this edge says, in your own words — the ONLY text drawn on the diagram. State something a reader cannot infer from the two node names ("constructs at startup and owns for the session"), not a restatement of the target ("uses the mine process"). Keep it under about 40 characters. An edge with nothing worth saying here should not be created.'),
@@ -149,7 +151,7 @@ export function registerAll(server: McpServer, tools: ReturnType<typeof buildToo
   }, async (a) => text(await tools.resolve_refs(a)));
 
   server.registerTool('model_gaps', {
-    description: 'Advisory coverage/quality read (read-only, whole-model). Returns three gap lists: orphanNodes (Component-layer nodes with zero connections), thinDescriptions (Component-and-above nodes whose description is empty or echoes the name, each with inbound/outbound degree so a thin hub is visible), and missingRefs (codeRefs that resolve to a path absent on disk — populated only when a disk check is requested; currently always empty, as no caller wires checkDisk yet). Flags candidates only — it never mutates or auto-fixes; a legitimately standalone component or a terse-but-fine node may appear. Complements validate_model, which checks structure/fields; this checks semantic coverage.',
+    description: 'Advisory coverage/quality read (read-only, whole-model). Returns four gap lists: orphanNodes (Component-layer nodes with zero connections), thinDescriptions (Component-and-above nodes whose description is empty or echoes the name, each with inbound/outbound degree so a thin hub is visible), bloatedProse (nodes and connections whose prose reads as code instead of architecture, for one of three independent reasons — over-budget: description over 600 characters; code-shaped: identifier density over 15 hits per 100 words, counting camelCase/PascalCase names, name() calls and source file names; restates-description: a responsibilities item that is ≥80% word-covered by its own node\'s description, so the list just repeats the prose), and missingRefs (codeRefs that resolve to a path absent on disk — populated only when a disk check is requested; currently always empty, as no caller wires checkDisk yet). Flags candidates only — it never mutates or auto-fixes; a legitimately standalone component, a terse-but-fine node, or a genuinely CamelCase product name may still appear. Complements validate_model, which checks structure/fields; this checks semantic coverage.',
     inputSchema: {},
   }, async () => text(await tools.model_gaps({})));
 

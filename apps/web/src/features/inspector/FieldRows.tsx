@@ -15,9 +15,12 @@ export function isEmptyValue(value: unknown): boolean {
 }
 
 /** Prose gets its two inline marks; anything already an element (a NodeLink, say) passes through.
- *  Applied here rather than at each call site so every prose slot the panel renders behaves the
- *  same — node and connection descriptions, and every list item. Canvas text never comes through
- *  this file, which is why summaries and edge labels stay literally plain. */
+ *  Applied here rather than at each call site so every prose slot the PANEL renders behaves the
+ *  same — description, summary, a connection's label, and every list item all go through Row or
+ *  ListRow, so all of them get the marks here. What stays plain is the CANVAS rendering of summary
+ *  and label — that drawing never comes through this file at all, so an author should not put marks
+ *  in either field: a summary written as "Reads **the** config" shows literal asterisks on the
+ *  canvas and bold in the panel. */
 const prose = (children: React.ReactNode): React.ReactNode =>
   typeof children === 'string' ? renderRichText(children) : children;
 
