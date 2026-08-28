@@ -13,16 +13,36 @@ export type ThinDescription = {
 
 export type MissingRef = { nodeId: string; ref: string; resolved: string };
 
+export type BloatedProse = {
+  kind: 'node' | 'connection';
+  id: string;
+  name: string;                 // connection: "<from name> → <to name>"
+  reason: 'over-budget' | 'code-shaped' | 'restates-description';
+  chars: number;
+  identifierDensity: number;
+  coverage?: number;            // restates-description only
+  item?: string;                // restates-description only
+  inbound: number; outbound: number;
+};
+
 export type ModelGaps = {
   orphanNodes: OrphanNode[];
   thinDescriptions: ThinDescription[];
   missingRefs: MissingRef[];
+  bloatedProse: BloatedProse[];
 };
 
 /** Disk access is injected, so this package never imports node:fs and stays testable. */
 export type GapOptions = { checkDisk?: { cwd: string; exists: (path: string) => boolean } };
 
 const COMPONENT_LAYER = 'Component';
+
+/** All three are the measured p90 of the real 112-node Baritone model — one methodology, so they
+ *  can be re-derived rather than re-argued after a rebuild. Length p90 was 630 chars, density p90
+ *  16.1 per 100 words, responsibilities word-coverage p90 0.80. */
+const BLOAT_CHARS = 600;
+const BLOAT_DENSITY = 15;
+const RESTATE_COVERAGE = 0.8;
 
 /** lowercase, keep alphanumerics, collapse runs of anything else to a single space, trim. */
 const normalize = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -118,7 +138,45 @@ export function modelGaps(model: HyphaeModel, profile: Profile, options: GapOpti
     });
   }
 
-  // 3. Missing refs: resolved codeRefs absent from disk. Opt-in — drift is a reporting
+  // 3. Bloated prose: a description that is over budget, reads as code, or is restated by a list.
+  //    Three independent reasons on purpose — measured on the real model, the densest prose is not
+  //    the longest (a 390-char pure-identifier description scored 39.3/100 words while an 899-char
+  //    one scored 2.3), and duplication is item-level (only 1 node of 56 had every item covered).
+  //    Advisory: this flags candidates and never mutates.
+  const bloatedProse: BloatedProse[] = [];
+  const nameById = new Map(model.nodes.map((n) => [n.id, n.name]));
+
+  const measure = (
+    kind: 'node' | 'connection', id: string, name: string, description: string,
+    responsibilities: string[],
+  ) => {
+    const density = identifierDensity(description);
+    const degree = { inbound: inbound.get(id) ?? 0, outbound: outbound.get(id) ?? 0 };
+    const base = { kind, id, name, chars: description.length, identifierDensity: density, ...degree };
+    if (description.length > BLOAT_CHARS) bloatedProse.push({ ...base, reason: 'over-budget' });
+    if (density > BLOAT_DENSITY) bloatedProse.push({ ...base, reason: 'code-shaped' });
+    // Scoped to responsibilities: `rules` measured zero items above the coverage threshold, so
+    // checking it would only add noise.
+    for (const item of responsibilities) {
+      const coverage = wordCoverage(item, description);
+      if (coverage >= RESTATE_COVERAGE) {
+        bloatedProse.push({ ...base, reason: 'restates-description', coverage, item });
+      }
+    }
+  };
+
+  for (const n of model.nodes) {
+    const responsibilities = Array.isArray(n.fields?.responsibilities)
+      ? (n.fields.responsibilities as unknown[]).map(String)
+      : [];
+    measure('node', n.id, n.name, n.description ?? '', responsibilities);
+  }
+  for (const c of model.connections) {
+    const name = `${nameById.get(c.from) ?? c.from} → ${nameById.get(c.to) ?? c.to}`;
+    measure('connection', c.id, name, c.description ?? '', []);
+  }
+
+  // 4. Missing refs: resolved codeRefs absent from disk. Opt-in — drift is a reporting
   //    concern, not a validity one, and the server may not have the modeled repo checked out.
   const missingRefs: MissingRef[] = [];
   const disk = options.checkDisk;
@@ -136,5 +194,5 @@ export function modelGaps(model: HyphaeModel, profile: Profile, options: GapOpti
     }
   }
 
-  return { orphanNodes, thinDescriptions, missingRefs };
+  return { orphanNodes, thinDescriptions, missingRefs, bloatedProse };
 }

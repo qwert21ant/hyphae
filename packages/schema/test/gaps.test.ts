@@ -44,7 +44,9 @@ describe('modelGaps', () => {
   });
 
   it('returns empty gap lists for an empty model', () => {
-    expect(modelGaps(emptyModel(), c4Backend)).toEqual({ orphanNodes: [], thinDescriptions: [], missingRefs: [] });
+    expect(modelGaps(emptyModel(), c4Backend)).toEqual({
+      orphanNodes: [], thinDescriptions: [], missingRefs: [], bloatedProse: [],
+    });
   });
 });
 
@@ -128,5 +130,80 @@ describe('wordCoverage', () => {
 
   it('is zero for an item with no content words', () => {
     expect(wordCoverage('of the', 'anything at all')).toBe(0);
+  });
+});
+
+/** One node per bloat reason, plus one clean node and one bloated connection. */
+function proseModel(): HyphaeModel {
+  const m = emptyModel();
+  const long = 'x'.repeat(400);
+  m.nodes.push(
+    { id: 'sys', name: 'Sys', type: 'System', parentId: null, description: 'The system', ...nodeBase },
+    { id: 'ca', name: 'Alpha', type: 'Container', parentId: 'sys', description: 'Alpha container', ...nodeBase },
+    // over-budget: >600 chars, but clean prose and no list to restate
+    { id: 'big', name: 'Big', type: 'Component', parentId: 'ca',
+      description: `It stores the recorded clip and serves it back to a viewer later. ${long} ${long}`, ...nodeBase },
+    // code-shaped: short, but pure identifiers
+    { id: 'codey', name: 'Codey', type: 'Component', parentId: 'ca',
+      description: 'Calls onTick() then reads pathPlanLock and writes CachedRegion from Main.java',
+      ...nodeBase },
+    // restates-description: the responsibility adds nothing the description has not said
+    { id: 'dup', name: 'Dup', type: 'Component', parentId: 'ca',
+      description: 'Owns the current path executor and the active goal for the session',
+      ...nodeBase, fields: { responsibilities: ['Owns the current path executor and the active goal'] } },
+    // clean: nothing should flag
+    { id: 'ok', name: 'Ok', type: 'Component', parentId: 'ca',
+      description: 'Keeps exactly one path being walked at a time, and replaces it before it runs out',
+      ...nodeBase, fields: { responsibilities: ['Rejects a movement cost below zero'] } },
+  );
+  m.connections.push(
+    { id: 'e1', from: 'big', to: 'codey', ...edgeBase,
+      description: 'Hands PathExecutor to AbstractNodeCostSearch via secretInternalSetGoal() in Main.java' },
+  );
+  return m;
+}
+
+describe('modelGaps bloatedProse', () => {
+  const flags = () => modelGaps(proseModel(), c4Backend).bloatedProse;
+  const reasonsFor = (id: string) => flags().filter((b) => b.id === id).map((b) => b.reason);
+
+  it('flags a description over the 600-char budget', () => {
+    expect(reasonsFor('big')).toContain('over-budget');
+  });
+
+  it('flags short-but-code-shaped prose the length check misses', () => {
+    expect(reasonsFor('codey')).toContain('code-shaped');
+    expect(reasonsFor('codey')).not.toContain('over-budget');
+  });
+
+  it('flags a responsibility its own description already states', () => {
+    const dup = flags().find((b) => b.id === 'dup' && b.reason === 'restates-description');
+    expect(dup).toBeTruthy();
+    expect(dup!.coverage).toBeGreaterThanOrEqual(0.8);
+    expect(dup!.item).toMatch(/Owns the current path executor/);
+  });
+
+  it('leaves clean prose alone', () => {
+    expect(flags().some((b) => b.id === 'ok')).toBe(false);
+  });
+
+  it('covers connections, which measured worst of anything on the real model', () => {
+    const e = flags().find((b) => b.kind === 'connection');
+    expect(e).toMatchObject({ id: 'e1', reason: 'code-shaped' });
+    expect(e!.name).toBe('Big → Codey');
+  });
+
+  it('does not flag rules for restating — that slot measured zero duplication', () => {
+    const m = proseModel();
+    m.nodes.find((n) => n.id === 'ok')!.fields = {
+      rules: ['Keeps exactly one path being walked at a time, and replaces it before it runs out'],
+    };
+    expect(modelGaps(m, c4Backend).bloatedProse.some(
+      (b) => b.id === 'ok' && b.reason === 'restates-description')).toBe(false);
+  });
+
+  it('carries degree, so a bloated hub stands out', () => {
+    const codey = flags().find((b) => b.id === 'codey')!;
+    expect(codey).toMatchObject({ inbound: 1, outbound: 0 });
   });
 });
