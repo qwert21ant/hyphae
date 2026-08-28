@@ -64,6 +64,11 @@ const CODE_SHAPES: RegExp[] = [
  * is accepted: two proper nouns in a 60-word description score about 3, so the flag only fires at
  * pathological density. Do NOT "fix" this with an allow-list of product names — the list would
  * never be complete and the threshold already absorbs the noise.
+ *
+ * Note that a called camelCase name scores twice (`onTick()` matches both the camelCase and the
+ * call-syntax pattern). That is deliberate and load-bearing: BLOAT_DENSITY was calibrated by
+ * running this exact regex set over the real model, so de-duplicating the patterns would lower
+ * every score against a threshold derived with them. Re-measure before changing the set.
  */
 export function identifierDensity(text: string): number {
   const words = (text.match(/\S+/g) ?? []).length;

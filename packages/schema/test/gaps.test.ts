@@ -97,7 +97,7 @@ describe('identifierDensity', () => {
   });
 
   it('counts camelCase, call syntax and source file names', () => {
-    // 8 words, 3 hits -> 37.5 per 100
+    // 8 words, 4 hits (onTick counts twice — see identifierDensity) -> 50 per 100
     expect(identifierDensity('it calls onTick() and reads pathPlanLock from Main.java')).toBeGreaterThan(15);
   });
 
