@@ -134,7 +134,7 @@ on disk — §6.10), `codeRefs` / `docRefs`, `createdAt` / `updatedAt`, and a `f
 
 **`fields` (profile domain fields):** e.g. in `c4-backend` `responsibilities` (list),
 `rules` (list) on all; `technology` (text) on Container/Component. Every field and enum
-value is described; values are strictly validated. The three prose slots never repeat each
+value is described; values are strictly validated. The four prose slots never repeat each
 other — see MODEL.md §7 principle 9.
 
 On the diagram a node renders as its **role shape + name + a one-line purpose (+ tech chip)**;

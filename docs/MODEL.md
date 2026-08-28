@@ -320,7 +320,7 @@ Rules that keep the model from sprawling and duplicating:
 9. **Prose names the responsibility; refs name the code.** A node's or connection's prose must
    stay true after a refactor that renames every symbol inside it. If renaming a class breaks your
    description, the description is in the wrong layer: the code belongs in `codeRefs` or a Pattern,
-   both of which exist to hold it. The three prose slots divide the work and never repeat each
+   both of which exist to hold it. The four prose slots divide the work and never repeat each
    other — `summary` says what it is for, `responsibilities` what it is accountable for, `rules`
    what always holds, and `description` carries only what a list structurally cannot.
 
