@@ -226,6 +226,21 @@ describe('MCP query tools', () => {
     expect(r.map((n) => n.id)).toEqual(['n1']);
   });
 
+  it('searches the rules field by default, not the retired invariants key', async () => {
+    // Seed a node whose ONLY match for the query is inside fields.rules.
+    const withRules = fakeApi({ getModel: async () => {
+      const m = graphModel();
+      m.nodes.push({
+        id: 'cache', name: 'Cache', type: 'Component', parentId: 'ca', description: '',
+        fields: { rules: ['Never returns a lossy approximation of a value it has not yet computed'] },
+        root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+      });
+      return m;
+    } });
+    const r = (await buildTools(withRules).list_nodes({ query: 'lossy approximation' })) as Array<{ name: string }>;
+    expect(r.map((n) => n.name)).toContain('Cache');
+  });
+
   it('list_nodes query caps at 25 rows by default; explicit limit overrides and plain enumeration is uncapped', async () => {
     const big = () => {
       const m = emptyModel();

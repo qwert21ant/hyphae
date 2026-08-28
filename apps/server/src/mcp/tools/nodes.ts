@@ -15,7 +15,7 @@ export function buildNodeTools(api: HyphaeApi) {
       if (type !== undefined) nodes = nodes.filter((n) => n.type === type);
       if (query !== undefined) {
         const q = query.toLowerCase();
-        const searchFields = fields?.length ? fields : ['name', 'description', 'technology', 'responsibilities', 'invariants'];
+        const searchFields = fields?.length ? fields : ['name', 'description', 'technology', 'responsibilities', 'rules'];
         const hit = (n: typeof model.nodes[number]) =>
           searchFields.some((f) => {
             const v = f === 'name' ? n.name : f === 'description' ? n.description : n.fields[f];

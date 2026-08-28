@@ -17,12 +17,12 @@ export function registerAll(server: McpServer, tools: ReturnType<typeof buildToo
   server.registerTool(
     'list_nodes',
     {
-      description: 'List/find node summaries (id, name, type, parentId). Optional filters (AND-combined): `parentId` (e.g. the components of one container), `type`, and `query` — a case-insensitive substring matched across text fields (name, description, technology, responsibilities, invariants by default; narrow with `fields`). With `query`, rows also carry the parent name + description for disambiguation (component names repeat across containers) and default to a 25-row cap; plain enumeration stays lean and uncapped. `offset`/`limit` paginate (an explicit `limit` overrides the query cap). Reads default to Component-and-above; pass maxLayer to cap at a shallower layer (Container/Context). Prefer this (or get_subgraph) over model_overview on a large model.',
+      description: 'List/find node summaries (id, name, type, parentId). Optional filters (AND-combined): `parentId` (e.g. the components of one container), `type`, and `query` — a case-insensitive substring matched across text fields (name, description, technology, responsibilities, rules by default; narrow with `fields`). With `query`, rows also carry the parent name + description for disambiguation (component names repeat across containers) and default to a 25-row cap; plain enumeration stays lean and uncapped. `offset`/`limit` paginate (an explicit `limit` overrides the query cap). Reads default to Component-and-above; pass maxLayer to cap at a shallower layer (Container/Context). Prefer this (or get_subgraph) over model_overview on a large model.',
       inputSchema: {
         parentId: z.string().optional(),
         type: z.string().optional(),
         query: z.string().optional().describe('Case-insensitive substring; keep only nodes whose searched text fields contain it.'),
-        fields: z.array(z.string()).optional().describe('Restrict which fields `query` searches (core fields or any documented `fields` key — see describe_profile). Default: name, description, technology, responsibilities, invariants.'),
+        fields: z.array(z.string()).optional().describe('Restrict which fields `query` searches (core fields or any documented `fields` key — see describe_profile). Default: name, description, technology, responsibilities, rules.'),
         limit: z.number().optional(),
         offset: z.number().optional(),
         maxLayer: z.enum(c4Backend.layers as [string, ...string[]]).optional().describe('Deepest layer to include (default Component, the deepest layer). Nodes below it are omitted; pass a shallower layer (Container/Context) to cap.'),
