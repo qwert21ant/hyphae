@@ -1,6 +1,6 @@
 # Business-Legible Prose Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Turn node and connection prose from a code walkthrough into an architecture description — by renaming `invariants` to `rules`, measuring prose quality in `model_gaps`, and rendering bold/code spans in the inspector.
 
