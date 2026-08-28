@@ -53,6 +53,12 @@ describe('validateModel', () => {
     expect(validateModel(m, profile).map((i) => i.kind)).toContain('bad-enum-value');
   });
 
+  it('reports a legacy invariants field as unknown — no migration ships', () => {
+    const m = model({ nodes: [node({ id: 'n1', fields: { summary: 's', invariants: ['legacy'] } })] });
+    const issues = validateModel(m, c4Backend);
+    expect(issues.some((i) => i.kind === 'unknown-field' && /invariants/.test(i.message))).toBe(true);
+  });
+
   it('accepts a valid model with fields', () => {
     const m = model({
       nodes: [
