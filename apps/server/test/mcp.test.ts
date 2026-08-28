@@ -86,6 +86,24 @@ describe('MCP tool handlers', () => {
     expect(g.orphanNodes.map((n) => n.id)).toEqual(['comp', 'orph']); // both components have no edges
     expect(g.thinDescriptions.some((t) => t.id === 'orph' && t.reason === 'empty')).toBe(true);
   });
+
+  it('model_gaps also flags bloated, code-shaped and restated prose', async () => {
+    const api = fakeApi({ getModel: async () => {
+      const m = model();
+      // pure code-shaped prose, short but dense enough to trip the density flag
+      m.nodes.push({
+        id: 'codey', name: 'Codey', type: 'Component', parentId: 'api',
+        description: 'Calls onTick() then reads pathPlanLock and writes CachedRegion from Main.java',
+        fields: {}, root: null, role: null, foundational: false, codeRefs: [], docRefs: [], createdAt: 't', updatedAt: 't',
+      });
+      return m;
+    } });
+    const g = (await buildTools(api).model_gaps({})) as {
+      bloatedProse: Array<{ id: string; kind: string; reason: string }>;
+    };
+    expect(g.bloatedProse.some((b) => b.id === 'codey' && b.kind === 'node' && b.reason === 'code-shaped')).toBe(true);
+  });
+
   it('create_nodes echoes id + name on full success', async () => {
     const r = await buildTools(fakeApi()).create_nodes({ nodes: [{ name: 'X', type: 'Component' }] });
     expect(r).toEqual({ created: [{ id: 'new', name: 'X' }] });
