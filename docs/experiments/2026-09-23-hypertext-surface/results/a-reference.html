@@ -1,0 +1,1477 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Continuo — Architecture Reference</title>
+<style>
+/* ============================================================
+   Continuo architecture reference
+   Ground rules for this stylesheet:
+     - three semantic hues only: pure / bound / outside.
+       They mean "version-independent", "tied to one Minecraft
+       version", "outside the boundary". Nothing else is coloured.
+     - ink carries interaction; luminance carries state.
+     - mono is chrome and data; serif is prose.
+   ============================================================ */
+:root{
+  --paper:#EAEDE7;
+  --card:#FAFBF8;
+  --card-2:#F2F4EF;
+  --ink:#13171A;
+  --ink-2:#48525A;
+  --ink-3:#67717A;
+  --rule:#CDD3CA;
+  --rule-2:#E0E4DC;
+  --pure:#1C4788;
+  --bound:#8B4E0D;
+  --outside:#3B5A37;
+  --pure-w:#E7ECF5;
+  --bound-w:#F5EBDF;
+  --outside-w:#E6EDE4;
+  --mark:#F6EDC9;
+  --mono:ui-monospace,"Cascadia Mono","Cascadia Code",Menlo,Consolas,"DejaVu Sans Mono","Liberation Mono",monospace;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Constantia,Charter,Cambria,Georgia,serif;
+  --spine:252px;
+  --head:54px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font:400 14px/1.5 var(--mono);
+  /* the subject's own material: a block grid. Kept faint and only
+     visible in gutters — every reading surface is opaque. */
+  background-image:
+    linear-gradient(to right, rgba(19,23,26,.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(19,23,26,.045) 1px, transparent 1px),
+    linear-gradient(to right, rgba(19,23,26,.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(19,23,26,.05) 1px, transparent 1px);
+  background-size:22px 22px,22px 22px,88px 88px,88px 88px;
+}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--pure);outline-offset:2px;border-radius:2px}
+
+/* ---------- head ---------- */
+.head{
+  position:sticky;top:0;z-index:60;height:var(--head);
+  display:flex;align-items:center;gap:18px;
+  padding:0 16px 0 18px;
+  padding-top:env(safe-area-inset-top,0px);
+  height:calc(var(--head) + env(safe-area-inset-top,0px));
+  background:rgba(234,237,231,.94);backdrop-filter:blur(6px);
+  border-bottom:1px solid var(--rule);
+}
+.brand{display:flex;align-items:baseline;gap:10px;flex:0 0 auto;text-decoration:none}
+.brand b{font-weight:700;font-size:15px;letter-spacing:.18em;text-transform:uppercase}
+.brand span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.searchwrap{position:relative;flex:1 1 auto;max-width:520px}
+#q{
+  width:100%;height:32px;padding:0 30px 0 28px;
+  font:400 12.5px/1 var(--mono);color:var(--ink);
+  background:var(--card);border:1px solid var(--rule);border-radius:2px;
+}
+#q::placeholder{color:var(--ink-3)}
+.searchwrap::before{content:"/";position:absolute;left:10px;top:9px;font-size:12px;color:var(--ink-3)}
+.kbd{
+  position:absolute;right:7px;top:8px;font-size:10px;color:var(--ink-3);
+  border:1px solid var(--rule);border-radius:2px;padding:1px 4px;background:var(--card-2);
+}
+#results{
+  position:absolute;top:36px;left:0;right:0;max-height:min(66vh,520px);overflow:auto;
+  background:var(--card);border:1px solid var(--rule);border-radius:2px;
+  box-shadow:0 12px 32px rgba(19,23,26,.16);
+}
+.rgroup{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);
+  padding:7px 10px 3px;border-top:1px solid var(--rule-2)}
+.rgroup:first-child{border-top:0}
+.ritem{display:block;padding:5px 10px;text-decoration:none;border-left:3px solid transparent;cursor:pointer}
+.ritem b{font-weight:600;font-size:12.5px}
+.ritem i{display:block;font:400 12px/1.35 var(--serif);color:var(--ink-2);font-style:normal;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ritem.on,.ritem:hover{background:var(--card-2);border-left-color:var(--ink)}
+.ritem mark{background:var(--mark);color:inherit}
+.rnone{padding:12px 10px;color:var(--ink-3);font-size:12px}
+.headbtn{
+  flex:0 0 auto;font:400 11px/1 var(--mono);letter-spacing:.06em;color:var(--ink-2);
+  background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:7px 9px;cursor:pointer;
+}
+.headbtn:hover{background:var(--card-2)}
+#backchip{display:none;max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#backchip.on{display:block}
+#menubtn{display:none}
+
+/* ---------- shell ---------- */
+.shell{display:grid;grid-template-columns:var(--spine) minmax(0,1fr);align-items:start}
+.spine{
+  position:sticky;top:calc(var(--head) + env(safe-area-inset-top,0px));
+  height:calc(100vh - var(--head) - env(safe-area-inset-top,0px));
+  overflow:auto;border-right:1px solid var(--rule);
+  background:linear-gradient(to right,rgba(250,251,248,.86),rgba(250,251,248,.86));
+  padding:12px 0 40px;
+}
+.spine h4{
+  margin:14px 0 5px;padding:0 14px;font:600 9.5px/1 var(--mono);
+  letter-spacing:.17em;text-transform:uppercase;color:var(--ink-3);
+}
+.slink{
+  display:block;padding:3px 14px 3px 14px;text-decoration:none;font-size:12px;
+  color:var(--ink-2);border-left:3px solid transparent;
+}
+.slink:hover{color:var(--ink);background:var(--card-2)}
+.slink.here{color:var(--ink);border-left-color:var(--ink);font-weight:600;background:var(--card-2)}
+.streerow{display:flex;align-items:stretch;border-left:3px solid transparent}
+.streerow.here{border-left-color:var(--ink);background:var(--card-2)}
+.streerow .slink{border-left:0;flex:1 1 auto;padding-left:8px;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.twisty{
+  flex:0 0 auto;width:20px;border:0;background:none;cursor:pointer;color:var(--ink-3);
+  font:400 10px/1 var(--mono);padding:0;
+}
+.twisty:hover{color:var(--ink)}
+.kids{display:none;padding:1px 0 3px}
+.kids.open{display:block}
+.kids .slink{padding-left:31px;font-size:11.5px;color:var(--ink-2)}
+.swatch{display:inline-block;width:5px;height:5px;margin-right:6px;vertical-align:1px;border-radius:1px}
+.sw-pure{background:var(--pure)}.sw-bound{background:var(--bound)}.sw-outside{background:var(--outside)}
+
+main{min-width:0;padding:0 26px 120px;max-width:1160px}
+section{scroll-margin-top:calc(var(--head) + 14px)}
+[id]{scroll-margin-top:calc(var(--head) + 14px)}
+/* entries can sit under a sticky container header, so they need more headroom */
+.entry[id],tr[id]{scroll-margin-top:calc(var(--head) + 56px)}
+
+/* ---------- section furniture ---------- */
+.band{
+  display:flex;align-items:baseline;gap:12px;margin:46px 0 14px;
+  padding-bottom:6px;border-bottom:2px solid var(--ink);
+}
+.band h2{margin:0;font:700 13px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase}
+.band .count{font-size:11px;color:var(--ink-3);letter-spacing:.08em}
+.band p{margin:0 0 0 auto;font:400 12px/1.4 var(--serif);color:var(--ink-2);max-width:46ch;text-align:right}
+
+/* ---------- orientation ---------- */
+.thesis{
+  background:var(--card);border:1px solid var(--rule);border-left:4px solid var(--pure);
+  padding:22px 26px 20px;margin:22px 0 0;
+}
+.eyebrow{font:600 9.5px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3)}
+.thesis h1{margin:8px 0 2px;font:700 30px/1.05 var(--mono);letter-spacing:-.01em}
+.lede{margin:6px 0 14px;font:400 16px/1.4 var(--serif);color:var(--ink-2)}
+.prose{font:400 14.5px/1.6 var(--serif);color:var(--ink);max-width:74ch}
+.prose p{margin:0 0 .7em}
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:16px}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule);
+  border:1px solid var(--rule);margin-top:18px}
+.stat{background:var(--card);padding:11px 13px}
+.stat b{display:block;font:700 22px/1.1 var(--mono);letter-spacing:-.02em}
+.stat span{display:block;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-top:3px}
+.stat i{display:block;font:400 11.5px/1.5 var(--serif);font-style:normal;color:var(--ink-2);margin-top:6px}
+
+/* ---------- the four rules ---------- */
+.rulegrid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--rule);
+  border:1px solid var(--rule)}
+.ruleitem{background:var(--card);padding:12px 14px;display:flex;gap:12px}
+.rulenum{flex:0 0 auto;font:700 26px/1 var(--mono);color:var(--rule);letter-spacing:-.04em}
+.ruleitem.n .rulenum{color:var(--pure)}
+.ruletxt{font:400 13.5px/1.5 var(--serif)}
+.ruletxt b{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;
+  display:block;color:var(--ink-2);font-weight:700;margin-bottom:2px}
+
+/* ---------- boundary matrix (the signature) ---------- */
+.matrixwrap{background:var(--card);border:1px solid var(--rule);padding:20px 22px 16px;margin-top:6px}
+.matrixscroll{overflow-x:auto;padding-bottom:4px}
+table.dsm{border-collapse:collapse;font:400 11px/1 var(--mono)}
+table.dsm th,table.dsm td{border:1px solid var(--rule-2);padding:0}
+table.dsm td.cell{width:26px;height:26px;text-align:center;vertical-align:middle;position:relative}
+table.dsm td.cell.diag{background:repeating-linear-gradient(45deg,transparent,transparent 3px,var(--rule-2) 3px,var(--rule-2) 4px)}
+table.dsm td.cell a{
+  display:block;width:100%;height:100%;text-decoration:none;line-height:26px;font-size:10px;
+}
+table.dsm td.cell.on{background:var(--pure-w)}
+table.dsm td.cell.on.b{background:var(--bound-w)}
+table.dsm td.cell.on.o{background:var(--outside-w)}
+table.dsm td.cell.on a::after{content:"";position:absolute;inset:6px;border-radius:1px;background:var(--pure)}
+table.dsm td.cell.on.b a::after{background:var(--bound)}
+table.dsm td.cell.on.o a::after{background:var(--outside)}
+table.dsm td.cell.on a:hover::after,table.dsm td.cell.on a:focus::after{inset:3px}
+table.dsm th.rowh{
+  text-align:right;padding:0 9px;white-space:nowrap;font-weight:400;font-size:11px;height:26px;
+  background:var(--card);
+}
+table.dsm th.rowh .n{font-weight:600}
+table.dsm th.colh{height:150px;width:26px;padding:0;background:var(--card);vertical-align:bottom}
+table.dsm th.colh div{
+  writing-mode:vertical-rl;transform:rotate(180deg);
+  white-space:nowrap;font-weight:400;font-size:11px;padding:6px 0;text-align:left;
+}
+table.dsm th.colh div .n{font-weight:600}
+table.dsm td.tot,table.dsm th.tot{
+  font-size:10.5px;color:var(--ink-3);text-align:center;width:26px;height:26px;background:var(--card-2)
+}
+table.dsm tr.hl th.rowh{background:var(--mark)}
+table.dsm .corner{background:var(--card)}
+.matrixkey{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:14px;padding-top:12px;border-top:1px solid var(--rule-2);
+  font-size:11px;color:var(--ink-2)}
+.matrixkey span{display:flex;align-items:center;gap:6px}
+.dot{width:9px;height:9px;border-radius:1px;display:inline-block}
+.matrixnote{margin:12px 0 0;font:400 13.5px/1.55 var(--serif);color:var(--ink);max-width:78ch}
+
+/* ---------- legend / key ---------- */
+.keygrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.keycell{background:var(--card);padding:12px 14px}
+.keycell h5{margin:0 0 6px;font:700 9.5px/1 var(--mono);letter-spacing:.17em;text-transform:uppercase;color:var(--ink-3)}
+.keycell p{margin:0 0 6px;font:400 13px/1.5 var(--serif);color:var(--ink)}
+.keycell p:last-child{margin-bottom:0}
+
+/* ---------- entries ---------- */
+.unit{margin-top:34px}
+.unithead{
+  position:sticky;top:calc(var(--head) + env(safe-area-inset-top,0px));z-index:20;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:var(--paper);padding:9px 0 7px;border-bottom:1px solid var(--ink);
+}
+.unithead .ux{font:700 9.5px/1 var(--mono);letter-spacing:.17em;text-transform:uppercase;color:var(--ink-3)}
+.unithead h3{margin:0;font:700 19px/1.1 var(--mono);letter-spacing:-.01em}
+.unithead .spacer{flex:1 1 auto}
+
+.entry{
+  background:var(--card);border:1px solid var(--rule);border-left:4px solid var(--rule);
+  padding:14px 16px;margin-top:12px;
+}
+.entry.pure{border-left-color:var(--pure)}
+.entry.bound{border-left-color:var(--bound)}
+.entry.outside{border-left-color:var(--outside)}
+.entry.big{padding:18px 20px}
+.entry:target{background:var(--mark);box-shadow:0 0 0 2px var(--ink)}
+.ehead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.ehead h4{margin:0;font:700 16px/1.2 var(--mono);letter-spacing:-.005em}
+.entry.big .ehead h4{font-size:19px}
+.ehead .anchor{font-size:10.5px;color:var(--ink-3);text-decoration:none;opacity:0;margin-left:-4px}
+.entry:hover .ehead .anchor{opacity:1}
+.esum{margin:5px 0 0;font:400 14.5px/1.45 var(--serif);color:var(--ink-2);max-width:80ch}
+.entry.big .esum{font-size:16px}
+
+.ebody{display:grid;grid-template-columns:minmax(0,1.32fr) minmax(0,1fr);gap:20px;margin-top:12px}
+.ebody.wide{grid-template-columns:minmax(0,1fr)}
+.blk{margin-bottom:13px}
+.blk:last-child{margin-bottom:0}
+.blk h5{
+  margin:0 0 5px;font:700 9.5px/1 var(--mono);letter-spacing:.17em;text-transform:uppercase;color:var(--ink-3);
+  padding-bottom:3px;border-bottom:1px solid var(--rule-2);
+}
+ul.tight{margin:0;padding:0;list-style:none}
+ul.tight li{
+  font:400 13.5px/1.5 var(--serif);margin:0 0 4px;padding-left:15px;position:relative;
+}
+ul.tight li::before{content:"";position:absolute;left:2px;top:.62em;width:5px;height:5px;background:var(--rule);border-radius:1px}
+ul.rules li::before{background:var(--ink-3);border-radius:50%}
+.note{font:400 13.5px/1.55 var(--serif);color:var(--ink)}
+
+/* tags */
+.tags{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.tag{
+  font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  padding:3px 5px;border:1px solid var(--rule);border-radius:2px;color:var(--ink-2);background:var(--card-2);
+  white-space:nowrap;
+}
+.tag.t-pure{color:var(--pure);border-color:var(--pure);background:var(--pure-w)}
+.tag.t-bound{color:var(--bound);border-color:var(--bound);background:var(--bound-w)}
+.tag.t-outside{color:var(--outside);border-color:var(--outside);background:var(--outside-w)}
+.tag.t-found{color:var(--bound);border-color:var(--bound);background:var(--bound-w)}
+.tag.t-plain{}
+.meter{display:inline-flex;gap:2px;align-items:center;vertical-align:1px}
+.meter i{width:5px;height:5px;background:var(--rule);border-radius:1px;display:block}
+.meter i.f{background:var(--ink)}
+
+/* data tables */
+table.data{width:100%;border-collapse:collapse;font:400 11.5px/1.35 var(--mono)}
+table.data th{
+  text-align:left;font:700 9px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
+  padding:0 6px 4px 0;border-bottom:1px solid var(--rule-2);font-weight:700;
+}
+table.data td{padding:4px 6px 4px 0;border-bottom:1px solid var(--rule-2);vertical-align:top}
+table.data tr:last-child td{border-bottom:0}
+table.data tr.hl{background:var(--mark)}
+table.data .lab{font:400 12.5px/1.4 var(--serif);color:var(--ink)}
+table.data .dir{color:var(--ink-3);width:1%;white-space:nowrap}
+.viagroup td{background:var(--card-2);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.viagroup td b{font-weight:700}
+
+/* refs */
+.reflist{display:flex;flex-direction:column;gap:2px}
+.ref{
+  font:400 11px/1.4 var(--mono);color:var(--ink-2);word-break:break-all;
+  padding-left:16px;position:relative;
+}
+.ref .k{position:absolute;left:0;top:0;font-size:9px;color:var(--ink-3);letter-spacing:.06em}
+.ref em{font-style:normal;color:var(--ink);font-weight:600}
+.ref .frag{color:var(--bound)}
+
+/* cross-links */
+a.x{
+  color:var(--ink);text-decoration:none;
+  border-bottom:1px solid var(--rule);
+}
+a.x:hover{border-bottom-color:var(--ink);background:var(--mark)}
+a.x.k-node{font-weight:600}
+a.x.k-conn,a.x.k-flow,a.x.k-pattern{font-style:normal}
+.muted{color:var(--ink-3)}
+.thin{font:400 12.5px/1.5 var(--serif);color:var(--ink-3)}
+
+/* scoped diagrams */
+.diagram{background:var(--card-2);border:1px solid var(--rule-2);padding:10px;overflow-x:auto;margin-bottom:10px}
+.diagram svg{display:block}
+.dgbox{fill:var(--card);stroke:var(--rule);stroke-width:1}
+.dgbox.hl{stroke:var(--ink);stroke-width:1.5}
+.dglabel{font:600 10.5px/1 var(--mono);fill:var(--ink)}
+.dgedge{fill:none;stroke:var(--ink-3);stroke-width:1.2;marker-end:url(#ah)}
+.dgedge.hl{stroke:var(--pure);stroke-width:2;marker-end:url(#ahh)}
+.dghit{fill:none;stroke:transparent;stroke-width:12;cursor:pointer}
+.dgcap{font:400 11px/1.4 var(--serif);color:var(--ink-3);margin:0 0 8px}
+
+/* flows */
+.flowsteps{border:1px solid var(--rule);background:var(--card)}
+.fstep{display:grid;grid-template-columns:30px minmax(0,1fr) 26px minmax(0,1fr);gap:0 10px;
+  align-items:baseline;padding:7px 12px;border-bottom:1px solid var(--rule-2)}
+.fstep:last-child{border-bottom:0}
+.fstep .ord{font:600 10px/1.5 var(--mono);color:var(--ink-3);text-align:right}
+.fstep .from{text-align:right;font-size:12px;min-width:0}
+.fstep .to{font-size:12px;min-width:0}
+.fstep .arr{text-align:center;color:var(--ink-3);font-size:12px}
+.fstep .msg{grid-column:2 / 5;font:400 13px/1.4 var(--serif);color:var(--ink);margin-top:2px}
+.fstep .msg .viaref{font:400 10.5px/1 var(--mono);color:var(--ink-3);margin-left:8px}
+.fstep.kind-Async .arr{color:var(--bound)}
+.fstep.kind-Return{background:var(--card-2)}
+.fstep.kind-Return .arr{color:var(--ink-3)}
+.ctrlchip{
+  display:inline-block;margin-right:8px;padding:2px 6px;border:1px solid var(--bound);border-radius:2px;
+  background:var(--bound-w);color:var(--bound);font:600 9.5px/1.3 var(--mono);letter-spacing:.09em;
+  text-transform:uppercase;vertical-align:1px;
+}
+.ctrlchip em{font-style:normal;text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink-2)}
+.parts{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+
+/* patterns */
+.patgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+.stbox{fill:var(--card);stroke:var(--ink-3);stroke-width:1.2}
+.stbox.hl{stroke:var(--pure);stroke-width:2.4;fill:var(--pure-w)}
+.stlabel{font:600 11px/1 var(--mono);fill:var(--ink);text-anchor:middle}
+.tredge{fill:none;stroke:var(--ink-3);stroke-width:1.2;marker-end:url(#ah)}
+.tredge.hl{stroke:var(--pure);stroke-width:2.2;marker-end:url(#ahh)}
+
+footer{margin:70px 0 0;padding-top:16px;border-top:1px solid var(--rule);
+  font:400 12px/1.6 var(--serif);color:var(--ink-3);max-width:80ch}
+
+/* peek popover */
+#peek{
+  position:fixed;z-index:90;max-width:340px;display:none;
+  background:var(--card);border:1px solid var(--ink);border-left-width:4px;
+  box-shadow:0 10px 30px rgba(19,23,26,.2);padding:10px 12px;
+}
+#peek.on{display:block}
+#peek .pk-h{font:700 13px/1.2 var(--mono);margin-bottom:3px}
+#peek .pk-t{font:600 9px/1 var(--mono);letter-spacing:.15em;text-transform:uppercase;color:var(--ink-3);margin-bottom:5px}
+#peek .pk-s{font:400 13px/1.45 var(--serif);color:var(--ink-2)}
+#peek .pk-m{font:400 10.5px/1.4 var(--mono);color:var(--ink-3);margin-top:6px}
+#peek.pure{border-color:var(--pure)}#peek.bound{border-color:var(--bound)}#peek.outside{border-color:var(--outside)}
+
+@media (max-width:1080px){
+  .twocol,.patgrid{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .rulegrid,.keygrid{grid-template-columns:1fr}
+  .ebody{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:900px){
+  .shell{grid-template-columns:minmax(0,1fr)}
+  .spine{
+    position:fixed;left:0;top:calc(var(--head) + env(safe-area-inset-top,0px));
+    width:280px;z-index:50;background:var(--card);display:none;
+    box-shadow:0 12px 40px rgba(19,23,26,.2);
+  }
+  .spine.open{display:block}
+  #menubtn{display:block}
+  main{padding:0 14px 90px}
+  .band p{display:none}
+  .unithead{position:static}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media print{.head,.spine,#peek{display:none}.shell{display:block}}
+</style>
+</head>
+<body>
+
+<header class="head">
+  <a class="brand" href="#top"><b>Continuo</b><span>architecture reference</span></a>
+  <button class="headbtn" id="menubtn" aria-label="Contents">☰</button>
+  <div class="searchwrap">
+    <input id="q" type="search" autocomplete="off" spellcheck="false"
+           placeholder="Search nodes, connections, flows, patterns" aria-label="Search the model">
+    <span class="kbd">/</span>
+    <div id="results" hidden></div>
+  </div>
+  <button class="headbtn" id="backchip"></button>
+</header>
+
+<div class="shell">
+  <nav class="spine" id="spine" aria-label="Contents"></nav>
+  <main id="top">
+    <section id="orientation"></section>
+    <section id="contract"></section>
+    <section id="matrix"></section>
+    <section id="key"></section>
+    <section id="reference"></section>
+    <section id="outside"></section>
+    <section id="crossings"></section>
+    <section id="flows"></section>
+    <section id="patterns"></section>
+    <footer id="colophon"></footer>
+  </main>
+</div>
+
+<div id="peek" role="tooltip" aria-hidden="true"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L8,4 L0,8 z" fill="#67717A"></path>
+  </marker>
+  <marker id="ahh" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L8,4 L0,8 z" fill="#1C4788"></path>
+  </marker>
+</defs></svg>
+
+<script type="application/json" id="model-data">{"schemaVersion":1,"metadata":{"name":"Untitled","description":"","createdAt":"2026-09-15T08:36:11.280Z","updatedAt":"2026-09-15T08:36:11.280Z"},"activeProfile":"c4-backend","nodes":[{"id":"1dd6e6eb-e0fc-4121-a887-f8baafb58c67","name":"Continuo","type":"System","parentId":null,"root":null,"role":null,"foundational":false,"description":"Continuo is a Baritone-inspired automation mod built around the one decision Baritone did not make: the core knows nothing about Minecraft. The world, the player and the inputs are reached through a narrow platform SPI, and each supported version×loader pair implements that SPI as a thin adapter. The trade-off is that every capability the core wants must be expressible in the SPI's minimal, 1.7.10-compatible surface — in exchange the pathfinding, movement and execution logic are tested headlessly against fixture worlds and ship as one artifact.","codeRefs":[],"docRefs":["mc-automation-architecture.md","docs/injection-strategy.md","docs/toolchain-decision.md"],"createdAt":"2026-09-15T09:13:33.569Z","updatedAt":"2026-09-15T09:13:33.569Z","fields":{"responsibilities":["Plans and walks routes through a Minecraft world with a single core artifact shared by every supported game version","Confines all game- and loader-specific code to per-version adapters so the core never needs a fork per version"],"rules":["Nothing outside an adapter references Minecraft or a mod loader, and the build fails if it does","Module dependencies point one way only; nothing depends on an adapter"],"summary":"Cross-version Minecraft bot: one pure core, thin per-version adapters"}},{"id":"0a22b87f-d84f-4d70-9271-5b44f7263e27","name":"Platform SPI","type":"Container","parentId":"1dd6e6eb-e0fc-4121-a887-f8baafb58c67","root":"platform/","role":null,"foundational":false,"description":"Kept deliberately minimal: every type added here is a compatibility obligation on every future adapter. Testing seams are kept out of it for the same reason and live on the core side instead.","codeRefs":[],"docRefs":[],"createdAt":"2026-09-15T09:14:00.491Z","updatedAt":"2026-09-15T10:31:42.182Z","fields":{"responsibilities":["Defines what the core may ask of the game: block reads, player state, tick events, platform facts and input","States the four global rules every adapter and the core must honour, in a numbering the conformance suite depends on"],"rules":["Never references a Minecraft or loader type","Never assumes a Minecraft version newer than 1.7.10","**Rule 1 — Threading:** every call in either direction happens on the client main thread and never blocks","**Rule 2 — Lifecycle:** the core is started once and stopped on every change of the client's level, including a dimension change","**Rule 3 — Faults:** a core fault never reaches the game's tick loop; the core is stopped and gets no ticks until the next world load","**Rule 4 — Actuation is level-triggered:** the platform may clear held input at any time, so the core restates its whole desired input every tick"],"summary":"The contract between the pure core and any Minecraft version","technology":"Java"}},{"id":"9a66c47b-ea1f-4789-8ed2-02e779d0ab63","name":"Core","type":"Container","parentId":"1dd6e6eb-e0fc-4121-a887-f8baafb58c67","root":"core/","role":null,"foundational":false,"description":"The layer where a Minecraft block stops being a version-specific state and becomes a fact the rest of the core can reason about. Geometry does most of the work, so the per-version tables stay a few dozen rows. Snapshots exist because a search reads each position many times over and every live read is a main-thread SPI call; copying once and sealing turns those repeats into memory lookups.","codeRefs":[],"docRefs":[],"createdAt":"2026-09-15T09:14:00.494Z","updatedAt":"2026-09-15T10:35:27.080Z","fields":{"responsibilities":["Turns the SPI's raw block states into version-independent block facts using per-version override tables","Provides a cheap, sealable copy of the world a search can read repeatedly","Declares the seam an adapter runtime drives the core through"],"rules":["Contains no bot behaviour a conformance suite would have to encode"],"summary":"Version-independent world model: block classification and snapshots","technology":"Java"}},{"id":"979f2e82-9a64-4e74-995f-3a12161f5e92","name":"Movement API","type":"Container","parentId":"1dd6e6eb-e0fc-4121-a887-f8baafb58c67","root":"core-movement/","role":null,"foundational":false,"description":"Split out of the pathfinder so a movement can be written without seeing the search. The dependency-direction check keeps it that way, which is what lets the parkour plugin serve as proof that the seam holds. Not yet stable for out-of-tree authors: planned additions are expected to be additive but carry no compatibility promise.","codeRefs":[],"docRefs":[],"createdAt":"2026-09-15T09:14:00.495Z","updatedAt":"2026-09-15T10:35:27.082Z","fields":{"responsibilities":["Defines what a movement is, what it costs and when a block can be stood on","Filters and orders the active movements for a search by capability"],"rules":["Exposes nothing of the search: a movement cannot see how A* works"],"summary":"Published contract a movement plugin compiles against","technology":"Java"}},{"id":"5f00f65b-d38e-4057-9497-07d436443301","name":"Pathfinder","type":"Container","parentId":"1dd6e6eb-e0fc-4121-a887-f8baafb58c67","root":"core-pathfinder/","role":null,"foundational":false,"description":"Baritone's A* rethought for a core that cannot touch the game. Because the world arrives only as a block source, every search can be pinned by fixture-world tests, and determinism is a hard requirement those tests rely on. The search can be sliced across ticks without changing its result, which is what lets the executor walk a long route before it is fully planned.","codeRefs":[],"docRefs":[],"createdAt":"2026-09-15T09:14:00.496Z","updatedAt":"2026-09-15T10:35:27.083Z","fields":{"responsibilities":["Finds a route from a start to a goal through a world it sees only as a block source","Supplies the built-in ground movements","Reports why a search ended when it does not reach the goal"],"rules":["Deterministic: the same world and goal yield the same path, with budgets counted in nodes rather than time"],"summary":"Headless A* search over block positions toward a goal","technology":"Java"}},{"id":"654c0dbe-f216-4d99-beaa-6470527193d2","name":"Engine","type":"Container","parentId":"1dd6e6eb-e0fc-4121-a887-f8baafb58c67","root":"core-engine/","role":null,"foundational":false,"description":"Today this is the whole of the core's behaviour: walk to a marked block. The architecture doc's process manager and task scripts do not exist yet; this container is where they would sit. It holds no reference to its owner, so the adapter constructs it and the shared runtime drives it, and it is tested with no game on the classpath.","codeRefs":[],"docRefs":[],"createdAt":"2026-09-15T09:14:00.497Z","updatedAt":"2026-09-15T10:35:27.084Z","fields":{"responsibilities":["Turns a destination into a path and the path into per-tick inputs","Is the core implementation an adapter hands to the runtime"],"rules":["A walk never plans a parkour jump: its searches are granted no movement capabilities","Turns the camera at a bounded rate rather than snapping to a heading"],"summary":"Drives the player along a planned path, one tick at a time","technology":"Java"}},{"id":"d8c22384-0a36-4361-9612-5df05b754a8f","name":"Parkour Movement","type":"Container","parentId":"1dd6e6eb-e0fc-4121-a887-f8baafb58c67","root":"movement-parkour/","role":null,"foundational":false,"description":"Deliberately a separate module with access only to the movement API. Nothing in the core names it; it is found through Java service loading. The only consumer that grants the parkour capability today is the dev path probe, so normal walks never use it.","codeRefs":[],"docRefs":[],"createdAt":"2026-09-15T09:14:00.498Z","updatedAt":"2026-09-15T10:35:27.085Z","fields":{"responsibilities":["Proves the movement seam works for a plugin with no access to the search"],"rules":["Discovered at runtime; nothing in the core names it"],"summary":"Parkour jump as an out-of-tree movement plugin","technology":"Java"}},{"id":"ed5b165e-8593-4cb6-94ca-ea11055f94c4","name":"Adapter Runtime","type":"Container","parentId":"1dd6e6eb-e0fc-4121-a887-f8baafb58c67","root":"runtime/","role":null,"foundational":false,"description":"Extracted from what used to be duplicated across the Fabric and Forge mod entrypoints. It touches the game only through non-game handles, which is what made fault handling, click draining and tick pairing testable offline.","codeRefs":[],"docRefs":[],"createdAt":"2026-09-15T09:14:00.500Z","updatedAt":"2026-09-15T09:14:00.500Z","fields":{"responsibilities":["Discharges the adapter side of the platform's global rules once, for every version","Hosts dev-only probes that run the pathfinder against a live world"],"rules":["Holds no bot behaviour"],"summary":"Version-independent adapter machinery shared by every adapter","technology":"Java"}},{"id":"6f7466ca-7bfe-4e3d-a397-50b2ac990a2e","name":"Fabric 1.21.11 Adapter","type":"Container","parentId":"1dd6e6eb-e0fc-4121-a887-f8baafb58c67","root":"adapters/adapter-fabric-1.21.11/","role":null,"foundational":false,"description":"The modern-version adapter, built with Fabric Loom on official Mojang mappings. It stays thin because everything version-independent moved into the shared runtime; what remains is translating the SPI into 1.21.11 client calls and registering keys. Adapter code cannot be tested headlessly, so it is gated by the manual smoke checklist and review against decompiled sources.","codeRefs":[],"docRefs":[],"createdAt":"2026-09-15T09:14:00.502Z","updatedAt":"2026-09-15T10:35:27.086Z","fields":{"responsibilities":["Binds the platform SPI to the modern Minecraft client","Wires the core, engine and runtime into a loadable mod"],"summary":"Implements the platform SPI for Minecraft 1.21.11 on Fabric","technology":"Fabric"}},{"id":"de24162f-a108-4b63-8f8f-e8fc5d686071","name":"Forge 1.7.10 Adapter","type":"Container","parentId":"1dd6e6eb-e0fc-4121-a887-f8baafb58c67","root":"adapters/adapter-forge-1.7.10/","role":null,"foundational":false,"description":"Built with RetroFuturaGradle against decompiled, deobfuscated 1.7.10 sources. An access transformer opens the client fields the bindings must write, and has to be applied at both of RFG's deobfuscation stages to survive Forge's own source patches. 1.7.10 has no main-thread client-stopping event, so this adapter satisfies the lifecycle rule's shutdown clause by the omission the contract explicitly permits.","codeRefs":[],"docRefs":[],"createdAt":"2026-09-15T09:14:00.502Z","updatedAt":"2026-09-15T10:31:42.186Z","fields":{"responsibilities":["Binds the platform SPI to the legacy Minecraft client","Wires the core, engine and runtime into a loadable mod"],"rules":["Holds keys through each key binding's own pressed state, never the static global key route the platform contract calls non-conformant"],"summary":"Implements the platform SPI for Minecraft 1.7.10 on Forge","technology":"Forge"}},{"id":"dbacee45-2803-4b3a-b0a9-e4794022a281","name":"Parkour Jump","type":"Component","parentId":"d8c22384-0a36-4361-9612-5df05b754a8f","root":null,"role":null,"foundational":false,"description":"The first movement spanning two axis steps, which makes it the case that exercises the search's per-step admissibility condition for real. Registered through `META-INF/services/dev.continuo.movement.IMovementType`, so the core finds it at runtime without naming it.","codeRefs":["src/main/java/dev/continuo/movement/parkour/","src/main/resources/META-INF/services/"],"docRefs":[],"createdAt":"2026-09-15T09:17:20.381Z","updatedAt":"2026-09-15T09:17:20.381Z","fields":{"responsibilities":["Adds a jump across a single non-standable gap at the same height as a candidate move","Declares its cost so the search's heuristic stays admissible across a two-block move"],"rules":["Never offered where the gap is standable, so walking is never outbid by jumping","Only one block and level: longer jumps are claims about momentum nothing has measured"],"summary":"Offers sprint-jumps across a one-block gap to the search","technology":"Java"}},{"id":"9bcb16a5-0f18-4b87-a831-5fd8df34a1c9","name":"Core Entry Point","type":"Component","parentId":"654c0dbe-f216-4d99-beaa-6470527193d2","root":null,"role":null,"foundational":false,"description":"Deliberately holds no static state and knows nothing about whatever holds it — the adapter constructs it and drives it, and that is exactly what keeps it testable with no Minecraft on the classpath. That trade-off is why the lifecycle guarding here matters: a `start` that throws partway through must not leave `stop` free to throw again on top of it, since a caller already in that position is in an unspecified state either way.","codeRefs":["ContinuoCore.java"],"docRefs":[],"createdAt":"2026-09-15T09:19:43.317Z","updatedAt":"2026-09-15T10:35:32.096Z","fields":{"responsibilities":["Gives the adapter a single Minecraft-free type to construct, start, and drive every tick","Builds the classified block reads a level's walk depends on, and shares them with every reader","Releases every held input on a level transition, so a disconnect mid-walk never leaves a key latched"],"rules":["Writes nothing until `start` has been called, and never leaves a partially-failed `start` in a state that throws again on `stop`"],"summary":"The adapter-facing lifecycle: start, stop, tick, and the current walk target"}},{"id":"f47fd47b-7529-4d24-a5e9-ed2121633dc0","name":"Path Executor","type":"Component","parentId":"654c0dbe-f216-4d99-beaa-6470527193d2","root":null,"role":null,"foundational":false,"description":"Recomputes the whole input set every tick from the path and the player's current position, rather than remembering what it last pressed — so a tick that drops held keys costs at most one lost tick instead of silently truncating a walk. A search's segments are adopted as each one finishes rather than only once a full route is found, which is what lets a plan-ahead search run alongside driving instead of blocking it: inputs keep being written on the very ticks a continuation is being searched for.","codeRefs":["PathExecutor.java","PathFollower.java"],"docRefs":[],"createdAt":"2026-09-15T09:19:43.319Z","updatedAt":"2026-09-15T10:35:32.099Z","fields":{"responsibilities":["Keeps exactly one path being walked at a time, and replaces it before it runs out","Notices when the player has fallen off the path or stopped advancing, and repaths from where it actually is","Gives up on a destination once repathing has failed too many times in a row, instead of retrying forever","Tracks where the player currently is on the driven path, within a bounded window, so a route that loops back on itself cannot anchor to the wrong revolution"],"rules":["Writes no input at all while idle, so it never fights the user's own keyboard","Never grants a movement capability its own searches don't already assume, so a search here never produces a step it cannot drive","Restates the full input set and desired facing every tick rather than remembering what it last pressed"],"summary":"Turns a path into per-tick inputs, and keeps searching so it never runs out"}},{"id":"3f0ec4a1-2478-456e-b37b-a6246a9e6d13","name":"Humanized Actuator","type":"Component","parentId":"654c0dbe-f216-4d99-beaa-6470527193d2","root":null,"role":null,"foundational":false,"description":"The seam future anticheat plausibility work extends without touching the executor or the movements it drives: because it is a plain core-side decorator around the adapter's actuator, that work stays testable and version-independent instead of being duplicated per adapter.","codeRefs":["HumanizedActuator.java"],"docRefs":[],"createdAt":"2026-09-15T09:19:43.320Z","updatedAt":"2026-09-15T09:19:43.320Z","fields":{"responsibilities":["Caps the player's turn rate to something a human could plausibly produce","Absorbs a server-side rotation correction or the user's own mouse nudge on the very next tick, rather than fighting or detecting it"],"rules":["Never drops or delays a pressed input — only the requested facing is throttled","Remembers no target and no prior rotation; every call steps from the player's actual current yaw"],"summary":"Bounds how fast the simulated player can turn, so aim doesn't teleport"}},{"id":"b510a9cb-ba0c-4f9a-8723-9bd0b4a1265b","name":"World Reading","type":"Component","parentId":"0a22b87f-d84f-4d70-9271-5b44f7263e27","root":null,"role":null,"foundational":false,"description":"Some blocks compute their geometry from their neighbours rather than from their state alone, which is why the expensive query takes a position instead of a cached identifier — an implementation given only an identifier could not answer for those blocks. The core's caching is sound only because its own shape categories are behavioural rather than literal, so a neighbour-dependent block's cached geometry can come from whichever instance was described first.","codeRefs":["IBlockView.java","BlockDescription.java"],"docRefs":[],"createdAt":"2026-09-15T09:19:48.754Z","updatedAt":"2026-09-15T09:19:48.754Z","fields":{"responsibilities":["Lets the core learn a block's raw facts — collision, fluid, climbable, gravity — without any version-specific knowledge","Keeps classification (safe, a slab, worth avoiding) entirely on the core's side, so two adapters can never disagree about the same block","Tells the core whether a chunk is loaded, distinctly from a position that simply lies outside the world"],"rules":["The cheap per-position query and the expensive per-state query are contractually distinct: the core calls the expensive one only once per state it hasn't seen, then caches the result","A block's raw facts never encode a verdict about the block"],"summary":"Read-only, judgement-free view of the live world's blocks"}},{"id":"e21f82e8-7e41-43fc-9938-e109b82a58b6","name":"Actuation","type":"Component","parentId":"0a22b87f-d84f-4d70-9271-5b44f7263e27","root":null,"role":null,"foundational":false,"description":"Yaw and pitch are combined into one call because both target games apply rotation as a single write, and the conventions those two values follow are facts about the underlying games rather than inventions of this contract.","codeRefs":["IActuator.java","Input.java"],"docRefs":[],"createdAt":"2026-09-15T09:19:48.755Z","updatedAt":"2026-09-15T09:19:48.755Z","fields":{"responsibilities":["Lets the core press movement inputs and set the player's facing without touching any game internals","Defines the abstract movement vocabulary — `FORWARD`, `JUMP`, `SPRINT`, and the rest — that every adapter must support","Makes input humanization a single future seam rather than a cross-cutting concern"],"rules":["Held input and facing may be cleared or overwritten by the platform at any time without notice, so the core — not this channel — is responsible for restating its full desired state every tick","Facing is set absolutely, never as a delta, because the server's own rotation corrections overwrite it independently of anything the core has sent"],"summary":"The single channel through which the core acts on the game"}},{"id":"a2154030-43cd-4c00-8725-9dc1cff18eb1","name":"Player State","type":"Component","parentId":"0a22b87f-d84f-4d70-9271-5b44f7263e27","root":null,"role":null,"foundational":false,"description":"The field budget is deliberately narrow — velocity, eye height, bounding-box size, fluid state and sneak/sprint state are all natively available on both target games and all deliberately left out, because nothing consumes them yet. Each field added here is a version-compatibility obligation on every future adapter.","codeRefs":["IPlayerView.java"],"docRefs":[],"createdAt":"2026-09-15T09:19:48.756Z","updatedAt":"2026-09-15T09:19:48.756Z","fields":{"responsibilities":["Gives the core the player's feet position, facing, and ground state for the current tick"],"rules":["Never describes anything but the current tick — a core wanting the previous tick's state has to have stored it itself","Y always means the bottom of the player's collision box, resolving an ambiguity the two target games define differently"],"summary":"Per-tick snapshot of the local player's position and facing"}},{"id":"ca185d62-b446-4a0f-bc2e-f319ee8d47bb","name":"Game Events","type":"Component","parentId":"0a22b87f-d84f-4d70-9271-5b44f7263e27","root":null,"role":null,"foundational":false,"description":"Ticks counted and ticks of ground travelled are not the same quantity — this keeps firing while the game is paused or a death screen is up, since the tick loop still runs even though the world itself is frozen.","codeRefs":["IGameEvents.java","TickPhase.java"],"docRefs":[],"createdAt":"2026-09-15T09:19:48.757Z","updatedAt":"2026-09-15T09:19:48.757Z","fields":{"responsibilities":["Tells the core when each client tick's two phases occur, so the rest of the contract knows when it is safe to act or read","Bounds every other read and write in this package to the window while a world is loaded and a local player exists"],"rules":["An input set during the pre-tick phase always lands on that same tick, never the next one","The post-tick phase may go undelivered for a tick only when the window has already closed or a fault has occurred — never for any other reason","Never delivered re-entrantly: one call finishes before the next begins"],"summary":"Delivers tick lifecycle events from the adapter into the core"}},{"id":"d1338404-7825-4265-a82c-9100318a2254","name":"Platform Context","type":"Component","parentId":"0a22b87f-d84f-4d70-9271-5b44f7263e27","root":null,"role":null,"foundational":false,"description":"Bundled into one type so that adding a capability later changes a single signature rather than every call site. The version and loader metadata has no consumer yet; it exists because it costs nothing now and establishes the direction capability negotiation will need later.","codeRefs":["IPlatformContext.java","IPlatformInfo.java","Loader.java"],"docRefs":[],"createdAt":"2026-09-15T09:19:48.758Z","updatedAt":"2026-09-15T09:19:48.758Z","fields":{"responsibilities":["Vends the actuator, block reader, and player reader as stable instances the core may cache for the adapter's whole lifetime","Reports which game version and mod loader the core is running under"],"rules":["Every accessor returns the same instance on every call for as long as the adapter lives"],"summary":"Bundles everything an adapter hands the core at startup"}},{"id":"55aaecfd-d920-4c25-b792-87afe87f1c5e","name":"Global Rule Guard","type":"Component","parentId":"ed5b165e-8593-4cb6-94ca-ea11055f94c4","root":null,"role":null,"foundational":false,"description":"Before this existed the same lifecycle, fault-containment and click-draining logic sat twice, once in each of the Fabric and Forge entrypoints, as version-independent Java that happened to be duplicated. Moving it behind an identity-compared level, a null-checked player, a boolean click poll and a logger made it testable offline, which adapter code otherwise never is.","codeRefs":["src/main/java/dev/continuo/runtime/AdapterRuntime.java","src/main/java/dev/continuo/runtime/ClickSource.java"],"docRefs":[],"createdAt":"2026-09-15T09:20:13.200Z","updatedAt":"2026-09-15T09:20:13.200Z","fields":{"responsibilities":["Deliver `PRE`/`POST` tick calls to the core only while a world is loaded and a player exists","Contain any fault the core throws so it never reaches the game's own tick loop","Enforce that the core is started exactly once and stopped on every world unload or dimension change","Drain queued clicks outside a world or during a fault so none replay once conditions change"],"rules":["A `POST` call never fires without a same-tick `PRE`","A fault silences every further tick until the next world load, and clears automatically then","A click queued while out of a world or while faulted is discarded, never replayed later"],"summary":"Discharges the platform's four global rules so two adapters can't drift on them"}},{"id":"3d4cdcbb-0419-4d27-8792-bec5a8d5c51e","name":"Path Probe","type":"Component","parentId":"ed5b165e-8593-4cb6-94ca-ea11055f94c4","root":null,"role":null,"foundational":false,"description":"The conformance suite cannot see an adapter's live block view or player state, so this exists to let an owner point a running game at a search and read back what happened. A wall-clock stopping condition would make the pathfinder's deterministic-outcome tests flaky, so nothing here can influence search behaviour; the live run is replayed twice against a sealed snapshot purely to measure where its time went, which only a dev-only probe can afford to spend.","codeRefs":["src/main/java/dev/continuo/runtime/PathProbe.java","src/main/java/dev/continuo/runtime/ProbeBounds.java","src/main/java/dev/continuo/runtime/ProbeReport.java"],"docRefs":[],"createdAt":"2026-09-15T09:20:13.202Z","updatedAt":"2026-09-15T09:20:13.202Z","fields":{"responsibilities":["Let an owner mark a destination and search live terrain toward it from a running game","Split a search's measured time into world-reading cost and pure search cost","Surface the standing and look round-trip invariants no automated test can reach on a live adapter"],"rules":["A marked goal does not survive a level or dimension change","The drawn map is clamped and anchored on the start rather than centred, so a distant goal can fall outside it","The elapsed time it reports is never consulted by the search itself, only logged"],"summary":"Dev-only probe that runs a live search and renders it as an ASCII map"}},{"id":"7bd90e71-8bf8-4811-bdbe-420d2d594da9","name":"Block Dump Walker","type":"Component","parentId":"ed5b165e-8593-4cb6-94ca-ea11055f94c4","root":null,"role":null,"foundational":false,"description":"An adapter's block view has the same structural gap as the search probe beside it: asserting it needs a live world, which the conformance suite cannot provide. An owner runs this once per version against an identical fixture structure, checks the two outputs into source control, and a headless test diffs them instead.","codeRefs":["src/main/java/dev/continuo/runtime/BlockDumpWalker.java"],"docRefs":[],"createdAt":"2026-09-15T09:20:13.203Z","updatedAt":"2026-09-15T09:20:13.203Z","fields":{"responsibilities":["Produce one comparable text dump per Minecraft version so a headless test can diff them","Pair the raw block identity with the classifier's decision on the same line, so a mismatch reads as either a classification or a placement error without a second run"],"rules":["Describes any distinct block state only once, even when it recurs at many positions in the walked region"],"summary":"Dev-only walker that renders a region's blocks for cross-adapter parity checks"}},{"id":"a362ef87-272c-4655-88e9-408f5f50a515","name":"Block Classification","type":"Component","parentId":"9a66c47b-ea1f-4789-8ed2-02e779d0ab63","root":null,"role":null,"foundational":false,"description":"Classification is a pure function of a description and the per-version override table — no world, no mutable state — which is what lets both adapters run through identical code and makes cross-adapter agreement structural rather than hoped-for.","codeRefs":["BlockClassifier.java","BlockData.java","BlockShape.java","Fluid.java","BlockTag.java"],"docRefs":[],"createdAt":"2026-09-15T09:20:24.946Z","updatedAt":"2026-09-15T09:20:24.946Z","fields":{"responsibilities":["Gives every adapter's raw description the same shape and fluid classification, so the two Minecraft versions cannot disagree about what a block means","Keeps an unreadable position distinguishable from a genuinely empty one"],"rules":["A shape that doesn't exactly match a category is `PARTIAL`, never the nearest guessed category — a wrong-but-plausible answer is worse than a vaguer true one"],"summary":"Turns an adapter's raw block description into the core's classified block data","technology":"Java"}},{"id":"88890791-bb2b-4b0d-a322-f7ebc691fede","name":"Block Tables","type":"Component","parentId":"9a66c47b-ea1f-4789-8ed2-02e779d0ab63","root":null,"role":"datastore","foundational":false,"description":"Two sections — whole-block rows and state-specific rows, with states winning — over a deliberately tiny hand-rolled JSON subset (objects, strings, and string arrays only) so a strict reader can catch a typo that a general-purpose parser would happily swallow.","codeRefs":["BlockTable.java","BlockTableLoader.java","JsonReader.java","JsonValue.java","resources/blocks/"],"docRefs":[],"createdAt":"2026-09-15T09:20:24.948Z","updatedAt":"2026-09-15T09:20:24.948Z","fields":{"responsibilities":["Supplies the shape, fluid and tag overrides a block's geometry cannot derive on its own, such as soul sand slowing movement while shaped exactly like stone","Rejects a malformed or misspelled override table at load time instead of silently ignoring the mistake"],"rules":["An unrecognised game version yields an empty table rather than an error, so geometry-only classification always has a fallback"],"summary":"Per-version override rows for facts geometry alone can't express, loaded from shipped JSON","technology":"Java"}},{"id":"3bfc3f3b-4b98-4988-9811-5ac8037800ba","name":"Live Block Reader","type":"Component","parentId":"9a66c47b-ea1f-4789-8ed2-02e779d0ab63","root":null,"role":null,"foundational":false,"description":"The memo is session-scoped, so it must not outlive the level it was built against; clearing it is tied to the same level-transition moment the adapter lifecycle already requires, adding no new condition to track.","codeRefs":["BlockLookup.java","BlockSource.java"],"docRefs":[],"createdAt":"2026-09-15T09:20:24.949Z","updatedAt":"2026-09-15T09:20:24.949Z","fields":{"responsibilities":["Gives search code a read-only block view it can implement over a live world or a headless test fixture interchangeably","Keeps classification cost proportional to the number of distinct block states seen, not the number of positions queried"],"summary":"Reads classified blocks from the live world, one classification per block state","technology":"Java"}},{"id":"6a33eb78-f607-4e25-a7b9-3b4f28c0ffdf","name":"World Snapshot","type":"Component","parentId":"9a66c47b-ea1f-4789-8ed2-02e779d0ab63","root":null,"role":null,"foundational":false,"description":"Staleness is the contract, not a bug: a snapshot is a copy at one instant, nothing refreshes it, and a caller that finds the world has moved on repaths instead. Storage is sectioned to match the locality of how a search actually reads terrain, chosen by measurement over the naive per-position map it replaced.","codeRefs":["WorldSnapshot.java","SealedSnapshot.java","SectionStore.java","PositionKey.java"],"docRefs":[],"createdAt":"2026-09-15T09:20:24.950Z","updatedAt":"2026-09-15T09:20:24.950Z","fields":{"responsibilities":["Turns repeated reads of the same position within one search into a single read from the live block source","Freezes into an immutable, safely-shared copy once a search is done reading"],"summary":"A point-in-time copy of exactly the world positions one search touched","technology":"Java"}},{"id":"bfdc8c6d-0eb2-4224-89fb-3f7a6c692e78","name":"Core Lifecycle Seam","type":"Component","parentId":"9a66c47b-ea1f-4789-8ed2-02e779d0ab63","root":null,"role":null,"foundational":false,"description":"Deliberately excludes bot behaviour such as walking to a goal: an adapter runtime dispatches a consumed click to a supplied callback instead, so the runtime never has to learn what a walk is.","codeRefs":["CoreApi.java"],"docRefs":[],"createdAt":"2026-09-15T09:20:24.951Z","updatedAt":"2026-09-15T09:20:24.951Z","fields":{"responsibilities":["Gives a conformance suite a core-side type to substitute a recording implementation for, so an adapter runtime's behaviour can be observed without a running game"],"summary":"The start/stop contract an adapter runtime drives the core through","technology":"Java"}},{"id":"dde8a451-acce-43d7-9030-a058f8d4138e","name":"Runtime Log","type":"Component","parentId":"9a66c47b-ea1f-4789-8ed2-02e779d0ab63","root":null,"role":null,"foundational":false,"description":"Exists here, rather than in an adapter, because Engine and the Adapter Runtime are sibling modules that cannot see each other but both need to log through the same contract.","codeRefs":["RuntimeLog.java"],"docRefs":[],"createdAt":"2026-09-15T09:20:24.952Z","updatedAt":"2026-09-15T10:31:25.390Z","fields":{"responsibilities":["Gives every module and every game version one abstraction to log through, implemented once per adapter, so both versions emit byte-identical text"],"summary":"Core's version-independent contract for reporting to the host game's logger","technology":"Java"}},{"id":"23b592e9-e0fc-4635-ae7f-c5ef9977f79a","name":"Movement Contract","type":"Component","parentId":"979f2e82-9a64-4e74-995f-3a12161f5e92","root":null,"role":null,"foundational":false,"description":"A movement is a plugin, not an enum member: this is what it compiles against, and it deliberately does not expose the search itself — a build-time dependency-direction check enforces that a movement module cannot see the pathfinder. `Cardinals` exists as accessors rather than an array constant because an array on a public interface is a mutable global a movement from another jar could reorder, silently breaking the determinism every built-in movement depends on.","codeRefs":["IMovementType.java","ExpansionContext.java","MutableExpansionContext.java","MoveSink.java","Cardinals.java"],"docRefs":[],"createdAt":"2026-09-15T09:20:57.126Z","updatedAt":"2026-09-15T09:20:57.126Z","fields":{"responsibilities":["The system relies on the movement contract to let a movement declare its identity, required capabilities, and cost bounds without seeing how the search works","The system relies on the movement contract to hand each movement a single, disposable view of the position it is expanding from","The system relies on `Cardinals` to fix the order every movement offers cardinal neighbours in, so cost ties break the same way on every run"],"rules":["Neighbours are always offered in the same fixed order, so a path's cost ties break identically on every run.","An `ExpansionContext` must never be retained past the call that handed it out — the search reuses one instance across every position it visits."],"summary":"The plugin API a movement compiles against: declare, expand, offer.","technology":"Java"}},{"id":"272a8fc1-d4ea-43dd-9d27-837f6bbbe130","name":"Contract Auditor","type":"Component","parentId":"979f2e82-9a64-4e74-995f-3a12161f5e92","root":null,"role":null,"foundational":false,"description":"Turns a movement's declared cost-per-unit into a checked claim rather than a trusted one, expanding it across many seeded worlds drawn from a block palette wide enough to reach every built-in movement's preconditions. It returns violations instead of asserting them, keeping JUnit off the production classpath while any module — including a plugin's own tests — can run it over its own movement.","codeRefs":["MovementContract.java"],"docRefs":[],"createdAt":"2026-09-15T09:20:57.128Z","updatedAt":"2026-09-15T09:20:57.128Z","fields":{"responsibilities":["The system relies on the contract auditor to catch a movement whose declared cost bound is too high before it silently breaks the search's shortest-path guarantee","The system relies on the auditor to report when it could not exercise a movement at all, rather than reading missing evidence as a pass"],"rules":["An empty result means a declaration was exercised and held — it never merely means nothing was checked.","Only the first counterexample is reported, since the same wrong declaration is wrong at every position a movement can offer from."],"summary":"Checks a movement's declared cost bounds against what it truly offers.","technology":"Java"}},{"id":"4227fd2f-c244-4277-ae27-1b2afd540060","name":"Movement Costs","type":"Component","parentId":"979f2e82-9a64-4e74-995f-3a12161f5e92","root":null,"role":null,"foundational":false,"description":"Every constant is derived from the decompiled sources of both target Minecraft versions and cites its lines, following the project's rule that Minecraft behaviour is evidenced, never recalled. The figures are admissible and self-consistent today, not yet validated against a real run — that is left to the first thing able to measure one.","codeRefs":["MovementCosts.java"],"docRefs":[],"createdAt":"2026-09-15T09:20:57.129Z","updatedAt":"2026-09-15T09:20:57.129Z","fields":{"responsibilities":["The system relies on the movement cost table to price every movement in a comparable, evidence-derived unit rather than a guess"],"rules":["Every figure takes the slower of the two supported Minecraft versions, so one table serves both adapters with no per-version seam.","Every movement is costed at the sprint rate, never the walk rate, because the executor sprints wherever it can."],"summary":"The versioned cost table every movement is priced from, in ticks.","technology":"Java"}},{"id":"63b2b973-c0f7-4870-bdb4-179d737b92cf","name":"Standability","type":"Component","parentId":"979f2e82-9a64-4e74-995f-3a12161f5e92","root":null,"role":null,"foundational":false,"description":"An earlier draft decided standing by testing block shape against a fixed set of categories, which refused to walk on any geometry it failed to recognise and disagreed between versions on blocks like farmland. Reading the collision-top number instead makes both versions agree; shape is still consulted for the two cases a number alone cannot answer.","codeRefs":["Standability.java"],"docRefs":[],"createdAt":"2026-09-15T09:20:57.130Z","updatedAt":"2026-09-15T09:20:57.130Z","fields":{"responsibilities":["The system relies on standability to be the only place that reads a block's shape, fluid, or collision top to decide movement facts"],"rules":["Standing and passability are always decided by measuring a block's collision top, never by switching on its shape category — so unrecognised or per-version geometry is classified consistently."],"summary":"Turns raw block facts into the passable/supports/standable predicates.","technology":"Java"}},{"id":"bc790d33-d671-4832-a213-9e353ef1611b","name":"Movement Registry","type":"Component","parentId":"979f2e82-9a64-4e74-995f-3a12161f5e92","root":null,"role":null,"foundational":false,"description":"Replaces the fixed array an earlier search iterated: adding a movement becomes a registration, or a jar on the classpath, rather than an edit to the search. Explicit registrations always keep their position ahead of discovered ones, which is what lets the built-in movements preserve their original expansion order. Filtering by capability produces an active set bound to the heuristic rates it implies, so a search can never filter by one movement set while scaling its estimate by another's.","codeRefs":["MovementRegistry.java","IMovementRegistry.java","Capability.java","CapabilitySet.java","ActiveMovements.java"],"docRefs":[],"createdAt":"2026-09-15T09:20:57.131Z","updatedAt":"2026-09-15T09:20:57.131Z","fields":{"responsibilities":["The system relies on the registry to find every movement on the classpath and register them in a deterministic, classpath-independent order","The system relies on the registry to reject a movement whose id collides with one already registered, or whose declared costs could stall or break the search","The system relies on `CapabilitySet` to decide, per caller, which registered movements are actually active"],"rules":["Discovered movements are always sorted by id before registration, so a path never depends on which order the classpath happened to load jars in.","A movement granted no capabilities by the caller is still active — an empty requirement is always satisfied."],"summary":"Discovers, deduplicates, and capability-filters the usable movements.","technology":"Java"}},{"id":"fe7819e4-ede2-4f25-b3ff-f90bf9644e19","name":"Heuristic Rates","type":"Component","parentId":"979f2e82-9a64-4e74-995f-3a12161f5e92","root":null,"role":null,"foundational":false,"description":"Horizontal distance is measured in octile units rather than Chebyshev steps — one cardinal step is one unit, one diagonal step is roughly 1.41 units — because crediting a diagonal move as a single step left the estimate short and degraded the search toward an exhaustive one on open ground. The same octile calculation is deliberately shared with the contract auditor's check of a movement's declared bound, so the two can never silently drift apart.","codeRefs":["HeuristicRates.java"],"docRefs":[],"createdAt":"2026-09-15T09:20:57.131Z","updatedAt":"2026-09-15T09:20:57.131Z","fields":{"responsibilities":["The system relies on heuristic rates to keep the search's distance estimate admissible by scaling it to the cheapest active movement on each axis independently"],"rules":["Horizontal and vertical rates are minimised independently, so a cheap movement on one axis never loosens the estimate on the other.","A displacement's estimate is always the larger of its horizontal and vertical halves, never their sum, since one move can close both axes at once."],"summary":"The horizontal/vertical rates and octile math the search's estimate scales by.","technology":"Java"}},{"id":"7dd35231-4d36-498b-817e-f0283734106a","name":"Movement Kind","type":"Component","parentId":"979f2e82-9a64-4e74-995f-3a12161f5e92","root":null,"role":null,"foundational":false,"description":"A path carries no movement identity of its own, so either a consumer re-derives what each step was or the search pays to thread an edge identity through its hottest interface; derivation was chosen on the evidence that today's five registered movements make it lossless. That property is not permanent — a future movement whose delta overlaps another's would break it silently in a client if the guarding test did not fail the build first, at the point such a movement is added.","codeRefs":["MovementKind.java"],"docRefs":[],"createdAt":"2026-09-15T09:20:57.132Z","updatedAt":"2026-09-15T09:20:57.132Z","fields":{"responsibilities":["The system relies on movement kind to let a consumer recover which movement produced a path step without the search threading movement identity through its hottest interface"],"rules":["A step's kind is derived, never stored, on the evidence that the registered movements' delta sets are pairwise disjoint and jointly cover everything the registry can produce — a property a build-time test guards rather than assumes."],"summary":"Names the movement kind that joins two positions, from their delta alone.","technology":"Java"}},{"id":"c37ab8af-ea11-4807-9da8-229fa8195fb1","name":"A* Search Engine","type":"Component","parentId":"5f00f65b-d38e-4057-9497-07d436443301","root":null,"role":null,"foundational":false,"description":"Splits into a fixed-budget driver and a steppable core, so one loop serves both a single unbounded call and a caller that must spend a search across many ticks in bounded slices. Because there is exactly one loop, a sliced search is guaranteed to reach the same answer as an unsliced one by construction, not merely by test coverage. The default node budget is not a guess: it is set from the largest expansion count measured across real routes, with headroom above the hardest of them.","codeRefs":["src/main/java/dev/continuo/pathfinder/AStarPathfinder.java","src/main/java/dev/continuo/pathfinder/Search.java","src/main/java/dev/continuo/pathfinder/PathNode.java","src/main/java/dev/continuo/pathfinder/QueuedNode.java","src/main/java/dev/continuo/pathfinder/QueuedNodeOrder.java"],"docRefs":[],"createdAt":"2026-09-15T09:21:21.199Z","updatedAt":"2026-09-15T09:21:21.199Z","fields":{"responsibilities":["Finds the cheapest route between two points, using only the movements a caller has unlocked","Expands candidates in a fixed, reproducible order, so identical searches return identical paths","Reports the closest useful progress when the node budget runs out, instead of nothing at all"],"rules":["A node closed once is never reopened, even when a cheaper route to it is found later","An identical search over an identical world always returns the same path"],"summary":"Runs one deterministic A* search over the block graph, sliceable."}},{"id":"c53eb98f-7e1c-4b5b-a90d-2171797b66e9","name":"Segmented Runner","type":"Component","parentId":"5f00f65b-d38e-4057-9497-07d436443301","root":null,"role":null,"foundational":false,"description":"A run outlives a single tick, so it owns the world view it reads for as long as the run is alive and must be released explicitly if the underlying level changes mid-run. The point a budget-exhausted segment backs off to is chosen by proximity to the goal alone -- a cost term was tried and measured to bias selection toward the start, producing segments too timid to make any real progress, so the scoring stays cost-free.","codeRefs":["src/main/java/dev/continuo/pathfinder/SegmentedSearch.java","src/main/java/dev/continuo/pathfinder/Run.java","src/main/java/dev/continuo/pathfinder/SegmentedResult.java","src/main/java/dev/continuo/pathfinder/SegmentSelector.java"],"docRefs":[],"createdAt":"2026-09-15T09:21:21.202Z","updatedAt":"2026-09-15T09:21:21.202Z","fields":{"responsibilities":["Keeps a bot moving toward a distant goal by walking each segment and re-searching from where it stopped","Picks a believable backoff point when a search's budget runs out, instead of giving up immediately","Bounds how many segments a run may take, so an unreachable goal terminates instead of searching forever"],"rules":["Segmentation is a fallback for an undersized budget, never the intended way to reach a distant goal","A run's accumulated route keeps every segment already walked, even when the run overall does not reach the goal"],"summary":"Chains searches into a long-distance run when one budget falls short."}},{"id":"3271f29c-1fd8-4554-b6f7-65bef6aba74c","name":"Goals","type":"Component","parentId":"5f00f65b-d38e-4057-9497-07d436443301","root":null,"role":null,"foundational":false,"description":"Two shapes cover what callers ask for today: an exact block, and a column open at any height. Both estimates factor through the active movement set's own minimum costs rather than a fixed constant, so a heuristic stays valid no matter which movements a particular search has unlocked.","codeRefs":["src/main/java/dev/continuo/pathfinder/Goal.java","src/main/java/dev/continuo/pathfinder/GoalBlock.java","src/main/java/dev/continuo/pathfinder/GoalXZ.java"],"docRefs":[],"createdAt":"2026-09-15T09:21:21.203Z","updatedAt":"2026-09-15T09:21:21.203Z","fields":{"responsibilities":["Tells a search whether a candidate position satisfies what the caller asked for","Gives the search a lower bound on the remaining distance to any goal shape it defines"],"rules":["A goal's distance estimate can never overestimate the true remaining cost, or the search's shortest-path guarantee breaks"],"summary":"What a search is trying to reach, and a lower-bound distance to it."}},{"id":"f8c689af-fecc-4572-bd49-3457c332fab0","name":"Built-in Ground Moves","type":"Component","parentId":"5f00f65b-d38e-4057-9497-07d436443301","root":null,"role":null,"foundational":false,"description":"These four register into the default movement set in a fixed order, and that order is load-bearing: the search breaks equal-cost ties by discovery order, so registering them differently would silently change which of two equally cheap paths comes back. All four delegate what counts as stable ground to one shared classifier outside this package, so the rules about walkable terrain live in a single place rather than being restated per movement.","codeRefs":["src/main/java/dev/continuo/pathfinder/TraverseMove.java","src/main/java/dev/continuo/pathfinder/AscendMove.java","src/main/java/dev/continuo/pathfinder/DescendMove.java","src/main/java/dev/continuo/pathfinder/DiagonalMove.java"],"docRefs":[],"createdAt":"2026-09-15T09:21:21.203Z","updatedAt":"2026-09-15T09:21:21.203Z","fields":{"responsibilities":["Offers every legal ground movement from a position, so the search only ever sees positions a player could actually reach","Prices each movement so a cheaper route is always found before a more expensive one of equal usefulness"],"rules":["A diagonal step is refused unless both blocks at the corner are clear at feet and head height, since a player cannot squeeze between two blocks meeting at a corner","A fall only ever offers the landing, never a position passed through on the way down, since a falling player has no choices left to make mid-air"],"summary":"The four basic walk, jump, fall and diagonal moves every search starts with."}},{"id":"628cd4da-d958-4822-a6bf-d7b9b619bb10","name":"Path Results","type":"Component","parentId":"5f00f65b-d38e-4057-9497-07d436443301","root":null,"role":null,"foundational":false,"description":"One shared derivation turns a list of positions into the moves between them, so a result from a single search and a result from a chained multi-segment run can never disagree about what a route's steps are. Positions here are packed using the same key format a sibling module already keys its own terrain cache by, so a location computed here is directly comparable to one read back from a world snapshot with no conversion step.","codeRefs":["src/main/java/dev/continuo/pathfinder/PathResult.java","src/main/java/dev/continuo/pathfinder/PathResults.java","src/main/java/dev/continuo/pathfinder/PathOutcome.java","src/main/java/dev/continuo/pathfinder/Step.java","src/main/java/dev/continuo/pathfinder/Steps.java","src/main/java/dev/continuo/pathfinder/Pos.java"],"docRefs":[],"createdAt":"2026-09-15T09:21:21.204Z","updatedAt":"2026-09-15T09:21:21.204Z","fields":{"responsibilities":["Gives a caller one settled answer -- outcome, route and cost -- whether it came from a single search or a chained run","Derives the individual moves a route is made of, so nothing downstream has to re-derive a movement's kind from raw positions itself"],"rules":["Every outcome other than a found or partial route carries an empty path and a zero cost, never a stale value from an earlier attempt","A partial outcome always carries a real, non-empty route to somewhere useful, distinguishing a search that backed off from one that found nothing"],"summary":"What a search or run produced: outcome, route, cost and its steps."}},{"id":"aa1f1e46-87d4-4b0c-b29a-33e9b428b843","name":"Text Renderer","type":"Component","parentId":"5f00f65b-d38e-4057-9497-07d436443301","root":null,"role":null,"foundational":false,"description":"Deliberately ASCII rather than an image, since the people and agents debugging a failing route read text output directly rather than opening a file from a build directory. The round trip is not perfect on live terrain: a block outside the legend's classification prints as a wall rather than as itself, so a map captured from a running game can be stricter than the world it came from and needs checking for unmapped or unexpectedly-blocked characters before it is trusted as a regression fixture.","codeRefs":["src/main/java/dev/continuo/pathfinder/PathRenderer.java","src/main/java/dev/continuo/pathfinder/BlockLegend.java"],"docRefs":[],"createdAt":"2026-09-15T09:21:21.205Z","updatedAt":"2026-09-15T09:21:21.205Z","fields":{"responsibilities":["Turns a search result into a text map a person or an agent can read straight from test output","Keeps the character-to-block mapping identical between what gets rendered and what a fixture parser reads back, so a rendered failure is pasteable as a new test fixture"],"rules":["An overlay character replaces the terrain underneath rather than layering onto it, so a passable non-air block is indistinguishable from air wherever a path or expansion marker covers it","A block the legend cannot name renders the same as an unreadable block, so the two look identical once written"],"summary":"Renders a world and a search result as ASCII art fixtures can reuse."}},{"id":"a61e821d-b06a-4268-ac61-619e6b1490ec","name":"Mod Entrypoint","type":"Component","parentId":"de24162f-a108-4b63-8f8f-e8fc5d686071","root":null,"role":null,"foundational":false,"description":"No client-stopping hook exists here: this loader offers no main-thread client-stopping event, so conformance with the platform's shutdown rule is achieved by omission rather than an off-thread hook that would violate the SPI's threading contract. Log bridging exists because this version predates SLF4J in Minecraft, so the runtime's logs are routed through the logger the game itself ships.","codeRefs":["src/main/java/dev/continuo/adapter/forge/ContinuoForgeMod.java","src/main/java/dev/continuo/adapter/forge/Log4jRuntimeLog.java","src/main/resources/assets/continuo/lang/en_US.lang"],"docRefs":[],"createdAt":"2026-09-15T09:21:23.448Z","updatedAt":"2026-09-15T10:35:31.134Z","fields":{"responsibilities":["The system relies on the Mod Entrypoint to forward each client tick's start and end phases to the shared adapter runtime in the order Forge delivers them.","The system relies on the Mod Entrypoint to turn the walk keybind into a click that resolves against whichever goal was most recently marked.","The system relies on the Mod Entrypoint to route the shared runtime's log messages through the game's own logger."],"rules":["Holds no conformance state of its own for the tick-window and phase-ordering contract — that responsibility is discharged entirely by the shared adapter runtime, so this entrypoint and the Fabric one cannot diverge."],"summary":"Registers keybinds, forwards tick events to the runtime, and bridges its log sink","technology":"Forge"}},{"id":"749ca35b-ddda-46d6-a569-1cd01309411e","name":"Platform Bindings","type":"Component","parentId":"de24162f-a108-4b63-8f8f-e8fc5d686071","root":null,"role":null,"foundational":false,"description":"Composed behind a single context object so the rest of the mod depends on one seam rather than four separate bindings. Writing a chosen key binding's pressed state — rather than addressing a keycode — depends on an access transformer that widens a private field on Minecraft's own key-binding class, since this version's only public route addresses whichever binding currently holds a keycode rather than the one the adapter chose.","codeRefs":["src/main/java/dev/continuo/adapter/forge/ForgeActuator.java","src/main/java/dev/continuo/adapter/forge/ForgeBlockView.java","src/main/java/dev/continuo/adapter/forge/ForgePlayerView.java","src/main/java/dev/continuo/adapter/forge/ForgePlatformInfo.java","src/main/java/dev/continuo/adapter/forge/ForgePlatformContext.java","src/main/resources/META-INF/continuo_at.cfg"],"docRefs":[],"createdAt":"2026-09-15T09:21:23.449Z","updatedAt":"2026-09-15T09:21:23.449Z","fields":{"responsibilities":["The system relies on Platform Bindings to translate abstract input and look commands into concrete key-binding and player-field writes.","The system relies on Platform Bindings to report block geometry and identity exactly as 1.7.10 exposes them, leaving classification to the core.","The system relies on Platform Bindings to report the local player's position, orientation and ground state in the SPI's coordinate convention."],"rules":["Always reports the player's vertical position as the bottom of the collision box, never the network stance value — the two differ by 1.62 blocks on this version.","Never collapses still and flowing water into one fluid id — that classification is the core's job, not this adapter's.","Setting input state never changes behaviour on its own; only the core decides what to press."],"summary":"Implements the Platform SPI over the 1.7.10 client: input, look, blocks, player, version","technology":"Forge"}},{"id":"4c62b1f4-a9e1-45e9-9478-e6a3be1c149c","name":"Mod Entrypoint","type":"Component","parentId":"6f7466ca-7bfe-4e3d-a397-50b2ac990a2e","root":null,"role":null,"foundational":false,"description":"Kept deliberately thin, mirroring the container's own philosophy: nearly all game-facing decision logic lives in the shared `AdapterRuntime`, so this class mostly translates Fabric's own event API into calls onto it. `fabric.mod.json` names it as the mod's sole client entrypoint, and a small SLF4J bridge (`Slf4jRuntimeLog`) is built alongside it to satisfy the core's logging SPI.","codeRefs":["src/main/java/dev/continuo/adapter/fabric/ContinuoFabricMod.java#L39-L129","src/main/java/dev/continuo/adapter/fabric/ContinuoFabricMod.java#L203-L205","src/main/java/dev/continuo/adapter/fabric/Slf4jRuntimeLog.java","src/main/resources/fabric.mod.json","src/main/resources/assets/continuo/lang/en_us.json"],"docRefs":[],"createdAt":"2026-09-15T09:22:08.157Z","updatedAt":"2026-09-15T09:22:08.157Z","fields":{"responsibilities":["The system relies on Mod Entrypoint to build `ContinuoCore` and the shared `AdapterRuntime` once per client session","The system relies on Mod Entrypoint to forward every tick and lifecycle event Fabric delivers to `AdapterRuntime`, so both adapters see the same phase ordering"],"rules":["Registers exactly one production tick path through `AdapterRuntime`; the dev-only dump and probe keys are polled independently so they can never perturb the four global rules."],"summary":"Wires the Fabric client entrypoint to keybinds, core, and runtime","technology":"Fabric"}},{"id":"c2fb492e-73f7-49f2-8690-260f1318619f","name":"Platform Bindings","type":"Component","parentId":"6f7466ca-7bfe-4e3d-a397-50b2ac990a2e","root":null,"role":null,"foundational":false,"description":"Five thin classes each answer to one of the platform SPI's interfaces -- `IActuator`, `IBlockView`, `IPlatformContext`, `IPlatformInfo`, `IPlayerView` -- with the `IPlatformContext` implementation acting as the composition root that builds and holds the other four for a session. Rotation writes touch both the current and the previous-tick fields in the same call, since the game snapshots the previous angle once per tick and a write landing after that snapshot would leave the camera interpolating from a stale angle.","codeRefs":["src/main/java/dev/continuo/adapter/fabric/FabricActuator.java","src/main/java/dev/continuo/adapter/fabric/FabricBlockView.java","src/main/java/dev/continuo/adapter/fabric/FabricPlatformContext.java","src/main/java/dev/continuo/adapter/fabric/FabricPlatformInfo.java","src/main/java/dev/continuo/adapter/fabric/FabricPlayerView.java"],"docRefs":[],"createdAt":"2026-09-15T09:22:08.159Z","updatedAt":"2026-09-15T09:22:08.159Z","fields":{"responsibilities":["The system relies on Platform Bindings to report blocks, player state, and input in the platform SPI's vocabulary, and to make no judgement calls while doing it","The system relies on Platform Bindings to give `AdapterRuntime` one composed view of the world, the player, and input, assembled once per session","The system relies on Platform Bindings to identify this adapter as running under `FABRIC` to version-independent code"],"rules":["Never turns an observation into a decision: a conditional that changes behaviour, rather than one that resolves a name or guards a null, belongs in the core.","Reports the world's vertical bound as exclusive, one past the game's own inclusive maximum, so version-independent code can loop without an off-by-one at the top layer.","Always resolves whether a chunk is loaded through the chunk source, never the client level's own always-true shortcut."],"summary":"Translates 1.21.11 game state into the platform SPI's vocabulary","technology":"Fabric"}},{"id":"e6d4a103-1f0b-4ce8-ad55-e585195f680e","name":"Dev Diagnostics","type":"Component","parentId":"6f7466ca-7bfe-4e3d-a397-50b2ac990a2e","root":null,"role":null,"foundational":false,"description":"Bypasses `AdapterRuntime` by design: the dump and probe run directly against the runtime's own block-dump and path-probe helpers rather than through the tick methods the four global rules govern, so a developer can drive them without touching conformance logic the walk key exercises. A known one-tick window exists where a level transition can leave a click already queued against the goal from the previous level, since the transition and the click are observed from different points in the tick.","codeRefs":["src/main/java/dev/continuo/adapter/fabric/ContinuoFabricMod.java#L131-L201"],"docRefs":[],"createdAt":"2026-09-15T09:22:08.160Z","updatedAt":"2026-09-15T09:22:08.160Z","fields":{"responsibilities":["The system relies on Dev Diagnostics to let a developer mark a goal, run a sliced path probe against it, and see the result without leaving the game","The system relies on Dev Diagnostics to write a block-row dump to disk that this adapter's and the 1.7.10 adapter's fixtures can be compared against"],"rules":["Drains the mark, path, and dump keys every tick even when no player is present, so a press queued before a world finishes loading cannot fire on an unrelated later tick.","A level change discards any goal marked in the level being left, so a stale mark can never carry a walk into the wrong world."],"summary":"Dev-only block-dump and path-probe tools for cross-adapter checks"}},{"id":"5908f036-a23a-40dd-81b1-1767aac3f235","name":"Minecraft 1.21.11 (Fabric)","type":"ExternalSystem","parentId":null,"root":null,"role":null,"foundational":false,"description":"Mojang-mapped 1.21.11 client with Fabric Loader and Fabric API. The trust boundary for Continuo: everything the core learns about the world crosses from here through the Fabric adapter's platform bindings.","codeRefs":[],"docRefs":[],"createdAt":"2026-09-15T10:31:46.054Z","updatedAt":"2026-09-15T10:31:46.054Z","fields":{"responsibilities":["Hosts the Fabric adapter as a client mod and delivers its tick and lifecycle events","Owns the world, player and key state the adapter reads and writes"],"summary":"Modern Minecraft client running the Fabric loader"}},{"id":"4f67b464-98e9-479a-bf0b-05d2b3dd0423","name":"Minecraft 1.7.10 (Forge)","type":"ExternalSystem","parentId":null,"root":null,"role":null,"foundational":false,"description":"The 1.7.10 client with Forge, the oldest version the platform contract promises to support and the reason pure modules target Java 8 bytecode.","codeRefs":[],"docRefs":[],"createdAt":"2026-09-15T10:31:46.056Z","updatedAt":"2026-09-15T10:31:46.056Z","fields":{"responsibilities":["Hosts the Forge adapter as a mod and delivers client ticks over the FML event bus","Owns the world, player and key state the adapter reads and writes"],"summary":"Legacy Minecraft client running Forge"}},{"id":"7f7cbc4b-5b85-4065-abd7-fb202837c24a","name":"Dev Diagnostics","type":"Component","parentId":"de24162f-a108-4b63-8f8f-e8fc5d686071","root":null,"role":null,"foundational":false,"description":"Dev-only tooling, unrelated to the four global platform rules the entrypoint discharges through the shared runtime. Polled once per tick end regardless of whether a key was pressed, since a sliced probe run advances on the tick rather than on the keypress.","codeRefs":["src/main/java/dev/continuo/adapter/forge/ContinuoForgeMod.java#pollDumpKey","src/main/java/dev/continuo/adapter/forge/ContinuoForgeMod.java#pollProbeKeys"],"docRefs":[],"createdAt":"2026-09-15T10:31:49.202Z","updatedAt":"2026-09-15T10:31:49.202Z","fields":{"responsibilities":["The system relies on Dev Diagnostics to capture a fixture-row block dump on demand for cross-adapter parity checks.","The system relies on Dev Diagnostics to mark a path goal and run the path probe, writing its result map to disk."],"rules":["A diagnostic tool's failure is always logged and swallowed, never allowed to escape the tick loop and take down the client."],"summary":"Dev-only keys that dump blocks and mark/run a path probe in a live world","technology":"Forge"}}],"connections":[{"id":"6a197a86-15b2-41f5-914a-f586f842e867","from":"9bcb16a5-0f18-4b87-a831-5fd8df34a1c9","to":"f47fd47b-7529-4d24-a5e9-ed2121633dc0","label":"constructs at start() and drives it every tick","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"26d59a84-fc0a-442e-b7cc-84e0a9b0fe16","from":"f47fd47b-7529-4d24-a5e9-ed2121633dc0","to":"3f0ec4a1-2478-456e-b37b-a6246a9e6d13","label":"wraps the adapter's actuator so its own turns are bounded","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"608bc5bd-bf22-4f10-b263-9a60328a3fe5","from":"d1338404-7825-4265-a82c-9100318a2254","to":"b510a9cb-ba0c-4f9a-8723-9bd0b4a1265b","label":"vends the block reader","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"4e60b9d8-c73a-45e8-8f42-3ff56c47a58a","from":"d1338404-7825-4265-a82c-9100318a2254","to":"a2154030-43cd-4c00-8725-9dc1cff18eb1","label":"vends the player reader","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"4772a195-0517-4f91-afe4-98c86c4394ec","from":"d1338404-7825-4265-a82c-9100318a2254","to":"e21f82e8-7e41-43fc-9938-e109b82a58b6","label":"vends the actuator","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"6542cde3-ae3f-4b2a-97e8-ce786826dc0f","from":"ca185d62-b446-4a0f-bc2e-f319ee8d47bb","to":"b510a9cb-ba0c-4f9a-8723-9bd0b4a1265b","label":"opens the window block reads need","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"b94472fa-70b4-4923-8e43-fdede9d348e5","from":"ca185d62-b446-4a0f-bc2e-f319ee8d47bb","to":"a2154030-43cd-4c00-8725-9dc1cff18eb1","label":"opens the window player reads need","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"f8e4bb67-fb34-44b4-ac12-6083d63efc22","from":"ca185d62-b446-4a0f-bc2e-f319ee8d47bb","to":"e21f82e8-7e41-43fc-9938-e109b82a58b6","label":"PRE timing: input lands same tick","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"2e78f790-9cd3-475f-9678-07c52aaee3c6","from":"a362ef87-272c-4655-88e9-408f5f50a515","to":"88890791-bb2b-4b0d-a322-f7ebc691fede","label":"overrides geometry-derived answers from","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"5f4e596f-4476-45ea-aa67-1633a6d54a79","from":"3bfc3f3b-4b98-4988-9811-5ac8037800ba","to":"a362ef87-272c-4655-88e9-408f5f50a515","label":"classifies each new block state through","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"b6b94752-d0d2-4d11-b4f8-55a070b4fea5","from":"6a33eb78-f607-4e25-a7b9-3b4f28c0ffdf","to":"3bfc3f3b-4b98-4988-9811-5ac8037800ba","label":"memoizes repeated reads from, per search","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"654d626c-06b1-4d28-b8bc-b320414a6216","from":"bc790d33-d671-4832-a213-9e353ef1611b","to":"fe7819e4-ede2-4f25-b3ff-f90bf9644e19","label":"binds each active set to its heuristic rates","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"8bcfb7bb-c68a-4e5d-8d2b-82c474a0107c","from":"272a8fc1-d4ea-43dd-9d27-837f6bbbe130","to":"fe7819e4-ede2-4f25-b3ff-f90bf9644e19","label":"audits costs with the search's own octile math","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"3856dc0a-572e-4dcc-8552-7732e04bb3b9","from":"272a8fc1-d4ea-43dd-9d27-837f6bbbe130","to":"23b592e9-e0fc-4635-ae7f-c5ef9977f79a","label":"exercises movements via a scratch expansion context","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"6116aaa2-b95b-467c-aece-92519e5aa698","from":"7dd35231-4d36-498b-817e-f0283734106a","to":"4227fd2f-c244-4277-ae27-1b2afd540060","label":"caps a derived descend at the safe-fall limit","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"97331292-7837-4d85-b84e-a9d64e8b109f","from":"a61e821d-b06a-4268-ac61-619e6b1490ec","to":"749ca35b-ddda-46d6-a569-1cd01309411e","label":"constructs once at init and holds for the mod's lifetime","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"bac1dc76-c97c-4aad-8ed0-b0651f0c54d9","from":"c37ab8af-ea11-4807-9da8-229fa8195fb1","to":"3271f29c-1fd8-4554-b6f7-65bef6aba74c","label":"consults it to decide when a search should stop","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"e1975c93-9063-442a-b2e5-c3bcf3469068","from":"c37ab8af-ea11-4807-9da8-229fa8195fb1","to":"f8c689af-fecc-4572-bd49-3457c332fab0","label":"registers all four in the exact order tie-breaking depends on","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"065cf7da-d184-483d-a35e-c302b0c81318","from":"c37ab8af-ea11-4807-9da8-229fa8195fb1","to":"628cd4da-d958-4822-a6bf-d7b9b619bb10","label":"assembles the closed node chain into one once a search settles","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"dae6078d-5fc2-479f-97ac-017abdc2b41e","from":"c53eb98f-7e1c-4b5b-a90d-2171797b66e9","to":"c37ab8af-ea11-4807-9da8-229fa8195fb1","label":"spends it in node-budget slices, restarting where the last one stopped","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"94bd4349-2728-481e-8e52-afb8330546a1","from":"c53eb98f-7e1c-4b5b-a90d-2171797b66e9","to":"3271f29c-1fd8-4554-b6f7-65bef6aba74c","label":"bounds its segment count from the goal's own starting heuristic","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"bdf5aa66-546f-49da-85e6-10edb8b6450c","from":"c53eb98f-7e1c-4b5b-a90d-2171797b66e9","to":"628cd4da-d958-4822-a6bf-d7b9b619bb10","label":"carries each segment's route and cost into the accumulated run result","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"c3edcf40-b9a4-4c3b-93cd-4473801ec97e","from":"aa1f1e46-87d4-4b0c-b29a-33e9b428b843","to":"628cd4da-d958-4822-a6bf-d7b9b619bb10","label":"reads both its path and expanded set to choose each cell's overlay","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"cea53904-405c-458e-8591-cb1723c654f9","from":"4c62b1f4-a9e1-45e9-9478-e6a3be1c149c","to":"c2fb492e-73f7-49f2-8690-260f1318619f","label":"builds once, hands off to the rest","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"2fa7a56f-df54-4977-9026-efea3b7284b3","from":"e6d4a103-1f0b-4ce8-ad55-e585195f680e","to":"c2fb492e-73f7-49f2-8690-260f1318619f","label":"reads block and player state off it","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"762ee495-f0f7-4de0-b850-b3b520a763ea","from":"4c62b1f4-a9e1-45e9-9478-e6a3be1c149c","to":"e6d4a103-1f0b-4ce8-ad55-e585195f680e","label":"walk key reads the goal this marks","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"63a39015-54fa-4926-8aed-20dd3a6ada37","from":"a61e821d-b06a-4268-ac61-619e6b1490ec","to":"7f7cbc4b-5b85-4065-abd7-fb202837c24a","label":"registers and dispatches the dump/mark/path keys to","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"2a8d51f8-3132-4107-86bd-61e79911b4dc","from":"7f7cbc4b-5b85-4065-abd7-fb202837c24a","to":"749ca35b-ddda-46d6-a569-1cd01309411e","label":"reads block, player and actuator state through","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"10fa20d4-3690-4942-9549-97445086fb11","from":"4c62b1f4-a9e1-45e9-9478-e6a3be1c149c","to":"5908f036-a23a-40dd-81b1-1767aac3f235","label":"loads it as a client mod and receives ticks from","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"99a8acd6-792a-4e92-ace1-658291ed86d8","from":"c2fb492e-73f7-49f2-8690-260f1318619f","to":"5908f036-a23a-40dd-81b1-1767aac3f235","label":"reads world and player, writes keys and look, in","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"aac72853-4448-4f4a-b2dc-7963c7286757","from":"a61e821d-b06a-4268-ac61-619e6b1490ec","to":"4f67b464-98e9-479a-bf0b-05d2b3dd0423","label":"registers with FML and receives client ticks from","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"eae0b95d-c6e4-4094-87a2-7adb1b6d6224","from":"749ca35b-ddda-46d6-a569-1cd01309411e","to":"4f67b464-98e9-479a-bf0b-05d2b3dd0423","label":"reads world and player, writes keys and look, in","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"92fcfc82-0370-4cc9-9bca-d71d48de3502","from":"a362ef87-272c-4655-88e9-408f5f50a515","to":"b510a9cb-ba0c-4f9a-8723-9bd0b4a1265b","label":"turns the adapter's raw block descriptions into facts via","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"d934e308-e624-47e3-870f-3e46ecbb3256","from":"3bfc3f3b-4b98-4988-9811-5ac8037800ba","to":"b510a9cb-ba0c-4f9a-8723-9bd0b4a1265b","label":"reads state ids on demand, memoised per state, from","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"661378b0-66b9-4410-afc2-d11a724212b1","from":"bfdc8c6d-0eb2-4224-89fb-3f7a6c692e78","to":"ca185d62-b446-4a0f-bc2e-f319ee8d47bb","label":"extends the tick contract with start and stop","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"649580be-0c89-42fb-88a6-3eb989448feb","from":"bfdc8c6d-0eb2-4224-89fb-3f7a6c692e78","to":"d1338404-7825-4265-a82c-9100318a2254","label":"hands the core the adapter's context at start from","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"aac48c17-1cae-49dc-a0ec-e079405b0525","from":"23b592e9-e0fc-4635-ae7f-c5ef9977f79a","to":"3bfc3f3b-4b98-4988-9811-5ac8037800ba","label":"gives each movement a read-only world through","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"370dc097-a7cf-468f-9594-83b21084b41b","from":"272a8fc1-d4ea-43dd-9d27-837f6bbbe130","to":"a362ef87-272c-4655-88e9-408f5f50a515","label":"synthesizes seeded test worlds from the block model of","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"1c931fda-f623-4b37-a18e-08a774988bdd","from":"63b2b973-c0f7-4870-bdb4-179d737b92cf","to":"a362ef87-272c-4655-88e9-408f5f50a515","label":"decides stand vs pass from collision and fluid facts in","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"ca5751e4-0726-4c8c-b0e7-e040e384f30e","from":"dbacee45-2803-4b3a-b0a9-e4794022a281","to":"23b592e9-e0fc-4635-ae7f-c5ef9977f79a","label":"implements; found at runtime via META-INF/services","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"937f4190-6a33-4a83-9cda-0e47179605e1","from":"dbacee45-2803-4b3a-b0a9-e4794022a281","to":"4227fd2f-c244-4277-ae27-1b2afd540060","label":"prices the jump as two traverses plus a surcharge from","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"259a4bbe-6456-4e0f-bcd9-c3df284acc2a","from":"dbacee45-2803-4b3a-b0a9-e4794022a281","to":"fe7819e4-ede2-4f25-b3ff-f90bf9644e19","label":"declares cost per axis step to keep A* admissible via","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"7c50cbce-a512-4626-8a7a-a2f6fa906a71","from":"dbacee45-2803-4b3a-b0a9-e4794022a281","to":"63b2b973-c0f7-4870-bdb4-179d737b92cf","label":"refuses a gap a player could stand in, per","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"06283495-7c79-4c90-9b2f-3d4bc2659b7c","from":"c37ab8af-ea11-4807-9da8-229fa8195fb1","to":"bc790d33-d671-4832-a213-9e353ef1611b","label":"asks which movements apply under a capability grant","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"58375147-ebd0-4bd4-a29b-50ecc21171e2","from":"c37ab8af-ea11-4807-9da8-229fa8195fb1","to":"3bfc3f3b-4b98-4988-9811-5ac8037800ba","label":"reads blocks on demand as it expands, through","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"39b5390e-a3c3-4692-9004-6d03d00735f8","from":"c53eb98f-7e1c-4b5b-a90d-2171797b66e9","to":"3bfc3f3b-4b98-4988-9811-5ac8037800ba","label":"keeps the world view live across a multi-tick run of","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"d5d334ca-4501-4efb-96f4-10d8dff65427","from":"3271f29c-1fd8-4554-b6f7-65bef6aba74c","to":"fe7819e4-ede2-4f25-b3ff-f90bf9644e19","label":"scales distance estimates by the active set's minimum costs","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"abbe65e1-e169-4a39-ab97-21a7d35984a5","from":"f8c689af-fecc-4572-bd49-3457c332fab0","to":"23b592e9-e0fc-4635-ae7f-c5ef9977f79a","label":"implement the plug-in contract of","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"53c31593-52ea-4250-8ca1-798254f1058d","from":"f8c689af-fecc-4572-bd49-3457c332fab0","to":"63b2b973-c0f7-4870-bdb4-179d737b92cf","label":"ask whether a block is standable or merely passable","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"ba87a826-9f54-4bc2-a198-904bdc33c70f","from":"f8c689af-fecc-4572-bd49-3457c332fab0","to":"4227fd2f-c244-4277-ae27-1b2afd540060","label":"price every step from the shared table in","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"740bd2e4-aacf-425e-a1ae-60fe0b1db2ab","from":"628cd4da-d958-4822-a6bf-d7b9b619bb10","to":"6a33eb78-f607-4e25-a7b9-3b4f28c0ffdf","label":"packs positions with the same key as the snapshot cache","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"008b94c4-9f28-4774-a686-18326bdb971f","from":"628cd4da-d958-4822-a6bf-d7b9b619bb10","to":"7dd35231-4d36-498b-817e-f0283734106a","label":"names each step's movement from its position delta","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"44a5e24f-6cb1-4da3-93a0-a3b55c1673b4","from":"aa1f1e46-87d4-4b0c-b29a-33e9b428b843","to":"a362ef87-272c-4655-88e9-408f5f50a515","label":"draws fixtures in the block-shape vocabulary of","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"c30b1837-929a-4ebd-bd86-e47a37bb8e15","from":"9bcb16a5-0f18-4b87-a831-5fd8df34a1c9","to":"bfdc8c6d-0eb2-4224-89fb-3f7a6c692e78","label":"implements the lifecycle the adapter runtime drives","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"b3900277-8907-44f6-9bb7-5b5f5b079eab","from":"9bcb16a5-0f18-4b87-a831-5fd8df34a1c9","to":"3bfc3f3b-4b98-4988-9811-5ac8037800ba","label":"builds and owns the classified world reads for a walk","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"be8162c0-d30b-486a-bc97-b350088fc8fc","from":"9bcb16a5-0f18-4b87-a831-5fd8df34a1c9","to":"88890791-bb2b-4b0d-a322-f7ebc691fede","label":"loads the running version's block overrides from","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"2a197754-deb3-4cf9-85e9-834aaddc8361","from":"9bcb16a5-0f18-4b87-a831-5fd8df34a1c9","to":"ca185d62-b446-4a0f-bc2e-f319ee8d47bb","label":"drives the executor only in the PRE phase of","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"f04bb300-9634-4f01-a435-d9e7cdf9745a","from":"9bcb16a5-0f18-4b87-a831-5fd8df34a1c9","to":"d1338404-7825-4265-a82c-9100318a2254","label":"takes world, player and actuator once at start from","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"31d931f1-b4be-46a3-9262-9cb06f674fc2","from":"f47fd47b-7529-4d24-a5e9-ed2121633dc0","to":"c53eb98f-7e1c-4b5b-a90d-2171797b66e9","label":"adopts finished segments incrementally while walking","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"4d7f4bf6-9570-4558-8ae7-3c2431430a41","from":"f47fd47b-7529-4d24-a5e9-ed2121633dc0","to":"628cd4da-d958-4822-a6bf-d7b9b619bb10","label":"follows settled steps and replans on the outcome of","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"10cf090c-9313-4343-8ee8-509a7cddfb01","from":"f47fd47b-7529-4d24-a5e9-ed2121633dc0","to":"7dd35231-4d36-498b-817e-f0283734106a","label":"picks per-tick inputs by each step's kind","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"dc9dd983-3058-46f4-ad06-b0cc39206c94","from":"f47fd47b-7529-4d24-a5e9-ed2121633dc0","to":"bc790d33-d671-4832-a213-9e353ef1611b","label":"searches with no capabilities granted, so never parkour","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"9408cc2b-d2f1-4341-bf10-e0faf2593b02","from":"f47fd47b-7529-4d24-a5e9-ed2121633dc0","to":"6a33eb78-f607-4e25-a7b9-3b4f28c0ffdf","label":"wraps the live world in a fresh snapshot per search","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"7f129812-2d82-46a7-9388-896040130765","from":"f47fd47b-7529-4d24-a5e9-ed2121633dc0","to":"a2154030-43cd-4c00-8725-9dc1cff18eb1","label":"re-anchors on the player's real position every tick","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"ce8d28e1-db45-4463-86c4-fa7f22a0f030","from":"f47fd47b-7529-4d24-a5e9-ed2121633dc0","to":"e21f82e8-7e41-43fc-9938-e109b82a58b6","label":"restates the full input set and facing every tick","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"d45834bd-b2d0-4f2d-a290-812c708883b4","from":"3f0ec4a1-2478-456e-b37b-a6246a9e6d13","to":"e21f82e8-7e41-43fc-9938-e109b82a58b6","label":"bounds turn rate, then delegates input untouched to","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"34992873-df4e-4a35-baa6-097162ed7a2e","from":"3f0ec4a1-2478-456e-b37b-a6246a9e6d13","to":"a2154030-43cd-4c00-8725-9dc1cff18eb1","label":"turns from the player's current yaw, read from","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"5177922d-c45c-4145-9474-27eb503c6711","from":"55aaecfd-d920-4c25-b792-87afe87f1c5e","to":"bfdc8c6d-0eb2-4224-89fb-3f7a6c692e78","label":"forwards start, ticks and stop, isolating faults, to","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"a4550605-7fef-4736-b51c-d6df05de86cb","from":"55aaecfd-d920-4c25-b792-87afe87f1c5e","to":"ca185d62-b446-4a0f-bc2e-f319ee8d47bb","label":"pairs every tick as PRE then POST, per","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"81d9ff70-12b3-4ef6-b0d5-c8b3a4f1a397","from":"55aaecfd-d920-4c25-b792-87afe87f1c5e","to":"d1338404-7825-4265-a82c-9100318a2254","label":"receives once at start and passes through to the core","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"ad5d58b5-9330-4622-a462-511c90000931","from":"3d4cdcbb-0419-4d27-8792-bec5a8d5c51e","to":"c53eb98f-7e1c-4b5b-a90d-2171797b66e9","label":"drives a sliced, node-budgeted search through","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"526be4e7-df07-4c28-a809-d0a9a6892c41","from":"3d4cdcbb-0419-4d27-8792-bec5a8d5c51e","to":"aa1f1e46-87d4-4b0c-b29a-33e9b428b843","label":"renders the returned route as an ASCII map via","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"457d8b29-7f2d-4e4a-a23b-01be8634349a","from":"3d4cdcbb-0419-4d27-8792-bec5a8d5c51e","to":"6a33eb78-f607-4e25-a7b9-3b4f28c0ffdf","label":"replays against the seal to split fill from search cost","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"6c746b44-098f-46cf-a188-a88c20e1d636","from":"3d4cdcbb-0419-4d27-8792-bec5a8d5c51e","to":"bc790d33-d671-4832-a213-9e353ef1611b","label":"grants the parkour capability to every probe search","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"7aa94ef6-1c1f-4e95-980e-932571bbc12f","from":"3d4cdcbb-0419-4d27-8792-bec5a8d5c51e","to":"63b2b973-c0f7-4870-bdb4-179d737b92cf","label":"checks the marked goal is standable per","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"789286fb-00d1-44cf-b3e1-eca078106cb1","from":"3d4cdcbb-0419-4d27-8792-bec5a8d5c51e","to":"a2154030-43cd-4c00-8725-9dc1cff18eb1","label":"starts from the player's position and ground state in","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"5b9360b2-42a1-4779-a04c-c4f1b95cc9a2","from":"3d4cdcbb-0419-4d27-8792-bec5a8d5c51e","to":"e21f82e8-7e41-43fc-9938-e109b82a58b6","label":"turns the player to face the marked goal through","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"9915d1d9-04a7-47b3-a454-2de5ee493ca1","from":"7bd90e71-8bf8-4811-bdbe-420d2d594da9","to":"b510a9cb-ba0c-4f9a-8723-9bd0b4a1265b","label":"walks a bounded region reading raw blocks through","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"e1a527d5-4382-4470-9bbf-135dda9f6199","from":"7bd90e71-8bf8-4811-bdbe-420d2d594da9","to":"a362ef87-272c-4655-88e9-408f5f50a515","label":"classifies each distinct block state with","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"d5cd2cc3-51f1-4d6b-918e-68d4777460de","from":"4c62b1f4-a9e1-45e9-9478-e6a3be1c149c","to":"9bcb16a5-0f18-4b87-a831-5fd8df34a1c9","label":"constructs once and asks it to walk to the marked goal","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"8255ea15-700f-41fb-8b67-0d65ac1e4ddb","from":"4c62b1f4-a9e1-45e9-9478-e6a3be1c149c","to":"3d4cdcbb-0419-4d27-8792-bec5a8d5c51e","label":"takes the walk key's destination from the goal marked in","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"015d575a-9f0c-49c4-b665-977b75874ca7","from":"4c62b1f4-a9e1-45e9-9478-e6a3be1c149c","to":"55aaecfd-d920-4c25-b792-87afe87f1c5e","label":"forwards every tick and lifecycle event to","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"bc9d650c-4704-4b58-b1f2-33d7610ba2b2","from":"c2fb492e-73f7-49f2-8690-260f1318619f","to":"b510a9cb-ba0c-4f9a-8723-9bd0b4a1265b","label":"implements over the 1.21.11 world","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"22653bae-6764-48ea-a4ba-50445c40ae23","from":"c2fb492e-73f7-49f2-8690-260f1318619f","to":"e21f82e8-7e41-43fc-9938-e109b82a58b6","label":"implements by mapping each input to a key binding","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"e7ff3f6b-4056-44d0-83c9-0747b6c7733d","from":"c2fb492e-73f7-49f2-8690-260f1318619f","to":"a2154030-43cd-4c00-8725-9dc1cff18eb1","label":"implements over the 1.21.11 local player","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"83c59bf3-3196-4267-b631-bf6cff5b5685","from":"c2fb492e-73f7-49f2-8690-260f1318619f","to":"d1338404-7825-4265-a82c-9100318a2254","label":"implements, reporting game version and FABRIC","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"fb1ccba9-52ee-44e4-a4e1-2102716c6918","from":"e6d4a103-1f0b-4ce8-ad55-e585195f680e","to":"3d4cdcbb-0419-4d27-8792-bec5a8d5c51e","label":"marks goals, runs probes, writes maps to disk via","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"e0b25fe9-e150-4ac5-bc7a-7d913ddf5ac7","from":"e6d4a103-1f0b-4ce8-ad55-e585195f680e","to":"7bd90e71-8bf8-4811-bdbe-420d2d594da9","label":"dumps a block row to a text file via","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"2f0c6769-2896-4b33-8b04-8f959d0150f3","from":"e6d4a103-1f0b-4ce8-ad55-e585195f680e","to":"88890791-bb2b-4b0d-a322-f7ebc691fede","label":"loads this version's block table for each dump from","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"97e4af4e-574b-483c-bc95-557bbe998a76","from":"4c62b1f4-a9e1-45e9-9478-e6a3be1c149c","to":"dde8a451-acce-43d7-9030-a058f8d4138e","label":"implements the core's log sink over SLF4J","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"d118169b-9655-4ad7-8538-63766d0ada8b","from":"a61e821d-b06a-4268-ac61-619e6b1490ec","to":"9bcb16a5-0f18-4b87-a831-5fd8df34a1c9","label":"constructs once and asks it to walk to the marked goal","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"7963cb76-55d0-42ce-b52c-66a8e222c4fa","from":"a61e821d-b06a-4268-ac61-619e6b1490ec","to":"3d4cdcbb-0419-4d27-8792-bec5a8d5c51e","label":"takes the walk key's destination from the goal marked in","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"e4446a33-a291-492f-9fdf-f895bc1e1460","from":"a61e821d-b06a-4268-ac61-619e6b1490ec","to":"55aaecfd-d920-4c25-b792-87afe87f1c5e","label":"forwards every tick and lifecycle event to","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"85f4bb83-661b-4215-8e4a-1cf9019861ab","from":"749ca35b-ddda-46d6-a569-1cd01309411e","to":"b510a9cb-ba0c-4f9a-8723-9bd0b4a1265b","label":"implements over the 1.7.10 world","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"4366f6a6-a68d-49bb-8cf1-780b827251c2","from":"749ca35b-ddda-46d6-a569-1cd01309411e","to":"e21f82e8-7e41-43fc-9938-e109b82a58b6","label":"implements by mapping each input to a key binding","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"54dbad25-d69b-4ce0-865b-bcc6b7c8277f","from":"749ca35b-ddda-46d6-a569-1cd01309411e","to":"a2154030-43cd-4c00-8725-9dc1cff18eb1","label":"implements over the 1.7.10 local player","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"0d1bca14-990b-4d72-9676-6c9f99c4df2a","from":"749ca35b-ddda-46d6-a569-1cd01309411e","to":"d1338404-7825-4265-a82c-9100318a2254","label":"implements, reporting game version and FORGE","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"97721705-a6ab-4d21-a827-b19bee1ba47f","from":"7f7cbc4b-5b85-4065-abd7-fb202837c24a","to":"3d4cdcbb-0419-4d27-8792-bec5a8d5c51e","label":"marks goals, runs probes, writes maps to disk via","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"0b679beb-021c-4bde-bdf1-703ce1b655e6","from":"7f7cbc4b-5b85-4065-abd7-fb202837c24a","to":"7bd90e71-8bf8-4811-bdbe-420d2d594da9","label":"dumps a block row to a text file via","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"1f458d1b-f4e4-4435-91cc-f9b0712fd455","from":"7f7cbc4b-5b85-4065-abd7-fb202837c24a","to":"88890791-bb2b-4b0d-a322-f7ebc691fede","label":"loads this version's block table for each dump from","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"0b69ef44-61ef-4fbf-acc0-1c4ca9bc819e","from":"a61e821d-b06a-4268-ac61-619e6b1490ec","to":"dde8a451-acce-43d7-9030-a058f8d4138e","label":"implements the core's log sink over log4j2","description":"","direction":"Unidirectional","realizedBy":[],"codeRefs":[],"fields":{}},{"id":"8f5adae3-181a-4b3b-b2de-e3bba890d874","from":"6f7466ca-7bfe-4e3d-a397-50b2ac990a2e","to":"5908f036-a23a-40dd-81b1-1767aac3f235","label":"runs as a client mod, binding the SPI to","description":"","direction":"Unidirectional","realizedBy":["10fa20d4-3690-4942-9549-97445086fb11","99a8acd6-792a-4e92-ace1-658291ed86d8"],"codeRefs":[],"fields":{}},{"id":"a548e4e7-2c98-4dbd-b3ef-124cfcb5dda7","from":"de24162f-a108-4b63-8f8f-e8fc5d686071","to":"4f67b464-98e9-479a-bf0b-05d2b3dd0423","label":"runs as a Forge mod, binding the SPI to","description":"","direction":"Unidirectional","realizedBy":["aac72853-4448-4f4a-b2dc-7963c7286757","eae0b95d-c6e4-4094-87a2-7adb1b6d6224"],"codeRefs":[],"fields":{}},{"id":"65c34c77-2b6a-4d78-8a02-ffb6a3b97b2d","from":"9a66c47b-ea1f-4789-8ed2-02e779d0ab63","to":"0a22b87f-d84f-4d70-9271-5b44f7263e27","label":"classifies blocks and defines the core lifecycle on","description":"","direction":"Unidirectional","realizedBy":["92fcfc82-0370-4cc9-9bca-d71d48de3502","d934e308-e624-47e3-870f-3e46ecbb3256","661378b0-66b9-4410-afc2-d11a724212b1","649580be-0c89-42fb-88a6-3eb989448feb"],"codeRefs":[],"fields":{}},{"id":"e5bad45f-54a1-486d-8b71-1bd9a84d88c3","from":"979f2e82-9a64-4e74-995f-3a12161f5e92","to":"9a66c47b-ea1f-4789-8ed2-02e779d0ab63","label":"judges terrain from the block facts of","description":"","direction":"Unidirectional","realizedBy":["aac48c17-1cae-49dc-a0ec-e079405b0525","370dc097-a7cf-468f-9594-83b21084b41b","1c931fda-f623-4b37-a18e-08a774988bdd"],"codeRefs":[],"fields":{}},{"id":"8bd77f08-de0b-43b5-98ea-b043f865f2d2","from":"d8c22384-0a36-4361-9612-5df05b754a8f","to":"979f2e82-9a64-4e74-995f-3a12161f5e92","label":"plugs a jump into the search through","description":"","direction":"Unidirectional","realizedBy":["ca5751e4-0726-4c8c-b0e7-e040e384f30e","937f4190-6a33-4a83-9cda-0e47179605e1","259a4bbe-6456-4e0f-bcd9-c3df284acc2a","7c50cbce-a512-4626-8a7a-a2f6fa906a71"],"codeRefs":[],"fields":{}},{"id":"27b95a96-2b37-47fd-b553-d1fe6b65b102","from":"5f00f65b-d38e-4057-9497-07d436443301","to":"979f2e82-9a64-4e74-995f-3a12161f5e92","label":"expands, prices and names moves via","description":"","direction":"Unidirectional","realizedBy":["06283495-7c79-4c90-9b2f-3d4bc2659b7c","d5d334ca-4501-4efb-96f4-10d8dff65427","abbe65e1-e169-4a39-ab97-21a7d35984a5","53c31593-52ea-4250-8ca1-798254f1058d","ba87a826-9f54-4bc2-a198-904bdc33c70f","008b94c4-9f28-4774-a686-18326bdb971f"],"codeRefs":[],"fields":{}},{"id":"3d627b19-79ba-4d33-90c5-809190ce3702","from":"5f00f65b-d38e-4057-9497-07d436443301","to":"9a66c47b-ea1f-4789-8ed2-02e779d0ab63","label":"searches a world it sees only as blocks from","description":"","direction":"Unidirectional","realizedBy":["58375147-ebd0-4bd4-a29b-50ecc21171e2","39b5390e-a3c3-4692-9004-6d03d00735f8","740bd2e4-aacf-425e-a1ae-60fe0b1db2ab","44a5e24f-6cb1-4da3-93a0-a3b55c1673b4"],"codeRefs":[],"fields":{}},{"id":"3121afd3-748b-43bd-92af-aa3dcc1bab35","from":"654c0dbe-f216-4d99-beaa-6470527193d2","to":"9a66c47b-ea1f-4789-8ed2-02e779d0ab63","label":"implements the core seam over snapshots of","description":"","direction":"Unidirectional","realizedBy":["c30b1837-929a-4ebd-bd86-e47a37bb8e15","b3900277-8907-44f6-9bb7-5b5f5b079eab","be8162c0-d30b-486a-bc97-b350088fc8fc","9408cc2b-d2f1-4341-bf10-e0faf2593b02"],"codeRefs":[],"fields":{}},{"id":"857360d9-09bf-4448-847b-51a736f3a0ea","from":"654c0dbe-f216-4d99-beaa-6470527193d2","to":"0a22b87f-d84f-4d70-9271-5b44f7263e27","label":"reads the player and restates inputs each tick via","description":"","direction":"Unidirectional","realizedBy":["2a197754-deb3-4cf9-85e9-834aaddc8361","f04bb300-9634-4f01-a435-d9e7cdf9745a","7f129812-2d82-46a7-9388-896040130765","ce8d28e1-db45-4463-86c4-fa7f22a0f030","d45834bd-b2d0-4f2d-a290-812c708883b4","34992873-df4e-4a35-baa6-097162ed7a2e"],"codeRefs":[],"fields":{}},{"id":"3f749f82-bcf1-4c96-9428-e0819c3c86dc","from":"654c0dbe-f216-4d99-beaa-6470527193d2","to":"5f00f65b-d38e-4057-9497-07d436443301","label":"walks segments as they arrive from","description":"","direction":"Unidirectional","realizedBy":["31d931f1-b4be-46a3-9262-9cb06f674fc2","4d7f4bf6-9570-4558-8ae7-3c2431430a41"],"codeRefs":[],"fields":{}},{"id":"386276d1-f7ba-495b-aa3b-72e241207947","from":"654c0dbe-f216-4d99-beaa-6470527193d2","to":"979f2e82-9a64-4e74-995f-3a12161f5e92","label":"plans without parkour, drives by step kind from","description":"","direction":"Unidirectional","realizedBy":["10cf090c-9313-4343-8ee8-509a7cddfb01","dc9dd983-3058-46f4-ad06-b0cc39206c94"],"codeRefs":[],"fields":{}},{"id":"63672887-54e9-48c5-858b-41fb1744d0fe","from":"ed5b165e-8593-4cb6-94ca-ea11055f94c4","to":"9a66c47b-ea1f-4789-8ed2-02e779d0ab63","label":"drives the core lifecycle and probes the world model of","description":"","direction":"Unidirectional","realizedBy":["5177922d-c45c-4145-9474-27eb503c6711","457d8b29-7f2d-4e4a-a23b-01be8634349a","e1a527d5-4382-4470-9bbf-135dda9f6199"],"codeRefs":[],"fields":{}},{"id":"c07c4465-03d1-4d6a-9a9e-0b0b2cf7dee4","from":"ed5b165e-8593-4cb6-94ca-ea11055f94c4","to":"0a22b87f-d84f-4d70-9271-5b44f7263e27","label":"discharges the adapter side of the global rules of","description":"","direction":"Unidirectional","realizedBy":["a4550605-7fef-4736-b51c-d6df05de86cb","81d9ff70-12b3-4ef6-b0d5-c8b3a4f1a397","789286fb-00d1-44cf-b3e1-eca078106cb1","5b9360b2-42a1-4779-a04c-c4f1b95cc9a2","9915d1d9-04a7-47b3-a454-2de5ee493ca1"],"codeRefs":[],"fields":{}},{"id":"b8a2bb06-f00e-452c-909d-fac850355eac","from":"ed5b165e-8593-4cb6-94ca-ea11055f94c4","to":"5f00f65b-d38e-4057-9497-07d436443301","label":"runs and renders dev-probe searches with","description":"","direction":"Unidirectional","realizedBy":["ad5d58b5-9330-4622-a462-511c90000931","526be4e7-df07-4c28-a809-d0a9a6892c41"],"codeRefs":[],"fields":{}},{"id":"61d30c9c-3305-473c-8be3-2ecf06f35a36","from":"ed5b165e-8593-4cb6-94ca-ea11055f94c4","to":"979f2e82-9a64-4e74-995f-3a12161f5e92","label":"grants probes parkour and checks goals with","description":"","direction":"Unidirectional","realizedBy":["6c746b44-098f-46cf-a188-a88c20e1d636","7aa94ef6-1c1f-4e95-980e-932571bbc12f"],"codeRefs":[],"fields":{}},{"id":"3cc1bf46-bb01-4a37-b6ce-43cede6129fa","from":"6f7466ca-7bfe-4e3d-a397-50b2ac990a2e","to":"654c0dbe-f216-4d99-beaa-6470527193d2","label":"constructs the core and sends walk requests to","description":"","direction":"Unidirectional","realizedBy":["d5cd2cc3-51f1-4d6b-918e-68d4777460de"],"codeRefs":[],"fields":{}},{"id":"f871a5a8-aac6-4de3-8d9f-cefdbae2a2f6","from":"6f7466ca-7bfe-4e3d-a397-50b2ac990a2e","to":"ed5b165e-8593-4cb6-94ca-ea11055f94c4","label":"forwards ticks and dev keys to","description":"","direction":"Unidirectional","realizedBy":["8255ea15-700f-41fb-8b67-0d65ac1e4ddb","015d575a-9f0c-49c4-b665-977b75874ca7","fb1ccba9-52ee-44e4-a4e1-2102716c6918","e0b25fe9-e150-4ac5-bc7a-7d913ddf5ac7"],"codeRefs":[],"fields":{}},{"id":"d65257e9-3bb5-47f7-a08b-844b428ca3ab","from":"6f7466ca-7bfe-4e3d-a397-50b2ac990a2e","to":"0a22b87f-d84f-4d70-9271-5b44f7263e27","label":"implements for 1.21.11","description":"","direction":"Unidirectional","realizedBy":["bc9d650c-4704-4b58-b1f2-33d7610ba2b2","22653bae-6764-48ea-a4ba-50445c40ae23","e7ff3f6b-4056-44d0-83c9-0747b6c7733d","83c59bf3-3196-4267-b631-bf6cff5b5685"],"codeRefs":[],"fields":{}},{"id":"3d97d772-dcde-4a17-af2c-9e1d5a7663e6","from":"6f7466ca-7bfe-4e3d-a397-50b2ac990a2e","to":"9a66c47b-ea1f-4789-8ed2-02e779d0ab63","label":"supplies SLF4J logging and loads block tables from","description":"","direction":"Unidirectional","realizedBy":["2f0c6769-2896-4b33-8b04-8f959d0150f3","97e4af4e-574b-483c-bc95-557bbe998a76"],"codeRefs":[],"fields":{}},{"id":"21d41db8-a9e6-4cf1-9cac-1790cd900f29","from":"de24162f-a108-4b63-8f8f-e8fc5d686071","to":"654c0dbe-f216-4d99-beaa-6470527193d2","label":"constructs the core and sends walk requests to","description":"","direction":"Unidirectional","realizedBy":["d118169b-9655-4ad7-8538-63766d0ada8b"],"codeRefs":[],"fields":{}},{"id":"9cce5931-1907-46d3-a4ae-1005a28f6b9a","from":"de24162f-a108-4b63-8f8f-e8fc5d686071","to":"ed5b165e-8593-4cb6-94ca-ea11055f94c4","label":"forwards ticks and dev keys to","description":"","direction":"Unidirectional","realizedBy":["7963cb76-55d0-42ce-b52c-66a8e222c4fa","e4446a33-a291-492f-9fdf-f895bc1e1460","97721705-a6ab-4d21-a827-b19bee1ba47f","0b679beb-021c-4bde-bdf1-703ce1b655e6"],"codeRefs":[],"fields":{}},{"id":"677fb218-a087-48a1-836b-d8862d6d913b","from":"de24162f-a108-4b63-8f8f-e8fc5d686071","to":"0a22b87f-d84f-4d70-9271-5b44f7263e27","label":"implements for 1.7.10","description":"","direction":"Unidirectional","realizedBy":["85f4bb83-661b-4215-8e4a-1cf9019861ab","4366f6a6-a68d-49bb-8cf1-780b827251c2","54dbad25-d69b-4ce0-865b-bcc6b7c8277f","0d1bca14-990b-4d72-9676-6c9f99c4df2a"],"codeRefs":[],"fields":{}},{"id":"53f6e647-9dfb-486d-b2a6-58db2604f2cf","from":"de24162f-a108-4b63-8f8f-e8fc5d686071","to":"9a66c47b-ea1f-4789-8ed2-02e779d0ab63","label":"supplies log4j2 logging and loads block tables from","description":"","direction":"Unidirectional","realizedBy":["1f458d1b-f4e4-4435-91cc-f9b0712fd455","0b69ef44-61ef-4fbf-acc0-1c4ca9bc819e"],"codeRefs":[],"fields":{}}],"flows":[{"id":"f4b5ed8d-7aa1-43f3-b3d0-7f381744ccd5","name":"Walk to the marked block","description":"The one behaviour Continuo has today, on the Fabric adapter (Forge is identical): the walk key sends the core toward the goal marked with the probe key, and every client tick after that is turned into a fresh, complete set of inputs.","scope":"Component","steps":[{"order":1,"from":"4c62b1f4-a9e1-45e9-9478-e6a3be1c149c","to":"3d4cdcbb-0419-4d27-8792-bec5a8d5c51e","via":"8255ea15-700f-41fb-8b67-0d65ac1e4ddb","message":"read marked goal","kind":"Sync"},{"order":2,"from":"4c62b1f4-a9e1-45e9-9478-e6a3be1c149c","to":"9bcb16a5-0f18-4b87-a831-5fd8df34a1c9","via":"d5cd2cc3-51f1-4d6b-918e-68d4777460de","message":"walk to goal","kind":"Sync"},{"order":3,"from":"4c62b1f4-a9e1-45e9-9478-e6a3be1c149c","to":"55aaecfd-d920-4c25-b792-87afe87f1c5e","via":"015d575a-9f0c-49c4-b665-977b75874ca7","message":"client tick","kind":"Sync","control":{"type":"loop","condition":"every client tick while in a world"}},{"order":4,"from":"55aaecfd-d920-4c25-b792-87afe87f1c5e","to":"bfdc8c6d-0eb2-4224-89fb-3f7a6c692e78","via":"5177922d-c45c-4145-9474-27eb503c6711","message":"PRE tick, faults isolated","kind":"Sync"},{"order":5,"from":"bfdc8c6d-0eb2-4224-89fb-3f7a6c692e78","to":"9bcb16a5-0f18-4b87-a831-5fd8df34a1c9","message":"dispatch to core","kind":"Sync"},{"order":6,"from":"9bcb16a5-0f18-4b87-a831-5fd8df34a1c9","to":"f47fd47b-7529-4d24-a5e9-ed2121633dc0","message":"tick executor","kind":"Sync"},{"order":7,"from":"f47fd47b-7529-4d24-a5e9-ed2121633dc0","to":"a2154030-43cd-4c00-8725-9dc1cff18eb1","via":"7f129812-2d82-46a7-9388-896040130765","message":"re-anchor on position","kind":"Sync"},{"order":8,"from":"f47fd47b-7529-4d24-a5e9-ed2121633dc0","to":"6a33eb78-f607-4e25-a7b9-3b4f28c0ffdf","via":"9408cc2b-d2f1-4341-bf10-e0faf2593b02","message":"snapshot world","kind":"Sync","control":{"type":"opt","condition":"no path yet, off path, or near the end"}},{"order":9,"from":"f47fd47b-7529-4d24-a5e9-ed2121633dc0","to":"c53eb98f-7e1c-4b5b-a90d-2171797b66e9","via":"31d931f1-b4be-46a3-9262-9cb06f674fc2","message":"advance search slice","kind":"Sync","control":{"type":"opt","condition":"a search is in progress"}},{"order":10,"from":"c53eb98f-7e1c-4b5b-a90d-2171797b66e9","to":"628cd4da-d958-4822-a6bf-d7b9b619bb10","message":"finished segment","kind":"Return"},{"order":11,"from":"f47fd47b-7529-4d24-a5e9-ed2121633dc0","to":"3f0ec4a1-2478-456e-b37b-a6246a9e6d13","message":"full input set + facing","kind":"Sync"},{"order":12,"from":"3f0ec4a1-2478-456e-b37b-a6246a9e6d13","to":"e21f82e8-7e41-43fc-9938-e109b82a58b6","via":"d45834bd-b2d0-4f2d-a290-812c708883b4","message":"rate-limited turn + inputs","kind":"Sync"},{"order":13,"from":"c2fb492e-73f7-49f2-8690-260f1318619f","to":"5908f036-a23a-40dd-81b1-1767aac3f235","via":"99a8acd6-792a-4e92-ace1-658291ed86d8","message":"press keys, set look","kind":"Sync"}]},{"id":"8f1fceb6-6c28-4bea-b9f1-f753be38dd81","name":"Walk to the marked block (containers)","description":"The same walk at container altitude, so it lights up as a unit on the container view.","scope":"Container","steps":[{"order":1,"from":"6f7466ca-7bfe-4e3d-a397-50b2ac990a2e","to":"654c0dbe-f216-4d99-beaa-6470527193d2","via":"3cc1bf46-bb01-4a37-b6ce-43cede6129fa","message":"walk to marked goal","kind":"Sync"},{"order":2,"from":"5908f036-a23a-40dd-81b1-1767aac3f235","to":"6f7466ca-7bfe-4e3d-a397-50b2ac990a2e","message":"client tick","kind":"Async","control":{"type":"loop","condition":"every client tick while in a world"}},{"order":3,"from":"6f7466ca-7bfe-4e3d-a397-50b2ac990a2e","to":"ed5b165e-8593-4cb6-94ca-ea11055f94c4","via":"f871a5a8-aac6-4de3-8d9f-cefdbae2a2f6","message":"forward tick","kind":"Sync"},{"order":4,"from":"ed5b165e-8593-4cb6-94ca-ea11055f94c4","to":"9a66c47b-ea1f-4789-8ed2-02e779d0ab63","via":"63672887-54e9-48c5-858b-41fb1744d0fe","message":"PRE tick via core seam","kind":"Sync"},{"order":5,"from":"9a66c47b-ea1f-4789-8ed2-02e779d0ab63","to":"654c0dbe-f216-4d99-beaa-6470527193d2","message":"dispatch to core implementation","kind":"Sync"},{"order":6,"from":"654c0dbe-f216-4d99-beaa-6470527193d2","to":"5f00f65b-d38e-4057-9497-07d436443301","via":"3f749f82-bcf1-4c96-9428-e0819c3c86dc","message":"advance segment search","kind":"Sync","control":{"type":"opt","condition":"needs a new or longer path"}},{"order":7,"from":"5f00f65b-d38e-4057-9497-07d436443301","to":"9a66c47b-ea1f-4789-8ed2-02e779d0ab63","via":"3d627b19-79ba-4d33-90c5-809190ce3702","message":"read blocks","kind":"Sync"},{"order":8,"from":"654c0dbe-f216-4d99-beaa-6470527193d2","to":"0a22b87f-d84f-4d70-9271-5b44f7263e27","via":"857360d9-09bf-4448-847b-51a736f3a0ea","message":"read player, restate inputs","kind":"Sync"},{"order":9,"from":"6f7466ca-7bfe-4e3d-a397-50b2ac990a2e","to":"5908f036-a23a-40dd-81b1-1767aac3f235","via":"8f5adae3-181a-4b3b-b2de-e3bba890d874","message":"press keys, set look","kind":"Sync"}]}],"patterns":[{"id":"af404982-d91c-45f6-bd9a-fc45f9c67133","name":"Walk Execution","kind":"state-machine","description":"The executor's own phase across a walk, driven by walkTo, search completion, and the stuck/off-path detector. Distinct from the per-tick input write, which is recomputed fresh in every phase rather than accumulated.","anchor":"f47fd47b-7529-4d24-a5e9-ed2121633dc0","members":[{"name":"Idle","description":""},{"name":"Searching","description":""},{"name":"Driving","description":""},{"name":"Plan-Ahead","description":""},{"name":"Repathing","description":""}],"transitions":[{"from":"Idle","to":"Searching","trigger":"walkTo","description":""},{"from":"Searching","to":"Driving","trigger":"search adopted","description":""},{"from":"Searching","to":"Idle","trigger":"NO_PATH or budget exceeded","description":""},{"from":"Driving","to":"Plan-Ahead","trigger":"remaining steps ≤ PLAN_AHEAD_STEPS","description":""},{"from":"Plan-Ahead","to":"Driving","trigger":"plan-ahead adopted","description":""},{"from":"Driving","to":"Repathing","trigger":"off-path or stuck","description":""},{"from":"Plan-Ahead","to":"Repathing","trigger":"off-path or stuck","description":""},{"from":"Repathing","to":"Driving","trigger":"repath adopted","description":""},{"from":"Repathing","to":"Idle","trigger":"repath budget exceeded, or NO_PATH","description":""},{"from":"Driving","to":"Idle","trigger":"arrived at goal","description":""}]},{"id":"594a4332-8ce6-4e08-951d-d3e35f1c3d7d","name":"Tick Lifecycle","kind":"state-machine","description":"The lifecycle global rule 2 and rule 3 together impose on the adapter: start once, deliver ticks, and stop delivering the moment the core faults until the world reloads.","anchor":"55aaecfd-d920-4c25-b792-87afe87f1c5e","members":[{"name":"Not Started","description":""},{"name":"Delivering Ticks","description":""},{"name":"Faulted","description":""}],"transitions":[{"from":"Not Started","to":"Delivering Ticks","trigger":"the adapter starts the runtime","description":""},{"from":"Delivering Ticks","to":"Faulted","trigger":"a core call throws","description":""},{"from":"Faulted","to":"Delivering Ticks","trigger":"the next world loads","description":""}]}],"dataTypes":[],"requirements":[],"decisions":[],"views":[]}</script>
+<script>
+"use strict";
+/* ==========================================================================
+   Everything below derives from the inlined model. No fact is authored here;
+   only headings, field captions and one-line explanations of what a Hyphae
+   node / connection / flow / pattern is.
+   ========================================================================== */
+const M = JSON.parse(document.getElementById('model-data').textContent);
+
+/* ---------- small helpers ---------- */
+const esc = s => String(s == null ? '' : s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+/* profile fields allow **bold** and `code` */
+const fmt = s => esc(s)
+  .replace(/`([^`]+)`/g,'<code style="font-family:var(--mono);font-size:.88em;background:var(--card-2);border:1px solid var(--rule-2);border-radius:2px;padding:0 3px">$1</code>')
+  .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
+const el = id => document.getElementById(id);
+const sid = id => id.slice(0,8);
+
+/* ---------- indexes ---------- */
+const byId = Object.fromEntries(M.nodes.map(n => [n.id, n]));
+const connById = Object.fromEntries(M.connections.map(c => [c.id, c]));
+const flowById = Object.fromEntries(M.flows.map(f => [f.id, f]));
+const patById  = Object.fromEntries(M.patterns.map(p => [p.id, p]));
+const kids = {}; M.nodes.forEach(n => { (kids[n.parentId] = kids[n.parentId] || []).push(n); });
+const childrenOf = id => kids[id] || [];
+
+const LAYER = { System:'Context', Actor:'Context', ExternalSystem:'Context', Container:'Container', Component:'Component' };
+const LAYER_IX = { Context:0, Container:1, Component:2 };
+
+/* the containment ancestor at Container altitude (or the external itself) */
+function unitOf(id){ let n = byId[id]; while (n && n.type === 'Component') n = byId[n.parentId]; return n; }
+
+/* root chain: a node's refs resolve against every `root` from the outermost ancestor down */
+function resolveRoot(id){
+  const chain = []; const seen = new Set(); let cur = byId[id];
+  while (cur && !seen.has(cur.id)) {
+    seen.add(cur.id);
+    if (cur.root) { chain.push(cur.root); if (cur.root.startsWith('/')) break; }
+    cur = cur.parentId ? byId[cur.parentId] : null;
+  }
+  if (!chain.length) return null;
+  const joined = chain.reverse().reduce((a,p) => a.endsWith('/') ? a + p : a + '/' + p);
+  return joined.endsWith('/') ? joined : joined + '/';
+}
+function refKind(r){
+  if (r.includes('*')) return 'glob';
+  if (r.includes('#')) return /#L\d+-L\d+$/.test(r) ? 'lines' : 'symbol';
+  return r.endsWith('/') ? 'dir' : 'file';
+}
+const REF_GLYPH = { dir:'▸', file:'·', symbol:'#', lines:'≡', glob:'∗' };
+
+/* colour class = the distinction the whole architecture exists to make:
+   is this code independent of the Minecraft version, or bound to one? */
+function techOf(n){
+  let cur = n;
+  while (cur) { const t = cur.fields && cur.fields.technology; if (t) return t; cur = cur.parentId ? byId[cur.parentId] : null; }
+  return null;
+}
+function klass(n){
+  if (n.type === 'ExternalSystem' || n.type === 'Actor') return 'outside';
+  const t = techOf(n);
+  return (t === 'Fabric' || t === 'Forge') ? 'bound' : 'pure';
+}
+
+/* connection partition */
+const rolled   = M.connections.filter(c => c.realizedBy.length > 0);
+const claimedBy = {}; rolled.forEach(c => c.realizedBy.forEach(r => claimedBy[r] = c.id));
+const leaves   = M.connections.filter(c => c.realizedBy.length === 0);
+const internalOf = {};   // unit id -> connections wholly inside it
+const crossingLeaves = [];
+leaves.forEach(c => {
+  const a = unitOf(c.from), b = unitOf(c.to);
+  if (a && b && a.id === b.id) (internalOf[a.id] = internalOf[a.id] || []).push(c);
+  else crossingLeaves.push(c);
+});
+const outOf = {}, inTo = {};
+M.connections.forEach(c => { (outOf[c.from] = outOf[c.from] || []).push(c); (inTo[c.to] = inTo[c.to] || []).push(c); });
+
+/* units = the things the boundary matrix is about */
+const units = M.nodes.filter(n => n.type === 'Container' || n.type === 'ExternalSystem');
+const unitIds = new Set(units.map(u => u.id));
+const unitEdges = M.connections.filter(c => unitIds.has(c.from) && unitIds.has(c.to));
+
+/* dependency order: a unit comes after everything it depends on */
+const unitOrder = (() => {
+  const indeg = {}, rev = {};
+  units.forEach(u => { indeg[u.id] = 0; rev[u.id] = []; });
+  unitEdges.forEach(e => { rev[e.to].push(e.from); indeg[e.from]++; });
+  let q = units.filter(u => indeg[u.id] === 0).map(u => u.id);
+  const order = [];
+  while (q.length) {
+    q.sort((a,b) => byId[a].name.localeCompare(byId[b].name));
+    const x = q.shift(); order.push(x);
+    rev[x].forEach(y => { if (--indeg[y] === 0) q.push(y); });
+  }
+  units.forEach(u => { if (!order.includes(u.id)) order.push(u.id); });
+  return order;
+})();
+const unitPos = Object.fromEntries(unitOrder.map((id,i) => [id,i]));
+const bodyOrder = unitOrder.filter(id => byId[id].type === 'Container');
+
+/* flow / pattern back-references */
+const flowsOfNode = {}, patternsOfNode = {};
+M.flows.forEach(f => f.steps.forEach(s => {
+  [s.from, s.to].forEach(n => { (flowsOfNode[n] = flowsOfNode[n] || new Set()).add(f.id); });
+}));
+M.patterns.forEach(p => { if (p.anchor) (patternsOfNode[p.anchor] = patternsOfNode[p.anchor] || []).push(p.id); });
+const flowStepsVia = {};
+M.flows.forEach(f => f.steps.forEach(s => { if (s.via) (flowStepsVia[s.via] = flowStepsVia[s.via] || []).push([f.id, s.order]); }));
+
+/* ---------- anchors + cross-links ---------- */
+const anchorNode  = id => 'n-' + sid(id);
+const anchorConn  = id => 'c-' + sid(id);
+const anchorFlow  = id => 'f-' + sid(id);
+const anchorPat   = id => 'p-' + sid(id);
+
+function linkNode(id, label){
+  const n = byId[id]; if (!n) return esc(label || id);
+  return '<a class="x k-node" href="#' + anchorNode(id) + '" data-peek="n:' + id + '">' + esc(label || n.name) + '</a>';
+}
+function linkConn(id, label){
+  const c = connById[id]; if (!c) return esc(label || id);
+  return '<a class="x k-conn" href="#' + anchorConn(id) + '" data-peek="c:' + id + '">' + esc(label || c.label) + '</a>';
+}
+function linkFlow(id){ const f = flowById[id]; return '<a class="x k-flow" href="#' + anchorFlow(id) + '" data-peek="f:' + id + '">' + esc(f.name) + '</a>'; }
+function linkPat(id){ const p = patById[id]; return '<a class="x k-pattern" href="#' + anchorPat(id) + '" data-peek="p:' + id + '">' + esc(p.name) + '</a>'; }
+
+/* a component's name repeats across containers — always disambiguate in a link list */
+function qualified(id){
+  const n = byId[id]; if (!n) return esc(id);
+  const dupes = M.nodes.filter(x => x.name === n.name).length > 1;
+  const par = n.parentId ? byId[n.parentId] : null;
+  return linkNode(id) + (dupes && par
+    ? ' <span class="muted"><a class="x" href="#' + anchorNode(par.id) + '" data-peek="n:' + par.id + '">' + esc(par.name) + '</a></span>'
+    : '');
+}
+
+/* ---------- chips ---------- */
+function meter(layer){
+  const ix = LAYER_IX[layer];
+  return '<span class="meter" title="' + layer + ' layer">' +
+    [0,1,2].map(i => '<i class="' + (i === ix ? 'f' : '') + '"></i>').join('') + '</span>';
+}
+function tagsFor(n){
+  const k = klass(n), t = techOf(n), own = n.fields && n.fields.technology;
+  const out = [];
+  out.push('<span class="tag t-plain">' + meter(LAYER[n.type]) + ' ' + esc(n.type) + '</span>');
+  if (own) out.push('<span class="tag t-' + k + '">' + esc(own) + '</span>');
+  else if (k === 'bound') out.push('<span class="tag t-bound">' + esc(t) + ' · inherited</span>');
+  else if (k === 'outside') out.push('<span class="tag t-outside">outside</span>');
+  if (n.role) out.push('<span class="tag">' + esc(n.role) + '</span>');
+  if (n.foundational) out.push('<span class="tag t-found">foundational</span>');
+  if (n.root) out.push('<span class="tag t-plain">root ' + esc(n.root) + '</span>');
+  return '<span class="tags">' + out.join('') + '</span>';
+}
+
+/* ---------- field blocks ---------- */
+function listBlock(title, items, cls){
+  if (!items || !items.length) return '';
+  return '<div class="blk"><h5>' + title + '</h5><ul class="tight ' + (cls||'') + '">' +
+    items.map(i => '<li>' + fmt(i) + '</li>').join('') + '</ul></div>';
+}
+function proseBlock(title, text){
+  if (!text) return '';
+  return '<div class="blk"><h5>' + title + '</h5><div class="note">' + fmt(text) + '</div></div>';
+}
+function refsBlock(title, refs, nodeId){
+  if (!refs || !refs.length) return '';
+  const root = resolveRoot(nodeId);
+  const rows = refs.map(r => {
+    const k = refKind(r);
+    const full = root && !r.startsWith('/') ? root + r : r;
+    const hash = full.indexOf('#');
+    const path = hash === -1 ? full : full.slice(0, hash);
+    const frag = hash === -1 ? '' : full.slice(hash);
+    const slash = path.lastIndexOf('/', path.length - 2);
+    const dir = slash === -1 ? '' : path.slice(0, slash + 1);
+    const base = slash === -1 ? path : path.slice(slash + 1);
+    return '<div class="ref"><span class="k">' + REF_GLYPH[k] + '</span>' +
+      esc(dir) + '<em>' + esc(base) + '</em>' + (frag ? '<span class="frag">' + esc(frag) + '</span>' : '') + '</div>';
+  }).join('');
+  return '<div class="blk"><h5>' + title + '</h5><div class="reflist">' + rows + '</div></div>';
+}
+
+/* ---------- the touches table: the hub answer ----------
+   A node's edges are grouped by the boundary crossing that claims them, so a
+   high-degree node reads as a handful of named crossings rather than a list. */
+function touchesBlock(n){
+  const rows = [];
+  const mk = (c, dir) => {
+    const other = dir === 'out' ? c.to : c.from;
+    return '<tr data-cid="' + c.id + '"><td class="dir">' + (dir === 'out' ? '→' : '←') + '</td>' +
+      '<td>' + qualified(other) + '</td>' +
+      '<td class="lab"><a class="x k-conn" href="#' + anchorConn(c.id) + '" data-peek="c:' + c.id + '">' +
+      esc(c.label) + '</a></td></tr>';
+  };
+  const mine = [].concat((outOf[n.id]||[]).map(c => [c,'out']), (inTo[n.id]||[]).map(c => [c,'in']));
+  const groups = new Map();
+  mine.forEach(([c,dir]) => {
+    let key;
+    if (c.realizedBy.length) key = 'self';                     // this node IS a unit; the edge is its own crossing
+    else if (claimedBy[c.id]) key = 'via:' + claimedBy[c.id];
+    else key = 'inside';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push([c,dir]);
+  });
+  const order = ['inside', ...[...groups.keys()].filter(k => k.startsWith('via:')), 'self'];
+  const seen = new Set();
+  order.forEach(k => {
+    if (!groups.has(k) || seen.has(k)) return; seen.add(k);
+    const arr = groups.get(k);
+    let head = '';
+    if (k === 'inside') { const u = unitOf(n.id); head = 'inside ' + (u ? linkNode(u.id) : ''); }
+    else if (k === 'self') head = 'boundary crossings of this container';
+    else {
+      const cr = connById[k.slice(4)];
+      head = 'across the boundary — ' + linkConn(cr.id, byId[cr.from].name + ' → ' + byId[cr.to].name);
+    }
+    rows.push('<tr class="viagroup"><td colspan="3"><b>' + head + '</b> <span>· ' + arr.length + '</span></td></tr>');
+    arr.forEach(([c,dir]) => rows.push(mk(c, dir)));
+  });
+  if (!rows.length) return '<div class="blk"><h5>Touches</h5><div class="thin">No connections recorded.</div></div>';
+  return '<div class="blk"><h5>Touches · ' + mine.length + '</h5><table class="data">' + rows.join('') + '</table></div>';
+}
+
+function appearsBlock(n){
+  const bits = [];
+  const fs = flowsOfNode[n.id];
+  if (fs) fs.forEach(fid => {
+    const steps = flowById[fid].steps.filter(s => s.from === n.id || s.to === n.id).map(s => s.order);
+    bits.push('<li>' + linkFlow(fid) + ' <span class="muted">step' + (steps.length>1?'s':'') + ' ' + steps.join(', ') + '</span></li>');
+  });
+  (patternsOfNode[n.id] || []).forEach(pid => {
+    bits.push('<li>' + linkPat(pid) + ' <span class="muted">' + esc(patById[pid].kind) + ' · anchored here</span></li>');
+  });
+  if (!bits.length) return '';
+  return '<div class="blk"><h5>Appears in</h5><ul class="tight">' + bits.join('') + '</ul></div>';
+}
+
+/* ---------- node entry ---------- */
+function nodeEntry(n, big){
+  const f = n.fields || {};
+  const left =
+    listBlock('Responsibilities', f.responsibilities) +
+    listBlock('Rules', f.rules, 'rules') +
+    proseBlock('Notes', n.description);
+  const right =
+    touchesBlock(n) +
+    refsBlock('Code', n.codeRefs, n.id) +
+    refsBlock('Docs', n.docRefs, n.id) +
+    appearsBlock(n);
+  const where = n.parentId ? '<span class="muted">in ' + linkNode(n.parentId) + '</span>' : '';
+  return '<article class="entry ' + klass(n) + (big ? ' big' : '') + '" id="' + anchorNode(n.id) + '">' +
+    '<div class="ehead"><h4>' + esc(n.name) + '</h4>' + where +
+      '<span style="flex:1 1 auto"></span>' + tagsFor(n) +
+      '<a class="anchor" href="#' + anchorNode(n.id) + '" title="Link to this entry">¶</a></div>' +
+    (f.summary ? '<p class="esum">' + fmt(f.summary) + '</p>' : '') +
+    ((left || right) ? '<div class="ebody' + (right ? '' : ' wide') + '"><div>' + left + '</div>' +
+      (right ? '<div>' + right + '</div>' : '') + '</div>' : '') +
+    '</article>';
+}
+
+/* ==========================================================================
+   ORIENTATION
+   ========================================================================== */
+const system = M.nodes.find(n => n.type === 'System');
+(function orientation(){
+  const f = system.fields || {};
+  const counts = {};
+  M.nodes.forEach(n => counts[n.type] = (counts[n.type]||0) + 1);
+  const steps = M.flows.reduce((a,f2) => a + f2.steps.length, 0);
+  const states = M.patterns.reduce((a,p) => a + p.members.length, 0);
+  const trans = M.patterns.reduce((a,p) => a + p.transitions.length, 0);
+  const found = M.nodes.filter(n => n.foundational).length;
+  const spiNode = M.nodes.find(n => n.name === 'Platform SPI');
+  const numberedRules = ((spiNode && spiNode.fields && spiNode.fields.rules) || [])
+    .filter(r => /^\*\*Rule \d/.test(r)).length;
+
+  el('orientation').innerHTML =
+    '<article class="thesis ' + klass(system) + '" id="' + anchorNode(system.id) + '">' +
+      '<div class="eyebrow">' + meter('Context') + ' System · Context layer · profile ' + esc(M.activeProfile) + '</div>' +
+      '<h1>' + esc(system.name) + '</h1>' +
+      (f.summary ? '<p class="lede">' + fmt(f.summary) + '</p>' : '') +
+      '<div class="prose"><p>' + fmt(system.description) + '</p></div>' +
+      '<div class="twocol">' +
+        '<div>' + listBlock('Responsibilities', f.responsibilities) + '</div>' +
+        '<div>' + listBlock('Rules', f.rules, 'rules') + refsBlock('Docs', system.docRefs, system.id) + '</div>' +
+      '</div>' +
+    '</article>' +
+
+    '<div class="stats">' +
+      '<div class="stat"><b>49</b><span>nodes</span><i>' +
+        counts.System + ' system, ' + counts.Container + ' containers, ' + counts.Component +
+        ' components, ' + counts.ExternalSystem + ' external systems. ' +
+        (found ? found + ' marked foundational.' : 'None marked foundational.') + '</i></div>' +
+      '<div class="stat"><b>' + M.connections.length + '</b><span>connections</span><i>' +
+        rolled.length + ' boundary crossings between containers; ' + crossingLeaves.length +
+        ' component edges realizing them; ' + leaves.filter(c => !claimedBy[c.id]).length +
+        ' wholly inside one container.</i></div>' +
+      '<div class="stat"><b>' + M.flows.length + '</b><span>flows</span><i>' + steps +
+        ' ordered steps across both. A flow is one named scenario traced over the nodes.</i></div>' +
+      '<div class="stat"><b>' + M.patterns.length + '</b><span>patterns</span><i>' + states +
+        ' states and ' + trans + ' transitions. A pattern is a named shape anchored at one node.</i></div>' +
+    '</div>' +
+
+    '<p class="matrixnote" style="margin-top:16px">Start with the ' + numberedRules + ' rules below — the whole system is arranged around them — then the boundary matrix, which is the shape of the thing in one grid. Then follow a scenario end to end: ' +
+      M.flows.map(f => linkFlow(f.id)).join(' and ') + '. Everything else on this page is the structure those run on, in dependency order.</p>';
+})();
+
+/* ---------- the contract: the SPI's own rules ---------- */
+(function contract(){
+  const spi = M.nodes.find(n => n.name === 'Platform SPI');
+  if (!spi) return;
+  const rules = (spi.fields && spi.fields.rules) || [];
+  const numbered = rules.filter(r => /^\*\*Rule \d/.test(r));
+  const plain = rules.filter(r => !/^\*\*Rule \d/.test(r));
+  el('contract').innerHTML =
+    '<div class="band"><h2>The contract</h2><span class="count">' + numbered.length + ' global rules</span>' +
+      '<p>Everything the core may ask of Minecraft goes through one container, ' + linkNode(spi.id) + '. Its rules bind the core and every adapter alike; the numbering below is the model’s own, and the conformance suite depends on it.</p></div>' +
+    '<div class="rulegrid">' +
+      numbered.map((r,i) => {
+        const m = /^\*\*Rule (\d+) — ([^:]+):\*\*\s*(.*)$/.exec(r);
+        const num = m ? m[1] : String(i+1), head = m ? m[2] : '', body = m ? m[3] : r;
+        return '<div class="ruleitem n"><div class="rulenum">' + esc(num) + '</div><div class="ruletxt">' +
+          (head ? '<b>' + esc(head) + '</b>' : '') + fmt(body) + '</div></div>';
+      }).join('') +
+      plain.map(r => '<div class="ruleitem"><div class="rulenum">·</div><div class="ruletxt">' + fmt(r) + '</div></div>').join('') +
+    '</div>';
+})();
+
+/* ==========================================================================
+   THE BOUNDARY MATRIX — the signature surface.
+   Rows depend on columns. Ordered so every dependency points backwards, which
+   is why the marks all fall below the diagonal.
+   ========================================================================== */
+(function matrix(){
+  const cell = {};
+  unitEdges.forEach(e => cell[e.from + '|' + e.to] = e);
+  const rowT = {}, colT = {};
+  unitEdges.forEach(e => { rowT[e.from] = (rowT[e.from]||0)+1; colT[e.to] = (colT[e.to]||0)+1; });
+
+  let head = '<tr><th class="corner"></th>';
+  unitOrder.forEach((id,i) => {
+    head += '<th class="colh" data-col="' + i + '"><div><span class="n">' + esc(byId[id].name) + '</span></div></th>';
+  });
+  head += '<th class="tot" title="crossings out of this container">out</th></tr>';
+
+  let body = '';
+  unitOrder.forEach((rid,ri) => {
+    body += '<tr><th class="rowh" data-row="' + ri + '"><span class="swatch sw-' + klass(byId[rid]) + '"></span>' +
+      '<a class="x" href="#' + anchorNode(rid) + '" data-peek="n:' + rid + '"><span class="n">' + esc(byId[rid].name) + '</span></a></th>';
+    unitOrder.forEach((cid,ci) => {
+      if (rid === cid) { body += '<td class="cell diag"></td>'; return; }
+      const e = cell[rid + '|' + cid];
+      if (!e) { body += '<td class="cell" data-row="' + ri + '" data-col="' + ci + '"></td>'; return; }
+      const k = klass(byId[cid]);
+      body += '<td class="cell on ' + (k === 'bound' ? 'b' : k === 'outside' ? 'o' : '') + '" data-row="' + ri + '" data-col="' + ci + '">' +
+        '<a href="#' + anchorConn(e.id) + '" data-peek="c:' + e.id + '" aria-label="' +
+        esc(byId[rid].name + ' ' + e.label + ' ' + byId[cid].name) + '"></a></td>';
+    });
+    body += '<td class="tot">' + (rowT[rid] || '') + '</td></tr>';
+  });
+  body += '<tr><th class="tot" style="text-align:right;padding-right:9px">in</th>' +
+    unitOrder.map(id => '<td class="tot">' + (colT[id] || '') + '</td>').join('') +
+    '<td class="tot">' + unitEdges.length + '</td></tr>';
+
+  const adapters = unitOrder.filter(id => klass(byId[id]) === 'bound');
+  const park = M.nodes.find(n => n.name === 'Parkour Movement');
+  const adapterOut = adapters.map(id => rowT[id] || 0);
+  const sameOut = adapterOut.every(v => v === adapterOut[0]);
+  const adapterIn = adapters.reduce((a,id) => a + (colT[id] || 0), 0);
+
+  el('matrix').innerHTML =
+    '<div class="band"><h2>Boundary matrix</h2><span class="count">' + unitEdges.length + ' crossings · ' + units.length + ' units</span>' +
+      '<p>The ' + unitEdges.length + ' container-to-container connections are the architecture in one grid. Every mark is a named crossing; click one to read it.</p></div>' +
+    '<div class="matrixwrap">' +
+      '<div class="matrixscroll"><table class="dsm"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
+      '<div class="matrixkey">' +
+        '<span><span class="dot" style="background:var(--pure)"></span>depends on version-independent code</span>' +
+        '<span><span class="dot" style="background:var(--bound)"></span>depends on version-bound code</span>' +
+        '<span><span class="dot" style="background:var(--outside)"></span>depends on something outside the boundary</span>' +
+        '<span><span class="dot" style="background:var(--rule-2)"></span>no connection recorded</span>' +
+      '</div>' +
+      '<p class="matrixnote"><b>Read it as: the row depends on the column.</b> Units are ordered so that nothing can depend on anything listed after it — which is why every mark falls below the diagonal and the upper triangle is empty. That empty triangle is the system rule <i>“Module dependencies point one way only; nothing depends on an adapter”</i>, drawn. The ' +
+      adapters.length + ' adapter rows at the bottom carry ' +
+      (sameOut ? adapterOut[0] + ' marks each' : adapterOut.join(' and ') + ' marks') +
+      ' and ' + (adapterIn === 0 ? 'no column of their own' : adapterIn + ' incoming') + '; ' +
+      (park ? linkNode(park.id) + ' has ' + (rowT[park.id]||0) + ' mark and ' +
+        ((colT[park.id]||0) === 0 ? 'an empty column, because nothing in the core names it' :
+         (colT[park.id]) + ' incoming') + '.' : '') + '</p>' +
+    '</div>';
+})();
+
+/* ---------- how to read an entry ---------- */
+(function key(){
+  el('key').innerHTML =
+    '<div class="band"><h2>How to read this</h2></div>' +
+    '<div class="keygrid">' +
+      '<div class="keycell"><h5>The four entity kinds</h5>' +
+        '<p>A <b>node</b> is a thing in the system — a container of code or one component inside it. Nodes nest, three layers deep.</p>' +
+        '<p>A <b>connection</b> joins two nodes and carries a label saying what it does. A container-level connection also claims the component-level edges that realize it.</p>' +
+        '<p>A <b>flow</b> is one named scenario, in order. A <b>pattern</b> is a named shape — here, two state machines — anchored at a node.</p></div>' +
+      '<div class="keycell"><h5>The coloured edge of an entry</h5>' +
+        '<p><span class="dot" style="background:var(--pure)"></span> <b>version-independent.</b> Plain Java that never names Minecraft or a mod loader.</p>' +
+        '<p><span class="dot" style="background:var(--bound)"></span> <b>version-bound.</b> Adapter code compiled against one Minecraft version and one loader.</p>' +
+        '<p><span class="dot" style="background:var(--outside)"></span> <b>outside the boundary.</b> The game itself.</p>' +
+        '<p class="thin">Derived from each node’s <code>technology</code> field and its container’s.</p></div>' +
+      '<div class="keycell"><h5>Tags</h5>' +
+        '<p>The three squares are the altitude: <span class="meter"><i class="f"></i><i></i><i></i></span> context, <span class="meter"><i></i><i class="f"></i><i></i></span> container, <span class="meter"><i></i><i></i><i class="f"></i></span> component.</p>' +
+        '<p>Then the node kind, its technology, its profile role where it has one, and its <code>root</code> directory. Code paths in an entry are shown fully resolved against that root.</p>' +
+        '<p class="thin">Hover any cross-link to preview what it points at without leaving your place. Press <b>/</b> to search everything.</p></div>' +
+    '</div>';
+})();
+
+/* ==========================================================================
+   SCOPED DIAGRAM: one container's internal wiring
+   ========================================================================== */
+function internalsDiagram(unitId){
+  const edges = internalOf[unitId] || [];
+  const comps = childrenOf(unitId);
+  if (!edges.length) {
+    return comps.length > 1
+      ? '<p class="dgcap">No connections recorded between this container’s ' + comps.length + ' components.</p>'
+      : '';
+  }
+  const wired = new Set(); edges.forEach(e => { wired.add(e.from); wired.add(e.to); });
+  const ids = comps.filter(c => wired.has(c.id)).map(c => c.id);
+  const loose = comps.filter(c => !wired.has(c.id));
+
+  /* longest-path layering: every edge spans at least one rank */
+  const rank = {}; ids.forEach(i => rank[i] = 0);
+  for (let pass = 0; pass < ids.length; pass++) {
+    let moved = false;
+    edges.forEach(e => { if (rank[e.to] < rank[e.from] + 1) { rank[e.to] = rank[e.from] + 1; moved = true; } });
+    if (!moved) break;
+  }
+  const cols = {}; ids.forEach(i => (cols[rank[i]] = cols[rank[i]] || []).push(i));
+  const nCols = Math.max(...Object.keys(cols).map(Number)) + 1;
+  const W = 176, H = 34, GX = 58, GY = 13, PAD = 8;
+  const pos = {};
+  for (let c = 0; c < nCols; c++) (cols[c] || []).forEach((id, r) => {
+    pos[id] = { x: PAD + c * (W + GX), y: PAD + r * (H + GY) };
+  });
+  const maxRows = Math.max(...Object.values(cols).map(a => a.length));
+  const svgW = PAD * 2 + nCols * (W + GX) - GX;
+  const svgH = PAD * 2 + maxRows * (H + GY) - GY;
+
+  const paths = edges.map(e => {
+    const a = pos[e.from], b = pos[e.to];
+    const x1 = a.x + W, y1 = a.y + H/2, x2 = b.x - 4, y2 = b.y + H/2;
+    const mx = (x1 + x2) / 2;
+    const d = 'M' + x1 + ',' + y1 + ' C' + mx + ',' + y1 + ' ' + mx + ',' + y2 + ' ' + x2 + ',' + y2;
+    return '<path class="dghit" d="' + d + '" data-cid="' + e.id + '"></path>' +
+           '<path class="dgedge" d="' + d + '" data-cid="' + e.id + '"></path>';
+  }).join('');
+  const boxes = ids.map(id => {
+    const p = pos[id], n = byId[id];
+    let label = n.name, max = Math.floor((W - 16) / 6.3);
+    if (label.length > max) label = label.slice(0, max - 1) + '…';
+    return '<a href="#' + anchorNode(id) + '" data-peek="n:' + id + '" data-nid="' + id + '">' +
+      '<rect class="dgbox" x="' + p.x + '" y="' + p.y + '" width="' + W + '" height="' + H + '" rx="2"></rect>' +
+      '<text class="dglabel" x="' + (p.x + 9) + '" y="' + (p.y + H/2 + 4) + '">' + esc(label) + '</text></a>';
+  }).join('');
+
+  const table = '<table class="data"><thead><tr><th style="width:26%">From</th><th style="width:26%">To</th><th>What it does</th></tr></thead><tbody>' +
+    edges.map(e => '<tr data-cid="' + e.id + '" id="' + anchorConn(e.id) + '">' +
+      '<td>' + linkNode(e.from) + '</td><td>' + linkNode(e.to) + '</td>' +
+      '<td class="lab">' + esc(e.label) + '</td></tr>').join('') +
+    '</tbody></table>';
+
+  return '<div class="blk"><h5>Internal wiring · ' + edges.length + '</h5>' +
+    '<div class="diagram"><svg viewBox="0 0 ' + svgW + ' ' + svgH + '" width="' + svgW + '" height="' + svgH + '" role="img" aria-label="Internal connections of this container">' +
+      paths + boxes + '</svg></div>' +
+    (loose.length ? '<p class="dgcap">Not wired to a sibling: ' + loose.map(c => linkNode(c.id)).join(', ') + '.</p>' : '') +
+    table + '</div>';
+}
+
+/* ---------- a container's crossings, as a compact ledger ---------- */
+function crossingLedger(unitId){
+  const out = unitEdges.filter(e => e.from === unitId);
+  const inn = unitEdges.filter(e => e.to === unitId);
+  if (!out.length && !inn.length) return '';
+  const row = (e, dir) => '<tr><td class="dir">' + (dir === 'out' ? 'depends on' : 'used by') + '</td>' +
+    '<td>' + linkNode(dir === 'out' ? e.to : e.from) + '</td>' +
+    '<td class="lab"><a class="x k-conn" href="#' + anchorConn(e.id) + '" data-peek="c:' + e.id + '">' + esc(e.label) + '</a></td>' +
+    '<td class="dir">' + e.realizedBy.length + '&nbsp;edges</td></tr>';
+  return '<div class="blk"><h5>Boundary crossings · ' + (out.length + inn.length) + '</h5><table class="data">' +
+    out.map(e => row(e,'out')).join('') + inn.map(e => row(e,'in')).join('') + '</table></div>';
+}
+
+/* ==========================================================================
+   REFERENCE BODY
+   ========================================================================== */
+(function reference(){
+  let html = '<div class="band"><h2>Containers</h2><span class="count">' + bodyOrder.length + ' · ' +
+    M.nodes.filter(n => n.type === 'Component').length + ' components</span>' +
+    '<p>In dependency order: nothing here depends on anything below it. Each container opens with its own entry, then its internal wiring, then every component inside it.</p></div>';
+
+  bodyOrder.forEach(uid => {
+    const u = byId[uid];
+    const comps = childrenOf(uid);
+    const f = u.fields || {};
+    html += '<div class="unit" id="u-' + sid(uid) + '">' +
+      '<div class="unithead"><span class="ux">' + meter('Container') + ' Container</span>' +
+        '<h3>' + esc(u.name) + '</h3>' +
+        '<span class="spacer"></span>' +
+        '<span class="tags"><span class="tag t-' + klass(u) + '">' + esc(f.technology || klass(u)) + '</span>' +
+        '<span class="tag t-plain">' + comps.length + ' components</span>' +
+        '<span class="tag t-plain">' + (internalOf[uid] || []).length + ' internal edges</span></span></div>';
+
+    /* the container's own entry, with the ledger + diagram folded into its rail */
+    const left = listBlock('Responsibilities', f.responsibilities) +
+                 listBlock('Rules', f.rules, 'rules') +
+                 proseBlock('Notes', u.description);
+    const right = crossingLedger(uid) + refsBlock('Docs', u.docRefs, uid) + appearsBlock(u);
+    html += '<article class="entry big ' + klass(u) + '" id="' + anchorNode(uid) + '">' +
+      '<div class="ehead"><h4>' + esc(u.name) + '</h4>' +
+        '<span class="muted">in ' + linkNode(system.id) + '</span>' +
+        '<span style="flex:1 1 auto"></span>' + tagsFor(u) +
+        '<a class="anchor" href="#' + anchorNode(uid) + '">¶</a></div>' +
+      (f.summary ? '<p class="esum">' + fmt(f.summary) + '</p>' : '') +
+      '<div class="ebody"><div>' + left + '</div><div>' + right + '</div></div>' +
+      (internalsDiagram(uid) ? '<div style="margin-top:14px">' + internalsDiagram(uid) + '</div>' : '') +
+      '</article>';
+
+    comps.forEach(c => { html += nodeEntry(c); });
+    html += '</div>';
+  });
+  el('reference').innerHTML = html;
+})();
+
+/* ---------- outside the boundary ---------- */
+(function outsideSec(){
+  const ext = M.nodes.filter(n => n.type === 'ExternalSystem' || n.type === 'Actor');
+  if (!ext.length) return;
+  el('outside').innerHTML =
+    '<div class="band"><h2>Outside the boundary</h2><span class="count">' + ext.length + '</span>' +
+      '<p>Everything the model does not own. Only the adapters touch these.</p></div>' +
+    ext.map(n => nodeEntry(n, true)).join('');
+})();
+
+/* ==========================================================================
+   CROSSINGS — every container-level connection, with the component edges it claims
+   ========================================================================== */
+(function crossingsSec(){
+  let html = '<div class="band"><h2>Crossings</h2><span class="count">' + rolled.length + ' crossings · ' +
+    crossingLeaves.length + ' realizing edges</span>' +
+    '<p>What actually crosses each boundary. A crossing names the relationship; underneath it are the component-to-component edges that carry it.</p></div>';
+
+  const bySource = new Map();
+  unitOrder.forEach(id => {
+    const mine = rolled.filter(c => c.from === id);
+    if (mine.length) bySource.set(id, mine);
+  });
+  bySource.forEach((list, src) => {
+    html += '<div class="unit"><div class="unithead"><span class="ux">' + list.length + ' crossing' + (list.length>1?'s':'') + ' out of</span>' +
+      '<h3>' + esc(byId[src].name) + '</h3></div>';
+    list.forEach(c => {
+      const rows = c.realizedBy.map(rid => {
+        const r = connById[rid];
+        if (!r) return '';
+        return '<tr data-cid="' + r.id + '" id="' + anchorConn(r.id) + '">' +
+          '<td>' + qualified(r.from) + '</td><td class="dir">→</td><td>' + qualified(r.to) + '</td>' +
+          '<td class="lab">' + esc(r.label) + '</td></tr>';
+      }).join('');
+      const inFlows = (flowStepsVia[c.id] || []).map(([fid,o]) => linkFlow(fid) + ' <span class="muted">step ' + o + '</span>');
+      html += '<article class="entry ' + klass(byId[c.to]) + '" id="' + anchorConn(c.id) + '">' +
+        '<div class="ehead"><h4>' + esc(byId[c.from].name) + ' <span class="muted">→</span> ' + esc(byId[c.to].name) + '</h4>' +
+          '<span style="flex:1 1 auto"></span><span class="tags">' +
+          '<span class="tag t-plain">' + esc(c.direction) + '</span>' +
+          '<span class="tag t-plain">realized by ' + c.realizedBy.length + '</span></span>' +
+          '<a class="anchor" href="#' + anchorConn(c.id) + '">¶</a></div>' +
+        '<p class="esum">' + linkNode(c.from) + ' ' + esc(c.label) + ' ' + linkNode(c.to) + '.</p>' +
+        (c.description ? '<div class="blk"><div class="note">' + fmt(c.description) + '</div></div>' : '') +
+        (rows ? '<div class="blk"><h5>Realized by</h5><table class="data">' + rows + '</table></div>' : '') +
+        (inFlows.length ? '<div class="blk"><h5>Used in</h5><ul class="tight"><li>' + inFlows.join('</li><li>') + '</li></ul></div>' : '') +
+        '</article>';
+    });
+    html += '</div>';
+  });
+  el('crossings').innerHTML = html;
+})();
+
+/* ==========================================================================
+   FLOWS
+   ========================================================================== */
+(function flowsSec(){
+  let html = '<div class="band"><h2>Flows</h2><span class="count">' + M.flows.length + '</span>' +
+    '<p>A flow is a scenario traced over the model in order: each step names who calls whom, what the message is, and — where the model records it — which connection carries it.</p></div>';
+
+  M.flows.forEach(f => {
+    const parts = [];
+    f.steps.forEach(s => { [s.from, s.to].forEach(id => { if (!parts.includes(id)) parts.push(id); }); });
+    let rows = '';
+    f.steps.forEach(s => {
+      const arrow = s.kind === 'Return' ? '⇠' : s.kind === 'Async' ? '⇢' : '→';
+      const ctrl = s.control
+        ? '<span class="ctrlchip">' + esc(s.control.type) +
+          (s.control.condition ? ' <em>' + esc(s.control.condition) + '</em>' : '') + '</span>'
+        : '';
+      rows += '<div class="fstep kind-' + esc(s.kind) + '">' +
+        '<div class="ord">' + s.order + '</div>' +
+        '<div class="from">' + qualified(s.from) + '</div>' +
+        '<div class="arr" title="' + esc(s.kind) + '">' + arrow + '</div>' +
+        '<div class="to">' + qualified(s.to) + '</div>' +
+        '<div class="msg">' + ctrl + esc(s.message) +
+          (s.via && connById[s.via] ? '<span class="viaref">via ' + linkConn(s.via, connById[s.via].label) + '</span>' : '') +
+        '</div></div>';
+    });
+    html += '<article class="entry big pure" id="' + anchorFlow(f.id) + '">' +
+      '<div class="ehead"><h4>' + esc(f.name) + '</h4><span style="flex:1 1 auto"></span><span class="tags">' +
+        '<span class="tag t-plain">flow</span>' +
+        (f.scope ? '<span class="tag t-plain">' + meter(f.scope) + ' ' + esc(f.scope) + ' scope</span>' : '') +
+        '<span class="tag t-plain">' + f.steps.length + ' steps</span></span>' +
+        '<a class="anchor" href="#' + anchorFlow(f.id) + '">¶</a></div>' +
+      (f.description ? '<p class="esum">' + fmt(f.description) + '</p>' : '') +
+      '<div class="blk"><h5>Participants · ' + parts.length + '</h5><div class="parts">' +
+        parts.map(id => '<span class="tag t-' + klass(byId[id]) + '">' + linkNode(id) + '</span>').join('') + '</div></div>' +
+      '<div class="blk"><h5>Steps</h5><div class="flowsteps">' + rows + '</div></div>' +
+      '</article>';
+  });
+  el('flows').innerHTML = html;
+})();
+
+/* ==========================================================================
+   PATTERNS — state machines drawn small, with the authoritative table beside
+   ========================================================================== */
+function stateMachineSvg(p){
+  const n = p.members.length;
+  const W = 460, H = n > 3 ? 320 : 190, cx = W/2, cy = H/2;
+  const rx = n > 3 ? 150 : 150, ry = n > 3 ? 108 : 52;
+  const bw = 112, bh = 30;
+  const pos = {};
+  p.members.forEach((m,i) => {
+    const a = -Math.PI/2 + (i * 2 * Math.PI) / n;
+    pos[m.name] = { x: cx + rx * Math.cos(a), y: cy + ry * Math.sin(a) };
+  });
+  const ix = Object.fromEntries(p.members.map((m,i) => [m.name, i]));
+  const edges = p.transitions.map((t,i) => {
+    const a = pos[t.from], b = pos[t.to];
+    if (!a || !b) return '';
+    const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx,dy) || 1;
+    const ux = dx/len, uy = dy/len;
+    /* trim to the box edge so the arrowhead lands on the border, not inside it */
+    const tx = Math.abs(ux) > 1e-6 ? (bw/2 + 4) / Math.abs(ux) : 1e9;
+    const ty = Math.abs(uy) > 1e-6 ? (bh/2 + 4) / Math.abs(uy) : 1e9;
+    const trim = Math.min(tx, ty);
+    const x1 = a.x + ux*trim, y1 = a.y + uy*trim, x2 = b.x - ux*trim, y2 = b.y - uy*trim;
+    const bow = (ix[t.from] < ix[t.to] ? 1 : -1) * Math.min(38, len * 0.18);
+    const mx = (x1+x2)/2 - uy*bow, my = (y1+y2)/2 + ux*bow;
+    const d = 'M' + x1.toFixed(1) + ',' + y1.toFixed(1) + ' Q' + mx.toFixed(1) + ',' + my.toFixed(1) + ' ' + x2.toFixed(1) + ',' + y2.toFixed(1);
+    return '<path class="dghit" d="' + d + '" data-tid="' + i + '"></path>' +
+           '<path class="tredge" d="' + d + '" data-tid="' + i + '"></path>';
+  }).join('');
+  const boxes = p.members.map(m => {
+    const q = pos[m.name];
+    return '<g data-sname="' + esc(m.name) + '">' +
+      '<rect class="stbox" x="' + (q.x - bw/2).toFixed(1) + '" y="' + (q.y - bh/2).toFixed(1) + '" width="' + bw + '" height="' + bh + '" rx="15"></rect>' +
+      '<text class="stlabel" x="' + q.x.toFixed(1) + '" y="' + (q.y + 4).toFixed(1) + '">' + esc(m.name) + '</text></g>';
+  }).join('');
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" height="' + H + '" role="img" aria-label="State diagram for ' + esc(p.name) + '">' +
+    edges + boxes + '</svg>';
+}
+(function patternsSec(){
+  let html = '<div class="band"><h2>Patterns</h2><span class="count">' + M.patterns.length + '</span>' +
+    '<p>A pattern names a shape the model recognises and anchors it at one node. Both of these are state machines; hover a transition in either the diagram or the table and the other lights up.</p></div>';
+  M.patterns.forEach(p => {
+    const rows = p.transitions.map((t,i) =>
+      '<tr data-tid="' + i + '"><td>' + esc(t.from) + '</td><td class="dir">→</td><td>' + esc(t.to) + '</td>' +
+      '<td class="lab">' + esc(t.trigger) + '</td></tr>').join('');
+    const members = p.members.map(m => {
+      const bound = m.nodeId ? ' — ' + linkNode(m.nodeId) : (m.ref ? ' — <code>' + esc(m.ref) + '</code>' : '');
+      return '<li><b style="font-family:var(--mono);font-size:12px">' + esc(m.name) + '</b>' + bound +
+        (m.description ? ' <span class="muted">' + fmt(m.description) + '</span>' : '') + '</li>';
+    }).join('');
+    html += '<article class="entry big pure" id="' + anchorPat(p.id) + '" data-pattern="' + p.id + '">' +
+      '<div class="ehead"><h4>' + esc(p.name) + '</h4>' +
+        (p.anchor ? '<span class="muted">anchored at ' + linkNode(p.anchor) + '</span>' : '') +
+        '<span style="flex:1 1 auto"></span><span class="tags">' +
+        '<span class="tag t-plain">' + esc(p.kind) + '</span>' +
+        '<span class="tag t-plain">' + p.members.length + ' states</span>' +
+        '<span class="tag t-plain">' + p.transitions.length + ' transitions</span></span>' +
+        '<a class="anchor" href="#' + anchorPat(p.id) + '">¶</a></div>' +
+      (p.description ? '<p class="esum">' + fmt(p.description) + '</p>' : '') +
+      '<div class="patgrid"><div class="diagram">' + stateMachineSvg(p) + '</div>' +
+      '<div>' + '<div class="blk"><h5>Transitions · ' + p.transitions.length + '</h5><table class="data">' + rows + '</table></div>' +
+      '<div class="blk"><h5>States</h5><ul class="tight">' + members + '</ul></div></div></div>' +
+      '</article>';
+  });
+  el('patterns').innerHTML = html;
+})();
+
+/* ---------- colophon ---------- */
+el('colophon').innerHTML =
+  'Generated from the Hyphae model file, inline in this page — ' + M.nodes.length + ' nodes, ' +
+  M.connections.length + ' connections, ' + M.flows.length + ' flows, ' + M.patterns.length +
+  ' patterns, profile <b>' + esc(M.activeProfile) + '</b>, last written ' + esc(M.metadata.updatedAt.slice(0,10)) + '. ' +
+  'Every sentence of prose on this page is the model’s own; the headings, captions and the explanations of what a node, connection, flow and pattern are, are not.';
+
+/* ==========================================================================
+   SPINE
+   ========================================================================== */
+(function spine(){
+  let html = '<h4>Orientation</h4>' +
+    '<a class="slink" href="#orientation" data-spy="orientation">Continuo</a>' +
+    '<a class="slink" href="#contract" data-spy="contract">The contract</a>' +
+    '<a class="slink" href="#matrix" data-spy="matrix">Boundary matrix</a>' +
+    '<a class="slink" href="#key" data-spy="key">How to read this</a>' +
+    '<h4>Containers</h4>';
+  bodyOrder.forEach(uid => {
+    const u = byId[uid], comps = childrenOf(uid);
+    html += '<div class="streerow" data-spy="u-' + sid(uid) + '">' +
+      (comps.length ? '<button class="twisty" aria-expanded="false" aria-label="Show components of ' + esc(u.name) + '">▸</button>' : '<span class="twisty"></span>') +
+      '<a class="slink" href="#u-' + sid(uid) + '"><span class="swatch sw-' + klass(u) + '"></span>' + esc(u.name) + '</a></div>' +
+      '<div class="kids">' + comps.map(c => '<a class="slink" href="#' + anchorNode(c.id) + '">' + esc(c.name) + '</a>').join('') + '</div>';
+  });
+  html += '<h4>Outside</h4>';
+  M.nodes.filter(n => n.type === 'ExternalSystem' || n.type === 'Actor').forEach(n => {
+    html += '<a class="slink" href="#' + anchorNode(n.id) + '"><span class="swatch sw-outside"></span>' + esc(n.name) + '</a>';
+  });
+  html += '<h4>Then</h4>' +
+    '<a class="slink" href="#crossings" data-spy="crossings">Crossings · ' + rolled.length + '</a>' +
+    '<a class="slink" href="#flows" data-spy="flows">Flows · ' + M.flows.length + '</a>' +
+    '<a class="slink" href="#patterns" data-spy="patterns">Patterns · ' + M.patterns.length + '</a>';
+  el('spine').innerHTML = html;
+
+  el('spine').addEventListener('click', e => {
+    const t = e.target.closest('.twisty');
+    if (t && t.tagName === 'BUTTON') {
+      e.preventDefault();
+      const kidsEl = t.closest('.streerow').nextElementSibling;
+      const open = kidsEl.classList.toggle('open');
+      t.textContent = open ? '▾' : '▸';
+      t.setAttribute('aria-expanded', String(open));
+      return;
+    }
+    if (e.target.closest('a') && window.innerWidth <= 900) el('spine').classList.remove('open');
+  });
+})();
+
+el('menubtn').addEventListener('click', () => el('spine').classList.toggle('open'));
+
+/* ---------- scroll spy ---------- */
+(function spy(){
+  if (typeof IntersectionObserver === 'undefined') return;
+  const targets = [...document.querySelectorAll('[data-spy]')];
+  const map = {};
+  targets.forEach(t => map[t.dataset.spy] = t);
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      const t = map[en.target.id];
+      if (!t) return;
+      if (en.isIntersecting) {
+        targets.forEach(x => x.classList.remove('here'));
+        t.classList.add('here');
+      }
+    });
+  }, { rootMargin: '-60px 0px -70% 0px', threshold: 0 });
+  Object.keys(map).forEach(id => { const n = document.getElementById(id); if (n) obs.observe(n); });
+})();
+
+/* ==========================================================================
+   SEARCH — one index over every entity
+   ========================================================================== */
+const INDEX = (() => {
+  const ix = [];
+  M.nodes.forEach(n => {
+    const f = n.fields || {};
+    const par = n.parentId ? byId[n.parentId] : null;
+    ix.push({
+      kind: n.type === 'Component' ? 'Components' : n.type === 'Container' ? 'Containers' : 'Context',
+      a: anchorNode(n.id),
+      title: n.name,
+      sub: (par ? par.name + ' · ' : '') + (f.summary || ''),
+      k: klass(n),
+      hay: [n.name, par && par.name, f.summary, n.description, (f.responsibilities||[]).join(' '),
+            (f.rules||[]).join(' '), n.codeRefs.join(' '), n.docRefs.join(' '), f.technology, n.role]
+            .filter(Boolean).join(' ').toLowerCase()
+    });
+  });
+  M.connections.forEach(c => {
+    const a = byId[c.from], b = byId[c.to];
+    if (!a || !b) return;
+    ix.push({
+      kind: c.realizedBy.length ? 'Crossings' : 'Connections',
+      a: anchorConn(c.id),
+      title: a.name + ' → ' + b.name,
+      sub: c.label,
+      k: klass(b),
+      hay: (a.name + ' ' + b.name + ' ' + c.label + ' ' + c.description).toLowerCase()
+    });
+  });
+  M.flows.forEach(f => ix.push({
+    kind: 'Flows', a: anchorFlow(f.id), title: f.name, sub: f.description, k: 'pure',
+    hay: (f.name + ' ' + f.description + ' ' + f.steps.map(s => s.message).join(' ')).toLowerCase()
+  }));
+  M.patterns.forEach(p => ix.push({
+    kind: 'Patterns', a: anchorPat(p.id), title: p.name, sub: p.kind + ' · ' + p.description, k: 'pure',
+    hay: (p.name + ' ' + p.kind + ' ' + p.description + ' ' + p.members.map(m => m.name).join(' ') + ' ' +
+          p.transitions.map(t => t.trigger).join(' ')).toLowerCase()
+  }));
+  return ix;
+})();
+
+const GROUP_ORDER = ['Context','Containers','Components','Crossings','Connections','Flows','Patterns'];
+const qEl = el('q'), rEl = el('results');
+let cursor = -1, hits = [];
+
+function hl(text, terms){
+  let out = esc(text);
+  terms.forEach(t => {
+    if (!t) return;
+    out = out.replace(new RegExp('(' + t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')','ig'), '<mark>$1</mark>');
+  });
+  return out;
+}
+function runSearch(){
+  const raw = qEl.value.trim().toLowerCase();
+  if (!raw) { rEl.hidden = true; rEl.innerHTML = ''; hits = []; cursor = -1; return; }
+  const terms = raw.split(/\s+/);
+  hits = INDEX.filter(e => terms.every(t => e.hay.includes(t)))
+    .sort((a,b) => {
+      const ai = a.title.toLowerCase().indexOf(terms[0]), bi = b.title.toLowerCase().indexOf(terms[0]);
+      const as = ai === -1 ? 999 : ai, bs = bi === -1 ? 999 : bi;
+      if (as !== bs) return as - bs;
+      return GROUP_ORDER.indexOf(a.kind) - GROUP_ORDER.indexOf(b.kind);
+    }).slice(0, 60);
+  if (!hits.length) { rEl.hidden = false; rEl.innerHTML = '<div class="rnone">Nothing in the model matches.</div>'; cursor = -1; return; }
+  const groups = {};
+  hits.forEach((h,i) => { (groups[h.kind] = groups[h.kind] || []).push([h,i]); });
+  rEl.innerHTML = GROUP_ORDER.filter(g => groups[g]).map(g =>
+    '<div class="rgroup">' + g + ' · ' + groups[g].length + '</div>' +
+    groups[g].map(([h,i]) =>
+      '<a class="ritem" data-i="' + i + '" href="#' + h.a + '"><b><span class="swatch sw-' + h.k + '"></span>' +
+      hl(h.title, terms) + '</b><i>' + hl((h.sub||'').slice(0,120), terms) + '</i></a>').join('')
+  ).join('');
+  rEl.hidden = false; cursor = -1;
+}
+function moveCursor(d){
+  const items = [...rEl.querySelectorAll('.ritem')];
+  if (!items.length) return;
+  items.forEach(i => i.classList.remove('on'));
+  cursor = (cursor + d + items.length + (cursor === -1 && d < 0 ? 1 : 0)) % items.length;
+  const cur = items[cursor];
+  cur.classList.add('on');
+  cur.scrollIntoView({ block:'nearest' });
+}
+qEl.addEventListener('input', runSearch);
+qEl.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown') { e.preventDefault(); moveCursor(1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); moveCursor(-1); }
+  else if (e.key === 'Enter') {
+    const items = [...rEl.querySelectorAll('.ritem')];
+    const pick = items[cursor === -1 ? 0 : cursor];
+    if (pick) { e.preventDefault(); go(pick.getAttribute('href')); closeSearch(); }
+  } else if (e.key === 'Escape') { closeSearch(); qEl.blur(); }
+});
+rEl.addEventListener('mousedown', e => {
+  const a = e.target.closest('.ritem');
+  if (a) { e.preventDefault(); go(a.getAttribute('href')); closeSearch(); }
+});
+function closeSearch(){ rEl.hidden = true; }
+document.addEventListener('click', e => { if (!e.target.closest('.searchwrap')) closeSearch(); });
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement !== qEl && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) {
+    e.preventDefault(); qEl.focus(); qEl.select();
+  }
+});
+
+/* ==========================================================================
+   NAVIGATION — never lose the reader
+   ========================================================================== */
+let backTo = null;
+function labelOfAnchor(){
+  const y = window.scrollY;
+  let best = null;
+  document.querySelectorAll('.entry[id], .band h2, .unithead h3').forEach(n => {
+    const top = n.getBoundingClientRect().top + y;
+    if (top <= y + 90 && (!best || top > best.top)) {
+      const h = n.matches('.entry') ? n.querySelector('.ehead h4') : n;
+      best = { top, text: h ? h.textContent.trim() : n.textContent.trim() };
+    }
+  });
+  return best ? best.text : 'the top';
+}
+function go(href){
+  backTo = { y: window.scrollY, label: labelOfAnchor() };
+  showBack();
+  location.hash = href.replace(/^#/, '');
+}
+function showBack(){
+  const b = el('backchip');
+  if (!backTo) { b.classList.remove('on'); return; }
+  b.textContent = '← back to ' + backTo.label;
+  b.classList.add('on');
+}
+el('backchip').addEventListener('click', () => {
+  if (!backTo) return;
+  const y = backTo.y; backTo = null; showBack();
+  window.scrollTo({ top: y, behavior: 'auto' });
+});
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[href^="#"]');
+  if (!a || a.closest('#results')) return;
+  if (a.classList.contains('anchor')) return;
+  e.preventDefault();
+  go(a.getAttribute('href'));
+});
+
+/* ==========================================================================
+   PEEK — hover any cross-link, see the thing without leaving your place
+   ========================================================================== */
+const peek = el('peek');
+let peekTimer = null;
+function peekContent(spec){
+  const [k, id] = [spec.slice(0,1), spec.slice(2)];
+  if (k === 'n') {
+    const n = byId[id]; if (!n) return null;
+    const f = n.fields || {};
+    const par = n.parentId ? byId[n.parentId] : null;
+    const deg = (outOf[n.id]||[]).length + (inTo[n.id]||[]).length;
+    return { cls: klass(n), type: n.type + (par ? ' in ' + par.name : ''), head: n.name,
+      sub: f.summary || '', meta: deg + ' connection' + (deg===1?'':'s') +
+        (f.responsibilities ? ' · ' + f.responsibilities.length + ' responsibilities' : '') +
+        (n.codeRefs.length ? ' · ' + n.codeRefs.length + ' code refs' : '') };
+  }
+  if (k === 'c') {
+    const c = connById[id]; if (!c) return null;
+    const a = byId[c.from], b = byId[c.to];
+    return { cls: klass(b), type: c.realizedBy.length ? 'Boundary crossing' : 'Connection',
+      head: a.name + ' → ' + b.name, sub: c.label,
+      meta: c.realizedBy.length ? 'realized by ' + c.realizedBy.length + ' component edges' : c.direction };
+  }
+  if (k === 'f') {
+    const f = flowById[id]; if (!f) return null;
+    return { cls:'pure', type:'Flow' + (f.scope ? ' · ' + f.scope + ' scope' : ''), head:f.name, sub:f.description, meta:f.steps.length + ' steps' };
+  }
+  if (k === 'p') {
+    const p = patById[id]; if (!p) return null;
+    return { cls:'pure', type:'Pattern · ' + p.kind, head:p.name, sub:p.description,
+      meta: p.members.length + ' states · ' + p.transitions.length + ' transitions' };
+  }
+  return null;
+}
+function showPeek(target){
+  const c = peekContent(target.dataset.peek);
+  if (!c) return;
+  peek.className = 'on ' + c.cls;
+  peek.innerHTML = '<div class="pk-t">' + esc(c.type) + '</div><div class="pk-h">' + esc(c.head) + '</div>' +
+    (c.sub ? '<div class="pk-s">' + fmt(c.sub) + '</div>' : '') +
+    (c.meta ? '<div class="pk-m">' + esc(c.meta) + '</div>' : '');
+  const r = target.getBoundingClientRect();
+  peek.style.left = '0px'; peek.style.top = '0px';
+  const pr = peek.getBoundingClientRect();
+  let left = Math.min(Math.max(8, r.left), window.innerWidth - pr.width - 8);
+  let top = r.bottom + 8;
+  if (top + pr.height > window.innerHeight - 8) top = Math.max(8, r.top - pr.height - 8);
+  peek.style.left = left + 'px'; peek.style.top = top + 'px';
+  peek.setAttribute('aria-hidden','false');
+}
+function hidePeek(){ clearTimeout(peekTimer); peek.className = ''; peek.setAttribute('aria-hidden','true'); }
+document.addEventListener('mouseover', e => {
+  const t = e.target.closest('[data-peek]');
+  if (!t) return;
+  clearTimeout(peekTimer);
+  peekTimer = setTimeout(() => showPeek(t), 230);
+});
+document.addEventListener('mouseout', e => { if (e.target.closest('[data-peek]')) hidePeek(); });
+document.addEventListener('scroll', hidePeek, { passive:true });
+document.addEventListener('focusin', e => {
+  const t = e.target.closest('[data-peek]');
+  if (t) showPeek(t); else hidePeek();
+});
+
+/* ==========================================================================
+   CROSS-HIGHLIGHT — diagram ↔ table, one interaction vocabulary everywhere
+   ========================================================================== */
+function setHl(sel, on){
+  document.querySelectorAll(sel).forEach(n => n.classList.toggle('hl', on));
+}
+document.addEventListener('mouseover', e => {
+  const c = e.target.closest('[data-cid]');
+  if (c) setHl('[data-cid="' + c.dataset.cid + '"]', true);
+  const t = e.target.closest('[data-tid]');
+  if (t) {
+    const box = t.closest('.entry');
+    if (box) box.querySelectorAll('[data-tid="' + t.dataset.tid + '"]').forEach(n => n.classList.add('hl'));
+  }
+});
+document.addEventListener('mouseout', e => {
+  const c = e.target.closest('[data-cid]');
+  if (c) setHl('[data-cid="' + c.dataset.cid + '"]', false);
+  const t = e.target.closest('[data-tid]');
+  if (t) {
+    const box = t.closest('.entry');
+    if (box) box.querySelectorAll('[data-tid="' + t.dataset.tid + '"]').forEach(n => n.classList.remove('hl'));
+  }
+});
+/* matrix row/column crosshair */
+(function crosshair(){
+  const table = document.querySelector('table.dsm');
+  if (!table) return;
+  table.addEventListener('mouseover', e => {
+    const cell = e.target.closest('[data-row],[data-col]');
+    table.querySelectorAll('.xr,.xc').forEach(n => n.classList.remove('xr','xc'));
+    if (!cell) return;
+    const r = cell.dataset.row, c = cell.dataset.col;
+    if (r != null) table.querySelectorAll('[data-row="' + r + '"]').forEach(n => n.classList.add('xr'));
+    if (c != null) table.querySelectorAll('[data-col="' + c + '"]').forEach(n => n.classList.add('xc'));
+  });
+  table.addEventListener('mouseleave', () => table.querySelectorAll('.xr,.xc').forEach(n => n.classList.remove('xr','xc')));
+})();
+
+/* integrity check, visible only in the console */
+(function check(){
+  const ids = new Set(), dupes = [];
+  document.querySelectorAll('[id]').forEach(n => { if (ids.has(n.id)) dupes.push(n.id); ids.add(n.id); });
+  const broken = [...document.querySelectorAll('a[href^="#"]')]
+    .map(a => a.getAttribute('href').slice(1))
+    .filter(h => h && !document.getElementById(h));
+  console.log('[continuo-reference] anchors=' + ids.size + ' duplicate-ids=' + dupes.length +
+    ' broken-links=' + broken.length, dupes.length ? dupes : '', broken.length ? [...new Set(broken)] : '');
+})();
+</script>
+<style>
+/* crosshair shading for the matrix, kept next to nothing else that uses it */
+table.dsm td.xr,table.dsm td.xc{box-shadow:inset 0 0 0 99px rgba(246,237,201,.5)}
+table.dsm th.colh.xc,table.dsm th.rowh.xr{background:var(--mark)}
+table.dsm td.cell.on.xr,table.dsm td.cell.on.xc{box-shadow:none}
+</style>
+</body>
+</html>
