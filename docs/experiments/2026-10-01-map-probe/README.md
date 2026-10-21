@@ -1,6 +1,6 @@
 # Experiment — a project map built from scratch, rated by a strict test
 
-**Date:** 2026-10-01 · **Status:** brief written, round 1 not yet run
+**Date:** 2026-10-01 · **Status:** round 1 built (six maps, both question sets); rating not started
 
 ## Why
 
@@ -131,3 +131,11 @@ maps. The exam is the real tiebreaker.
   and code still agree after several changes.
 - **Hyphae itself** (the C4 schema and the canvas viewer) is paused, not deleted. Whether the
   winning format replaces its schema or becomes a new repo is decided after round 2.
+
+## Round 1 — what was built
+
+All six maps were built on 2026-10-01 from Continuo `a2142f1` and Dispatcher `db051fa`, and all
+passed the mechanical check. Each `results/<project>/<variant>/` holds `map.html`, `map.json` and
+`notes.md`. The builders' screenshots (`shots/`, ~20 MB) are **not committed**; regenerate one with
+the command in [brief-shared.md](brief-shared.md). Answer sheets are in `ratings/`; the question
+keys stay sealed in `~/map-probe-keys/` until rating is done.

@@ -1,0 +1,3081 @@
+{
+ "repo": {
+  "path": "/home/qwert21/projects/Dispatcher",
+  "commit": "db051fa",
+  "name": "Dispatcher",
+  "readOn": "2026-10-01"
+ },
+ "representation": "A dispatch board: outside sources on the outer edges, the stages of an order's life running inward to a central spine where every ride becomes one order record and leaves. Left wing = hunting new offers (acts on platforms), right wing = collecting assigned rides (reads only). The operator's levers sit under the stage they change.",
+ "kinds": {
+  "source": "an outside platform or spreadsheet the robot visits",
+  "programme": "one of the two long-running apps",
+  "stage": "a step in an order's life; a column of the board",
+  "job": "one stage done for one source; a cell of the board, backed by source-specific code",
+  "thing": "a piece of data that moves",
+  "outlet": "a way order records leave the system",
+  "actor": "a person or outside system",
+  "lever": "a setting that changes behaviour, with where it is set",
+  "place": "where the system runs or keeps things"
+ },
+ "elements": [
+  {
+   "id": "src-wpickups",
+   "kind": "source",
+   "name": "Welcome Pickups",
+   "summary": "An outside ride platform (welcomepickups.com) whose new offers the robot hunts and whose already-assigned rides it also collects.",
+   "code": [
+    "packages/components/wpickups/"
+   ],
+   "status": "works",
+   "wing": "both",
+   "mono": "WP",
+   "tag": "welcomepickups.com",
+   "hunted": true
+  },
+  {
+   "id": "src-transfeero",
+   "kind": "source",
+   "name": "Transfeero",
+   "summary": "An outside ride platform (transfeero.com) whose new offers the robot hunts and whose already-assigned rides it also collects.",
+   "code": [
+    "packages/components/transfeero/"
+   ],
+   "status": "works",
+   "wing": "both",
+   "mono": "TF",
+   "tag": "transfeero.com",
+   "hunted": true,
+   "how": [
+    "The deployment provides three browsers for Transfeero, so up to three Transfeero workers can run side by side."
+   ],
+   "unverified": [
+    "How many Transfeero workers are really configured lives in the untracked config file."
+   ]
+  },
+  {
+   "id": "src-connecto",
+   "kind": "source",
+   "name": "Connecto",
+   "summary": "An outside ride platform (connectotransfers.com) whose new offers the robot hunts and whose already-assigned rides it also collects.",
+   "code": [
+    "packages/components/connecto/"
+   ],
+   "status": "works",
+   "wing": "both",
+   "mono": "CN",
+   "tag": "connectotransfers.com",
+   "hunted": true
+  },
+  {
+   "id": "src-talixo",
+   "kind": "source",
+   "name": "Talixo",
+   "summary": "An outside ride platform (talixo.com) from which the robot only collects already-assigned rides, never taking offers.",
+   "code": [
+    "packages/components/talixo/"
+   ],
+   "status": "works",
+   "wing": "collect",
+   "mono": "TX",
+   "tag": "talixo.com",
+   "hunted": false
+  },
+  {
+   "id": "src-atob",
+   "kind": "source",
+   "name": "AtoB",
+   "summary": "An outside ride platform (atobtransfer.com) from which the robot only collects already-assigned rides, never taking offers.",
+   "code": [
+    "packages/components/atob/"
+   ],
+   "status": "works",
+   "wing": "collect",
+   "mono": "AB",
+   "tag": "atobtransfer.com",
+   "hunted": false
+  },
+  {
+   "id": "src-kiwi",
+   "kind": "source",
+   "name": "Kiwitaxi",
+   "summary": "An outside ride platform (kiwitaxi.com) from which the robot only collects already-assigned rides, never taking offers.",
+   "code": [
+    "packages/components/kiwi/"
+   ],
+   "status": "works",
+   "wing": "collect",
+   "mono": "KW",
+   "tag": "kiwitaxi.com",
+   "hunted": false
+  },
+  {
+   "id": "src-wtdriver",
+   "kind": "source",
+   "name": "World Transfer",
+   "summary": "An outside ride platform (world-transfer.com) from which the robot only collects already-assigned rides, never taking offers.",
+   "code": [
+    "packages/components/wtdriver/"
+   ],
+   "status": "works",
+   "wing": "collect",
+   "mono": "WT",
+   "tag": "world-transfer.com",
+   "hunted": false
+  },
+  {
+   "id": "src-elife",
+   "kind": "source",
+   "name": "Elife",
+   "summary": "An outside ride platform (elifelimo.com) from which the robot only collects already-assigned rides, never taking offers.",
+   "code": [
+    "packages/components/elife/"
+   ],
+   "status": "works",
+   "wing": "collect",
+   "mono": "EL",
+   "tag": "elifelimo.com",
+   "hunted": false
+  },
+  {
+   "id": "src-sheet",
+   "kind": "source",
+   "name": "Google Sheet",
+   "summary": "A Google spreadsheet of rides, read as one more source; which sheet and which columns come from the config.",
+   "code": [
+    "packages/components/google-sheets/"
+   ],
+   "status": "works",
+   "wing": "collect",
+   "mono": "GS",
+   "tag": "a spreadsheet",
+   "hunted": false
+  },
+  {
+   "id": "src-cataxis",
+   "kind": "source",
+   "name": "City Airport Taxis",
+   "summary": "An outside ride platform (city-airport-taxis.com) from which the robot only collects already-assigned rides, never taking offers.",
+   "code": [
+    "packages/components/ca-taxis/"
+   ],
+   "status": "works",
+   "wing": "collect",
+   "mono": "CA",
+   "tag": "city-airport-taxis.com",
+   "hunted": false
+  },
+  {
+   "id": "src-shuttlespain",
+   "kind": "source",
+   "name": "Shuttle Spain",
+   "summary": "An outside ride platform (shuttlespaintransfers.com) from which the robot only collects already-assigned rides, never taking offers.",
+   "code": [
+    "packages/components/shuttlespain/"
+   ],
+   "status": "works",
+   "wing": "collect",
+   "mono": "SS",
+   "tag": "shuttlespaintransfers.com",
+   "hunted": false
+  },
+  {
+   "id": "src-chofix",
+   "kind": "source",
+   "name": "Chofix",
+   "summary": "An outside ride platform (chofix.com) from which the robot only collects already-assigned rides, never taking offers.",
+   "code": [
+    "packages/components/chofix/"
+   ],
+   "status": "works",
+   "wing": "collect",
+   "mono": "CF",
+   "tag": "chofix.com",
+   "hunted": false
+  },
+  {
+   "id": "app-hunt",
+   "kind": "programme",
+   "name": "Hunt new offers",
+   "summary": "An always-on programme that runs one worker per hunted account, each in its own browser, and relays what the workers find.",
+   "code": [
+    "apps/dispatcher/src/index.ts",
+    "apps/dispatcher/src/services/WorkersManager.ts",
+    "packages/shared/src/worker/CommonWorker.ts",
+    "packages/shared/src/worker/BasicWorker.ts"
+   ],
+   "status": "works",
+   "wing": "hunt",
+   "tag": "always on, one browser each",
+   "how": [
+    "One worker per entry in the config; three kinds exist: Welcome Pickups, Transfeero, Connecto.",
+    "Each worker repeats: do one check, wait the poll delay, check again.",
+    "A failed check is retried up to 5 times, then skipped until the next round.",
+    "Workers that were running before a restart start again by themselves.",
+    "Dev mode (--dev) skips the Telegram bot and any worker that was off."
+   ],
+   "change": [
+    "A new hunted platform needs a worker package plus a case in WorkersManager.addWorker; the list of kinds is in CommonWorkerConfig."
+   ]
+  },
+  {
+   "id": "app-collect",
+   "kind": "programme",
+   "name": "Collect what is ours",
+   "summary": "A second programme that every 10 minutes visits every configured source, one at a time in a single browser, and gathers the rides already assigned to the company.",
+   "code": [
+    "apps/consolidator/src/index.ts",
+    "apps/consolidator/src/services/BackgroundConsolidator.ts",
+    "apps/consolidator/src/services/ConsolidatorService.ts",
+    "apps/consolidator/src/actions/ClearCooies.ts"
+   ],
+   "status": "works",
+   "wing": "collect",
+   "tag": "every 10 min, one browser",
+   "how": [
+    "Sources are visited one after another; a lock stops two runs overlapping.",
+    "Browser cookies are wiped before each source.",
+    "Each source gets up to 3 tries; a failure is recorded, not fatal.",
+    "Rides whose pickup time has passed are dropped.",
+    "The whole result is kept in memory and published after every run."
+   ],
+   "change": [
+    "A new source needs a 'get assigned transfers' action, a case in ConsolidatorService.createAction and an entry in ServiceConfig.",
+    "The 10 minutes are the default of BackgroundConsolidator's retryDelaySec."
+   ],
+   "unverified": [
+    "The visiting order is the order of sources in the untracked config file."
+   ]
+  },
+  {
+   "id": "st-hunt-getin",
+   "kind": "stage",
+   "name": "Get in",
+   "summary": "Before watching, a worker needs a signed-in session on the platform, or a live mailbox connection.",
+   "code": [
+    "packages/shared/src/actions/LoadCookies.ts",
+    "packages/shared/src/actions/StoreCookies.ts",
+    "packages/shared/src/actions/ClickTurnstile.ts",
+    "packages/shared/src/worker/BasicWorker.ts"
+   ],
+   "status": "works",
+   "wing": "hunt",
+   "col": 0,
+   "how": [
+    "Every worker page is set to a 1600 by 1024 window and the Europe/Rome time zone.",
+    "Cookies are saved per worker so a restart does not force a new login."
+   ]
+  },
+  {
+   "id": "st-hunt-spot",
+   "kind": "stage",
+   "name": "Spot offers",
+   "summary": "On every poll a worker asks its platform what is on offer right now.",
+   "code": [
+    "packages/shared/src/worker/CommonWorker.ts",
+    "packages/shared/src/utils/page.ts"
+   ],
+   "status": "works",
+   "wing": "hunt",
+   "col": 1,
+   "how": [
+    "Requests are made from inside the signed-in page, so they look like the page's own.",
+    "The poll delay is 20 seconds unless the operator changes it."
+   ]
+  },
+  {
+   "id": "st-hunt-judge",
+   "kind": "stage",
+   "name": "Judge",
+   "summary": "Each offer is checked against that source's rule set; all rule sets share the excluded time ranges.",
+   "code": [
+    "packages/shared/src/worker/CommonWorker.ts",
+    "packages/shared/src/models/CommonFilterOptions.ts",
+    "packages/shared/src/worker/TimeExclusionsCleaner.ts"
+   ],
+   "status": "works",
+   "wing": "hunt",
+   "col": 2,
+   "how": [
+    "A yes sends the offer on to be taken; a no only reports it.",
+    "The rules themselves are written in each worker; the numbers come from the operator."
+   ]
+  },
+  {
+   "id": "st-hunt-take",
+   "kind": "stage",
+   "name": "Take",
+   "summary": "A compliant offer is claimed by driving the platform's own web page, click by click.",
+   "code": [
+    "packages/shared/src/utils/page.ts",
+    "packages/shared/src/interfaces/IPageAction.ts"
+   ],
+   "status": "works",
+   "wing": "hunt",
+   "col": 3,
+   "how": [
+    "A take that fails is reported in red and is tried again on the next poll while the offer is still listed."
+   ]
+  },
+  {
+   "id": "st-col-getin",
+   "kind": "stage",
+   "name": "Get in",
+   "summary": "For most sources: wipe the browser's cookies, load the saved ones, and log in again only if the session is dead.",
+   "code": [
+    "packages/shared/src/actions/CommonScrapeAction.ts",
+    "packages/shared/src/actions/LoadCookies.ts",
+    "packages/shared/src/actions/StoreCookies.ts",
+    "apps/consolidator/src/actions/ClearCooies.ts"
+   ],
+   "status": "works",
+   "wing": "collect",
+   "col": 1,
+   "how": [
+    "Saved cookies are one file per source in the collector's storage folder.",
+    "After a fresh login the new cookies are saved."
+   ]
+  },
+  {
+   "id": "st-col-read",
+   "kind": "stage",
+   "name": "Read assigned rides",
+   "summary": "Read the list of upcoming rides already assigned to the company and turn each into an order record.",
+   "code": [
+    "packages/shared/src/actions/CommonScrapeAction.ts",
+    "packages/shared/src/models/Order.ts"
+   ],
+   "status": "works",
+   "wing": "collect",
+   "col": 0,
+   "how": [
+    "Every collected ride is marked compliant.",
+    "Local platform times become absolute times using UTC+1 or UTC+2, by daylight saving."
+   ]
+  },
+  {
+   "id": "hunt-wpickups-getin",
+   "kind": "job",
+   "name": "Cookies, else log in",
+   "summary": "Loads saved cookies and opens the transfers page; if that redirects away, types e-mail and password into the login form and saves the new cookies.",
+   "code": [
+    "packages/components/wpickups/src/WPickupsWorker.ts",
+    "packages/components/wpickups/src/actions/CheckSignedIn.ts",
+    "packages/components/wpickups/src/actions/SignIn.ts",
+    "packages/components/wpickups/src/Pages.ts",
+    "packages/shared/src/actions/ClickTurnstile.ts"
+   ],
+   "status": "works",
+   "source": "src-wpickups",
+   "stage": "st-hunt-getin",
+   "tag": "anti-bot clicker",
+   "wing": "hunt",
+   "how": [
+    "Signed in means: the transfers page address stays put after loading.",
+    "While the worker is stopped, a once-a-second task clicks the Cloudflare checkbox if one is on the page."
+   ],
+   "change": [
+    "Platform addresses are in Pages.ts; the company's own account address is written there."
+   ]
+  },
+  {
+   "id": "hunt-wpickups-spot",
+   "kind": "job",
+   "name": "Ask for unassigned rides",
+   "summary": "Every poll, requests the platform's own list of unassigned upcoming transfers for the next 14 days, from inside the signed-in page.",
+   "code": [
+    "packages/components/wpickups/src/actions/RequestTransfers.ts",
+    "packages/components/wpickups/src/WPickupsWorker.ts",
+    "packages/components/wpickups/src/models/Transfer.ts",
+    "packages/components/wpickups/src/models/TransfersResponse.ts"
+   ],
+   "status": "works",
+   "source": "src-wpickups",
+   "stage": "st-hunt-spot",
+   "tag": "14 days ahead",
+   "wing": "hunt",
+   "how": [
+    "At most 100 rows per request.",
+    "The 14 days come from the worker's saved state and are read when the worker starts."
+   ]
+  },
+  {
+   "id": "hunt-wpickups-judge",
+   "kind": "job",
+   "name": "Payout and per-km floor",
+   "summary": "A transfer passes when it is not cancelled, the driver's payout reaches the floor for its vehicle type, the payout per kilometre reaches the rate floor, and the pickup is outside every excluded time range.",
+   "code": [
+    "packages/components/wpickups/src/WPickupsWorker.ts",
+    "packages/components/wpickups/src/models/WPickupsFilterOptions.ts",
+    "packages/shared/src/worker/CommonWorker.ts"
+   ],
+   "status": "works",
+   "source": "src-wpickups",
+   "stage": "st-hunt-judge",
+   "tag": "by vehicle type",
+   "wing": "hunt",
+   "how": [
+    "Known vehicle types: minivan and sedan; any other type never passes and is logged.",
+    "Defaults: 1000 per vehicle type, 100 per kilometre.",
+    "An older rule about airport routes and distance is commented out."
+   ],
+   "change": [
+    "The rule is WPickupsWorker.transferCompliance."
+   ]
+  },
+  {
+   "id": "hunt-wpickups-take",
+   "kind": "job",
+   "name": "Assign driver and car",
+   "summary": "Opens the transfers page, opens the assign dialog for that transfer, picks a random driver not on the avoid list and the first vehicle offered, presses Assign, then checks the transfer shows among the assigned ones.",
+   "code": [
+    "packages/components/wpickups/src/actions/AssignDriverForTransfer.ts",
+    "packages/components/wpickups/src/actions/OpenTransfers.ts",
+    "packages/components/wpickups/src/actions/OpenAssignDriverModal.ts",
+    "packages/components/wpickups/src/actions/AssignDriver.ts",
+    "packages/components/wpickups/src/actions/AssignVehicle.ts",
+    "packages/components/wpickups/src/actions/ClickAssign.ts",
+    "packages/components/wpickups/src/actions/CheckAssigned.ts"
+   ],
+   "status": "works",
+   "source": "src-wpickups",
+   "stage": "st-hunt-take",
+   "tag": "random driver, verified",
+   "wing": "hunt",
+   "how": [
+    "The whole sequence is tried up to 5 times; a screenshot is taken on each failure.",
+    "It needs the platform to answer the assign request with 200 within 10 seconds.",
+    "Then the assigned list is re-read up to 5 times to find the transfer there."
+   ]
+  },
+  {
+   "id": "hunt-transfeero-getin",
+   "kind": "job",
+   "name": "Log in past the gate",
+   "summary": "Loads cookies, opens the new-rides page, waits out the platform's security waiting room by clicking its Cloudflare checkbox, and logs in with e-mail and password if redirected away.",
+   "code": [
+    "packages/components/transfeero/src/TransfeeroWorker.ts",
+    "packages/components/transfeero/src/actions/CheckSignedIn.ts",
+    "packages/components/transfeero/src/actions/SignIn.ts",
+    "packages/components/transfeero/src/actions/HandleWaitroom.ts",
+    "packages/components/transfeero/src/Pages.ts",
+    "packages/shared/src/actions/ClickTurnstile.ts"
+   ],
+   "status": "works",
+   "source": "src-transfeero",
+   "stage": "st-hunt-getin",
+   "tag": "refreshed every 3 min",
+   "wing": "hunt",
+   "how": [
+    "Waiting room: up to 60 seconds, the checkbox clicked every 2 seconds.",
+    "Login counts as done when the platform's reply redirects to the rides page, within 20 seconds.",
+    "Every 3 minutes one poll is spent re-checking the session and re-capturing the request to replay."
+   ]
+  },
+  {
+   "id": "hunt-transfeero-spot",
+   "kind": "job",
+   "name": "Replay the rides request",
+   "summary": "Opens the new-rides page once, records the exact request the page itself sends for available rides, then replays that request from inside the page on every poll.",
+   "code": [
+    "packages/components/transfeero/src/actions/GetRequestInfoForURL.ts",
+    "packages/components/transfeero/src/actions/RequestNewRides.ts",
+    "packages/components/transfeero/src/models/Ride.ts",
+    "packages/components/transfeero/src/models/RidesResponse.ts",
+    "packages/components/transfeero/src/models/RequestRidesInfo.ts"
+   ],
+   "status": "works",
+   "source": "src-transfeero",
+   "stage": "st-hunt-spot",
+   "tag": "captured from the page",
+   "wing": "hunt",
+   "how": [
+    "A reply other than 200 fails the poll, which is then retried.",
+    "The capture itself has a 10 second limit."
+   ]
+  },
+  {
+   "id": "hunt-transfeero-judge",
+   "kind": "job",
+   "name": "Alicante, payout, known car",
+   "summary": "A ride passes when its pickup is outside the excluded time ranges, its start or end mentions Alicante, the partner payout reaches the minimal cost, and its vehicle class appears in the configured vehicle map.",
+   "code": [
+    "packages/components/transfeero/src/TransfeeroWorker.ts",
+    "packages/components/transfeero/src/models/TransfeeroConfig.ts",
+    "packages/shared/src/worker/CommonWorker.ts"
+   ],
+   "status": "works",
+   "source": "src-transfeero",
+   "stage": "st-hunt-judge",
+   "tag": "city is hard-wired",
+   "wing": "hunt",
+   "how": [
+    "The word Alicante is written into the code.",
+    "Default minimal cost: 10000.",
+    "A payout that is not a number fails the ride."
+   ],
+   "change": [
+    "The rule is TransfeeroWorker.rideCompliance; the city name is a literal there."
+   ]
+  },
+  {
+   "id": "hunt-transfeero-take",
+   "kind": "job",
+   "name": "Pick car, press accept",
+   "summary": "Opens the ride's page, passes the anti-bot check, selects the company vehicle mapped to the ride's class, presses Accept and waits for the platform's answer.",
+   "code": [
+    "packages/components/transfeero/src/actions/AcceptRide.ts",
+    "packages/components/transfeero/src/actions/OpenNewRidePage.ts",
+    "packages/components/transfeero/src/actions/HandleTurnstile.ts",
+    "packages/components/transfeero/src/actions/SelectVehicle.ts",
+    "packages/components/transfeero/src/actions/ClickAccept.ts"
+   ],
+   "status": "works",
+   "source": "src-transfeero",
+   "stage": "st-hunt-take",
+   "tag": "waits for a yes",
+   "wing": "hunt",
+   "how": [
+    "It counts as taken only if the accept reply carries status 200 within 10 seconds.",
+    "Vehicle selection is tried up to 7 times, the Accept click up to 10.",
+    "Several compliant rides in one poll are taken one by one.",
+    "Three screenshots are taken along the way."
+   ]
+  },
+  {
+   "id": "hunt-connecto-getin",
+   "kind": "job",
+   "name": "Watch the mailbox",
+   "summary": "Connects to a Gmail mailbox over IMAP and keeps the connection alive; the hunt never logs into the platform, it follows links from the platform's e-mails.",
+   "code": [
+    "packages/components/connecto/src/services/ImapService.ts",
+    "packages/components/connecto/src/ConnectoWorker.ts",
+    "packages/components/connecto/src/models/ImapServiceConfig.ts"
+   ],
+   "status": "works",
+   "source": "src-connecto",
+   "stage": "st-hunt-getin",
+   "tag": "no site login",
+   "wing": "hunt",
+   "how": [
+    "Reconnects 2 seconds after the connection drops.",
+    "On its very first start the worker only looks at e-mails that arrive from then on."
+   ],
+   "change": [
+    "The mail server address is a literal in ImapService."
+   ]
+  },
+  {
+   "id": "hunt-connecto-spot",
+   "kind": "job",
+   "name": "Open the e-mailed offer",
+   "summary": "Every poll, lists e-mails from the platform's domain newer than the last handled one, pulls the offer link out of each, opens it and reads route, date, vehicle and price off the page.",
+   "code": [
+    "packages/components/connecto/src/ConnectoWorker.ts",
+    "packages/components/connecto/src/actions/GetTransferProposalDetails.ts",
+    "packages/components/connecto/src/actions/GetTransferVoucherDetails.ts",
+    "packages/components/connecto/src/models/ConnectoTransferDetails.ts",
+    "packages/components/connecto/src/models/Mail.ts"
+   ],
+   "status": "works",
+   "source": "src-connecto",
+   "stage": "st-hunt-spot",
+   "tag": "four kinds of mail",
+   "wing": "hunt",
+   "how": [
+    "Recognised subjects: Transfer voucher, Transfer proposal, New Transfer, Transfer Available; anything else is logged and skipped.",
+    "An offer page marked expired is skipped.",
+    "The offer id is cut out of the subject line.",
+    "The time of the last handled e-mail is saved, so no e-mail is handled twice."
+   ]
+  },
+  {
+   "id": "hunt-connecto-judge",
+   "kind": "job",
+   "name": "Match the price list",
+   "summary": "An offer passes when its pickup is outside the excluded time ranges and the price list has a line with the same from, the same to, a vehicle name found in the offer's vehicle, and a price no higher than the offer's.",
+   "code": [
+    "packages/components/connecto/src/ConnectoWorker.ts",
+    "packages/components/connecto/src/models/ConnectoFilterOptions.ts",
+    "packages/components/connecto/src/models/ConnectoTransferDetails.ts"
+   ],
+   "status": "works",
+   "source": "src-connecto",
+   "stage": "st-hunt-judge",
+   "tag": "route, car, price",
+   "wing": "hunt",
+   "how": [
+    "With an empty price list nothing passes.",
+    "The page's cancelled mark is read but plays no part in the decision."
+   ],
+   "change": [
+    "The rule is ConnectoWorker.transferCompliance."
+   ]
+  },
+  {
+   "id": "hunt-connecto-take",
+   "kind": "job",
+   "name": "Press accept",
+   "summary": "Clicks the accept button on the offer page that is already open and waits half a second; nothing checks that the platform really accepted.",
+   "code": [
+    "packages/components/connecto/src/actions/AcceptTransferProposal.ts",
+    "packages/components/connecto/src/actions/AcceptTransferVoucher.ts",
+    "packages/components/connecto/src/ConnectoWorker.ts"
+   ],
+   "status": "partial",
+   "source": "src-connecto",
+   "stage": "st-hunt-take",
+   "tag": "not double-checked",
+   "wing": "hunt",
+   "how": [
+    "Proposals and vouchers have different buttons.",
+    "A click that throws is reported as a failed take."
+   ]
+  },
+  {
+   "id": "col-wpickups-getin",
+   "kind": "job",
+   "name": "Cookies, else log in",
+   "summary": "The same login as the hunt, but in the collector's browser with its own saved cookies.",
+   "code": [
+    "packages/components/wpickups/src/actions/GetAssignedTransfers.ts",
+    "packages/components/wpickups/src/actions/CheckSignedIn.ts",
+    "packages/components/wpickups/src/actions/SignIn.ts",
+    "packages/shared/src/actions/CommonScrapeAction.ts"
+   ],
+   "status": "works",
+   "source": "src-wpickups",
+   "stage": "st-col-getin",
+   "tag": "",
+   "wing": "collect"
+  },
+  {
+   "id": "col-wpickups-read",
+   "kind": "job",
+   "name": "Ask for assigned list",
+   "summary": "Requests the platform's list of assigned upcoming transfers for the next 2 days and converts each row.",
+   "code": [
+    "packages/components/wpickups/src/actions/GetAssignedTransfers.ts",
+    "packages/components/wpickups/src/actions/RequestTransfers.ts",
+    "packages/components/wpickups/src/utils.ts"
+   ],
+   "status": "works",
+   "source": "src-wpickups",
+   "stage": "st-col-read",
+   "tag": "",
+   "wing": "collect",
+   "how": [
+    "Brings: id, pickup, route, car type, passengers, payout, customer name and phone, distance."
+   ]
+  },
+  {
+   "id": "col-transfeero-getin",
+   "kind": "job",
+   "name": "Cookies, else log in",
+   "summary": "Opens the new-rides page, waits out the security waiting room, and logs in if redirected away.",
+   "code": [
+    "packages/components/transfeero/src/actions/GetAssignedTransfers.ts",
+    "packages/components/transfeero/src/actions/CheckSignedIn.ts",
+    "packages/components/transfeero/src/actions/SignIn.ts",
+    "packages/components/transfeero/src/actions/HandleWaitroom.ts"
+   ],
+   "status": "works",
+   "source": "src-transfeero",
+   "stage": "st-col-getin",
+   "tag": "",
+   "wing": "collect"
+  },
+  {
+   "id": "col-transfeero-read",
+   "kind": "job",
+   "name": "Replay upcoming request",
+   "summary": "Opens the upcoming-rides page, captures the page's own request within 20 seconds and replays it to get the upcoming bookings.",
+   "code": [
+    "packages/components/transfeero/src/actions/GetAssignedTransfers.ts",
+    "packages/components/transfeero/src/actions/GetRequestInfoForURL.ts",
+    "packages/components/transfeero/src/actions/RequestUpcomingRides.ts",
+    "packages/components/transfeero/src/utils.ts"
+   ],
+   "status": "works",
+   "source": "src-transfeero",
+   "stage": "st-col-read",
+   "tag": "",
+   "wing": "collect",
+   "how": [
+    "Brings: id, pickup, route, vehicle class, passengers, payout, note, distance.",
+    "A 'days' setting is passed in but not used."
+   ]
+  },
+  {
+   "id": "col-connecto-getin",
+   "kind": "job",
+   "name": "Log in with a PIN",
+   "summary": "Opens the confirmed-transfers page; a 403 page means not signed in, and then it logs in with username, password and, as a second step, a PIN.",
+   "code": [
+    "packages/components/connecto/src/actions/GetAssignedTransfers.ts",
+    "packages/components/connecto/src/models/CredentialsWithPin.ts",
+    "packages/components/connecto/src/Pages.ts"
+   ],
+   "status": "works",
+   "source": "src-connecto",
+   "stage": "st-col-getin",
+   "tag": "",
+   "wing": "collect"
+  },
+  {
+   "id": "col-connecto-read",
+   "kind": "job",
+   "name": "Read confirmed pages",
+   "summary": "Reads every page of the confirmed-transfers list; the price is dug out of an HTML comment in each row.",
+   "code": [
+    "packages/components/connecto/src/actions/ParseAssignedTransfers.ts",
+    "packages/components/connecto/src/actions/GetAssignedTransfers.ts",
+    "packages/components/connecto/src/utils.ts"
+   ],
+   "status": "works",
+   "source": "src-connecto",
+   "stage": "st-col-read",
+   "tag": "",
+   "wing": "collect",
+   "how": [
+    "Brings: id, pickup, route, vehicle, price. No customer details."
+   ]
+  },
+  {
+   "id": "col-talixo-getin",
+   "kind": "job",
+   "name": "Cookies, else log in",
+   "summary": "Opens the jobs page; if redirected, dismisses the cookie banner and logs in with e-mail and password.",
+   "code": [
+    "packages/components/talixo/src/actions/GetAssignedTransfers.ts",
+    "packages/components/talixo/src/actions/AcceptCookies.ts",
+    "packages/components/talixo/src/Pages.ts"
+   ],
+   "status": "works",
+   "source": "src-talixo",
+   "stage": "st-col-getin",
+   "tag": "",
+   "wing": "collect"
+  },
+  {
+   "id": "col-talixo-read",
+   "kind": "job",
+   "name": "Read the jobs table",
+   "summary": "Reads the rows of the jobs table: date, time, from, to, vehicle and price.",
+   "code": [
+    "packages/components/talixo/src/actions/ParseAvailiableTransfers.ts",
+    "packages/components/talixo/src/actions/GetAssignedTransfers.ts"
+   ],
+   "status": "partial",
+   "source": "src-talixo",
+   "stage": "st-col-read",
+   "tag": "",
+   "wing": "collect",
+   "how": [
+    "No id is read: every order gets a new random id on each run.",
+    "No customer details."
+   ],
+   "unverified": [
+    "The file is named after 'available' transfers; the map takes the collector's word that the jobs page lists assigned ones."
+   ]
+  },
+  {
+   "id": "col-atob-getin",
+   "kind": "job",
+   "name": "Cookies, else log in",
+   "summary": "Opens the upcoming-bookings page; if redirected, dismisses the cookie banner and logs in with e-mail and password.",
+   "code": [
+    "packages/components/atob/src/actions/GetAssignedTransfers.ts",
+    "packages/components/atob/src/actions/AcceptCookies.ts",
+    "packages/components/atob/src/Pages.ts"
+   ],
+   "status": "works",
+   "source": "src-atob",
+   "stage": "st-col-getin",
+   "tag": "",
+   "wing": "collect",
+   "change": [
+    "The company's own account address on the platform is written in Pages.ts."
+   ]
+  },
+  {
+   "id": "col-atob-read",
+   "kind": "job",
+   "name": "Table, then each booking",
+   "summary": "Reads the upcoming-bookings table, then opens every booking's page for customer name, phone, price and passenger count.",
+   "code": [
+    "packages/components/atob/src/actions/ParseTransfersTable.ts",
+    "packages/components/atob/src/actions/ParseTransfer.ts",
+    "packages/components/atob/src/actions/GetAssignedTransfers.ts"
+   ],
+   "status": "works",
+   "source": "src-atob",
+   "stage": "st-col-read",
+   "tag": "",
+   "wing": "collect",
+   "how": [
+    "Brings: id, pickup, route, vehicle, price, passengers, customer name and phone."
+   ]
+  },
+  {
+   "id": "col-kiwi-getin",
+   "kind": "job",
+   "name": "Cookies, else log in",
+   "summary": "Signed in unless the orders page answers 401; login is judged by the platform's redirect reply.",
+   "code": [
+    "packages/components/kiwi/src/actions/GetAssignedTransfers.ts",
+    "packages/components/kiwi/src/Pages.ts"
+   ],
+   "status": "works",
+   "source": "src-kiwi",
+   "stage": "st-col-getin",
+   "tag": "",
+   "wing": "collect"
+  },
+  {
+   "id": "col-kiwi-read",
+   "kind": "job",
+   "name": "Replay the orders query",
+   "summary": "Captures the query the orders page sends, narrows it to scheduled orders, and replays it.",
+   "code": [
+    "packages/components/kiwi/src/actions/RequestScheduledTransfers.ts",
+    "packages/components/kiwi/src/actions/GetAssignedTransfers.ts",
+    "packages/components/kiwi/src/models/TransfersResponse.ts"
+   ],
+   "status": "works",
+   "source": "src-kiwi",
+   "stage": "st-col-read",
+   "tag": "",
+   "wing": "collect",
+   "how": [
+    "Brings: order number, pickup, places, vehicle class, cost. No customer details."
+   ]
+  },
+  {
+   "id": "col-wtdriver-getin",
+   "kind": "job",
+   "name": "Log in every time",
+   "summary": "Logs in with a company code, a username and a password on every run, keeps no cookies, and logs out at the end.",
+   "code": [
+    "packages/components/wtdriver/src/actions/GetAssignedTransfers.ts",
+    "packages/components/wtdriver/src/actions/SignIn.ts",
+    "packages/components/wtdriver/src/actions/CheckSignedIn.ts",
+    "packages/components/wtdriver/src/actions/LogOut.ts",
+    "packages/components/wtdriver/src/models/CredentialsWithGTU.ts"
+   ],
+   "status": "partial",
+   "source": "src-wtdriver",
+   "stage": "st-col-getin",
+   "tag": "",
+   "wing": "collect",
+   "how": [
+    "The login runs first, then a signed-in check, then possibly a second login.",
+    "Success is judged by the page address 6 seconds after pressing the button."
+   ]
+  },
+  {
+   "id": "col-wtdriver-read",
+   "kind": "job",
+   "name": "Read confirmed cards",
+   "summary": "Opens the bookings screen, switches to Confirmed, and reads each card: date, time, from, to, vehicle, price.",
+   "code": [
+    "packages/components/wtdriver/src/actions/ParseApprovedTransfers.ts"
+   ],
+   "status": "partial",
+   "source": "src-wtdriver",
+   "stage": "st-col-read",
+   "tag": "",
+   "wing": "collect",
+   "how": [
+    "No id is read: every order gets a new random id on each run (a comment says 'to be replaced').",
+    "No customer details."
+   ]
+  },
+  {
+   "id": "col-elife-getin",
+   "kind": "job",
+   "name": "Log in every time",
+   "summary": "The 'already signed in?' check is a stub that always says no, so it logs in on every run and accepts the supplier agreement by scrolling it to the end.",
+   "code": [
+    "packages/components/elife/src/actions/GetAssignedTransfers.ts",
+    "packages/components/elife/src/actions/AcceptSupplierAgreement.ts",
+    "packages/components/elife/src/Pages.ts"
+   ],
+   "status": "partial",
+   "source": "src-elife",
+   "stage": "st-col-getin",
+   "tag": "",
+   "wing": "collect"
+  },
+  {
+   "id": "col-elife-read",
+   "kind": "job",
+   "name": "Open each ride tile",
+   "summary": "Closes pop-ups, scrolls until all booked rides are loaded, opens each ride tile in turn, and catches the ride data the page downloads while doing so.",
+   "code": [
+    "packages/components/elife/src/actions/GetAssignedTransfers.ts",
+    "packages/components/elife/src/actions/CloseModals.ts",
+    "packages/components/elife/src/actions/LoadAllRides.ts",
+    "packages/components/elife/src/actions/OpenTransferPage.ts",
+    "packages/components/elife/src/actions/RideResponseInterceptor.ts",
+    "packages/components/elife/src/models/ElifeRideDTO.ts"
+   ],
+   "status": "works",
+   "source": "src-elife",
+   "stage": "st-col-read",
+   "tag": "",
+   "wing": "collect",
+   "how": [
+    "Duplicates are removed by ride id and trip number.",
+    "Scrolling gives up after 20 scrolls, with a warning.",
+    "Brings: ride id, pickup, places, vehicle class, amount, passengers."
+   ]
+  },
+  {
+   "id": "col-sheet-getin",
+   "kind": "job",
+   "name": "Service account key",
+   "summary": "No browser involved: it signs in to Google with a service-account key from the config.",
+   "code": [
+    "packages/components/google-sheets/src/services/GoogleSheetsService.ts",
+    "packages/components/google-sheets/src/models/GoogleServiceAccountConfig.ts"
+   ],
+   "status": "works",
+   "source": "src-sheet",
+   "stage": "st-col-getin",
+   "tag": "",
+   "wing": "collect"
+  },
+  {
+   "id": "col-sheet-read",
+   "kind": "job",
+   "name": "Read the sheet rows",
+   "summary": "Reads the configured sheet 100 rows at a time and maps columns to order fields by a column template from the config.",
+   "code": [
+    "packages/components/google-sheets/src/services/GoogleSheetsService.ts",
+    "packages/components/google-sheets/src/models/SheetTarget.ts",
+    "packages/components/google-sheets/src/actions/GetAssignedTransfers.ts"
+   ],
+   "status": "works",
+   "source": "src-sheet",
+   "stage": "st-col-read",
+   "tag": "",
+   "wing": "collect",
+   "how": [
+    "Columns may be: id, date, time, from, to, price, vehicle type, payment method, passenger name, phone, passenger count, flight number, comment, e-mail."
+   ]
+  },
+  {
+   "id": "col-cataxis-getin",
+   "kind": "job",
+   "name": "Cookies, else log in",
+   "summary": "Opens the provider page; if redirected, logs in through the main page's menu with an e-mail and a code.",
+   "code": [
+    "packages/components/ca-taxis/src/actions/GetAssignedTransfers.ts",
+    "packages/components/ca-taxis/src/Pages.ts"
+   ],
+   "status": "works",
+   "source": "src-cataxis",
+   "stage": "st-col-getin",
+   "tag": "",
+   "wing": "collect"
+  },
+  {
+   "id": "col-cataxis-read",
+   "kind": "job",
+   "name": "List, then each booking",
+   "summary": "Asks the platform's search address for upcoming transfers, then opens each one's details page for customer, vehicle and net rate.",
+   "code": [
+    "packages/components/ca-taxis/src/actions/RequestUpcomingTransfers.ts",
+    "packages/components/ca-taxis/src/actions/OpenTransferDetailsPage.ts",
+    "packages/components/ca-taxis/src/actions/ParseTransferDetails.ts",
+    "packages/components/ca-taxis/src/actions/GetAssignedTransfers.ts"
+   ],
+   "status": "works",
+   "source": "src-cataxis",
+   "stage": "st-col-read",
+   "tag": "",
+   "wing": "collect",
+   "how": [
+    "When the details page has three sections the net rate is divided by two.",
+    "Brings: reservation code, pickup, places, vehicle, net rate, customer name and phone."
+   ]
+  },
+  {
+   "id": "col-shuttlespain-getin",
+   "kind": "job",
+   "name": "Cookies, else log in",
+   "summary": "Opens the services list; if redirected, logs in with user name and password.",
+   "code": [
+    "packages/components/shuttlespain/src/actions/GetAssignedTransfers.ts",
+    "packages/components/shuttlespain/src/Pages.ts"
+   ],
+   "status": "works",
+   "source": "src-shuttlespain",
+   "stage": "st-col-getin",
+   "tag": "",
+   "wing": "collect"
+  },
+  {
+   "id": "col-shuttlespain-read",
+   "kind": "job",
+   "name": "Catch the page's data",
+   "summary": "Opens the services list and catches the data the page itself downloads; each row becomes an order.",
+   "code": [
+    "packages/components/shuttlespain/src/actions/RideResponseInterceptor.ts",
+    "packages/components/shuttlespain/src/actions/GetAssignedTransfers.ts",
+    "packages/components/shuttlespain/src/models/TransfersDTOs.ts"
+   ],
+   "status": "works",
+   "source": "src-shuttlespain",
+   "stage": "st-col-read",
+   "tag": "",
+   "wing": "collect",
+   "how": [
+    "The route text is split on a dash into from and to.",
+    "Brings: reference, pickup, route, transport, total price, customer name and phone."
+   ]
+  },
+  {
+   "id": "col-chofix-getin",
+   "kind": "job",
+   "name": "Cookies, else log in",
+   "summary": "Opens the confirmed-rides page; if redirected, logs in with e-mail and password.",
+   "code": [
+    "packages/components/chofix/src/actions/GetAssignedTransfers.ts",
+    "packages/components/chofix/src/Pages.ts"
+   ],
+   "status": "works",
+   "source": "src-chofix",
+   "stage": "st-col-getin",
+   "tag": "",
+   "wing": "collect"
+  },
+  {
+   "id": "col-chofix-read",
+   "kind": "job",
+   "name": "Read confirmed table",
+   "summary": "Reads each row of the confirmed-rides table: date, time, route, passengers, vehicle, price, comment.",
+   "code": [
+    "packages/components/chofix/src/actions/GetAssignedTransfers.ts"
+   ],
+   "status": "partial",
+   "source": "src-chofix",
+   "stage": "st-col-read",
+   "tag": "",
+   "wing": "collect",
+   "how": [
+    "Every order gets the id 'unknown' (marked todo).",
+    "Leftover debug prints remain in the page script."
+   ]
+  },
+  {
+   "id": "order-record",
+   "kind": "thing",
+   "name": "The order record",
+   "summary": "The one shape every offer and every assigned ride is turned into before it leaves: id, source, pickup time, from, to, car type, cost, optionally passengers, customer and extras, plus a verdict of compliant or not.",
+   "code": [
+    "packages/shared/src/models/Order.ts",
+    "packages/components/wpickups/src/utils.ts",
+    "packages/components/transfeero/src/utils.ts",
+    "packages/components/connecto/src/utils.ts"
+   ],
+   "status": "works",
+   "wing": "spine",
+   "tag": "one shape for every ride",
+   "how": [
+    "Collected rides are always marked compliant.",
+    "Each source has its own converter into this shape.",
+    "Customer name, phone and comments travel inside it."
+   ],
+   "change": [
+    "A new field goes into Order.ts and then into each source's converter."
+   ]
+  },
+  {
+   "id": "announce",
+   "kind": "outlet",
+   "name": "Announce offers",
+   "summary": "Sends each offer to the Telegram chats bound to that worker: green for taken, yellow for seen but not taken, red for a failed take.",
+   "code": [
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts",
+    "apps/dispatcher/src/index.ts"
+   ],
+   "status": "works",
+   "wing": "spine",
+   "tag": "green, yellow, red",
+   "how": [
+    "More than 10 not-taken offers at once become one summary line.",
+    "Customer details are shown only for taken offers.",
+    "A take that keeps failing is announced again on every poll.",
+    "A worker with no chat bound announces to nobody."
+   ],
+   "change": [
+    "The message layout is TelegramManageBot.formatOrder."
+   ]
+  },
+  {
+   "id": "publish",
+   "kind": "outlet",
+   "name": "Publish to controller",
+   "summary": "Posts order records to the controller's addOrders address with an API key; a failed post is logged and dropped, with no retry.",
+   "code": [
+    "packages/shared/src/services/OrderPublisher.ts",
+    "apps/dispatcher/src/index.ts",
+    "apps/consolidator/src/index.ts"
+   ],
+   "status": "works",
+   "wing": "spine",
+   "tag": "HTTP post, no retry",
+   "how": [
+    "From the hunt: taken and not-taken offers are published; failed takes are not.",
+    "From the collection: the full current list is published after every run."
+   ]
+  },
+  {
+   "id": "answer",
+   "kind": "outlet",
+   "name": "Answer what is booked",
+   "summary": "On request in Telegram, replies with the collected rides sorted by pickup time, covering the first two calendar days, split into messages of at most 4000 characters.",
+   "code": [
+    "apps/consolidator/src/telegram/TelegramConsolidatorBot.ts",
+    "apps/consolidator/src/services/BackgroundConsolidator.ts"
+   ],
+   "status": "works",
+   "wing": "spine",
+   "tag": "on request, two days",
+   "how": [
+    "Commands: list the sources, collect one source, collect all.",
+    "A result younger than 60 seconds is reused; otherwise a fresh run starts, or the running one is awaited.",
+    "Sources that failed are named in red first."
+   ]
+  },
+  {
+   "id": "operator",
+   "kind": "actor",
+   "name": "Operator",
+   "summary": "The person at the transfer company who talks to both Telegram bots: receives offers, tunes the rules, asks what is booked.",
+   "code": [
+    "apps/dispatcher/src/telegram/",
+    "apps/consolidator/src/telegram/",
+    "packages/shared/src/telegram/"
+   ],
+   "status": "works",
+   "wing": "spine",
+   "tag": "in Telegram"
+  },
+  {
+   "id": "controller",
+   "kind": "actor",
+   "name": "Controller",
+   "summary": "A separate system, not in this repository, that receives the order records over HTTP; only its address and key appear, in the config.",
+   "code": [
+    "packages/shared/src/services/OrderPublisher.ts"
+   ],
+   "status": "unknown",
+   "wing": "spine",
+   "tag": "outside this repo"
+  },
+  {
+   "id": "lv-startstop",
+   "kind": "lever",
+   "name": "Start, stop",
+   "summary": "Turns a worker's hunting on or off; the choice is remembered across restarts.",
+   "code": [
+    "packages/shared/src/telegram/CommonBotComponent.ts",
+    "apps/dispatcher/src/services/WorkersManager.ts"
+   ],
+   "status": "works",
+   "wing": "levers",
+   "under": "source",
+   "setFrom": "telegram",
+   "applies": [
+    "src-wpickups",
+    "src-transfeero",
+    "src-connecto"
+   ]
+  },
+  {
+   "id": "lv-bindchat",
+   "kind": "lever",
+   "name": "Bind chat to worker",
+   "summary": "The /worker command ties the current chat to one worker; that chat then configures it and receives its offers.",
+   "code": [
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts",
+    "packages/shared/src/models/TelegramBotPreferences.ts"
+   ],
+   "status": "works",
+   "wing": "levers",
+   "under": "source",
+   "setFrom": "telegram",
+   "applies": [
+    "src-wpickups",
+    "src-transfeero",
+    "src-connecto"
+   ],
+   "how": [
+    "A chat that is not bound falls back to the first worker for commands, and receives no offers."
+   ]
+  },
+  {
+   "id": "lv-allowlist",
+   "kind": "lever",
+   "name": "Allowed chats",
+   "summary": "Both bots ignore messages from any chat whose id is not listed in the config.",
+   "code": [
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts",
+    "apps/consolidator/src/telegram/TelegramConsolidatorBot.ts",
+    "apps/dispatcher/src/models/TelegramOptions.ts",
+    "apps/consolidator/src/models/TelegramOptions.ts"
+   ],
+   "status": "works",
+   "wing": "levers",
+   "under": "source",
+   "setFrom": "config",
+   "applies": [
+    "src-wpickups",
+    "src-transfeero",
+    "src-connecto"
+   ],
+   "unverified": [
+    "The filtering itself runs in the bot base class, which lives in the commons library outside this repo."
+   ]
+  },
+  {
+   "id": "lv-restart",
+   "kind": "lever",
+   "name": "Restart the app",
+   "summary": "The /restart_app command ends the hunting programme with exit code 2; the container's restart policy brings it back.",
+   "code": [
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts",
+    "apps/dispatcher/src/services/HostService.ts",
+    "apps/dispatcher/docker-compose.yml"
+   ],
+   "status": "works",
+   "wing": "levers",
+   "under": "source",
+   "setFrom": "telegram",
+   "applies": []
+  },
+  {
+   "id": "lv-reboot",
+   "kind": "lever",
+   "name": "Reboot the server",
+   "summary": "The /reboot_host command runs the system's reboot command.",
+   "code": [
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts",
+    "apps/dispatcher/src/services/HostService.ts"
+   ],
+   "status": "unknown",
+   "wing": "levers",
+   "under": "source",
+   "setFrom": "telegram",
+   "applies": [],
+   "unverified": [
+    "The programme runs inside a container; whether this reboots the actual server was not checked."
+   ]
+  },
+  {
+   "id": "lv-logins",
+   "kind": "lever",
+   "name": "Site logins",
+   "summary": "E-mail and password per worker, read from the config file when the programme starts.",
+   "code": [
+    "packages/components/wpickups/src/models/WPickupsConfig.ts",
+    "packages/components/transfeero/src/models/TransfeeroConfig.ts",
+    "apps/dispatcher/src/models/Config.ts"
+   ],
+   "status": "works",
+   "wing": "levers",
+   "under": "st-hunt-getin",
+   "setFrom": "config",
+   "applies": [
+    "src-wpickups",
+    "src-transfeero"
+   ]
+  },
+  {
+   "id": "lv-mailbox",
+   "kind": "lever",
+   "name": "Mailbox login",
+   "summary": "User and password of the mailbox that receives Connecto's e-mails, read from the config file.",
+   "code": [
+    "packages/components/connecto/src/models/ConnectoConfig.ts",
+    "packages/components/connecto/src/models/ImapServiceConfig.ts"
+   ],
+   "status": "works",
+   "wing": "levers",
+   "under": "st-hunt-getin",
+   "setFrom": "config",
+   "applies": [
+    "src-connecto"
+   ]
+  },
+  {
+   "id": "lv-delay",
+   "kind": "lever",
+   "name": "Poll delay",
+   "summary": "Seconds between two checks; 20 by default, changed by sending a number.",
+   "code": [
+    "packages/shared/src/telegram/CommonBotComponent.ts",
+    "packages/shared/src/worker/CommonWorker.ts",
+    "packages/shared/src/models/CommonWorkerState.ts"
+   ],
+   "status": "works",
+   "wing": "levers",
+   "under": "st-hunt-spot",
+   "setFrom": "telegram",
+   "applies": [
+    "src-wpickups",
+    "src-transfeero",
+    "src-connecto"
+   ]
+  },
+  {
+   "id": "lv-days",
+   "kind": "lever",
+   "name": "Days ahead",
+   "summary": "How far ahead Welcome Pickups offers are looked for: 14 days by default, kept in the worker's saved state with no Telegram menu.",
+   "code": [
+    "packages/components/wpickups/src/WPickupsWorker.ts",
+    "packages/components/wpickups/src/models/WPickupsFilterOptions.ts"
+   ],
+   "status": "works",
+   "wing": "levers",
+   "under": "st-hunt-spot",
+   "setFrom": "state",
+   "applies": [
+    "src-wpickups"
+   ]
+  },
+  {
+   "id": "lv-exclusions",
+   "kind": "lever",
+   "name": "Time exclusions",
+   "summary": "Time ranges in which no ride may be taken, typed as 'HH:MM-HH:MM DD.MM' in local time and removed by number.",
+   "code": [
+    "packages/shared/src/telegram/CommonBotComponent.ts",
+    "packages/shared/src/utils/timeRange.ts",
+    "packages/shared/src/worker/TimeExclusionsCleaner.ts",
+    "packages/shared/src/worker/CommonWorker.ts"
+   ],
+   "status": "works",
+   "wing": "levers",
+   "under": "st-hunt-judge",
+   "setFrom": "telegram",
+   "applies": [
+    "src-wpickups",
+    "src-transfeero",
+    "src-connecto"
+   ],
+   "how": [
+    "Ranges that have ended are purged every 10 minutes.",
+    "Removal accepts one number, a range like 1-3, or a list like 1,3,5."
+   ]
+  },
+  {
+   "id": "lv-mincost",
+   "kind": "lever",
+   "name": "Minimal cost",
+   "summary": "The payout floor used by the Transfeero rule; 10000 by default.",
+   "code": [
+    "packages/shared/src/telegram/CommonBotComponent.ts",
+    "packages/components/transfeero/src/TransfeeroWorker.ts",
+    "packages/shared/src/models/CommonFilterOptions.ts"
+   ],
+   "status": "works",
+   "wing": "levers",
+   "under": "st-hunt-judge",
+   "setFrom": "telegram",
+   "applies": [
+    "src-transfeero"
+   ],
+   "how": [
+    "The Welcome Pickups menu replaces it with per-vehicle floors; the Connecto menu does not show it."
+   ]
+  },
+  {
+   "id": "lv-mincost-vehicle",
+   "kind": "lever",
+   "name": "Floor per vehicle",
+   "summary": "Separate payout floors for minivan and sedan on Welcome Pickups; 1000 each by default.",
+   "code": [
+    "packages/components/wpickups/src/telegram/WPickupsBotComponent.ts",
+    "packages/components/wpickups/src/models/WPickupsFilterOptions.ts"
+   ],
+   "status": "works",
+   "wing": "levers",
+   "under": "st-hunt-judge",
+   "setFrom": "telegram",
+   "applies": [
+    "src-wpickups"
+   ]
+  },
+  {
+   "id": "lv-rate",
+   "kind": "lever",
+   "name": "Floor per kilometre",
+   "summary": "The lowest payout per kilometre Welcome Pickups rides must reach; 100 by default.",
+   "code": [
+    "packages/components/wpickups/src/telegram/WPickupsBotComponent.ts",
+    "packages/components/wpickups/src/models/WPickupsFilterOptions.ts"
+   ],
+   "status": "works",
+   "wing": "levers",
+   "under": "st-hunt-judge",
+   "setFrom": "telegram",
+   "applies": [
+    "src-wpickups"
+   ],
+   "how": [
+    "After a mistyped number the Back button leads nowhere: its menu id is misspelt."
+   ]
+  },
+  {
+   "id": "lv-pricelist",
+   "kind": "lever",
+   "name": "Price list file",
+   "summary": "A text file with one line per ride type worth taking (from - to - vehicle - price); uploading replaces the whole list, and it can be downloaded back.",
+   "code": [
+    "packages/components/connecto/src/telegram/ConnectoBotComponent.ts",
+    "packages/components/connecto/src/models/ConnectoTransferDetails.ts"
+   ],
+   "status": "works",
+   "wing": "levers",
+   "under": "st-hunt-judge",
+   "setFrom": "telegram",
+   "applies": [
+    "src-connecto"
+   ]
+  },
+  {
+   "id": "lv-drivers",
+   "kind": "lever",
+   "name": "Drivers to avoid",
+   "summary": "Driver names that are never picked when a Welcome Pickups transfer is assigned.",
+   "code": [
+    "packages/components/wpickups/src/models/WPickupsConfig.ts",
+    "packages/components/wpickups/src/actions/AssignDriver.ts"
+   ],
+   "status": "works",
+   "wing": "levers",
+   "under": "st-hunt-take",
+   "setFrom": "config",
+   "applies": [
+    "src-wpickups"
+   ]
+  },
+  {
+   "id": "lv-vehiclemap",
+   "kind": "lever",
+   "name": "Vehicle map",
+   "summary": "Maps each Transfeero vehicle class to the company vehicle to select; a class missing from the map is never taken.",
+   "code": [
+    "packages/components/transfeero/src/models/TransfeeroConfig.ts",
+    "packages/components/transfeero/src/TransfeeroWorker.ts",
+    "packages/components/transfeero/src/actions/SelectVehicle.ts"
+   ],
+   "status": "works",
+   "wing": "levers",
+   "under": "st-hunt-take",
+   "setFrom": "config",
+   "applies": [
+    "src-transfeero"
+   ]
+  },
+  {
+   "id": "lv-order",
+   "kind": "lever",
+   "name": "Taking order",
+   "summary": "Whether several compliant Transfeero rides in one poll are taken in list order or reversed.",
+   "code": [
+    "packages/components/transfeero/src/models/TransfeeroConfig.ts",
+    "packages/components/transfeero/src/TransfeeroWorker.ts"
+   ],
+   "status": "works",
+   "wing": "levers",
+   "under": "st-hunt-take",
+   "setFrom": "config",
+   "applies": [
+    "src-transfeero"
+   ]
+  },
+  {
+   "id": "pl-worker-browsers",
+   "kind": "place",
+   "name": "Five worker browsers",
+   "summary": "Each hunting worker drives its own Chrome container with its own saved profile: one for Welcome Pickups, three for Transfeero, one for Connecto.",
+   "code": [
+    "apps/dispatcher/docker-compose.yml",
+    "ansible/roles/dispatcher-deploy/templates/docker-compose.yml.j2",
+    "packages/shared/src/services/BrowsersManager.ts"
+   ],
+   "status": "works",
+   "wing": "runtime",
+   "how": [
+    "The programme connects to each browser by an address from the config, trying 10 times, 3 seconds apart.",
+    "Each browser can be watched over VNC when that is switched on."
+   ],
+   "unverified": [
+    "The Chrome image is built outside this repo.",
+    "How many workers are configured lives in the untracked config."
+   ]
+  },
+  {
+   "id": "pl-collector-browser",
+   "kind": "place",
+   "name": "One collector browser",
+   "summary": "The collecting programme drives a single Chrome container and a single page for all sources.",
+   "code": [
+    "apps/consolidator/docker-compose.yml",
+    "ansible/roles/consolidator-deploy/templates/docker-compose.yml.j2",
+    "apps/consolidator/src/index.ts"
+   ],
+   "status": "works",
+   "wing": "runtime"
+  },
+  {
+   "id": "pl-storage",
+   "kind": "place",
+   "name": "Saved state and cookies",
+   "summary": "A storage folder on a volume: per worker its settings and cookies, which workers are on, which chat is bound to which worker; per collected source its cookies.",
+   "code": [
+    "packages/shared/src/worker/BasicWorker.ts",
+    "packages/shared/src/worker/CommonWorker.ts",
+    "apps/dispatcher/src/services/WorkersManager.ts",
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts",
+    "apps/consolidator/src/services/ConsolidatorService.ts"
+   ],
+   "status": "works",
+   "wing": "runtime",
+   "how": [
+    "Operator settings are saved here when they are changed.",
+    "The storage classes themselves come from the commons library."
+   ]
+  },
+  {
+   "id": "pl-config",
+   "kind": "place",
+   "name": "Config file per app",
+   "summary": "Logins, bot tokens, allowed chats, the controller's address and key, browser addresses, and for the collector the list of sources; read once at start, kept out of git, delivered by Ansible.",
+   "code": [
+    "apps/dispatcher/src/models/Config.ts",
+    "apps/consolidator/src/models/Config.ts",
+    "apps/consolidator/src/models/ConsolidatorConfig.ts",
+    "ansible/roles/dispatcher-deploy/tasks/main.yml",
+    "ansible/roles/consolidator-deploy/tasks/main.yml",
+    ".gitignore"
+   ],
+   "status": "works",
+   "wing": "runtime",
+   "how": [
+    "Changing a config value means redeploying or restarting the app."
+   ]
+  },
+  {
+   "id": "pl-build",
+   "kind": "place",
+   "name": "Build and image registry",
+   "summary": "Each app is bundled into one file and baked into a Docker image tagged for a private registry protected by TLS and a password.",
+   "code": [
+    "apps/dispatcher/Dockerfile",
+    "apps/consolidator/Dockerfile",
+    "apps/dispatcher/rollup.config.js",
+    "apps/consolidator/rollup.config.js",
+    "ansible/roles/docker-registry/",
+    "scripts/generate-registry-certs.sh",
+    "package.json"
+   ],
+   "status": "works",
+   "wing": "runtime",
+   "unverified": [
+    "The README says bundling also pushes the image; the scripts only build and bundle, so the push step is not in the repo."
+   ]
+  },
+  {
+   "id": "pl-server",
+   "kind": "place",
+   "name": "Server set-up and deploy",
+   "summary": "Ansible playbooks prepare the server (Docker, users, certificate trust) and roll out each stack: write the config, pull images, start containers.",
+   "code": [
+    "ansible/playbooks/",
+    "ansible/roles/common-base/",
+    "ansible/roles/docker-engine/",
+    "ansible/roles/dispatcher-deploy/",
+    "ansible/roles/consolidator-deploy/",
+    "ansible/inventory/hosts.yml",
+    ".devcontainer/"
+   ],
+   "status": "works",
+   "wing": "runtime"
+  },
+  {
+   "id": "pl-monitoring",
+   "kind": "place",
+   "name": "Monitoring",
+   "summary": "Grafana dashboards over host and container metrics and over container logs, kept for 30 days.",
+   "code": [
+    "monitoring/",
+    "ansible/roles/monitoring-deploy/"
+   ],
+   "status": "partial",
+   "wing": "runtime",
+   "how": [
+    "The apps expose no metrics of their own; those scrape entries are commented out.",
+    "The image health checks call a /health address that no code in the repo serves."
+   ]
+  },
+  {
+   "id": "pl-commons",
+   "kind": "place",
+   "name": "Commons library",
+   "summary": "A private package, installed from a private registry and not in this repository, that provides storage, the Telegram bot base, logging, retry helpers and date helpers.",
+   "code": [
+    "package.json",
+    "apps/dispatcher/Dockerfile"
+   ],
+   "status": "unknown",
+   "wing": "runtime"
+  }
+ ],
+ "links": [
+  {
+   "from": "src-wpickups",
+   "to": "hunt-wpickups-getin",
+   "kind": "session",
+   "label": "login, cookies"
+  },
+  {
+   "from": "hunt-wpickups-getin",
+   "to": "hunt-wpickups-spot",
+   "kind": "session",
+   "label": "signed-in page"
+  },
+  {
+   "from": "hunt-wpickups-spot",
+   "to": "hunt-wpickups-judge",
+   "kind": "offer",
+   "label": "offer just seen"
+  },
+  {
+   "from": "hunt-wpickups-judge",
+   "to": "hunt-wpickups-take",
+   "kind": "offer",
+   "label": "offer that passed"
+  },
+  {
+   "from": "hunt-wpickups-judge",
+   "to": "order-record",
+   "kind": "order",
+   "label": "offer that failed the rules"
+  },
+  {
+   "from": "hunt-wpickups-take",
+   "to": "src-wpickups",
+   "kind": "action",
+   "label": "clicks on the platform"
+  },
+  {
+   "from": "hunt-wpickups-take",
+   "to": "order-record",
+   "kind": "order",
+   "label": "taken offer, or failed take"
+  },
+  {
+   "from": "src-transfeero",
+   "to": "hunt-transfeero-getin",
+   "kind": "session",
+   "label": "login, cookies"
+  },
+  {
+   "from": "hunt-transfeero-getin",
+   "to": "hunt-transfeero-spot",
+   "kind": "session",
+   "label": "signed-in page"
+  },
+  {
+   "from": "hunt-transfeero-spot",
+   "to": "hunt-transfeero-judge",
+   "kind": "offer",
+   "label": "offer just seen"
+  },
+  {
+   "from": "hunt-transfeero-judge",
+   "to": "hunt-transfeero-take",
+   "kind": "offer",
+   "label": "offer that passed"
+  },
+  {
+   "from": "hunt-transfeero-judge",
+   "to": "order-record",
+   "kind": "order",
+   "label": "offer that failed the rules"
+  },
+  {
+   "from": "hunt-transfeero-take",
+   "to": "src-transfeero",
+   "kind": "action",
+   "label": "clicks on the platform"
+  },
+  {
+   "from": "hunt-transfeero-take",
+   "to": "order-record",
+   "kind": "order",
+   "label": "taken offer, or failed take"
+  },
+  {
+   "from": "src-connecto",
+   "to": "hunt-connecto-getin",
+   "kind": "session",
+   "label": "e-mails"
+  },
+  {
+   "from": "hunt-connecto-getin",
+   "to": "hunt-connecto-spot",
+   "kind": "session",
+   "label": "mailbox connection"
+  },
+  {
+   "from": "hunt-connecto-spot",
+   "to": "hunt-connecto-judge",
+   "kind": "offer",
+   "label": "offer just seen"
+  },
+  {
+   "from": "hunt-connecto-judge",
+   "to": "hunt-connecto-take",
+   "kind": "offer",
+   "label": "offer that passed"
+  },
+  {
+   "from": "hunt-connecto-judge",
+   "to": "order-record",
+   "kind": "order",
+   "label": "offer that failed the rules"
+  },
+  {
+   "from": "hunt-connecto-take",
+   "to": "src-connecto",
+   "kind": "action",
+   "label": "clicks on the platform"
+  },
+  {
+   "from": "hunt-connecto-take",
+   "to": "order-record",
+   "kind": "order",
+   "label": "taken offer, or failed take"
+  },
+  {
+   "from": "src-wpickups",
+   "to": "col-wpickups-getin",
+   "kind": "session",
+   "label": "login, cookies"
+  },
+  {
+   "from": "col-wpickups-getin",
+   "to": "col-wpickups-read",
+   "kind": "session",
+   "label": "open session"
+  },
+  {
+   "from": "col-wpickups-read",
+   "to": "order-record",
+   "kind": "order",
+   "label": "assigned rides"
+  },
+  {
+   "from": "src-transfeero",
+   "to": "col-transfeero-getin",
+   "kind": "session",
+   "label": "login, cookies"
+  },
+  {
+   "from": "col-transfeero-getin",
+   "to": "col-transfeero-read",
+   "kind": "session",
+   "label": "open session"
+  },
+  {
+   "from": "col-transfeero-read",
+   "to": "order-record",
+   "kind": "order",
+   "label": "assigned rides"
+  },
+  {
+   "from": "src-connecto",
+   "to": "col-connecto-getin",
+   "kind": "session",
+   "label": "login, cookies"
+  },
+  {
+   "from": "col-connecto-getin",
+   "to": "col-connecto-read",
+   "kind": "session",
+   "label": "open session"
+  },
+  {
+   "from": "col-connecto-read",
+   "to": "order-record",
+   "kind": "order",
+   "label": "assigned rides"
+  },
+  {
+   "from": "src-talixo",
+   "to": "col-talixo-getin",
+   "kind": "session",
+   "label": "login, cookies"
+  },
+  {
+   "from": "col-talixo-getin",
+   "to": "col-talixo-read",
+   "kind": "session",
+   "label": "open session"
+  },
+  {
+   "from": "col-talixo-read",
+   "to": "order-record",
+   "kind": "order",
+   "label": "assigned rides"
+  },
+  {
+   "from": "src-atob",
+   "to": "col-atob-getin",
+   "kind": "session",
+   "label": "login, cookies"
+  },
+  {
+   "from": "col-atob-getin",
+   "to": "col-atob-read",
+   "kind": "session",
+   "label": "open session"
+  },
+  {
+   "from": "col-atob-read",
+   "to": "order-record",
+   "kind": "order",
+   "label": "assigned rides"
+  },
+  {
+   "from": "src-kiwi",
+   "to": "col-kiwi-getin",
+   "kind": "session",
+   "label": "login, cookies"
+  },
+  {
+   "from": "col-kiwi-getin",
+   "to": "col-kiwi-read",
+   "kind": "session",
+   "label": "open session"
+  },
+  {
+   "from": "col-kiwi-read",
+   "to": "order-record",
+   "kind": "order",
+   "label": "assigned rides"
+  },
+  {
+   "from": "src-wtdriver",
+   "to": "col-wtdriver-getin",
+   "kind": "session",
+   "label": "login, cookies"
+  },
+  {
+   "from": "col-wtdriver-getin",
+   "to": "col-wtdriver-read",
+   "kind": "session",
+   "label": "open session"
+  },
+  {
+   "from": "col-wtdriver-read",
+   "to": "order-record",
+   "kind": "order",
+   "label": "assigned rides"
+  },
+  {
+   "from": "src-elife",
+   "to": "col-elife-getin",
+   "kind": "session",
+   "label": "login, cookies"
+  },
+  {
+   "from": "col-elife-getin",
+   "to": "col-elife-read",
+   "kind": "session",
+   "label": "open session"
+  },
+  {
+   "from": "col-elife-read",
+   "to": "order-record",
+   "kind": "order",
+   "label": "assigned rides"
+  },
+  {
+   "from": "src-sheet",
+   "to": "col-sheet-getin",
+   "kind": "session",
+   "label": "service-account key"
+  },
+  {
+   "from": "col-sheet-getin",
+   "to": "col-sheet-read",
+   "kind": "session",
+   "label": "open session"
+  },
+  {
+   "from": "col-sheet-read",
+   "to": "order-record",
+   "kind": "order",
+   "label": "assigned rides"
+  },
+  {
+   "from": "src-cataxis",
+   "to": "col-cataxis-getin",
+   "kind": "session",
+   "label": "login, cookies"
+  },
+  {
+   "from": "col-cataxis-getin",
+   "to": "col-cataxis-read",
+   "kind": "session",
+   "label": "open session"
+  },
+  {
+   "from": "col-cataxis-read",
+   "to": "order-record",
+   "kind": "order",
+   "label": "assigned rides"
+  },
+  {
+   "from": "src-shuttlespain",
+   "to": "col-shuttlespain-getin",
+   "kind": "session",
+   "label": "login, cookies"
+  },
+  {
+   "from": "col-shuttlespain-getin",
+   "to": "col-shuttlespain-read",
+   "kind": "session",
+   "label": "open session"
+  },
+  {
+   "from": "col-shuttlespain-read",
+   "to": "order-record",
+   "kind": "order",
+   "label": "assigned rides"
+  },
+  {
+   "from": "src-chofix",
+   "to": "col-chofix-getin",
+   "kind": "session",
+   "label": "login, cookies"
+  },
+  {
+   "from": "col-chofix-getin",
+   "to": "col-chofix-read",
+   "kind": "session",
+   "label": "open session"
+  },
+  {
+   "from": "col-chofix-read",
+   "to": "order-record",
+   "kind": "order",
+   "label": "assigned rides"
+  },
+  {
+   "from": "order-record",
+   "to": "announce",
+   "kind": "order",
+   "label": "hunted offers"
+  },
+  {
+   "from": "order-record",
+   "to": "publish",
+   "kind": "order",
+   "label": "all records"
+  },
+  {
+   "from": "order-record",
+   "to": "answer",
+   "kind": "order",
+   "label": "collected rides"
+  },
+  {
+   "from": "announce",
+   "to": "operator",
+   "kind": "message",
+   "label": "green, yellow, red messages"
+  },
+  {
+   "from": "answer",
+   "to": "operator",
+   "kind": "message",
+   "label": "list of booked rides"
+  },
+  {
+   "from": "operator",
+   "to": "answer",
+   "kind": "command",
+   "label": "collect one, collect all"
+  },
+  {
+   "from": "publish",
+   "to": "controller",
+   "kind": "http",
+   "label": "order records"
+  },
+  {
+   "from": "app-hunt",
+   "to": "announce",
+   "kind": "runs",
+   "label": "relays worker events"
+  },
+  {
+   "from": "app-hunt",
+   "to": "publish",
+   "kind": "runs",
+   "label": "relays worker events"
+  },
+  {
+   "from": "app-collect",
+   "to": "publish",
+   "kind": "runs",
+   "label": "result of every run"
+  },
+  {
+   "from": "app-collect",
+   "to": "answer",
+   "kind": "runs",
+   "label": "latest result"
+  },
+  {
+   "from": "operator",
+   "to": "lv-startstop",
+   "kind": "setting",
+   "label": "Telegram menu or command"
+  },
+  {
+   "from": "lv-startstop",
+   "to": "app-hunt",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "operator",
+   "to": "lv-bindchat",
+   "kind": "setting",
+   "label": "Telegram menu or command"
+  },
+  {
+   "from": "lv-bindchat",
+   "to": "announce",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "pl-config",
+   "to": "lv-allowlist",
+   "kind": "setting",
+   "label": "config file"
+  },
+  {
+   "from": "lv-allowlist",
+   "to": "announce",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "lv-allowlist",
+   "to": "answer",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "operator",
+   "to": "lv-restart",
+   "kind": "setting",
+   "label": "Telegram menu or command"
+  },
+  {
+   "from": "lv-restart",
+   "to": "app-hunt",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "operator",
+   "to": "lv-reboot",
+   "kind": "setting",
+   "label": "Telegram menu or command"
+  },
+  {
+   "from": "lv-reboot",
+   "to": "pl-server",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "pl-config",
+   "to": "lv-logins",
+   "kind": "setting",
+   "label": "config file"
+  },
+  {
+   "from": "lv-logins",
+   "to": "hunt-wpickups-getin",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "lv-logins",
+   "to": "hunt-transfeero-getin",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "pl-config",
+   "to": "lv-mailbox",
+   "kind": "setting",
+   "label": "config file"
+  },
+  {
+   "from": "lv-mailbox",
+   "to": "hunt-connecto-getin",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "operator",
+   "to": "lv-delay",
+   "kind": "setting",
+   "label": "Telegram menu or command"
+  },
+  {
+   "from": "lv-delay",
+   "to": "hunt-wpickups-spot",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "lv-delay",
+   "to": "hunt-transfeero-spot",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "lv-delay",
+   "to": "hunt-connecto-spot",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "pl-storage",
+   "to": "lv-days",
+   "kind": "setting",
+   "label": "saved state file"
+  },
+  {
+   "from": "lv-days",
+   "to": "hunt-wpickups-spot",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "operator",
+   "to": "lv-exclusions",
+   "kind": "setting",
+   "label": "Telegram menu or command"
+  },
+  {
+   "from": "lv-exclusions",
+   "to": "hunt-wpickups-judge",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "lv-exclusions",
+   "to": "hunt-transfeero-judge",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "lv-exclusions",
+   "to": "hunt-connecto-judge",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "operator",
+   "to": "lv-mincost",
+   "kind": "setting",
+   "label": "Telegram menu or command"
+  },
+  {
+   "from": "lv-mincost",
+   "to": "hunt-transfeero-judge",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "operator",
+   "to": "lv-mincost-vehicle",
+   "kind": "setting",
+   "label": "Telegram menu or command"
+  },
+  {
+   "from": "lv-mincost-vehicle",
+   "to": "hunt-wpickups-judge",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "operator",
+   "to": "lv-rate",
+   "kind": "setting",
+   "label": "Telegram menu or command"
+  },
+  {
+   "from": "lv-rate",
+   "to": "hunt-wpickups-judge",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "operator",
+   "to": "lv-pricelist",
+   "kind": "setting",
+   "label": "Telegram menu or command"
+  },
+  {
+   "from": "lv-pricelist",
+   "to": "hunt-connecto-judge",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "pl-config",
+   "to": "lv-drivers",
+   "kind": "setting",
+   "label": "config file"
+  },
+  {
+   "from": "lv-drivers",
+   "to": "hunt-wpickups-take",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "pl-config",
+   "to": "lv-vehiclemap",
+   "kind": "setting",
+   "label": "config file"
+  },
+  {
+   "from": "lv-vehiclemap",
+   "to": "hunt-transfeero-take",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "lv-vehiclemap",
+   "to": "hunt-transfeero-judge",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "pl-config",
+   "to": "lv-order",
+   "kind": "setting",
+   "label": "config file"
+  },
+  {
+   "from": "lv-order",
+   "to": "hunt-transfeero-take",
+   "kind": "setting",
+   "label": "value used here"
+  },
+  {
+   "from": "pl-worker-browsers",
+   "to": "app-hunt",
+   "kind": "runtime",
+   "label": "one browser per worker"
+  },
+  {
+   "from": "pl-collector-browser",
+   "to": "app-collect",
+   "kind": "runtime",
+   "label": "one shared browser"
+  },
+  {
+   "from": "pl-storage",
+   "to": "app-hunt",
+   "kind": "runtime",
+   "label": "settings, cookies, on or off"
+  },
+  {
+   "from": "pl-storage",
+   "to": "app-collect",
+   "kind": "runtime",
+   "label": "cookies per source"
+  },
+  {
+   "from": "pl-config",
+   "to": "app-hunt",
+   "kind": "runtime",
+   "label": "settings read at start"
+  },
+  {
+   "from": "pl-config",
+   "to": "app-collect",
+   "kind": "runtime",
+   "label": "settings read at start"
+  },
+  {
+   "from": "pl-build",
+   "to": "pl-server",
+   "kind": "runtime",
+   "label": "images"
+  },
+  {
+   "from": "pl-server",
+   "to": "app-hunt",
+   "kind": "runtime",
+   "label": "deploys"
+  },
+  {
+   "from": "pl-server",
+   "to": "app-collect",
+   "kind": "runtime",
+   "label": "deploys"
+  },
+  {
+   "from": "pl-monitoring",
+   "to": "pl-server",
+   "kind": "runtime",
+   "label": "watches containers and host"
+  },
+  {
+   "from": "pl-commons",
+   "to": "app-hunt",
+   "kind": "runtime",
+   "label": "storage, bot base, helpers"
+  },
+  {
+   "from": "pl-commons",
+   "to": "app-collect",
+   "kind": "runtime",
+   "label": "storage, bot base, helpers"
+  }
+ ],
+ "routes": [
+  {
+   "id": "taken",
+   "name": "A good offer gets taken",
+   "steps": [
+    "src-wpickups",
+    "hunt-wpickups-getin",
+    "hunt-wpickups-spot",
+    "hunt-wpickups-judge",
+    "hunt-wpickups-take",
+    "order-record",
+    "announce",
+    "publish"
+   ],
+   "notes": [
+    "A new unassigned transfer appears on Welcome Pickups.",
+    "The worker is already signed in, from saved cookies or a fresh login.",
+    "The next poll, 20 seconds later at most, finds it in the unassigned list.",
+    "Its payout and payout per kilometre reach the floors and its pickup is not in an excluded range.",
+    "The worker assigns a driver and a vehicle and sees the transfer among the assigned ones.",
+    "The transfer is turned into an order record marked compliant.",
+    "Bound chats get a green 'New order' message with route, car, customer and cost.",
+    "The record is posted to the controller."
+   ]
+  },
+  {
+   "id": "skipped",
+   "name": "An offer fails the rules",
+   "steps": [
+    "hunt-transfeero-spot",
+    "hunt-transfeero-judge",
+    "order-record",
+    "announce",
+    "publish"
+   ],
+   "notes": [
+    "A ride shows up in the replayed rides request.",
+    "It misses a rule, for example the payout is under the minimal cost. Its id is remembered so it is not reported again.",
+    "It becomes an order record marked not compliant.",
+    "Bound chats get a yellow message without customer details.",
+    "The record is still posted to the controller, as not compliant."
+   ]
+  },
+  {
+   "id": "failed",
+   "name": "A take goes wrong",
+   "steps": [
+    "hunt-transfeero-judge",
+    "hunt-transfeero-take",
+    "order-record",
+    "announce"
+   ],
+   "notes": [
+    "The ride passes every rule.",
+    "The accept reply is not a yes, or nothing comes back within 10 seconds.",
+    "The ride is still turned into an order record, attached to the error.",
+    "Bound chats get a red 'Failed to accept order' message. Nothing is published; the take is tried again on the next poll."
+   ]
+  },
+  {
+   "id": "mail",
+   "name": "A Connecto e-mail arrives",
+   "steps": [
+    "src-connecto",
+    "hunt-connecto-getin",
+    "hunt-connecto-spot",
+    "hunt-connecto-judge",
+    "hunt-connecto-take",
+    "announce",
+    "publish"
+   ],
+   "notes": [
+    "The platform e-mails a proposal or a voucher.",
+    "The worker's mailbox connection is open.",
+    "The next poll lists the new e-mail, opens its link and reads the offer page.",
+    "The offer matches a line of the uploaded price list.",
+    "The worker clicks the accept button on that page.",
+    "Bound chats get a green message.",
+    "The record is posted to the controller."
+   ]
+  },
+  {
+   "id": "tune",
+   "name": "The operator tightens a rule",
+   "steps": [
+    "operator",
+    "lv-bindchat",
+    "lv-exclusions",
+    "pl-storage",
+    "hunt-wpickups-judge"
+   ],
+   "notes": [
+    "The operator opens the hunting bot's chat.",
+    "The chat is bound to one worker with /worker; /config opens that worker's menu.",
+    "Under Filter, the operator adds a time range in which nothing may be taken.",
+    "The range is written to the worker's saved state at once.",
+    "From the next poll on, pickups inside that range fail the rule."
+   ]
+  },
+  {
+   "id": "start",
+   "name": "The operator starts a worker",
+   "steps": [
+    "operator",
+    "lv-startstop",
+    "hunt-transfeero-getin",
+    "hunt-transfeero-spot",
+    "pl-storage"
+   ],
+   "notes": [
+    "The operator presses Start in the worker's menu.",
+    "The worker's start routine runs.",
+    "It gets past the waiting room and logs in if needed.",
+    "It captures the request to replay and begins polling.",
+    "The worker is recorded as on, so a restart will start it again."
+   ]
+  },
+  {
+   "id": "collect",
+   "name": "The ten-minute collection",
+   "steps": [
+    "app-collect",
+    "pl-collector-browser",
+    "col-kiwi-getin",
+    "col-kiwi-read",
+    "order-record",
+    "publish"
+   ],
+   "notes": [
+    "Ten minutes after the previous run ended, a new run begins.",
+    "The single browser page has its cookies wiped before each source.",
+    "For each source in turn, here Kiwitaxi: saved cookies are loaded, or a login is made.",
+    "The source's assigned rides are read; on failure the source is tried up to 3 times.",
+    "Rides become order records; those with a pickup in the past are dropped.",
+    "The full list from all sources is posted to the controller."
+   ]
+  },
+  {
+   "id": "ask",
+   "name": "The operator asks what is booked",
+   "steps": [
+    "operator",
+    "app-collect",
+    "order-record",
+    "answer"
+   ],
+   "notes": [
+    "The operator sends the collect-all command to the collecting bot.",
+    "A result under 60 seconds old is reused; otherwise a run is started or awaited.",
+    "All sources' records are merged and sorted by pickup time.",
+    "The reply lists two calendar days of rides, failed sources first in red."
+   ]
+  },
+  {
+   "id": "restart",
+   "name": "A restart loses nothing",
+   "steps": [
+    "lv-restart",
+    "pl-storage",
+    "app-hunt",
+    "pl-worker-browsers",
+    "hunt-wpickups-getin"
+   ],
+   "notes": [
+    "The operator sends the restart command, or the container restarts on its own.",
+    "Settings, cookies and each worker's on or off state are already on disk.",
+    "The programme starts and creates every configured worker.",
+    "It reconnects to each worker's browser, up to 10 tries.",
+    "Workers that were on start again and reuse their cookies."
+   ]
+  },
+  {
+   "id": "ship",
+   "name": "Shipping a new version",
+   "steps": [
+    "pl-build",
+    "pl-config",
+    "pl-server",
+    "pl-worker-browsers",
+    "app-hunt",
+    "pl-monitoring"
+   ],
+   "notes": [
+    "The app is bundled and built into an image for the private registry.",
+    "The app's config is kept as an untracked Ansible variable.",
+    "The deploy playbook writes the config, pulls the image and starts the stack.",
+    "The Chrome containers start alongside the app.",
+    "The programme starts and resumes the workers that were on.",
+    "Dashboards show the containers and their logs."
+   ]
+  }
+ ],
+ "guarantees": [
+  {
+   "id": "rule-first",
+   "name": "No rule passed, no take",
+   "text": "A ride is taken only after its source's rule set says yes. Everything else is only reported.",
+   "binds": [
+    "hunt-wpickups-judge",
+    "hunt-transfeero-judge",
+    "hunt-connecto-judge",
+    "hunt-wpickups-take",
+    "hunt-transfeero-take",
+    "hunt-connecto-take"
+   ],
+   "code": [
+    "packages/components/wpickups/src/WPickupsWorker.ts",
+    "packages/components/transfeero/src/TransfeeroWorker.ts",
+    "packages/components/connecto/src/ConnectoWorker.ts"
+   ]
+  },
+  {
+   "id": "excluded-hours",
+   "name": "Excluded hours are never taken",
+   "text": "Every rule set checks the pickup time against the operator's excluded ranges.",
+   "binds": [
+    "lv-exclusions",
+    "hunt-wpickups-judge",
+    "hunt-transfeero-judge",
+    "hunt-connecto-judge"
+   ],
+   "code": [
+    "packages/shared/src/worker/CommonWorker.ts",
+    "packages/shared/src/worker/TimeExclusionsCleaner.ts"
+   ]
+  },
+  {
+   "id": "platform-yes",
+   "name": "A take needs the platform's yes",
+   "text": "Welcome Pickups and Transfeero takes count only once the platform confirms. Connecto is the exception: its click is not checked.",
+   "binds": [
+    "hunt-wpickups-take",
+    "hunt-transfeero-take",
+    "hunt-connecto-take"
+   ],
+   "code": [
+    "packages/components/wpickups/src/actions/AssignDriverForTransfer.ts",
+    "packages/components/wpickups/src/actions/CheckAssigned.ts",
+    "packages/components/transfeero/src/actions/AcceptRide.ts"
+   ]
+  },
+  {
+   "id": "once",
+   "name": "A skipped offer is reported once",
+   "text": "Not-taken offers are remembered so each is announced once, not on every poll. The memory is not saved, so a restart announces them again.",
+   "binds": [
+    "hunt-wpickups-judge",
+    "hunt-transfeero-judge",
+    "hunt-connecto-spot",
+    "announce"
+   ],
+   "code": [
+    "packages/components/wpickups/src/WPickupsWorker.ts",
+    "packages/components/transfeero/src/TransfeeroWorker.ts",
+    "packages/components/connecto/src/ConnectoWorker.ts"
+   ]
+  },
+  {
+   "id": "listed-chats",
+   "name": "Only listed chats are heard",
+   "text": "Both bots ignore messages from chats that are not on the config's list.",
+   "binds": [
+    "lv-allowlist",
+    "announce",
+    "answer",
+    "operator"
+   ],
+   "code": [
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts",
+    "apps/consolidator/src/telegram/TelegramConsolidatorBot.ts"
+   ]
+  },
+  {
+   "id": "own-browser",
+   "name": "One browser per worker",
+   "text": "Workers never share a browser or a cookie jar; each has its own container and its own storage folder.",
+   "binds": [
+    "pl-worker-browsers",
+    "app-hunt",
+    "pl-storage"
+   ],
+   "code": [
+    "apps/dispatcher/src/services/WorkersManager.ts",
+    "packages/shared/src/services/BrowsersManager.ts",
+    "apps/dispatcher/docker-compose.yml"
+   ]
+  },
+  {
+   "id": "one-at-a-time",
+   "name": "One source at a time",
+   "text": "The collector has one page. Runs never overlap, and cookies are wiped between sources.",
+   "binds": [
+    "app-collect",
+    "pl-collector-browser",
+    "st-col-getin"
+   ],
+   "code": [
+    "apps/consolidator/src/services/BackgroundConsolidator.ts",
+    "apps/consolidator/src/services/ConsolidatorService.ts",
+    "apps/consolidator/src/actions/ClearCooies.ts"
+   ]
+  },
+  {
+   "id": "keeps-hunting",
+   "name": "A bad poll never stops hunting",
+   "text": "A poll that fails 5 times is dropped, and the next one is scheduled all the same.",
+   "binds": [
+    "app-hunt",
+    "st-hunt-spot"
+   ],
+   "code": [
+    "packages/shared/src/worker/CommonWorker.ts"
+   ],
+   "unverified": "The retry and error-muting helpers live in the commons library; their behaviour is read off their names and arguments."
+  },
+  {
+   "id": "survives-restart",
+   "name": "On or off survives a restart",
+   "text": "Which workers are running, their settings and their cookies are on disk and are picked up at start.",
+   "binds": [
+    "lv-startstop",
+    "pl-storage",
+    "app-hunt"
+   ],
+   "code": [
+    "apps/dispatcher/src/services/WorkersManager.ts",
+    "packages/shared/src/worker/BasicWorker.ts"
+   ]
+  },
+  {
+   "id": "future-only",
+   "name": "Only future rides are kept",
+   "text": "The collector drops every ride whose pickup time has already passed.",
+   "binds": [
+    "app-collect",
+    "answer",
+    "publish"
+   ],
+   "code": [
+    "apps/consolidator/src/services/ConsolidatorService.ts"
+   ]
+  },
+  {
+   "id": "one-shape",
+   "name": "Everything leaves as one record",
+   "text": "Whatever the source, an offer or ride is converted to the same order record before it is announced or published.",
+   "binds": [
+    "order-record",
+    "announce",
+    "publish",
+    "answer"
+   ],
+   "code": [
+    "packages/shared/src/models/Order.ts"
+   ]
+  },
+  {
+   "id": "isolated-failure",
+   "name": "One failing source spoils nothing",
+   "text": "A source that still fails after 3 tries is listed as failed; the others are collected and shown.",
+   "binds": [
+    "app-collect",
+    "answer"
+   ],
+   "code": [
+    "apps/consolidator/src/services/ConsolidatorService.ts",
+    "apps/consolidator/src/telegram/TelegramConsolidatorBot.ts"
+   ]
+  }
+ ],
+ "looseEnds": [
+  {
+   "id": "log-bot-off",
+   "name": "Log bot switched off",
+   "kind": "half-done",
+   "text": "The Telegram log bot is commented out in both programmes (the latest commit). Logs go to the console only.",
+   "binds": [
+    "app-hunt",
+    "app-collect"
+   ],
+   "code": [
+    "apps/dispatcher/src/index.ts",
+    "apps/consolidator/src/index.ts"
+   ],
+   "unverified": "Screenshots taken during takes go to the logger's image output, which now looks wired to a do-nothing callback; the logger class is outside the repo."
+  },
+  {
+   "id": "health",
+   "name": "Health check has no listener",
+   "kind": "half-done",
+   "text": "Both images check a /health address on ports 9091 and 9092, but no code in the repo listens there. App metrics are announced as a later phase.",
+   "binds": [
+    "pl-monitoring",
+    "pl-build"
+   ],
+   "code": [
+    "apps/dispatcher/Dockerfile",
+    "apps/consolidator/Dockerfile",
+    "monitoring/prometheus/prometheus.yml"
+   ]
+  },
+  {
+   "id": "connecto-unchecked",
+   "name": "Connecto take is not verified",
+   "kind": "half-done",
+   "text": "After clicking accept the worker waits half a second and reports success, without reading the platform's answer.",
+   "binds": [
+    "hunt-connecto-take"
+   ],
+   "code": [
+    "packages/components/connecto/src/actions/AcceptTransferProposal.ts",
+    "packages/components/connecto/src/actions/AcceptTransferVoucher.ts"
+   ]
+  },
+  {
+   "id": "cancelled-ignored",
+   "name": "Cancelled mark is ignored",
+   "kind": "half-done",
+   "text": "The Connecto offer page is checked for a cancellation notice, but the result is never used.",
+   "binds": [
+    "hunt-connecto-judge",
+    "hunt-connecto-spot"
+   ],
+   "code": [
+    "packages/components/connecto/src/actions/GetTransferVoucherDetails.ts",
+    "packages/components/connecto/src/ConnectoWorker.ts"
+   ]
+  },
+  {
+   "id": "no-real-id",
+   "name": "Three sources lack a real id",
+   "kind": "half-done",
+   "text": "Talixo and World Transfer rides get a new random id on every run; Chofix rides all get the id 'unknown'.",
+   "binds": [
+    "col-talixo-read",
+    "col-wtdriver-read",
+    "col-chofix-read"
+   ],
+   "code": [
+    "packages/components/talixo/src/actions/ParseAvailiableTransfers.ts",
+    "packages/components/wtdriver/src/actions/ParseApprovedTransfers.ts",
+    "packages/components/chofix/src/actions/GetAssignedTransfers.ts"
+   ],
+   "unverified": "Whether the controller needs stable ids is unknown; it is outside the repo."
+  },
+  {
+   "id": "elife-relogin",
+   "name": "Elife logs in on every run",
+   "kind": "stub",
+   "text": "Its signed-in check is a stub marked todo that always answers no.",
+   "binds": [
+    "col-elife-getin"
+   ],
+   "code": [
+    "packages/components/elife/src/actions/GetAssignedTransfers.ts"
+   ]
+  },
+  {
+   "id": "wt-double-login",
+   "name": "World Transfer logs in twice",
+   "kind": "half-done",
+   "text": "The login runs unconditionally, then again if the signed-in check fails; cookie saving is commented out.",
+   "binds": [
+    "col-wtdriver-getin"
+   ],
+   "code": [
+    "packages/components/wtdriver/src/actions/GetAssignedTransfers.ts"
+   ]
+  },
+  {
+   "id": "time-shift",
+   "name": "Pickup time shifted in place",
+   "kind": "risk",
+   "text": "To show local time, both bots add the UTC offset to the order's own pickup time. In the hunt the same record is published right afterwards; in the collector the shift lands on the kept result and repeats with each reply.",
+   "binds": [
+    "announce",
+    "publish",
+    "answer"
+   ],
+   "code": [
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts",
+    "apps/dispatcher/src/index.ts",
+    "apps/consolidator/src/telegram/TelegramConsolidatorBot.ts",
+    "apps/consolidator/src/services/BackgroundConsolidator.ts"
+   ],
+   "unverified": "Found by reading the code, not by running it; it may be intended."
+  },
+  {
+   "id": "dst",
+   "name": "Clock-change offset fixed at start",
+   "kind": "risk",
+   "text": "The hunting programme decides UTC+1 or UTC+2 once, when it starts. A daylight-saving change while it runs keeps the old offset until a restart. The collecting bot's display offset is fixed the same way.",
+   "binds": [
+    "app-hunt",
+    "order-record",
+    "answer"
+   ],
+   "code": [
+    "apps/dispatcher/src/index.ts",
+    "apps/consolidator/src/index.ts"
+   ]
+  },
+  {
+   "id": "readme-old",
+   "name": "README describes an older layout",
+   "kind": "docs",
+   "text": "The README speaks of packages/launcher, lerna and npm. The code has apps/dispatcher, apps/consolidator and pnpm. The code wins.",
+   "binds": [
+    "pl-build"
+   ],
+   "code": [
+    "README.MD",
+    "package.json",
+    "pnpm-workspace.yaml"
+   ]
+  },
+  {
+   "id": "no-tests",
+   "name": "No automated tests",
+   "kind": "half-done",
+   "text": "The test folders hold hand-run scratch scripts. The hunting app's script no longer matches the browser manager it calls.",
+   "binds": [
+    "app-hunt",
+    "app-collect"
+   ],
+   "code": [
+    "apps/dispatcher/test/test.ts",
+    "apps/consolidator/test/test.ts"
+   ]
+  },
+  {
+   "id": "third-browser-logs",
+   "name": "Third Transfeero browser unlogged",
+   "kind": "half-done",
+   "text": "The log shipper lists the first two Transfeero browsers by name, not the third.",
+   "binds": [
+    "pl-monitoring",
+    "pl-worker-browsers"
+   ],
+   "code": [
+    "monitoring/promtail/promtail.yml"
+   ]
+  },
+  {
+   "id": "unused",
+   "name": "Unused pieces left in",
+   "kind": "stub",
+   "text": "A reader for a 'semi-compliant' ride date (Transfeero), an 'open my rides' step (Elife) and an older deploy role (docker-stack) exist, but nothing calls them.",
+   "binds": [
+    "hunt-transfeero-judge",
+    "col-elife-read",
+    "pl-server"
+   ],
+   "code": [
+    "packages/components/transfeero/src/actions/GetSemiCompliantRideDate.ts",
+    "packages/components/elife/src/actions/OpenMyRides.ts",
+    "ansible/roles/docker-stack/"
+   ]
+  },
+  {
+   "id": "hard-wired",
+   "name": "Company specifics in the code",
+   "kind": "hard-wired",
+   "text": "Written into the code rather than the config: the city Alicante, the Europe/Rome time zone, the company's own account addresses on Welcome Pickups and AtoB, and the Gmail mail server.",
+   "binds": [
+    "hunt-transfeero-judge",
+    "hunt-wpickups-getin",
+    "col-atob-getin",
+    "hunt-connecto-getin",
+    "st-hunt-getin"
+   ],
+   "code": [
+    "packages/components/transfeero/src/TransfeeroWorker.ts",
+    "packages/shared/src/worker/BasicWorker.ts",
+    "packages/components/wpickups/src/Pages.ts",
+    "packages/components/atob/src/Pages.ts",
+    "packages/components/connecto/src/services/ImapService.ts"
+   ]
+  },
+  {
+   "id": "outside",
+   "name": "Three parts are outside the repo",
+   "kind": "unknown",
+   "text": "The controller that receives orders, the commons library and the Chrome image are built elsewhere; the map shows only where this code touches them.",
+   "binds": [
+    "controller",
+    "pl-commons",
+    "pl-worker-browsers",
+    "pl-collector-browser"
+   ],
+   "code": [
+    "packages/shared/src/services/OrderPublisher.ts",
+    "package.json",
+    "apps/dispatcher/docker-compose.yml"
+   ]
+  },
+  {
+   "id": "reboot",
+   "name": "Reboot from inside a container",
+   "kind": "unknown",
+   "text": "The reboot command is run by the app itself, which is deployed in a container.",
+   "binds": [
+    "lv-reboot"
+   ],
+   "code": [
+    "apps/dispatcher/src/services/HostService.ts"
+   ],
+   "unverified": "Whether it reboots the server was not checked."
+  }
+ ],
+ "rhythms": [
+  {
+   "id": "antibot",
+   "name": "Anti-bot checkbox click",
+   "seconds": 1,
+   "who": "Welcome Pickups, while stopped",
+   "code": [
+    "packages/components/wpickups/src/WPickupsWorker.ts"
+   ]
+  },
+  {
+   "id": "retry",
+   "name": "Pause before retrying a poll",
+   "seconds": 2,
+   "who": "2 to 4 s by worker, 5 tries",
+   "code": [
+    "packages/shared/src/worker/CommonWorker.ts"
+   ]
+  },
+  {
+   "id": "imap",
+   "name": "Mailbox reconnect",
+   "seconds": 2,
+   "who": "Connecto",
+   "code": [
+    "packages/components/connecto/src/services/ImapService.ts"
+   ]
+  },
+  {
+   "id": "connect",
+   "name": "Pause between browser connects",
+   "seconds": 3,
+   "who": "10 tries",
+   "code": [
+    "packages/shared/src/services/BrowsersManager.ts"
+   ]
+  },
+  {
+   "id": "take-wait",
+   "name": "Wait for a take's answer",
+   "seconds": 10,
+   "who": "Welcome Pickups, Transfeero",
+   "code": [
+    "packages/components/wpickups/src/actions/AssignDriverForTransfer.ts",
+    "packages/components/transfeero/src/actions/AcceptRide.ts"
+   ]
+  },
+  {
+   "id": "poll",
+   "name": "Hunting poll",
+   "seconds": 20,
+   "who": "default, set by the operator",
+   "code": [
+    "packages/shared/src/worker/BasicWorker.ts",
+    "packages/shared/src/worker/CommonWorker.ts"
+   ]
+  },
+  {
+   "id": "waitroom",
+   "name": "Patience in the waiting room",
+   "seconds": 60,
+   "who": "Transfeero",
+   "code": [
+    "packages/components/transfeero/src/actions/HandleWaitroom.ts"
+   ]
+  },
+  {
+   "id": "cache",
+   "name": "Reuse of the last collection",
+   "seconds": 60,
+   "who": "collector",
+   "code": [
+    "apps/consolidator/src/services/BackgroundConsolidator.ts"
+   ]
+  },
+  {
+   "id": "refresh",
+   "name": "Session refresh",
+   "seconds": 180,
+   "who": "Transfeero",
+   "code": [
+    "packages/components/transfeero/src/TransfeeroWorker.ts"
+   ]
+  },
+  {
+   "id": "purge",
+   "name": "Purge of ended exclusions",
+   "seconds": 600,
+   "who": "every worker",
+   "code": [
+    "packages/shared/src/worker/TimeExclusionsCleaner.ts"
+   ]
+  },
+  {
+   "id": "collection",
+   "name": "Collection run",
+   "seconds": 600,
+   "who": "after the previous run ends",
+   "code": [
+    "apps/consolidator/src/services/BackgroundConsolidator.ts"
+   ]
+  }
+ ]
+}

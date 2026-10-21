@@ -1,0 +1,4339 @@
+{
+ "title": "Dispatcher: factory floor",
+ "repo": {
+  "path": "/home/qwert21/projects/Dispatcher",
+  "commit": "db051fa",
+  "read": "2026-10-01",
+  "method": "Tracked files read; nothing built, installed or run."
+ },
+ "project": {
+  "name": "Dispatcher",
+  "tagline": "accepts the transfer orders that fit, and gathers the ones already assigned",
+  "summary": "Two small apps for a transfer company. One watches three booking platforms and accepts the orders that pass the operator's filter. The other reads the transfers already assigned on twelve services. Both report to the operator on Telegram and post orders to a controller outside this repository."
+ },
+ "world": {
+  "w": 1156,
+  "h": 816
+ },
+ "vocabulary": {
+  "kinds": {
+   "district": "A labelled area of the floor grouping machines that work together.",
+   "machine": "A job the project does. It takes things in and puts things out.",
+   "part": "A smaller machine inside a machine, visible when zoomed in.",
+   "store": "A place where things are kept between jobs.",
+   "terminal": "A person or outside system at the edge of the floor.",
+   "thing": "A noun of the project: what a belt carries or a store keeps."
+  },
+  "linkKinds": {
+   "job": "Orders and transfers",
+   "talk": "Operator's say",
+   "access": "Site access",
+   "tick": "Timer",
+   "ops": "Running it",
+   "relation": "How two things relate (things map)"
+  },
+  "status": {
+   "works": "Implemented end to end in the code that was read. Nothing was run.",
+   "partial": "Implemented, with a gap that is spelled out on the element.",
+   "planned": "Prepared for, but the code that would do it is not there.",
+   "unknown": "Lives outside this repository, so it cannot be judged from here."
+  }
+ },
+ "families": [
+  {
+   "id": "job",
+   "name": "Orders and transfers",
+   "color": "#1560A8"
+  },
+  {
+   "id": "talk",
+   "name": "Operator's say",
+   "color": "#8B2A78"
+  },
+  {
+   "id": "access",
+   "name": "Site access",
+   "color": "#55636E"
+  },
+  {
+   "id": "tick",
+   "name": "Timer",
+   "color": "#7A858D"
+  },
+  {
+   "id": "ops",
+   "name": "Running it",
+   "color": "#8A640F"
+  }
+ ],
+ "groups": [
+  {
+   "id": "g-catch",
+   "name": "Catching orders"
+  },
+  {
+   "id": "g-operator",
+   "name": "Operator's controls"
+  },
+  {
+   "id": "g-collect",
+   "name": "Assigned transfers"
+  },
+  {
+   "id": "g-access",
+   "name": "Staying signed in"
+  },
+  {
+   "id": "g-ops",
+   "name": "Running it"
+  }
+ ],
+ "elements": [
+  {
+   "id": "catch",
+   "kind": "district",
+   "name": "Catch new orders",
+   "summary": "Workers poll three platforms, judge every new order against the operator's filter and accept the ones that comply.",
+   "code": [
+    "apps/dispatcher/src/services/WorkersManager.ts",
+    "packages/shared/src/worker/",
+    "packages/components/wpickups/src/",
+    "packages/components/transfeero/src/",
+    "packages/components/connecto/src/"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 156,
+    "y": 22,
+    "w": 600,
+    "h": 168
+   },
+   "label": {
+    "x": 166,
+    "y": 39,
+    "anchor": "start"
+   }
+  },
+  {
+   "id": "handoff",
+   "kind": "district",
+   "name": "Hand-off",
+   "summary": "Where orders leave for the controller, the system outside this repository that receives them.",
+   "code": [
+    "packages/shared/src/services/OrderPublisher.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 824,
+    "y": 16,
+    "w": 168,
+    "h": 90
+   },
+   "label": {
+    "x": 834,
+    "y": 33,
+    "anchor": "start"
+   }
+  },
+  {
+   "id": "desk",
+   "kind": "district",
+   "name": "Operator desk",
+   "summary": "Two Telegram bots: one tells the operator about orders and takes worker settings, the other answers requests for the collected transfers.",
+   "code": [
+    "apps/dispatcher/src/telegram/",
+    "apps/consolidator/src/telegram/",
+    "packages/shared/src/telegram/"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 824,
+    "y": 122,
+    "w": 168,
+    "h": 290
+   },
+   "label": {
+    "x": 834,
+    "y": 139,
+    "anchor": "start"
+   }
+  },
+  {
+   "id": "access",
+   "kind": "district",
+   "name": "Access and filters",
+   "summary": "What the two apps lean on: signed-in browsers, saved sessions, and the saved filters and switches of every worker.",
+   "code": [
+    "packages/shared/src/services/BrowsersManager.ts",
+    "packages/shared/src/actions/",
+    "packages/shared/src/models/",
+    "packages/shared/src/worker/BasicWorker.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 156,
+    "y": 232,
+    "w": 384,
+    "h": 156
+   },
+   "label": {
+    "x": 530,
+    "y": 381,
+    "anchor": "end"
+   }
+  },
+  {
+   "id": "collect",
+   "kind": "district",
+   "name": "Collect assigned transfers",
+   "summary": "Every ten minutes, or on request, visits every service one by one and reads the transfers already assigned to the company.",
+   "code": [
+    "apps/consolidator/src/"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 156,
+    "y": 440,
+    "w": 440,
+    "h": 204
+   },
+   "label": {
+    "x": 586,
+    "y": 457,
+    "anchor": "end"
+   }
+  },
+  {
+   "id": "ops",
+   "kind": "district",
+   "name": "Run and watch",
+   "summary": "How the two apps get onto the server and how their health is watched.",
+   "code": [
+    "ansible/",
+    "monitoring/",
+    "apps/dispatcher/Dockerfile",
+    "apps/consolidator/Dockerfile"
+   ],
+   "status": "partial",
+   "pos": {
+    "x": 156,
+    "y": 672,
+    "w": 836,
+    "h": 104
+   },
+   "label": {
+    "x": 166,
+    "y": 689,
+    "anchor": "start"
+   }
+  },
+  {
+   "id": "platforms",
+   "kind": "terminal",
+   "role": "system",
+   "name": "Platforms offering orders",
+   "summary": "Three transfer platforms where new orders appear and can be taken: Welcome Pickups, Transfeero and Connecto.",
+   "code": [
+    "packages/components/wpickups/src/Pages.ts",
+    "packages/components/transfeero/src/Pages.ts",
+    "packages/components/connecto/src/Pages.ts"
+   ],
+   "status": "unknown",
+   "pos": {
+    "x": 6,
+    "y": 94,
+    "w": 100,
+    "h": 40
+   },
+   "rules": [
+    "Everything is done through each platform's own web pages, as a signed-in partner account."
+   ]
+  },
+  {
+   "id": "mailbox",
+   "kind": "terminal",
+   "role": "system",
+   "name": "Connecto mailbox",
+   "summary": "A Gmail inbox, read over IMAP, where Connecto's order emails arrive.",
+   "code": [
+    "packages/components/connecto/src/services/ImapService.ts",
+    "packages/components/connecto/src/models/ImapServiceConfig.ts"
+   ],
+   "status": "unknown",
+   "pos": {
+    "x": 6,
+    "y": 140,
+    "w": 100,
+    "h": 40
+   },
+   "rules": [
+    "The mailbox is opened read-only; mails are never marked or moved.",
+    "If the connection closes, a new one is opened after 2 seconds."
+   ]
+  },
+  {
+   "id": "clock",
+   "kind": "terminal",
+   "role": "clock",
+   "name": "Clock",
+   "summary": "Timers that set the pace: the workers' fetch delay, the ten-minute collection round, the ten-minute exclusion clean-up and Transfeero's three-minute session refresh.",
+   "code": [
+    "packages/shared/src/worker/CommonWorker.ts",
+    "apps/consolidator/src/services/BackgroundConsolidator.ts",
+    "packages/shared/src/worker/TimeExclusionsCleaner.ts",
+    "packages/components/transfeero/src/TransfeeroWorker.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 6,
+    "y": 200,
+    "w": 100,
+    "h": 32
+   }
+  },
+  {
+   "id": "sources",
+   "kind": "terminal",
+   "role": "system",
+   "name": "Services to collect from",
+   "summary": "Eleven platform sites and one Google Sheet that list the transfers already assigned to the company.",
+   "code": [
+    "apps/consolidator/src/models/ConsolidatorConfig.ts",
+    "packages/components/"
+   ],
+   "status": "unknown",
+   "pos": {
+    "x": 6,
+    "y": 570,
+    "w": 100,
+    "h": 40
+   },
+   "rules": [
+    "Which services are visited, and under which names, is decided by the config file."
+   ]
+  },
+  {
+   "id": "developer",
+   "kind": "terminal",
+   "role": "person",
+   "name": "Developer",
+   "summary": "Builds the images and runs the deploy playbooks from a workstation or the dev container.",
+   "code": [
+    "package.json",
+    ".devcontainer/"
+   ],
+   "status": "unknown",
+   "pos": {
+    "x": 6,
+    "y": 712,
+    "w": 100,
+    "h": 40
+   }
+  },
+  {
+   "id": "controller",
+   "kind": "terminal",
+   "role": "system",
+   "name": "Controller API",
+   "summary": "The central system that receives orders at its /addOrders endpoint; it is not part of this repository.",
+   "code": [
+    "packages/shared/src/services/OrderPublisher.ts"
+   ],
+   "status": "unknown",
+   "pos": {
+    "x": 1046,
+    "y": 50,
+    "w": 100,
+    "h": 40
+   },
+   "unverified": [
+    "What the controller does with the orders cannot be seen from this repository."
+   ]
+  },
+  {
+   "id": "operator",
+   "kind": "terminal",
+   "role": "person",
+   "name": "Operator on Telegram",
+   "summary": "The person running the company's dispatching, reached through Telegram chats that the config allows.",
+   "code": [
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts",
+    "apps/consolidator/src/telegram/TelegramConsolidatorBot.ts"
+   ],
+   "status": "unknown",
+   "pos": {
+    "x": 1046,
+    "y": 150,
+    "w": 100,
+    "h": 248
+   },
+   "rules": [
+    "Only chats whose ids are listed in the config are answered.",
+    "There are two separate bots: one in the dispatcher app, one in the consolidator app."
+   ]
+  },
+  {
+   "id": "grafana",
+   "kind": "terminal",
+   "role": "person",
+   "name": "Grafana viewer",
+   "summary": "Whoever opens the Grafana dashboards on port 3001 to see how the server is doing.",
+   "code": [
+    "monitoring/grafana/"
+   ],
+   "status": "unknown",
+   "pos": {
+    "x": 1046,
+    "y": 712,
+    "w": 100,
+    "h": 40
+   }
+  },
+  {
+   "id": "watch",
+   "kind": "machine",
+   "district": "catch",
+   "name": "Watch for new orders",
+   "tag": "3 platforms",
+   "summary": "Each running worker asks its platform for open orders, again and again, a fetch delay apart.",
+   "code": [
+    "packages/shared/src/worker/CommonWorker.ts",
+    "packages/shared/src/worker/BasicWorker.ts",
+    "apps/dispatcher/src/services/WorkersManager.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 168,
+    "y": 100,
+    "w": 144,
+    "h": 68
+   },
+   "rules": [
+    "The next fetch starts one fetch delay (20 seconds unless changed) after the previous one ended.",
+    "A fetch that fails is tried again, 5 attempts in all, then skipped until the next turn.",
+    "Workers that were running before a restart start again on their own.",
+    "Which workers exist, and their type, comes from the config file; an unknown type stops the app at start."
+   ],
+   "app": "dispatcher",
+   "parts": [
+    "watch-wp",
+    "watch-tf",
+    "watch-co"
+   ]
+  },
+  {
+   "id": "watch-wp",
+   "kind": "part",
+   "parent": "watch",
+   "district": "catch",
+   "name": "Poll Welcome Pickups",
+   "summary": "Fetches the list of unassigned upcoming transfers (14 days ahead, at most 100) from inside the signed-in page.",
+   "code": [
+    "packages/components/wpickups/src/WPickupsWorker.ts",
+    "packages/components/wpickups/src/actions/RequestTransfers.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 177.0,
+    "y": 112.0,
+    "w": 42.0,
+    "h": 52.0
+   },
+   "rows": 1,
+   "caveats": [
+    "The 14-day window is a saved setting with no menu entry to change it."
+   ]
+  },
+  {
+   "id": "watch-tf",
+   "kind": "part",
+   "parent": "watch",
+   "district": "catch",
+   "name": "Poll Transfeero",
+   "summary": "Replays the site's own request for new rides, with headers and body captured from the page.",
+   "code": [
+    "packages/components/transfeero/src/TransfeeroWorker.ts",
+    "packages/components/transfeero/src/actions/RequestNewRides.ts",
+    "packages/components/transfeero/src/actions/GetRequestInfoForURL.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 221.5,
+    "y": 112.0,
+    "w": 42.0,
+    "h": 52.0
+   },
+   "rows": 1,
+   "rules": [
+    "Every 3 minutes one turn is spent on signing in again if needed and re-capturing the request, instead of polling."
+   ]
+  },
+  {
+   "id": "watch-co",
+   "kind": "part",
+   "parent": "watch",
+   "district": "catch",
+   "name": "Read Connecto emails",
+   "summary": "Looks for mails from Connecto newer than the last one handled and opens the link found in each.",
+   "code": [
+    "packages/components/connecto/src/ConnectoWorker.ts",
+    "packages/components/connecto/src/services/ImapService.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 266.0,
+    "y": 112.0,
+    "w": 42.0,
+    "h": 52.0
+   },
+   "rows": 1,
+   "rules": [
+    "Four kinds are recognised by how the subject starts: Transfer voucher, Transfer proposal, New Transfer, Transfer Available. Anything else is logged and skipped.",
+    "The time of the last handled mail is saved, so a mail is handled once.",
+    "On its very first start the worker begins from now; older mail is ignored."
+   ]
+  },
+  {
+   "id": "judge",
+   "kind": "machine",
+   "district": "catch",
+   "name": "Judge the order",
+   "tag": "per-platform filter",
+   "summary": "Decides whether a new order complies with the operator's filter; each platform has its own test.",
+   "code": [
+    "packages/components/wpickups/src/WPickupsWorker.ts",
+    "packages/components/transfeero/src/TransfeeroWorker.ts",
+    "packages/components/connecto/src/ConnectoWorker.ts",
+    "packages/shared/src/worker/CommonWorker.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 384,
+    "y": 100,
+    "w": 144,
+    "h": 68
+   },
+   "rules": [
+    "An order whose pickup time falls inside a time exclusion never complies.",
+    "A non-compliant order is reported once, not on every fetch."
+   ],
+   "caveats": [
+    "For Welcome Pickups and Transfeero the list of already reported orders is kept in memory only, so a restart reports them again."
+   ],
+   "app": "dispatcher",
+   "parts": [
+    "judge-wp",
+    "judge-tf",
+    "judge-co"
+   ]
+  },
+  {
+   "id": "judge-wp",
+   "kind": "part",
+   "parent": "judge",
+   "district": "catch",
+   "name": "Welcome Pickups test",
+   "summary": "Complies when the transfer is not cancelled, the driver's pay reaches the minimum for its vehicle, the pay per kilometre reaches the minimum rate, and the pickup is not excluded.",
+   "code": [
+    "packages/components/wpickups/src/WPickupsWorker.ts",
+    "packages/components/wpickups/src/models/WPickupsFilterOptions.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 393.0,
+    "y": 112.0,
+    "w": 42.0,
+    "h": 52.0
+   },
+   "rows": 1,
+   "rules": [
+    "Only minivans and sedans can comply; any other vehicle type is refused with a warning in the log.",
+    "Untouched defaults are 1000 per vehicle type and 100 per kilometre."
+   ]
+  },
+  {
+   "id": "judge-tf",
+   "kind": "part",
+   "parent": "judge",
+   "district": "catch",
+   "name": "Transfeero test",
+   "summary": "Complies when the pickup is not excluded, the start or the end mentions Alicante, the partner payout reaches the minimal order cost, and the vehicle class is in the configured vehicle map.",
+   "code": [
+    "packages/components/transfeero/src/TransfeeroWorker.ts",
+    "packages/components/transfeero/src/models/TransfeeroConfig.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 437.5,
+    "y": 112.0,
+    "w": 42.0,
+    "h": 52.0
+   },
+   "rows": 1,
+   "rules": [
+    "The Alicante condition is written into the code, not a setting.",
+    "The untouched default for minimal order cost is 10000."
+   ]
+  },
+  {
+   "id": "judge-co",
+   "kind": "part",
+   "parent": "judge",
+   "district": "catch",
+   "name": "Connecto test",
+   "summary": "Complies when the pickup is not excluded and a line of the uploaded order details matches: same from, same to, vehicle name contains the listed vehicle, price at least the listed price.",
+   "code": [
+    "packages/components/connecto/src/ConnectoWorker.ts",
+    "packages/components/connecto/src/models/ConnectoFilterOptions.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 482.0,
+    "y": 112.0,
+    "w": 42.0,
+    "h": 52.0
+   },
+   "rows": 1,
+   "caveats": [
+    "The page's cancellation notice is read into the transfer details but plays no part in the decision.",
+    "An empty list of order details means nothing complies."
+   ]
+  },
+  {
+   "id": "accept",
+   "kind": "machine",
+   "district": "catch",
+   "name": "Accept the order",
+   "tag": "drives the page",
+   "summary": "Takes a compliant order on the platform by operating its web page.",
+   "code": [
+    "packages/components/wpickups/src/actions/AssignDriverForTransfer.ts",
+    "packages/components/transfeero/src/actions/AcceptRide.ts",
+    "packages/components/connecto/src/actions/AcceptTransferVoucher.ts",
+    "packages/components/connecto/src/actions/AcceptTransferProposal.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 600,
+    "y": 100,
+    "w": 144,
+    "h": 68
+   },
+   "rules": [
+    "Accepting uses the same browser page the worker polls with, so a worker does one thing at a time.",
+    "A failed accept is reported to the operator and is not sent to the controller."
+   ],
+   "app": "dispatcher",
+   "parts": [
+    "accept-wp",
+    "accept-tf",
+    "accept-co"
+   ]
+  },
+  {
+   "id": "accept-wp",
+   "kind": "part",
+   "parent": "accept",
+   "district": "catch",
+   "name": "Assign driver and vehicle",
+   "summary": "Opens the Assign driver dialog, picks a random driver who is not on the excluded list, takes the first vehicle, presses assign and then checks the transfer shows up as assigned.",
+   "code": [
+    "packages/components/wpickups/src/actions/AssignDriverForTransfer.ts",
+    "packages/components/wpickups/src/actions/AssignDriver.ts",
+    "packages/components/wpickups/src/actions/AssignVehicle.ts",
+    "packages/components/wpickups/src/actions/OpenAssignDriverModal.ts",
+    "packages/components/wpickups/src/actions/ClickAssign.ts",
+    "packages/components/wpickups/src/actions/CheckAssigned.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 609.0,
+    "y": 112.0,
+    "w": 42.0,
+    "h": 52.0
+   },
+   "rows": 1,
+   "rules": [
+    "Up to 5 attempts, with a screenshot after each failed one.",
+    "The excluded drivers come from the config file."
+   ]
+  },
+  {
+   "id": "accept-tf",
+   "kind": "part",
+   "parent": "accept",
+   "district": "catch",
+   "name": "Accept Transfeero ride",
+   "summary": "Opens the ride page, gets past the bot check, selects the vehicle mapped to the ride's class, presses accept and waits up to 10 seconds for the site's answer.",
+   "code": [
+    "packages/components/transfeero/src/actions/AcceptRide.ts",
+    "packages/components/transfeero/src/actions/SelectVehicle.ts",
+    "packages/components/transfeero/src/actions/ClickAccept.ts",
+    "packages/components/transfeero/src/actions/OpenNewRidePage.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 653.5,
+    "y": 112.0,
+    "w": 42.0,
+    "h": 52.0
+   },
+   "rows": 1,
+   "rules": [
+    "The ride counts as accepted only when the site answers with status 200.",
+    "With processing order set to reverse in the config, compliant rides are taken from the end of the list first."
+   ]
+  },
+  {
+   "id": "accept-co",
+   "kind": "part",
+   "parent": "accept",
+   "district": "catch",
+   "name": "Accept Connecto transfer",
+   "summary": "Presses the accept button on the voucher or proposal page that was opened from the email.",
+   "code": [
+    "packages/components/connecto/src/actions/AcceptTransferVoucher.ts",
+    "packages/components/connecto/src/actions/AcceptTransferProposal.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 698.0,
+    "y": 112.0,
+    "w": 42.0,
+    "h": 52.0
+   },
+   "rows": 1,
+   "caveats": [
+    "No answer is read back from the site: a press that raises no error counts as accepted."
+   ]
+  },
+  {
+   "id": "publish",
+   "kind": "machine",
+   "district": "handoff",
+   "name": "Publish orders",
+   "tag": "to the controller",
+   "summary": "Posts orders to the controller, signed with an API key from the config.",
+   "code": [
+    "packages/shared/src/services/OrderPublisher.ts",
+    "apps/dispatcher/src/index.ts",
+    "apps/consolidator/src/index.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 836,
+    "y": 44,
+    "w": 144,
+    "h": 52
+   },
+   "rules": [
+    "The dispatcher app sends every new order as it happens, compliant or not, marked by its type.",
+    "The consolidator app sends the whole list of upcoming transfers after every collection.",
+    "A post that fails is only logged: no retry, no queue."
+   ],
+   "unverified": [
+    "Both Telegram bots add the local-time offset to an order's pickup time on the order itself, not on a copy, and the same order is what gets posted. Whether the controller therefore receives shifted times was not checked by running the code."
+   ],
+   "app": "both"
+  },
+  {
+   "id": "announce",
+   "kind": "machine",
+   "district": "desk",
+   "name": "Announce new orders",
+   "tag": "Telegram messages",
+   "summary": "Sends the operator a message for each new order: accepted, non-compliant, or failed to accept.",
+   "code": [
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts",
+    "apps/dispatcher/src/index.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 836,
+    "y": 150,
+    "w": 144,
+    "h": 56
+   },
+   "rules": [
+    "A message goes to the chats that chose that worker; if no chat chose it, nobody is told.",
+    "More than 10 non-compliant orders at once become a single line with the count.",
+    "Traveler name, phone and comment are shown only for compliant orders.",
+    "Pickup time is shown in local time; the offset (UTC+1, or +2 in summer time) is worked out once, when the app starts."
+   ],
+   "app": "dispatcher",
+   "parts": [
+    "ann-accepted",
+    "ann-noncompliant",
+    "ann-failed"
+   ]
+  },
+  {
+   "id": "ann-accepted",
+   "kind": "part",
+   "parent": "announce",
+   "district": "desk",
+   "name": "Accepted order message",
+   "summary": "Green New order message with id, pickup time, route, car type, traveler and cost.",
+   "code": [
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 845.0,
+    "y": 162.0,
+    "w": 42.0,
+    "h": 40.0
+   },
+   "rows": 1
+  },
+  {
+   "id": "ann-noncompliant",
+   "kind": "part",
+   "parent": "announce",
+   "district": "desk",
+   "name": "Non-compliant order message",
+   "summary": "Yellow New order (non-compliant) message without traveler details.",
+   "code": [
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 889.5,
+    "y": 162.0,
+    "w": 42.0,
+    "h": 40.0
+   },
+   "rows": 1
+  },
+  {
+   "id": "ann-failed",
+   "kind": "part",
+   "parent": "announce",
+   "district": "desk",
+   "name": "Failed accept message",
+   "summary": "Red Failed to accept order message, sent when accepting raised an error or the platform said no.",
+   "code": [
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts",
+    "apps/dispatcher/src/index.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 934.0,
+    "y": 162.0,
+    "w": 42.0,
+    "h": 40.0
+   },
+   "rows": 1
+  },
+  {
+   "id": "commands",
+   "kind": "machine",
+   "district": "desk",
+   "name": "Take worker commands",
+   "tag": "Telegram menu",
+   "summary": "The Telegram menu where the operator starts and stops workers and edits their filters.",
+   "code": [
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts",
+    "packages/shared/src/telegram/CommonBotComponent.ts",
+    "packages/components/wpickups/src/telegram/WPickupsBotComponent.ts",
+    "packages/components/connecto/src/telegram/ConnectoBotComponent.ts",
+    "apps/dispatcher/src/services/HostService.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 836,
+    "y": 246,
+    "w": 144,
+    "h": 56
+   },
+   "rules": [
+    "Each chat talks to one worker at a time; a chat that never chose one gets the first worker.",
+    "A typed value is expected only right after the menu asked for it.",
+    "The bot is not started when the app runs in development mode."
+   ],
+   "app": "dispatcher",
+   "parts": [
+    "cmd-worker",
+    "cmd-startstop",
+    "cmd-delay",
+    "cmd-excl",
+    "cmd-cost",
+    "cmd-details",
+    "cmd-host"
+   ]
+  },
+  {
+   "id": "cmd-worker",
+   "kind": "part",
+   "parent": "commands",
+   "district": "desk",
+   "name": "Choose the chat's worker",
+   "summary": "The /worker command ties the chat to one worker; menus and order messages follow that choice.",
+   "code": [
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 845.0,
+    "y": 258.0,
+    "w": 30.88,
+    "h": 18.75
+   },
+   "rows": 2
+  },
+  {
+   "id": "cmd-startstop",
+   "kind": "part",
+   "parent": "commands",
+   "district": "desk",
+   "name": "Start or stop worker",
+   "summary": "The Start and Stop buttons under /config.",
+   "code": [
+    "packages/shared/src/telegram/CommonBotComponent.ts",
+    "packages/shared/src/worker/CommonWorker.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 878.38,
+    "y": 258.0,
+    "w": 30.88,
+    "h": 18.75
+   },
+   "rows": 2
+  },
+  {
+   "id": "cmd-delay",
+   "kind": "part",
+   "parent": "commands",
+   "district": "desk",
+   "name": "Set fetch delay",
+   "summary": "Shows the delay between fetches in seconds and takes a new number.",
+   "code": [
+    "packages/shared/src/telegram/CommonBotComponent.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 911.75,
+    "y": 258.0,
+    "w": 30.88,
+    "h": 18.75
+   },
+   "rows": 2
+  },
+  {
+   "id": "cmd-excl",
+   "kind": "part",
+   "parent": "commands",
+   "district": "desk",
+   "name": "Edit time exclusions",
+   "summary": "Lists the exclusions in local time, adds one typed as time-from, time-to and a date, removes by number, range or list.",
+   "code": [
+    "packages/shared/src/telegram/CommonBotComponent.ts",
+    "packages/shared/src/utils/timeRange.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 945.12,
+    "y": 258.0,
+    "w": 30.88,
+    "h": 18.75
+   },
+   "rows": 2,
+   "rules": [
+    "An exclusion is entered for one day of the current year; a month already past is taken as next year."
+   ]
+  },
+  {
+   "id": "cmd-cost",
+   "kind": "part",
+   "parent": "commands",
+   "district": "desk",
+   "name": "Set minimal order cost",
+   "summary": "One number for Transfeero; for Welcome Pickups one per vehicle type plus a cost-per-kilometre rate.",
+   "code": [
+    "packages/shared/src/telegram/CommonBotComponent.ts",
+    "packages/components/wpickups/src/telegram/WPickupsBotComponent.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 845.0,
+    "y": 279.25,
+    "w": 30.88,
+    "h": 18.75
+   },
+   "rows": 2,
+   "caveats": [
+    "After a wrongly typed rate, the Back button of the Welcome Pickups menu names an operation that does not exist, so it does nothing.",
+    "The Connecto menu has no cost entry; its prices live in the order details file."
+   ]
+  },
+  {
+   "id": "cmd-details",
+   "kind": "part",
+   "parent": "commands",
+   "district": "desk",
+   "name": "Upload Connecto order details",
+   "summary": "Takes a text file with one line per accepted route (from, to, vehicle, price) and replaces the whole list; the current list can be downloaded.",
+   "code": [
+    "packages/components/connecto/src/telegram/ConnectoBotComponent.ts",
+    "packages/components/connecto/src/models/ConnectoTransferDetails.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 878.38,
+    "y": 279.25,
+    "w": 30.88,
+    "h": 18.75
+   },
+   "rows": 2,
+   "rules": [
+    "One wrong line rejects the whole file and keeps the old list."
+   ]
+  },
+  {
+   "id": "cmd-host",
+   "kind": "part",
+   "parent": "commands",
+   "district": "desk",
+   "name": "Restart app, reboot server",
+   "summary": "/restart_app ends the process so the container restarts it; /reboot_host runs the reboot command.",
+   "code": [
+    "apps/dispatcher/src/services/HostService.ts",
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts"
+   ],
+   "status": "partial",
+   "pos": {
+    "x": 911.75,
+    "y": 279.25,
+    "w": 30.88,
+    "h": 18.75
+   },
+   "rows": 2,
+   "unverified": [
+    "The app now runs inside a container; whether the reboot command reaches the server from there was not verified."
+   ]
+  },
+  {
+   "id": "report",
+   "kind": "machine",
+   "district": "desk",
+   "name": "Report collected transfers",
+   "tag": "Telegram replies",
+   "summary": "Answers /collect_all, /collect and /services with the assigned transfers sorted by pickup time.",
+   "code": [
+    "apps/consolidator/src/telegram/TelegramConsolidatorBot.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 836,
+    "y": 342,
+    "w": 144,
+    "h": 56
+   },
+   "rules": [
+    "Services that failed are named first, in red.",
+    "Only the first two calendar days found in the result are listed.",
+    "Each transfer shows service, id, pickup time, from, to, vehicle and price; no traveler data.",
+    "Long answers are split into messages of about 4000 characters."
+   ],
+   "unverified": [
+    "The reply adds the local-time offset to the pickup time on the collected transfer itself. Asking twice within a minute reuses the same collection, so the shown time may move again; not checked by running."
+   ],
+   "app": "consolidator",
+   "parts": [
+    "rep-all",
+    "rep-one",
+    "rep-list"
+   ]
+  },
+  {
+   "id": "rep-all",
+   "kind": "part",
+   "parent": "report",
+   "district": "desk",
+   "name": "All services",
+   "summary": "/collect_all replies with the transfers of every service.",
+   "code": [
+    "apps/consolidator/src/telegram/TelegramConsolidatorBot.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 845.0,
+    "y": 354.0,
+    "w": 42.0,
+    "h": 40.0
+   },
+   "rows": 1
+  },
+  {
+   "id": "rep-one",
+   "kind": "part",
+   "parent": "report",
+   "district": "desk",
+   "name": "One service",
+   "summary": "/collect followed by a service name collects that service again and replies with its transfers only.",
+   "code": [
+    "apps/consolidator/src/telegram/TelegramConsolidatorBot.ts",
+    "apps/consolidator/src/services/BackgroundConsolidator.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 889.5,
+    "y": 354.0,
+    "w": 42.0,
+    "h": 40.0
+   },
+   "rows": 1
+  },
+  {
+   "id": "rep-list",
+   "kind": "part",
+   "parent": "report",
+   "district": "desk",
+   "name": "List the services",
+   "summary": "/services lists the service names taken from the config.",
+   "code": [
+    "apps/consolidator/src/telegram/TelegramConsolidatorBot.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 934.0,
+    "y": 354.0,
+    "w": 42.0,
+    "h": 40.0
+   },
+   "rows": 1
+  },
+  {
+   "id": "browsers",
+   "kind": "machine",
+   "district": "access",
+   "name": "Drive the browsers",
+   "tag": "one Chrome each",
+   "summary": "Connects to a remote Chrome for every worker and one for collecting, keeps it signed in and gets it past bot checks.",
+   "code": [
+    "packages/shared/src/services/BrowsersManager.ts",
+    "packages/shared/src/actions/",
+    "packages/shared/src/utils/page.ts",
+    "packages/shared/src/worker/BasicWorker.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 168,
+    "y": 292,
+    "w": 144,
+    "h": 56
+   },
+   "rules": [
+    "Every worker name needs its own browser address in the config, or the app stops at start.",
+    "Connecting is tried 10 times, 3 seconds apart.",
+    "Worker pages run with the Europe/Rome time zone and a 1600 by 1024 window."
+   ],
+   "holds": [
+    "browser",
+    "session"
+   ],
+   "app": "both",
+   "parts": [
+    "br-connect",
+    "br-session",
+    "br-signin",
+    "br-botcheck",
+    "br-shot"
+   ]
+  },
+  {
+   "id": "br-connect",
+   "kind": "part",
+   "parent": "browsers",
+   "district": "access",
+   "name": "Connect to Chrome",
+   "summary": "Attaches to a Chrome container over its remote-debugging address; a local Chrome can be launched instead for testing.",
+   "code": [
+    "packages/shared/src/services/BrowsersManager.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 177.0,
+    "y": 304.0,
+    "w": 42.0,
+    "h": 18.75
+   },
+   "rows": 2
+  },
+  {
+   "id": "br-session",
+   "kind": "part",
+   "parent": "browsers",
+   "district": "access",
+   "name": "Reuse the saved session",
+   "summary": "Loads saved cookies, checks whether the site still counts as signed in, and signs in and saves again only if not.",
+   "code": [
+    "packages/shared/src/actions/CommonScrapeAction.ts",
+    "packages/shared/src/actions/LoadCookies.ts",
+    "packages/shared/src/actions/StoreCookies.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 221.5,
+    "y": 304.0,
+    "w": 42.0,
+    "h": 18.75
+   },
+   "rows": 2
+  },
+  {
+   "id": "br-signin",
+   "kind": "part",
+   "parent": "browsers",
+   "district": "access",
+   "name": "Sign in to a site",
+   "summary": "Types the account's email and password the way a person would; Connecto adds a PIN step, World Transfer a company code.",
+   "code": [
+    "packages/components/wpickups/src/actions/SignIn.ts",
+    "packages/components/transfeero/src/actions/SignIn.ts",
+    "packages/components/connecto/src/actions/GetAssignedTransfers.ts",
+    "packages/components/wtdriver/src/actions/SignIn.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 266.0,
+    "y": 304.0,
+    "w": 42.0,
+    "h": 18.75
+   },
+   "rows": 2
+  },
+  {
+   "id": "br-botcheck",
+   "kind": "part",
+   "parent": "browsers",
+   "district": "access",
+   "name": "Get past bot checks",
+   "summary": "Clicks the Cloudflare Turnstile box and waits out Transfeero's security-check page for up to 60 seconds.",
+   "code": [
+    "packages/shared/src/actions/ClickTurnstile.ts",
+    "packages/components/transfeero/src/actions/HandleWaitroom.ts",
+    "packages/components/transfeero/src/actions/HandleTurnstile.ts",
+    "packages/components/wpickups/src/WPickupsWorker.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 177.0,
+    "y": 325.25,
+    "w": 42.0,
+    "h": 18.75
+   },
+   "rows": 2,
+   "rules": [
+    "While the Welcome Pickups worker is stopped, it still clicks a Turnstile box on its page once a second if one is there."
+   ]
+  },
+  {
+   "id": "br-shot",
+   "kind": "part",
+   "parent": "browsers",
+   "district": "access",
+   "name": "Screenshot on failure",
+   "summary": "Saves a screenshot of the page and hands it to the logger.",
+   "code": [
+    "packages/shared/src/utils/page.ts"
+   ],
+   "status": "partial",
+   "pos": {
+    "x": 221.5,
+    "y": 325.25,
+    "w": 42.0,
+    "h": 18.75
+   },
+   "rows": 2,
+   "caveats": [
+    "With the Telegram log bot switched off, the logger's image handler does nothing, so the picture is saved but shown to nobody."
+   ]
+  },
+  {
+   "id": "rules",
+   "kind": "store",
+   "district": "access",
+   "name": "Filters and switches",
+   "tag": "per worker",
+   "summary": "The saved settings of each worker: fetch delay, time exclusions, cost limits, Connecto order details, plus which workers are switched on and which chat follows which worker.",
+   "code": [
+    "packages/shared/src/models/CommonWorkerState.ts",
+    "packages/shared/src/models/CommonFilterOptions.ts",
+    "packages/components/wpickups/src/models/WPickupsFilterOptions.ts",
+    "packages/components/connecto/src/models/ConnectoFilterOptions.ts",
+    "packages/shared/src/worker/BasicWorker.ts",
+    "apps/dispatcher/src/services/WorkersManager.ts",
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 384,
+    "y": 246,
+    "w": 144,
+    "h": 52
+   },
+   "rules": [
+    "Settings are written to the storage folder, which is a Docker volume, so they survive restarts and new versions.",
+    "A new worker starts with fetch delay 20 seconds, no exclusions and minimal order cost 10000."
+   ],
+   "unverified": [
+    "The storage classes come from a private package outside this repository; file names are known from the code, the exact folder layout is not."
+   ],
+   "holds": [
+    "filter",
+    "exclusion",
+    "worker",
+    "chat"
+   ],
+   "app": "dispatcher",
+   "parts": [
+    "expire"
+   ]
+  },
+  {
+   "id": "expire",
+   "kind": "part",
+   "parent": "rules",
+   "district": "access",
+   "name": "Drop past time exclusions",
+   "summary": "Every 10 minutes while a worker runs, removes the exclusions whose end has passed.",
+   "code": [
+    "packages/shared/src/worker/TimeExclusionsCleaner.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 388.0,
+    "y": 266.0,
+    "w": 136.0,
+    "h": 28.0
+   },
+   "rows": 1
+  },
+  {
+   "id": "sessions",
+   "kind": "store",
+   "district": "access",
+   "name": "Saved sessions",
+   "tag": "cookies",
+   "summary": "Cookies kept per worker and per collected service, so a restart does not mean signing in again.",
+   "code": [
+    "packages/shared/src/actions/LoadCookies.ts",
+    "packages/shared/src/actions/StoreCookies.ts",
+    "packages/shared/src/worker/CommonWorker.ts",
+    "apps/consolidator/src/services/ConsolidatorService.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 384,
+    "y": 312,
+    "w": 144,
+    "h": 44
+   },
+   "caveats": [
+    "World Transfer and the Google Sheet keep no session; Elife saves one but signs in again every time."
+   ],
+   "holds": [
+    "session"
+   ],
+   "app": "both"
+  },
+  {
+   "id": "rounds",
+   "kind": "machine",
+   "district": "collect",
+   "name": "Make the rounds",
+   "tag": "every 10 min",
+   "summary": "Starts a collection every 10 minutes and whenever the operator asks, and makes sure only one runs at a time.",
+   "code": [
+    "apps/consolidator/src/services/BackgroundConsolidator.ts",
+    "apps/consolidator/src/services/ConsolidatorService.ts",
+    "apps/consolidator/src/index.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 168,
+    "y": 472,
+    "w": 144,
+    "h": 52
+   },
+   "rules": [
+    "One collection at a time; a request that arrives during one waits for it and gets its result.",
+    "A result younger than 60 seconds is reused instead of collecting again.",
+    "Services are visited one after another in config order, all in the same browser page.",
+    "A service gets up to 3 tries; if it still fails it is marked failed and the round goes on."
+   ],
+   "app": "consolidator"
+  },
+  {
+   "id": "read",
+   "kind": "machine",
+   "district": "collect",
+   "name": "Read assigned transfers",
+   "tag": "12 services",
+   "summary": "Signs in to one service with a clean browser, reads the transfers assigned to the company and turns each into a standard order.",
+   "code": [
+    "apps/consolidator/src/services/ConsolidatorService.ts",
+    "packages/shared/src/actions/CommonScrapeAction.ts",
+    "apps/consolidator/src/actions/ClearCooies.ts",
+    "packages/components/"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 168,
+    "y": 552,
+    "w": 200,
+    "h": 76
+   },
+   "rules": [
+    "The browser's cookies are wiped before every service; then that service's saved cookies are loaded.",
+    "Transfers whose pickup time has already passed are dropped.",
+    "Pickup times are turned from local time into UTC.",
+    "When a service fails, a screenshot is taken."
+   ],
+   "app": "consolidator",
+   "parts": [
+    "src-wpickups",
+    "src-transfeero",
+    "src-connecto",
+    "src-talixo",
+    "src-atob",
+    "src-kiwi",
+    "src-wtdriver",
+    "src-elife",
+    "src-cataxis",
+    "src-shuttlespain",
+    "src-chofix",
+    "src-sheets"
+   ]
+  },
+  {
+   "id": "src-wpickups",
+   "kind": "part",
+   "parent": "read",
+   "district": "collect",
+   "name": "Welcome Pickups",
+   "summary": "Reads the assigned transfers of the next 2 days from the site's own data feed.",
+   "code": [
+    "packages/components/wpickups/src/actions/GetAssignedTransfers.ts",
+    "packages/components/wpickups/src/actions/RequestTransfers.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 177.0,
+    "y": 564.0,
+    "w": 44.88,
+    "h": 18.33
+   },
+   "rows": 3
+  },
+  {
+   "id": "src-transfeero",
+   "kind": "part",
+   "parent": "read",
+   "district": "collect",
+   "name": "Transfeero",
+   "summary": "Replays the site's request for upcoming rides.",
+   "code": [
+    "packages/components/transfeero/src/actions/GetAssignedTransfers.ts",
+    "packages/components/transfeero/src/actions/RequestUpcomingRides.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 224.38,
+    "y": 564.0,
+    "w": 44.88,
+    "h": 18.33
+   },
+   "rows": 3
+  },
+  {
+   "id": "src-connecto",
+   "kind": "part",
+   "parent": "read",
+   "district": "collect",
+   "name": "Connecto",
+   "summary": "Signs in with email, password and PIN, then reads every page of confirmed transfers.",
+   "code": [
+    "packages/components/connecto/src/actions/GetAssignedTransfers.ts",
+    "packages/components/connecto/src/actions/ParseAssignedTransfers.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 271.75,
+    "y": 564.0,
+    "w": 44.88,
+    "h": 18.33
+   },
+   "rows": 3
+  },
+  {
+   "id": "src-talixo",
+   "kind": "part",
+   "parent": "read",
+   "district": "collect",
+   "name": "Talixo",
+   "summary": "Reads the jobs table of the manager page.",
+   "code": [
+    "packages/components/talixo/src/actions/GetAssignedTransfers.ts",
+    "packages/components/talixo/src/actions/ParseAvailiableTransfers.ts"
+   ],
+   "status": "partial",
+   "pos": {
+    "x": 319.12,
+    "y": 564.0,
+    "w": 44.88,
+    "h": 18.33
+   },
+   "rows": 3,
+   "caveats": [
+    "No booking number is read; each transfer gets a new random id on every collection."
+   ]
+  },
+  {
+   "id": "src-atob",
+   "kind": "part",
+   "parent": "read",
+   "district": "collect",
+   "name": "AtoB",
+   "summary": "Reads the upcoming bookings table, then opens each booking for client, price and passengers.",
+   "code": [
+    "packages/components/atob/src/actions/GetAssignedTransfers.ts",
+    "packages/components/atob/src/actions/ParseTransfersTable.ts",
+    "packages/components/atob/src/actions/ParseTransfer.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 177.0,
+    "y": 584.83,
+    "w": 44.88,
+    "h": 18.33
+   },
+   "rows": 3
+  },
+  {
+   "id": "src-kiwi",
+   "kind": "part",
+   "parent": "read",
+   "district": "collect",
+   "name": "Kiwitaxi",
+   "summary": "Captures the site's own orders request and replays it asking for scheduled orders.",
+   "code": [
+    "packages/components/kiwi/src/actions/GetAssignedTransfers.ts",
+    "packages/components/kiwi/src/actions/RequestScheduledTransfers.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 224.38,
+    "y": 584.83,
+    "w": 44.88,
+    "h": 18.33
+   },
+   "rows": 3
+  },
+  {
+   "id": "src-wtdriver",
+   "kind": "part",
+   "parent": "read",
+   "district": "collect",
+   "name": "World Transfer",
+   "summary": "Signs in with company code, user and password, reads the confirmed cards and logs out.",
+   "code": [
+    "packages/components/wtdriver/src/actions/GetAssignedTransfers.ts",
+    "packages/components/wtdriver/src/actions/ParseApprovedTransfers.ts"
+   ],
+   "status": "partial",
+   "pos": {
+    "x": 271.75,
+    "y": 584.83,
+    "w": 44.88,
+    "h": 18.33
+   },
+   "rows": 3,
+   "caveats": [
+    "Each transfer gets a new random id on every collection (marked to be replaced in the code).",
+    "No session is kept; it signs in on every visit."
+   ]
+  },
+  {
+   "id": "src-elife",
+   "kind": "part",
+   "parent": "read",
+   "district": "collect",
+   "name": "Elife",
+   "summary": "Opens every booked ride tile and catches the ride data the site loads for it.",
+   "code": [
+    "packages/components/elife/src/actions/GetAssignedTransfers.ts",
+    "packages/components/elife/src/actions/RideResponseInterceptor.ts",
+    "packages/components/elife/src/actions/OpenTransferPage.ts"
+   ],
+   "status": "partial",
+   "pos": {
+    "x": 319.12,
+    "y": 584.83,
+    "w": 44.88,
+    "h": 18.33
+   },
+   "rows": 3,
+   "caveats": [
+    "The signed-in check is a to-do that always says no, so it signs in and accepts the supplier agreement on every visit."
+   ]
+  },
+  {
+   "id": "src-cataxis",
+   "kind": "part",
+   "parent": "read",
+   "district": "collect",
+   "name": "City Airport Taxis",
+   "summary": "Asks the site for the upcoming list, then opens each reservation for client, vehicle and net rate.",
+   "code": [
+    "packages/components/ca-taxis/src/actions/GetAssignedTransfers.ts",
+    "packages/components/ca-taxis/src/actions/RequestUpcomingTransfers.ts",
+    "packages/components/ca-taxis/src/actions/ParseTransferDetails.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 177.0,
+    "y": 605.67,
+    "w": 44.88,
+    "h": 18.33
+   },
+   "rows": 3,
+   "rules": [
+    "When the reservation page shows a doubled booking, the net rate is halved."
+   ]
+  },
+  {
+   "id": "src-shuttlespain",
+   "kind": "part",
+   "parent": "read",
+   "district": "collect",
+   "name": "Shuttle Spain",
+   "summary": "Opens the services list and catches the data the page loads.",
+   "code": [
+    "packages/components/shuttlespain/src/actions/GetAssignedTransfers.ts",
+    "packages/components/shuttlespain/src/actions/RideResponseInterceptor.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 224.38,
+    "y": 605.67,
+    "w": 44.88,
+    "h": 18.33
+   },
+   "rows": 3
+  },
+  {
+   "id": "src-chofix",
+   "kind": "part",
+   "parent": "read",
+   "district": "collect",
+   "name": "Chofix",
+   "summary": "Reads the table of confirmed services. The newest of the twelve.",
+   "code": [
+    "packages/components/chofix/src/actions/GetAssignedTransfers.ts"
+   ],
+   "status": "partial",
+   "pos": {
+    "x": 271.75,
+    "y": 605.67,
+    "w": 44.88,
+    "h": 18.33
+   },
+   "rows": 3,
+   "caveats": [
+    "Every transfer gets the id unknown (a to-do in the code)."
+   ]
+  },
+  {
+   "id": "src-sheets",
+   "kind": "part",
+   "parent": "read",
+   "district": "collect",
+   "name": "Google Sheet",
+   "summary": "Reads rows through the Google Sheets API with a service account; the config says which column holds what.",
+   "code": [
+    "packages/components/google-sheets/src/services/GoogleSheetsService.ts",
+    "packages/components/google-sheets/src/models/SheetTarget.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 319.12,
+    "y": 605.67,
+    "w": 44.88,
+    "h": 18.33
+   },
+   "rows": 3,
+   "rules": [
+    "No browser is involved; rows are read 100 at a time from the configured start row."
+   ]
+  },
+  {
+   "id": "snapshot",
+   "kind": "store",
+   "district": "collect",
+   "name": "Last collection",
+   "tag": "fresh for 60 s",
+   "summary": "The latest result per service, either its upcoming transfers or its error, kept in memory with the time it was taken.",
+   "code": [
+    "apps/consolidator/src/services/BackgroundConsolidator.ts",
+    "apps/consolidator/src/models/ConsolidationResult.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 440,
+    "y": 566,
+    "w": 144,
+    "h": 48
+   },
+   "rules": [
+    "It lives in memory only and is empty after a restart until the first collection ends.",
+    "Collecting one service replaces only that service's part."
+   ],
+   "holds": [
+    "snapshot-thing",
+    "order"
+   ],
+   "app": "consolidator"
+  },
+  {
+   "id": "ship",
+   "kind": "machine",
+   "district": "ops",
+   "name": "Build and ship",
+   "tag": "Docker and Ansible",
+   "summary": "Bundles each app into a Docker image, keeps images in a private registry and rolls them out with Ansible playbooks.",
+   "code": [
+    "apps/dispatcher/Dockerfile",
+    "apps/consolidator/Dockerfile",
+    "apps/dispatcher/rollup.config.js",
+    "apps/consolidator/rollup.config.js",
+    "ansible/playbooks/",
+    "ansible/roles/",
+    "package.json",
+    ".devcontainer/"
+   ],
+   "status": "partial",
+   "pos": {
+    "x": 168,
+    "y": 704,
+    "w": 144,
+    "h": 56
+   },
+   "caveats": [
+    "The README still describes packages/launcher and lerna; the code has apps/dispatcher and pnpm workspaces. The code is what was mapped.",
+    "The role ansible/roles/docker-stack is used by no playbook and points at a compose file that is not in the repository."
+   ],
+   "parts": [
+    "ship-build",
+    "ship-registry",
+    "ship-deploy",
+    "ship-bootstrap"
+   ]
+  },
+  {
+   "id": "ship-build",
+   "kind": "part",
+   "parent": "ship",
+   "district": "ops",
+   "name": "Build the app image",
+   "summary": "Installs dependencies with a private-registry token passed as a build secret, compiles, and bundles the app into a single file.",
+   "code": [
+    "apps/dispatcher/Dockerfile",
+    "apps/consolidator/Dockerfile",
+    "apps/dispatcher/rollup.config.js",
+    "package.json"
+   ],
+   "status": "partial",
+   "pos": {
+    "x": 177.0,
+    "y": 716.0,
+    "w": 64.25,
+    "h": 18.75
+   },
+   "rows": 2,
+   "caveats": [
+    "The root scripts bundle-dispatcher and bundle-consolidator call a build script that package.json does not define; the Dockerfiles build inside the app folder and do not depend on it."
+   ]
+  },
+  {
+   "id": "ship-registry",
+   "kind": "part",
+   "parent": "ship",
+   "district": "ops",
+   "name": "Private image registry",
+   "summary": "A Docker registry with TLS and password login, set up by its own playbook; a script makes the self-signed certificate.",
+   "code": [
+    "ansible/roles/docker-registry/",
+    "ansible/playbooks/deploy-registry.yml",
+    "scripts/generate-registry-certs.sh"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 243.75,
+    "y": 716.0,
+    "w": 64.25,
+    "h": 18.75
+   },
+   "rows": 2
+  },
+  {
+   "id": "ship-deploy",
+   "kind": "part",
+   "parent": "ship",
+   "district": "ops",
+   "name": "Roll out an app",
+   "summary": "Writes the app's config file from inventory variables, templates the compose file, pulls the image and starts the stack.",
+   "code": [
+    "ansible/roles/dispatcher-deploy/",
+    "ansible/roles/consolidator-deploy/",
+    "ansible/playbooks/deploy-dispatcher.yml",
+    "ansible/playbooks/deploy-consolidator.yml"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 177.0,
+    "y": 737.25,
+    "w": 64.25,
+    "h": 18.75
+   },
+   "rows": 2,
+   "rules": [
+    "When the config changed, the app container is recreated.",
+    "The config and secret variable files are kept out of git."
+   ]
+  },
+  {
+   "id": "ship-bootstrap",
+   "kind": "part",
+   "parent": "ship",
+   "district": "ops",
+   "name": "Prepare a new server",
+   "summary": "Installs base packages, an app user, Docker, and trust for the registry's certificate.",
+   "code": [
+    "ansible/playbooks/bootstrap.yml",
+    "ansible/roles/common-base/",
+    "ansible/roles/docker-engine/"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 243.75,
+    "y": 737.25,
+    "w": 64.25,
+    "h": 18.75
+   },
+   "rows": 2
+  },
+  {
+   "id": "containers",
+   "kind": "store",
+   "district": "ops",
+   "name": "Running containers",
+   "tag": "apps and Chromes",
+   "summary": "On the server: the dispatcher with five Chrome containers, and the consolidator with one.",
+   "code": [
+    "ansible/roles/dispatcher-deploy/templates/docker-compose.yml.j2",
+    "ansible/roles/consolidator-deploy/templates/docker-compose.yml.j2",
+    "apps/dispatcher/docker-compose.yml",
+    "apps/consolidator/docker-compose.yml"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 384,
+    "y": 708,
+    "w": 160,
+    "h": 48
+   },
+   "rules": [
+    "The dispatcher's Chromes are named for Welcome Pickups, Transfeero 1, 2 and 3, and Connecto.",
+    "Every Chrome keeps its profile in a volume and can be watched over VNC on its own port.",
+    "Each app has its storage folder in a volume and its config file mounted read-only.",
+    "All containers restart by themselves unless stopped on purpose."
+   ],
+   "holds": [
+    "image",
+    "browser",
+    "config"
+   ]
+  },
+  {
+   "id": "health",
+   "kind": "machine",
+   "district": "ops",
+   "name": "Watch server health",
+   "tag": "Grafana stack",
+   "summary": "Gathers container logs and machine metrics and shows them on two Grafana dashboards.",
+   "code": [
+    "monitoring/",
+    "ansible/roles/monitoring-deploy/",
+    "ansible/playbooks/deploy-monitoring.yml"
+   ],
+   "status": "partial",
+   "pos": {
+    "x": 836,
+    "y": 704,
+    "w": 144,
+    "h": 56
+   },
+   "parts": [
+    "hl-logs",
+    "hl-metrics",
+    "hl-dash",
+    "hl-app",
+    "hl-tglog"
+   ]
+  },
+  {
+   "id": "hl-logs",
+   "kind": "part",
+   "parent": "health",
+   "district": "ops",
+   "name": "Gather container logs",
+   "summary": "Promtail tails the Docker logs of the named containers and sends them to Loki, kept 30 days.",
+   "code": [
+    "monitoring/promtail/promtail.yml",
+    "monitoring/loki/loki.yml"
+   ],
+   "status": "partial",
+   "pos": {
+    "x": 845.0,
+    "y": 716.0,
+    "w": 42.0,
+    "h": 18.75
+   },
+   "rows": 2,
+   "caveats": [
+    "The list of containers names the first two Transfeero Chromes but not the third."
+   ]
+  },
+  {
+   "id": "hl-metrics",
+   "kind": "part",
+   "parent": "health",
+   "district": "ops",
+   "name": "Gather machine metrics",
+   "summary": "Node exporter and cAdvisor feed Prometheus every 15 seconds, kept 30 days.",
+   "code": [
+    "monitoring/prometheus/prometheus.yml",
+    "monitoring/docker-compose.yml"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 889.5,
+    "y": 716.0,
+    "w": 42.0,
+    "h": 18.75
+   },
+   "rows": 2
+  },
+  {
+   "id": "hl-dash",
+   "kind": "part",
+   "parent": "health",
+   "district": "ops",
+   "name": "Show dashboards",
+   "summary": "Grafana on port 3001 with two ready dashboards: Server Overview and Container Metrics.",
+   "code": [
+    "monitoring/grafana/dashboards/",
+    "monitoring/grafana/provisioning/"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 934.0,
+    "y": 716.0,
+    "w": 42.0,
+    "h": 18.75
+   },
+   "rows": 2
+  },
+  {
+   "id": "hl-app",
+   "kind": "part",
+   "parent": "health",
+   "district": "ops",
+   "name": "App health and metrics",
+   "summary": "The Dockerfiles probe a /health address on ports 9091 and 9092 and Prometheus has commented-out jobs for the apps.",
+   "code": [
+    "apps/dispatcher/Dockerfile",
+    "apps/consolidator/Dockerfile",
+    "monitoring/prometheus/prometheus.yml"
+   ],
+   "status": "planned",
+   "pos": {
+    "x": 845.0,
+    "y": 737.25,
+    "w": 42.0,
+    "h": 18.75
+   },
+   "rows": 2,
+   "caveats": [
+    "No code in this repository answers on those ports, so the health probe has nothing to reach."
+   ]
+  },
+  {
+   "id": "hl-tglog",
+   "kind": "part",
+   "parent": "health",
+   "district": "ops",
+   "name": "Logs to Telegram",
+   "summary": "A Telegram log bot is prepared in both apps but commented out; logs go to the console only.",
+   "code": [
+    "apps/dispatcher/src/index.ts",
+    "apps/consolidator/src/index.ts"
+   ],
+   "status": "partial",
+   "pos": {
+    "x": 889.5,
+    "y": 737.25,
+    "w": 42.0,
+    "h": 18.75
+   },
+   "rows": 2,
+   "caveats": [
+    "Switched off in the latest commit (dispatcher: disable tg logger)."
+   ]
+  },
+  {
+   "id": "mail",
+   "kind": "thing",
+   "family": "job",
+   "name": "Connecto email",
+   "summary": "A mail from Connecto that points at an order page.",
+   "code": [
+    "packages/components/connecto/src/models/Mail.ts",
+    "packages/components/connecto/src/ConnectoWorker.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 30,
+    "y": 34,
+    "w": 180,
+    "h": 190
+   },
+   "fields": [
+    "subject",
+    "time received",
+    "link to the order"
+   ],
+   "states": [
+    "new",
+    "handled"
+   ]
+  },
+  {
+   "id": "offer",
+   "kind": "thing",
+   "family": "job",
+   "name": "Open order",
+   "summary": "An order a platform offers for taking, still in the platform's own shape: an unassigned transfer, a new ride, a voucher or a proposal.",
+   "code": [
+    "packages/components/wpickups/src/models/Transfer.ts",
+    "packages/components/transfeero/src/models/Ride.ts",
+    "packages/components/connecto/src/models/ConnectoTransferDetails.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 256,
+    "y": 34,
+    "w": 180,
+    "h": 190
+   },
+   "fields": [
+    "pickup time",
+    "from, to",
+    "vehicle",
+    "pay",
+    "distance"
+   ],
+   "states": [
+    "open",
+    "compliant",
+    "accepted"
+   ],
+   "altStates": [
+    "open",
+    "non-compliant"
+   ]
+  },
+  {
+   "id": "order",
+   "kind": "thing",
+   "family": "job",
+   "name": "Order",
+   "summary": "The project's one standard record of a transfer, whatever platform it came from.",
+   "code": [
+    "packages/shared/src/models/Order.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 482,
+    "y": 34,
+    "w": 180,
+    "h": 190
+   },
+   "fields": [
+    "id, platform",
+    "pickup time (UTC)",
+    "from, to",
+    "car type, passengers",
+    "cost",
+    "customer",
+    "compliant or not"
+   ],
+   "states": [
+    "made",
+    "announced",
+    "published"
+   ],
+   "rules": [
+    "Pickup time is kept in UTC; local time is UTC+1, or +2 in summer time.",
+    "Customer name, phone and comment are filled only where the platform shows them.",
+    "A collected transfer is always marked compliant."
+   ]
+  },
+  {
+   "id": "snapshot-thing",
+   "kind": "thing",
+   "family": "job",
+   "name": "Collection result",
+   "summary": "What one collection brought back: for each service its upcoming transfers or its error.",
+   "code": [
+    "apps/consolidator/src/models/ConsolidationResult.ts",
+    "apps/consolidator/src/services/BackgroundConsolidator.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 708,
+    "y": 34,
+    "w": 180,
+    "h": 190
+   },
+   "fields": [
+    "per service: transfers",
+    "per service: error",
+    "time taken"
+   ],
+   "states": [
+    "fresh (60 s)",
+    "stale",
+    "replaced"
+   ]
+  },
+  {
+   "id": "source",
+   "kind": "thing",
+   "family": "job",
+   "name": "Service",
+   "summary": "One place that lists the company's assigned transfers, under the name the config gives it.",
+   "code": [
+    "apps/consolidator/src/models/ConsolidatorConfig.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 934,
+    "y": 34,
+    "w": 180,
+    "h": 190
+   },
+   "fields": [
+    "name",
+    "kind (one of 12)",
+    "credentials",
+    "sheet and columns"
+   ]
+  },
+  {
+   "id": "exclusion",
+   "kind": "thing",
+   "family": "talk",
+   "name": "Time exclusion",
+   "summary": "A stretch of time in which no order is to be accepted.",
+   "code": [
+    "packages/shared/src/models/TimeRange.ts",
+    "packages/shared/src/utils/timeRange.ts",
+    "packages/shared/src/worker/TimeExclusionsCleaner.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 30,
+    "y": 296,
+    "w": 180,
+    "h": 190
+   },
+   "fields": [
+    "from",
+    "to"
+   ],
+   "states": [
+    "active",
+    "past",
+    "dropped"
+   ]
+  },
+  {
+   "id": "filter",
+   "kind": "thing",
+   "family": "talk",
+   "name": "Filter",
+   "summary": "A worker's own test for which orders to accept.",
+   "code": [
+    "packages/shared/src/models/CommonFilterOptions.ts",
+    "packages/components/wpickups/src/models/WPickupsFilterOptions.ts",
+    "packages/components/connecto/src/models/ConnectoFilterOptions.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 256,
+    "y": 296,
+    "w": 180,
+    "h": 190
+   },
+   "fields": [
+    "time exclusions",
+    "minimal order cost",
+    "cost per vehicle type",
+    "cost per km rate",
+    "Connecto order details"
+   ],
+   "rules": [
+    "Per vehicle type and per km apply to Welcome Pickups only; order details apply to Connecto only."
+   ]
+  },
+  {
+   "id": "notice",
+   "kind": "thing",
+   "family": "talk",
+   "name": "Telegram message",
+   "summary": "What the bots send to the operator: order notices, menus and transfer lists.",
+   "code": [
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts",
+    "apps/consolidator/src/telegram/TelegramConsolidatorBot.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 934,
+    "y": 296,
+    "w": 180,
+    "h": 190
+   },
+   "fields": [
+    "green: accepted",
+    "yellow: non-compliant",
+    "red: failed",
+    "transfer list"
+   ]
+  },
+  {
+   "id": "chat",
+   "kind": "thing",
+   "family": "talk",
+   "name": "Operator chat",
+   "summary": "A Telegram chat the config allows; it follows one worker.",
+   "code": [
+    "packages/shared/src/models/TelegramBotPreferences.ts",
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 708,
+    "y": 296,
+    "w": 180,
+    "h": 190
+   },
+   "fields": [
+    "chat id",
+    "chosen worker",
+    "value awaited"
+   ],
+   "states": [
+    "idle",
+    "awaiting a value"
+   ]
+  },
+  {
+   "id": "command",
+   "kind": "thing",
+   "family": "talk",
+   "name": "Command",
+   "summary": "Anything the operator sends: a slash command, a menu press, a typed value, a file.",
+   "code": [
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts",
+    "packages/shared/src/telegram/BotComponent.ts",
+    "apps/consolidator/src/telegram/TelegramConsolidatorBot.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 482,
+    "y": 296,
+    "w": 180,
+    "h": 190
+   },
+   "fields": [
+    "/config, /worker",
+    "/restart_app, /reboot_host",
+    "/collect, /collect_all",
+    "/services"
+   ]
+  },
+  {
+   "id": "config",
+   "kind": "thing",
+   "family": "access",
+   "name": "Config file",
+   "summary": "One read-only file per app, written by the deploy: accounts, bot tokens, allowed chats, browser addresses, controller address and key.",
+   "code": [
+    "apps/dispatcher/src/models/Config.ts",
+    "apps/consolidator/src/models/Config.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 30,
+    "y": 558,
+    "w": 180,
+    "h": 190
+   },
+   "fields": [
+    "workers or services",
+    "accounts",
+    "Telegram bots and chats",
+    "browser addresses",
+    "controller address, key"
+   ],
+   "rules": [
+    "It is kept out of git; the secrets in it never appear in the repository."
+   ]
+  },
+  {
+   "id": "worker",
+   "kind": "thing",
+   "family": "access",
+   "name": "Worker",
+   "summary": "One platform account being watched. It has a type, a filter, a fetch delay and a browser of its own.",
+   "code": [
+    "packages/shared/src/interfaces/IWorker.ts",
+    "packages/shared/src/models/CommonWorkerConfig.ts",
+    "packages/shared/src/models/CommonWorkerState.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 256,
+    "y": 558,
+    "w": 180,
+    "h": 190
+   },
+   "fields": [
+    "name",
+    "type (one of 3)",
+    "fetch delay",
+    "filter",
+    "account"
+   ],
+   "states": [
+    "stopped",
+    "running"
+   ],
+   "loop": true,
+   "rules": [
+    "The types are Welcome Pickups, Transfeero and Connecto.",
+    "The running switch is saved, so a restart brings running workers back."
+   ]
+  },
+  {
+   "id": "browser",
+   "kind": "thing",
+   "family": "access",
+   "name": "Browser",
+   "summary": "A Chrome in its own container that a worker, or the collector, drives from outside.",
+   "code": [
+    "packages/shared/src/services/BrowsersManager.ts",
+    "apps/dispatcher/docker-compose.yml"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 482,
+    "y": 558,
+    "w": 180,
+    "h": 190
+   },
+   "fields": [
+    "remote address",
+    "profile volume",
+    "VNC port"
+   ],
+   "states": [
+    "connected",
+    "disconnected"
+   ],
+   "loop": true
+  },
+  {
+   "id": "session",
+   "kind": "thing",
+   "family": "access",
+   "name": "Session",
+   "summary": "The saved cookies that keep one account signed in on one site.",
+   "code": [
+    "packages/shared/src/actions/StoreCookies.ts",
+    "packages/shared/src/actions/LoadCookies.ts",
+    "packages/shared/src/actions/CommonScrapeAction.ts"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 708,
+    "y": 558,
+    "w": 180,
+    "h": 190
+   },
+   "fields": [
+    "cookies"
+   ],
+   "states": [
+    "signed in",
+    "signed out"
+   ],
+   "loop": true
+  },
+  {
+   "id": "image",
+   "kind": "thing",
+   "family": "ops",
+   "name": "App image",
+   "summary": "A Docker image holding one app bundled into a single file.",
+   "code": [
+    "apps/dispatcher/Dockerfile",
+    "apps/consolidator/Dockerfile"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 934,
+    "y": 558,
+    "w": 180,
+    "h": 88
+   },
+   "fields": [
+    "dispatcher",
+    "consolidator"
+   ]
+  },
+  {
+   "id": "logs",
+   "kind": "thing",
+   "family": "ops",
+   "name": "Logs and metrics",
+   "summary": "What the containers print and how much of the machine they use.",
+   "code": [
+    "monitoring/promtail/promtail.yml",
+    "monitoring/prometheus/prometheus.yml"
+   ],
+   "status": "works",
+   "pos": {
+    "x": 934,
+    "y": 660,
+    "w": 180,
+    "h": 88
+   },
+   "fields": [
+    "container logs",
+    "host and container use"
+   ]
+  }
+ ],
+ "links": [
+  {
+   "id": "l-offers",
+   "from": "platforms",
+   "to": "watch",
+   "kind": "job",
+   "label": "open orders",
+   "view": "floor",
+   "carries": [
+    "offer"
+   ],
+   "summary": "Unassigned transfers and new rides, as the platforms list them.",
+   "path": [
+    [
+     106,
+     114
+    ],
+    [
+     168,
+     114
+    ]
+   ],
+   "labelPos": {
+    "x": 137,
+    "y": 109,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-mail",
+   "from": "mailbox",
+   "to": "watch",
+   "kind": "job",
+   "label": "order emails",
+   "view": "floor",
+   "carries": [
+    "mail"
+   ],
+   "summary": "Connecto's voucher, proposal and new-transfer emails.",
+   "path": [
+    [
+     106,
+     156
+    ],
+    [
+     168,
+     156
+    ]
+   ],
+   "labelPos": {
+    "x": 137,
+    "y": 151,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-tick-watch",
+   "from": "clock",
+   "to": "watch",
+   "kind": "tick",
+   "label": "fetch delay",
+   "view": "floor",
+   "summary": "Each worker waits its fetch delay between two fetches.",
+   "path": [
+    [
+     106,
+     216
+    ],
+    [
+     190,
+     216
+    ],
+    [
+     190,
+     168
+    ]
+   ],
+   "labelPos": {
+    "x": 148,
+    "y": 211,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-watch-judge",
+   "from": "watch",
+   "to": "judge",
+   "kind": "job",
+   "label": "new orders",
+   "view": "floor",
+   "carries": [
+    "offer"
+   ],
+   "summary": "Every open order found in a fetch.",
+   "path": [
+    [
+     312,
+     134
+    ],
+    [
+     384,
+     134
+    ]
+   ],
+   "labelPos": {
+    "x": 348.0,
+    "y": 129,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-rules-judge",
+   "from": "rules",
+   "to": "judge",
+   "kind": "talk",
+   "label": "filter",
+   "view": "floor",
+   "carries": [
+    "filter",
+    "exclusion"
+   ],
+   "summary": "The worker's saved filter, read at every judgement.",
+   "path": [
+    [
+     456,
+     246
+    ],
+    [
+     456,
+     168
+    ]
+   ],
+   "labelPos": {
+    "x": 462,
+    "y": 216,
+    "anchor": "start"
+   }
+  },
+  {
+   "id": "l-rules-watch",
+   "from": "rules",
+   "to": "watch",
+   "kind": "talk",
+   "label": "on/off, delay",
+   "view": "floor",
+   "carries": [
+    "worker"
+   ],
+   "summary": "Start and stop act on the worker at once; the switch is saved so the worker resumes after a restart. The fetch delay is read before every wait.",
+   "path": [
+    [
+     384,
+     262
+    ],
+    [
+     280,
+     262
+    ],
+    [
+     280,
+     168
+    ]
+   ],
+   "labelPos": {
+    "x": 332,
+    "y": 257,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-judge-accept",
+   "from": "judge",
+   "to": "accept",
+   "kind": "job",
+   "label": "compliant",
+   "view": "floor",
+   "carries": [
+    "offer"
+   ],
+   "summary": "Orders that passed the filter.",
+   "path": [
+    [
+     528,
+     134
+    ],
+    [
+     600,
+     134
+    ]
+   ],
+   "labelPos": {
+    "x": 564.0,
+    "y": 129,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-misfit-publish",
+   "from": "judge",
+   "to": "publish",
+   "kind": "job",
+   "label": "non-compliant orders",
+   "view": "floor",
+   "carries": [
+    "order"
+   ],
+   "summary": "Orders that failed the filter, as standard orders marked non-compliant.",
+   "path": [
+    [
+     506,
+     168
+    ],
+    [
+     506,
+     209
+    ],
+    [
+     780,
+     209
+    ],
+    [
+     780,
+     74
+    ],
+    [
+     836,
+     74
+    ]
+   ],
+   "labelPos": {
+    "x": 640,
+    "y": 204,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-misfit-announce",
+   "from": "judge",
+   "to": "announce",
+   "kind": "job",
+   "view": "floor",
+   "carries": [
+    "order"
+   ],
+   "summary": "The same non-compliant orders, on their way to the operator.",
+   "path": [
+    [
+     506,
+     168
+    ],
+    [
+     506,
+     209
+    ],
+    [
+     780,
+     209
+    ],
+    [
+     780,
+     160
+    ],
+    [
+     836,
+     160
+    ]
+   ],
+   "labelPos": {
+    "x": 643.0,
+    "y": 204,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-accept",
+   "from": "accept",
+   "to": "platforms",
+   "kind": "job",
+   "label": "accept",
+   "view": "floor",
+   "carries": [
+    "offer"
+   ],
+   "summary": "The clicks that take the order: driver and vehicle assigned, or the accept button pressed.",
+   "path": [
+    [
+     672,
+     100
+    ],
+    [
+     672,
+     58
+    ],
+    [
+     56,
+     58
+    ],
+    [
+     56,
+     94
+    ]
+   ],
+   "labelPos": {
+    "x": 380,
+    "y": 53,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-accepted-announce",
+   "from": "accept",
+   "to": "announce",
+   "kind": "job",
+   "label": "accepted, failed",
+   "view": "floor",
+   "carries": [
+    "order"
+   ],
+   "summary": "Accepted orders, and orders whose accept failed.",
+   "path": [
+    [
+     744,
+     160
+    ],
+    [
+     836,
+     160
+    ]
+   ],
+   "labelPos": {
+    "x": 790,
+    "y": 155,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-accepted-publish",
+   "from": "accept",
+   "to": "publish",
+   "kind": "job",
+   "view": "floor",
+   "carries": [
+    "order"
+   ],
+   "summary": "Accepted orders on their way to the controller. Failed accepts do not travel here.",
+   "path": [
+    [
+     744,
+     160
+    ],
+    [
+     780,
+     160
+    ],
+    [
+     780,
+     74
+    ],
+    [
+     836,
+     74
+    ]
+   ],
+   "labelPos": {
+    "x": 786,
+    "y": 120.5,
+    "anchor": "start"
+   }
+  },
+  {
+   "id": "l-publish-controller",
+   "from": "publish",
+   "to": "controller",
+   "kind": "job",
+   "label": "orders",
+   "view": "floor",
+   "carries": [
+    "order"
+   ],
+   "summary": "A list of orders in one web request.",
+   "path": [
+    [
+     980,
+     70
+    ],
+    [
+     1046,
+     70
+    ]
+   ],
+   "labelPos": {
+    "x": 1013.0,
+    "y": 65,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-announce-operator",
+   "from": "announce",
+   "to": "operator",
+   "kind": "talk",
+   "label": "notices",
+   "view": "floor",
+   "carries": [
+    "notice"
+   ],
+   "summary": "One Telegram message per order, or a count.",
+   "path": [
+    [
+     980,
+     178
+    ],
+    [
+     1046,
+     178
+    ]
+   ],
+   "labelPos": {
+    "x": 1013.0,
+    "y": 173,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-operator-commands",
+   "from": "operator",
+   "to": "commands",
+   "kind": "talk",
+   "label": "commands",
+   "view": "floor",
+   "carries": [
+    "command"
+   ],
+   "summary": "Slash commands, menu presses, typed values and one uploaded file.",
+   "path": [
+    [
+     1046,
+     262
+    ],
+    [
+     980,
+     262
+    ]
+   ],
+   "labelPos": {
+    "x": 1013.0,
+    "y": 257,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-commands-operator",
+   "from": "commands",
+   "to": "operator",
+   "kind": "talk",
+   "label": "replies",
+   "view": "floor",
+   "carries": [
+    "notice"
+   ],
+   "summary": "Menus, current values and confirmations.",
+   "path": [
+    [
+     980,
+     286
+    ],
+    [
+     1046,
+     286
+    ]
+   ],
+   "labelPos": {
+    "x": 1013,
+    "y": 299,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-commands-rules",
+   "from": "commands",
+   "to": "rules",
+   "kind": "talk",
+   "label": "filter changes, start and stop",
+   "view": "floor",
+   "carries": [
+    "command",
+    "filter"
+   ],
+   "summary": "What the operator set, written into the worker's saved state.",
+   "path": [
+    [
+     836,
+     274
+    ],
+    [
+     528,
+     274
+    ]
+   ],
+   "labelPos": {
+    "x": 655,
+    "y": 269,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-operator-report",
+   "from": "operator",
+   "to": "report",
+   "kind": "talk",
+   "label": "requests",
+   "view": "floor",
+   "carries": [
+    "command"
+   ],
+   "summary": "/collect_all, /collect and /services.",
+   "path": [
+    [
+     1046,
+     358
+    ],
+    [
+     980,
+     358
+    ]
+   ],
+   "labelPos": {
+    "x": 1013.0,
+    "y": 353,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-report-operator",
+   "from": "report",
+   "to": "operator",
+   "kind": "talk",
+   "label": "transfers",
+   "view": "floor",
+   "carries": [
+    "notice"
+   ],
+   "summary": "The transfers of the next two days, as one or more messages.",
+   "path": [
+    [
+     980,
+     382
+    ],
+    [
+     1046,
+     382
+    ]
+   ],
+   "labelPos": {
+    "x": 1013,
+    "y": 395,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-report-rounds",
+   "from": "report",
+   "to": "rounds",
+   "kind": "talk",
+   "label": "collect now",
+   "view": "floor",
+   "carries": [
+    "command"
+   ],
+   "summary": "A request to collect, for all services or for one.",
+   "path": [
+    [
+     836,
+     370
+    ],
+    [
+     612,
+     370
+    ],
+    [
+     612,
+     426
+    ],
+    [
+     260,
+     426
+    ],
+    [
+     260,
+     472
+    ]
+   ],
+   "labelPos": {
+    "x": 430,
+    "y": 421,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-tick-rounds",
+   "from": "clock",
+   "to": "rounds",
+   "kind": "tick",
+   "label": "every 10 min",
+   "view": "floor",
+   "summary": "Ten minutes after a collection ends, the next one starts.",
+   "path": [
+    [
+     36,
+     232
+    ],
+    [
+     36,
+     498
+    ],
+    [
+     168,
+     498
+    ]
+   ],
+   "labelPos": {
+    "x": 42,
+    "y": 372,
+    "anchor": "start"
+   }
+  },
+  {
+   "id": "l-rounds-read",
+   "from": "rounds",
+   "to": "read",
+   "kind": "job",
+   "label": "next service",
+   "view": "floor",
+   "carries": [
+    "source"
+   ],
+   "summary": "The service to visit now.",
+   "path": [
+    [
+     240,
+     524
+    ],
+    [
+     240,
+     552
+    ]
+   ],
+   "labelPos": {
+    "x": 246,
+    "y": 542,
+    "anchor": "start"
+   }
+  },
+  {
+   "id": "l-bookings",
+   "from": "sources",
+   "to": "read",
+   "kind": "job",
+   "label": "assigned",
+   "view": "floor",
+   "carries": [
+    "order"
+   ],
+   "summary": "Transfers the company already holds, as each service lists them.",
+   "path": [
+    [
+     106,
+     590
+    ],
+    [
+     168,
+     590
+    ]
+   ],
+   "labelPos": {
+    "x": 137,
+    "y": 585,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-read-snapshot",
+   "from": "read",
+   "to": "snapshot",
+   "kind": "job",
+   "label": "upcoming",
+   "view": "floor",
+   "carries": [
+    "order",
+    "snapshot-thing"
+   ],
+   "summary": "Standard orders for the transfers still ahead, or the error that stopped the service.",
+   "path": [
+    [
+     368,
+     590
+    ],
+    [
+     440,
+     590
+    ]
+   ],
+   "labelPos": {
+    "x": 404.0,
+    "y": 585,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-snapshot-report",
+   "from": "snapshot",
+   "to": "report",
+   "kind": "job",
+   "label": "last collection",
+   "view": "floor",
+   "carries": [
+    "snapshot-thing",
+    "order"
+   ],
+   "summary": "The result the reply is built from.",
+   "path": [
+    [
+     584,
+     600
+    ],
+    [
+     870,
+     600
+    ],
+    [
+     870,
+     398
+    ]
+   ],
+   "labelPos": {
+    "x": 720,
+    "y": 613,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-snapshot-publish",
+   "from": "snapshot",
+   "to": "publish",
+   "kind": "job",
+   "label": "all upcoming transfers",
+   "view": "floor",
+   "carries": [
+    "order"
+   ],
+   "summary": "After every collection, the upcoming transfers of all services in one list.",
+   "path": [
+    [
+     584,
+     578
+    ],
+    [
+     780,
+     578
+    ],
+    [
+     780,
+     74
+    ],
+    [
+     836,
+     74
+    ]
+   ],
+   "labelPos": {
+    "x": 682,
+    "y": 573,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-browsers-catch",
+   "from": "browsers",
+   "to": "catch",
+   "kind": "access",
+   "label": "signed-in page",
+   "view": "floor",
+   "carries": [
+    "session",
+    "browser"
+   ],
+   "summary": "One browser page per worker, used for polling and for accepting.",
+   "path": [
+    [
+     215,
+     292
+    ],
+    [
+     215,
+     190
+    ]
+   ],
+   "labelPos": {
+    "x": 221,
+    "y": 283,
+    "anchor": "start"
+   }
+  },
+  {
+   "id": "l-browsers-collect",
+   "from": "browsers",
+   "to": "collect",
+   "kind": "access",
+   "label": "signed-in page",
+   "view": "floor",
+   "carries": [
+    "session",
+    "browser"
+   ],
+   "summary": "One browser page shared by all services, cleaned between them.",
+   "path": [
+    [
+     215,
+     348
+    ],
+    [
+     215,
+     440
+    ]
+   ],
+   "labelPos": {
+    "x": 221,
+    "y": 412,
+    "anchor": "start"
+   }
+  },
+  {
+   "id": "l-browsers-sessions",
+   "from": "browsers",
+   "to": "sessions",
+   "kind": "access",
+   "label": "cookies",
+   "view": "floor",
+   "carries": [
+    "session"
+   ],
+   "summary": "Saved after signing in, loaded before the next visit.",
+   "both": true,
+   "path": [
+    [
+     312,
+     334
+    ],
+    [
+     384,
+     334
+    ]
+   ],
+   "labelPos": {
+    "x": 348.0,
+    "y": 329,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-dev-ship",
+   "from": "developer",
+   "to": "ship",
+   "kind": "ops",
+   "label": "code, config",
+   "view": "floor",
+   "carries": [
+    "config"
+   ],
+   "summary": "The source tree and the config variables kept outside git.",
+   "path": [
+    [
+     106,
+     732
+    ],
+    [
+     168,
+     732
+    ]
+   ],
+   "labelPos": {
+    "x": 137,
+    "y": 727,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-ship-containers",
+   "from": "ship",
+   "to": "containers",
+   "kind": "ops",
+   "label": "app images",
+   "view": "floor",
+   "carries": [
+    "image",
+    "config"
+   ],
+   "summary": "One image per app, pulled from the private registry, plus its config file.",
+   "path": [
+    [
+     312,
+     732
+    ],
+    [
+     384,
+     732
+    ]
+   ],
+   "labelPos": {
+    "x": 348.0,
+    "y": 727,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-containers-health",
+   "from": "containers",
+   "to": "health",
+   "kind": "ops",
+   "label": "logs and metrics",
+   "view": "floor",
+   "carries": [
+    "logs"
+   ],
+   "summary": "What the containers print, and how much processor, memory, network and disk they use.",
+   "path": [
+    [
+     544,
+     732
+    ],
+    [
+     836,
+     732
+    ]
+   ],
+   "labelPos": {
+    "x": 690.0,
+    "y": 727,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "l-health-grafana",
+   "from": "health",
+   "to": "grafana",
+   "kind": "ops",
+   "label": "dashboards",
+   "view": "floor",
+   "carries": [
+    "logs"
+   ],
+   "summary": "Server Overview and Container Metrics.",
+   "path": [
+    [
+     980,
+     732
+    ],
+    [
+     1046,
+     732
+    ]
+   ],
+   "labelPos": {
+    "x": 1013.0,
+    "y": 727,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "t-mail-offer",
+   "from": "mail",
+   "to": "offer",
+   "kind": "relation",
+   "label": "leads to",
+   "view": "things",
+   "path": [
+    [
+     210,
+     94
+    ],
+    [
+     256,
+     94
+    ]
+   ],
+   "labelPos": {
+    "x": 233.0,
+    "y": 89,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "t-offer-order",
+   "from": "offer",
+   "to": "order",
+   "kind": "relation",
+   "label": "becomes",
+   "view": "things",
+   "path": [
+    [
+     436,
+     94
+    ],
+    [
+     482,
+     94
+    ]
+   ],
+   "labelPos": {
+    "x": 459.0,
+    "y": 89,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "t-snapshot-order",
+   "from": "snapshot-thing",
+   "to": "order",
+   "kind": "relation",
+   "label": "holds",
+   "view": "things",
+   "path": [
+    [
+     708,
+     94
+    ],
+    [
+     662,
+     94
+    ]
+   ],
+   "labelPos": {
+    "x": 685.0,
+    "y": 89,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "t-source-snapshot",
+   "from": "source",
+   "to": "snapshot-thing",
+   "kind": "relation",
+   "label": "fills",
+   "view": "things",
+   "path": [
+    [
+     934,
+     94
+    ],
+    [
+     888,
+     94
+    ]
+   ],
+   "labelPos": {
+    "x": 911.0,
+    "y": 89,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "t-filter-offer",
+   "from": "filter",
+   "to": "offer",
+   "kind": "relation",
+   "label": "judges",
+   "view": "things",
+   "path": [
+    [
+     346,
+     296
+    ],
+    [
+     346,
+     224
+    ]
+   ],
+   "labelPos": {
+    "x": 352,
+    "y": 263.5,
+    "anchor": "start"
+   }
+  },
+  {
+   "id": "t-filter-exclusion",
+   "from": "filter",
+   "to": "exclusion",
+   "kind": "relation",
+   "label": "has",
+   "view": "things",
+   "path": [
+    [
+     256,
+     356
+    ],
+    [
+     210,
+     356
+    ]
+   ],
+   "labelPos": {
+    "x": 233.0,
+    "y": 351,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "t-command-filter",
+   "from": "command",
+   "to": "filter",
+   "kind": "relation",
+   "label": "changes",
+   "view": "things",
+   "path": [
+    [
+     482,
+     356
+    ],
+    [
+     436,
+     356
+    ]
+   ],
+   "labelPos": {
+    "x": 459.0,
+    "y": 351,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "t-chat-command",
+   "from": "chat",
+   "to": "command",
+   "kind": "relation",
+   "label": "sends",
+   "view": "things",
+   "path": [
+    [
+     708,
+     356
+    ],
+    [
+     662,
+     356
+    ]
+   ],
+   "labelPos": {
+    "x": 685.0,
+    "y": 351,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "t-notice-chat",
+   "from": "notice",
+   "to": "chat",
+   "kind": "relation",
+   "label": "sent to",
+   "view": "things",
+   "path": [
+    [
+     934,
+     356
+    ],
+    [
+     888,
+     356
+    ]
+   ],
+   "labelPos": {
+    "x": 911.0,
+    "y": 351,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "t-notice-order",
+   "from": "notice",
+   "to": "order",
+   "kind": "relation",
+   "label": "shows",
+   "view": "things",
+   "path": [
+    [
+     1024,
+     296
+    ],
+    [
+     1024,
+     260
+    ],
+    [
+     572,
+     260
+    ],
+    [
+     572,
+     224
+    ]
+   ],
+   "labelPos": {
+    "x": 798.0,
+    "y": 255,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "t-worker-filter",
+   "from": "worker",
+   "to": "filter",
+   "kind": "relation",
+   "label": "has",
+   "view": "things",
+   "path": [
+    [
+     286,
+     558
+    ],
+    [
+     286,
+     486
+    ]
+   ],
+   "labelPos": {
+    "x": 292,
+    "y": 525.5,
+    "anchor": "start"
+   }
+  },
+  {
+   "id": "t-chat-worker",
+   "from": "chat",
+   "to": "worker",
+   "kind": "relation",
+   "label": "follows",
+   "view": "things",
+   "path": [
+    [
+     758,
+     486
+    ],
+    [
+     758,
+     514
+    ],
+    [
+     366,
+     514
+    ],
+    [
+     366,
+     558
+    ]
+   ],
+   "labelPos": {
+    "x": 562.0,
+    "y": 509,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "t-config-worker",
+   "from": "config",
+   "to": "worker",
+   "kind": "relation",
+   "label": "defines",
+   "view": "things",
+   "path": [
+    [
+     210,
+     618
+    ],
+    [
+     256,
+     618
+    ]
+   ],
+   "labelPos": {
+    "x": 233.0,
+    "y": 613,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "t-worker-browser",
+   "from": "worker",
+   "to": "browser",
+   "kind": "relation",
+   "label": "drives",
+   "view": "things",
+   "path": [
+    [
+     436,
+     618
+    ],
+    [
+     482,
+     618
+    ]
+   ],
+   "labelPos": {
+    "x": 459.0,
+    "y": 613,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "t-browser-session",
+   "from": "browser",
+   "to": "session",
+   "kind": "relation",
+   "label": "loads",
+   "view": "things",
+   "path": [
+    [
+     662,
+     618
+    ],
+    [
+     708,
+     618
+    ]
+   ],
+   "labelPos": {
+    "x": 685.0,
+    "y": 613,
+    "anchor": "middle"
+   }
+  },
+  {
+   "id": "t-source-session",
+   "from": "source",
+   "to": "session",
+   "kind": "relation",
+   "label": "keeps",
+   "view": "things",
+   "path": [
+    [
+     1114,
+     154
+    ],
+    [
+     1132,
+     154
+    ],
+    [
+     1132,
+     536
+    ],
+    [
+     828,
+     536
+    ],
+    [
+     828,
+     558
+    ]
+   ],
+   "labelPos": {
+    "x": 958,
+    "y": 531,
+    "anchor": "middle"
+   }
+  }
+ ],
+ "routes": [
+  {
+   "id": "accept-wp",
+   "name": "Accept a Welcome Pickups order",
+   "group": "g-catch",
+   "status": "works",
+   "trigger": "clock",
+   "summary": "A compliant unassigned transfer gets a driver and a vehicle before anyone else takes it, and the operator and the controller are told.",
+   "steps": [
+    "clock",
+    "l-tick-watch",
+    "watch-wp",
+    "l-offers",
+    "l-watch-judge",
+    "judge-wp",
+    "l-rules-judge",
+    "l-judge-accept",
+    "accept-wp",
+    "l-accept",
+    "l-accepted-announce",
+    "announce",
+    "l-announce-operator",
+    "l-accepted-publish",
+    "publish",
+    "l-publish-controller"
+   ],
+   "stepNotes": [
+    "fetch delay passes",
+    "fetch unassigned transfers",
+    "cost, rate, time test",
+    "assign driver, vehicle",
+    "green message",
+    "post to controller"
+   ]
+  },
+  {
+   "id": "accept-tf",
+   "name": "Accept a Transfeero ride",
+   "group": "g-catch",
+   "status": "works",
+   "trigger": "clock",
+   "summary": "A compliant new ride near Alicante is accepted with the vehicle mapped to its class.",
+   "steps": [
+    "clock",
+    "l-tick-watch",
+    "watch-tf",
+    "l-offers",
+    "l-watch-judge",
+    "judge-tf",
+    "l-rules-judge",
+    "l-judge-accept",
+    "accept-tf",
+    "l-accept",
+    "l-accepted-announce",
+    "announce",
+    "l-announce-operator",
+    "l-accepted-publish",
+    "publish",
+    "l-publish-controller"
+   ],
+   "stepNotes": [
+    "fetch delay passes",
+    "replay new-rides request",
+    "Alicante, cost, class test",
+    "select vehicle, accept",
+    "green message",
+    "post to controller"
+   ]
+  },
+  {
+   "id": "accept-co",
+   "name": "Accept a Connecto transfer",
+   "group": "g-catch",
+   "status": "works",
+   "trigger": "mail",
+   "summary": "An emailed voucher or proposal that matches the uploaded order details is accepted on its page.",
+   "steps": [
+    "mailbox",
+    "l-mail",
+    "watch-co",
+    "l-watch-judge",
+    "judge-co",
+    "l-rules-judge",
+    "l-judge-accept",
+    "accept-co",
+    "l-accept",
+    "l-accepted-announce",
+    "announce",
+    "l-announce-operator",
+    "l-accepted-publish",
+    "publish",
+    "l-publish-controller"
+   ],
+   "stepNotes": [
+    "mail arrives",
+    "open the mail's link",
+    "match order details",
+    "press accept",
+    "green message",
+    "post to controller"
+   ]
+  },
+  {
+   "id": "non-compliant",
+   "name": "Report a non-compliant order",
+   "group": "g-catch",
+   "status": "works",
+   "trigger": "clock",
+   "summary": "An order that fails the filter is not taken, but the operator and the controller still hear about it, once.",
+   "steps": [
+    "watch",
+    "l-watch-judge",
+    "judge",
+    "l-rules-judge",
+    "l-misfit-announce",
+    "announce",
+    "l-announce-operator",
+    "l-misfit-publish",
+    "publish",
+    "l-publish-controller"
+   ],
+   "stepNotes": [
+    "new order found",
+    "fails the filter",
+    "yellow message",
+    "post, marked non-compliant"
+   ]
+  },
+  {
+   "id": "accept-failed",
+   "name": "Report a failed accept",
+   "group": "g-catch",
+   "status": "works",
+   "trigger": "clock",
+   "summary": "When accepting goes wrong the operator gets a red message with the order; nothing is sent to the controller.",
+   "steps": [
+    "judge",
+    "l-judge-accept",
+    "accept",
+    "l-accepted-announce",
+    "announce",
+    "l-announce-operator"
+   ],
+   "stepNotes": [
+    "order complies",
+    "accept fails",
+    "red message"
+   ]
+  },
+  {
+   "id": "start-stop",
+   "name": "Start or stop a worker",
+   "group": "g-operator",
+   "status": "works",
+   "trigger": "operator",
+   "summary": "The operator switches a worker on or off from Telegram; the switch is remembered across restarts.",
+   "steps": [
+    "operator",
+    "l-operator-commands",
+    "cmd-startstop",
+    "l-commands-rules",
+    "rules",
+    "l-rules-watch",
+    "watch",
+    "l-commands-operator"
+   ],
+   "stepNotes": [
+    "/config, then Start or Stop",
+    "start or stop the worker",
+    "switch saved",
+    "polling begins or ends"
+   ]
+  },
+  {
+   "id": "add-exclusion",
+   "name": "Add a time exclusion",
+   "group": "g-operator",
+   "status": "works",
+   "trigger": "operator",
+   "summary": "The operator blocks out a stretch of time; orders with a pickup inside it stop complying.",
+   "steps": [
+    "operator",
+    "l-operator-commands",
+    "cmd-excl",
+    "l-commands-rules",
+    "rules",
+    "l-rules-judge",
+    "judge",
+    "l-commands-operator"
+   ],
+   "stepNotes": [
+    "type times and a date",
+    "parse into a time range",
+    "saved in the filter",
+    "pickups inside never comply"
+   ]
+  },
+  {
+   "id": "set-cost",
+   "name": "Set minimal order cost",
+   "group": "g-operator",
+   "status": "works",
+   "trigger": "operator",
+   "summary": "The operator raises or lowers the price below which orders are not accepted.",
+   "steps": [
+    "operator",
+    "l-operator-commands",
+    "cmd-cost",
+    "l-commands-rules",
+    "rules",
+    "l-rules-judge",
+    "judge",
+    "l-commands-operator"
+   ],
+   "stepNotes": [
+    "type a number",
+    "check it is a number",
+    "saved in the filter",
+    "cheaper orders never comply"
+   ]
+  },
+  {
+   "id": "upload-details",
+   "name": "Upload Connecto order details",
+   "group": "g-operator",
+   "status": "works",
+   "trigger": "operator",
+   "summary": "The operator sends a file listing the routes, vehicles and prices Connecto transfers may be accepted for.",
+   "steps": [
+    "operator",
+    "l-operator-commands",
+    "cmd-details",
+    "l-commands-rules",
+    "rules",
+    "l-rules-judge",
+    "judge-co",
+    "l-commands-operator"
+   ],
+   "stepNotes": [
+    "send a text file",
+    "parse every line",
+    "whole list replaced",
+    "transfers matched against it"
+   ]
+  },
+  {
+   "id": "set-delay",
+   "name": "Set the fetch delay",
+   "group": "g-operator",
+   "status": "works",
+   "trigger": "operator",
+   "summary": "The operator changes how many seconds a worker waits between fetches.",
+   "steps": [
+    "operator",
+    "l-operator-commands",
+    "cmd-delay",
+    "l-commands-rules",
+    "rules",
+    "l-rules-watch",
+    "watch",
+    "l-commands-operator"
+   ],
+   "stepNotes": [
+    "type seconds",
+    "check it is a number",
+    "saved",
+    "used for the next wait"
+   ]
+  },
+  {
+   "id": "choose-worker",
+   "name": "Choose a chat's worker",
+   "group": "g-operator",
+   "status": "works",
+   "trigger": "operator",
+   "summary": "A chat is tied to one worker: its menu controls that worker and its order messages arrive there.",
+   "steps": [
+    "operator",
+    "l-operator-commands",
+    "cmd-worker",
+    "l-commands-rules",
+    "rules",
+    "announce",
+    "l-announce-operator"
+   ],
+   "stepNotes": [
+    "/worker and a name",
+    "check the worker exists",
+    "chat's choice saved",
+    "messages follow the choice"
+   ]
+  },
+  {
+   "id": "restart",
+   "name": "Restart app or server",
+   "group": "g-operator",
+   "status": "partial",
+   "trigger": "operator",
+   "summary": "The operator restarts the dispatcher app, or asks for the server to reboot, from Telegram.",
+   "steps": [
+    "operator",
+    "l-operator-commands",
+    "cmd-host",
+    "containers"
+   ],
+   "stepNotes": [
+    "/restart_app or /reboot_host",
+    "end the process or run reboot",
+    "container starts again"
+   ]
+  },
+  {
+   "id": "drop-exclusions",
+   "name": "Drop past time exclusions",
+   "group": "g-operator",
+   "status": "works",
+   "trigger": "clock",
+   "summary": "Exclusions that have ended are removed without anyone asking.",
+   "steps": [
+    "clock",
+    "expire"
+   ],
+   "stepNotes": [
+    "every 10 minutes",
+    "remove ended exclusions"
+   ]
+  },
+  {
+   "id": "collect-round",
+   "name": "Collect transfers every 10 min",
+   "group": "g-collect",
+   "status": "works",
+   "trigger": "clock",
+   "summary": "All services are visited in turn and the upcoming transfers of all of them are sent to the controller as one list.",
+   "steps": [
+    "clock",
+    "l-tick-rounds",
+    "rounds",
+    "l-rounds-read",
+    "read",
+    "l-browsers-collect",
+    "l-bookings",
+    "l-read-snapshot",
+    "snapshot",
+    "l-snapshot-publish",
+    "publish",
+    "l-publish-controller"
+   ],
+   "stepNotes": [
+    "10 minutes pass",
+    "start a round",
+    "sign in, read, drop past ones",
+    "result kept",
+    "post the whole list"
+   ]
+  },
+  {
+   "id": "ask-all",
+   "name": "Ask for all transfers",
+   "group": "g-collect",
+   "status": "works",
+   "trigger": "operator",
+   "summary": "The operator asks in Telegram and gets the transfers of the next two days across every service.",
+   "steps": [
+    "operator",
+    "l-operator-report",
+    "rep-all",
+    "l-report-rounds",
+    "rounds",
+    "l-rounds-read",
+    "read",
+    "l-bookings",
+    "l-read-snapshot",
+    "snapshot",
+    "l-snapshot-report",
+    "report",
+    "l-report-operator",
+    "l-snapshot-publish",
+    "publish",
+    "l-publish-controller"
+   ],
+   "stepNotes": [
+    "/collect_all",
+    "reply Collecting",
+    "reuse if under 60 s, else collect",
+    "visit every service",
+    "result kept",
+    "sort, cut to two days, send",
+    "list posted again"
+   ]
+  },
+  {
+   "id": "ask-one",
+   "name": "Ask about one service",
+   "group": "g-collect",
+   "status": "works",
+   "trigger": "operator",
+   "summary": "The operator asks for one service; only that one is collected again.",
+   "steps": [
+    "operator",
+    "l-operator-report",
+    "rep-one",
+    "l-report-rounds",
+    "rounds",
+    "l-rounds-read",
+    "read",
+    "l-bookings",
+    "l-read-snapshot",
+    "snapshot",
+    "l-snapshot-report",
+    "report",
+    "l-report-operator",
+    "l-snapshot-publish",
+    "publish",
+    "l-publish-controller"
+   ],
+   "stepNotes": [
+    "/collect and a name",
+    "reply Collecting",
+    "collect that service",
+    "visit it, up to 3 tries",
+    "its part replaced",
+    "send its transfers",
+    "whole list posted again"
+   ]
+  },
+  {
+   "id": "stay-signed-in",
+   "name": "Stay signed in",
+   "group": "g-access",
+   "status": "works",
+   "trigger": "clock",
+   "summary": "Sessions are saved and reused; when a site has signed the account out, it is signed in again and bot checks are clicked through.",
+   "steps": [
+    "br-connect",
+    "l-browsers-sessions",
+    "sessions",
+    "br-session",
+    "br-signin",
+    "br-botcheck",
+    "l-browsers-catch",
+    "l-browsers-collect"
+   ],
+   "stepNotes": [
+    "connect to Chrome",
+    "cookies loaded",
+    "still signed in?",
+    "if not, sign in and save",
+    "click through bot checks"
+   ]
+  },
+  {
+   "id": "ship-version",
+   "name": "Ship a new version",
+   "group": "g-ops",
+   "status": "partial",
+   "trigger": "developer",
+   "summary": "The developer builds an image, pushes it to the private registry and runs the deploy playbook.",
+   "steps": [
+    "developer",
+    "l-dev-ship",
+    "ship-build",
+    "ship-registry",
+    "ship-deploy",
+    "l-ship-containers",
+    "containers"
+   ],
+   "stepNotes": [
+    "run build and deploy",
+    "bundle into an image",
+    "push to the registry",
+    "write config, pull, start",
+    "new containers run"
+   ]
+  },
+  {
+   "id": "watch-health",
+   "name": "Watch server health",
+   "group": "g-ops",
+   "status": "partial",
+   "trigger": "clock",
+   "summary": "Logs and metrics of the server and its containers flow into Grafana.",
+   "steps": [
+    "containers",
+    "l-containers-health",
+    "hl-logs",
+    "hl-metrics",
+    "hl-dash",
+    "l-health-grafana",
+    "grafana"
+   ],
+   "stepNotes": [
+    "containers run",
+    "tail the logs",
+    "scrape the metrics",
+    "two dashboards",
+    "someone looks"
+   ]
+  },
+  {
+   "id": "app-health",
+   "name": "Check app health",
+   "group": "g-ops",
+   "status": "planned",
+   "trigger": "clock",
+   "summary": "The images already probe a health address and Prometheus has scrape jobs waiting, but the apps answer on no port yet.",
+   "steps": [
+    "containers",
+    "hl-app"
+   ],
+   "stepNotes": [
+    "probe /health",
+    "nothing answers yet"
+   ]
+  },
+  {
+   "id": "tg-logs",
+   "name": "Send logs to Telegram",
+   "group": "g-ops",
+   "status": "partial",
+   "trigger": "clock",
+   "summary": "A Telegram log bot is wired in both apps but switched off; logs and failure screenshots stay on the server.",
+   "steps": [
+    "hl-tglog",
+    "br-shot"
+   ],
+   "stepNotes": [
+    "log bot commented out",
+    "screenshots shown to nobody"
+   ]
+  }
+ ]
+}

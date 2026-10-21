@@ -1,0 +1,4345 @@
+{
+ "repo": {
+  "path": "/home/qwert21/projects/Dispatcher",
+  "commit": "db051fa",
+  "name": "Dispatcher",
+  "tagline": "Takes transfer offers, keeps the booked schedule",
+  "tracked_files": 286,
+  "tracked_lines": 9911,
+  "linked_lines": 9911,
+  "unlinked_files": [
+   "pnpm-lock.yaml"
+  ]
+ },
+ "vocabulary": {
+  "kinds": {
+   "actor": "a person, system or schedule outside the apps",
+   "platform": "a transfer platform the apps read or act on",
+   "part": "a job the project does",
+   "thing": "something stored or passed along"
+  },
+  "link_kinds": {
+   "flow": "what moves, always drawn",
+   "act": "an action back on a platform",
+   "support": "what a part leans on",
+   "reply": "an answer going back to a person",
+   "off": "exists but is switched off or not served"
+  },
+  "status": {
+   "works": "implemented end to end in the code, no stub markers (not run)",
+   "partial": "implemented with a known gap, or switched off",
+   "planned": "prepared for, not built",
+   "unknown": "cannot be told from the repository"
+  }
+ },
+ "actors": [
+  {
+   "id": "operator",
+   "name": "Operator in Telegram",
+   "glyph": "person",
+   "role": "uses it"
+  },
+  {
+   "id": "admin",
+   "name": "Admin at a terminal",
+   "glyph": "terminal",
+   "role": "uses it"
+  },
+  {
+   "id": "platforms",
+   "name": "Transfer platforms",
+   "glyph": "globe",
+   "role": "feed it"
+  },
+  {
+   "id": "mailbox",
+   "name": "Offer mailbox",
+   "glyph": "mail",
+   "role": "feeds it"
+  },
+  {
+   "id": "timer",
+   "name": "Timers",
+   "glyph": "clock",
+   "role": "start it"
+  },
+  {
+   "id": "controller",
+   "name": "Controller API",
+   "glyph": "inbox",
+   "role": "receives"
+  }
+ ],
+ "groups": [
+  {
+   "id": "catch",
+   "n": 1,
+   "name": "Catch new offers",
+   "summary": "Workers watch three platforms and take every offer that fits the rules.",
+   "lines": 3302,
+   "files": 110,
+   "use_cases": [
+    "take-wp",
+    "take-tf",
+    "take-cn",
+    "report-misfit",
+    "report-failed",
+    "stay-signed-in",
+    "resume"
+   ],
+   "elements": [
+    "x-chat",
+    "x-mail",
+    "x-controller",
+    "x-wp",
+    "x-tf",
+    "x-cn",
+    "p-poll",
+    "p-mail",
+    "p-judge",
+    "t-rules",
+    "p-take-wp",
+    "p-take-tf",
+    "p-take-cn",
+    "t-order",
+    "p-announce",
+    "p-publish",
+    "p-session",
+    "p-browser",
+    "p-run"
+   ]
+  },
+  {
+   "id": "steer",
+   "n": 2,
+   "name": "Steer the workers",
+   "summary": "The operator starts, stops and tunes the workers from a Telegram chat.",
+   "lines": 1015,
+   "files": 14,
+   "use_cases": [
+    "bind-chat",
+    "start-stop",
+    "set-delay",
+    "block-hours",
+    "min-cost",
+    "accept-list",
+    "restart-app",
+    "reboot"
+   ],
+   "elements": [
+    "x-chat",
+    "x-server",
+    "t-rules",
+    "p-run",
+    "p-gate",
+    "p-bind",
+    "t-binding",
+    "p-menu",
+    "p-edit",
+    "p-expire",
+    "p-host"
+   ]
+  },
+  {
+   "id": "collect",
+   "n": 3,
+   "name": "Collect the booked schedule",
+   "summary": "Every 10 minutes each configured platform is read for transfers already booked.",
+   "lines": 2564,
+   "files": 99,
+   "use_cases": [
+    "refresh",
+    "collect-all",
+    "collect-one",
+    "services",
+    "read-wp",
+    "read-tf",
+    "read-cn",
+    "read-atob",
+    "read-kiwi",
+    "read-cataxis",
+    "read-shuttle",
+    "read-gsheet",
+    "read-talixo",
+    "read-wtdriver",
+    "read-elife",
+    "read-chofix"
+   ],
+   "elements": [
+    "x-chat",
+    "x-timer",
+    "x-controller",
+    "x-wp",
+    "x-tf",
+    "x-cn",
+    "x-atob",
+    "x-kiwi",
+    "x-cataxis",
+    "x-shuttle",
+    "x-gsheet",
+    "x-talixo",
+    "x-wtdriver",
+    "x-elife",
+    "x-chofix",
+    "p-publish",
+    "p-session",
+    "p-browser",
+    "p-ask",
+    "p-round",
+    "p-walk",
+    "p-read",
+    "t-schedule",
+    "p-format"
+   ]
+  },
+  {
+   "id": "run",
+   "n": 4,
+   "name": "Run it on a server",
+   "summary": "Build the images, ship them with Ansible, and watch the server.",
+   "lines": 3030,
+   "files": 62,
+   "use_cases": [
+    "prepare",
+    "registry",
+    "build",
+    "ship-dispatcher",
+    "ship-consolidator",
+    "monitor",
+    "vnc",
+    "dev",
+    "tg-logs",
+    "health"
+   ],
+   "elements": [
+    "x-admin",
+    "x-server",
+    "p-browser",
+    "p-prepare",
+    "p-registry",
+    "p-build",
+    "p-ship",
+    "t-config",
+    "r-watch",
+    "r-collect",
+    "p-monitor",
+    "p-dash",
+    "p-log-tg",
+    "p-health"
+   ]
+  }
+ ],
+ "elements": [
+  {
+   "id": "x-chat",
+   "kind": "actor",
+   "name": "Operator's chat",
+   "status": "works",
+   "summary": "A person in an allowed Telegram chat who gets order messages and steers the workers.",
+   "code": [
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts",
+    "apps/consolidator/src/telegram/TelegramConsolidatorBot.ts"
+   ],
+   "floors": [
+    "catch",
+    "steer",
+    "collect"
+   ],
+   "how": [
+    "Two separate bots: one manages the workers, one answers schedule requests.",
+    "Each bot answers only chats whose ids are listed in its config."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 2,
+   "lines": 417,
+   "actor_group": "operator",
+   "leads_to_floors": []
+  },
+  {
+   "id": "x-admin",
+   "kind": "actor",
+   "name": "Admin at a terminal",
+   "status": "works",
+   "summary": "Whoever builds the images and runs the Ansible playbooks.",
+   "code": [
+    "package.json",
+    "ansible/playbooks/",
+    ".devcontainer/"
+   ],
+   "floors": [
+    "run"
+   ],
+   "how": [
+    "Root npm scripts wrap the playbooks: deploy-dispatcher, deploy-consolidator, deploy-registry, deploy-monitoring.",
+    "A dev container with Ansible and Node is provided for running them."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 9,
+   "lines": 225,
+   "actor_group": "admin",
+   "leads_to_floors": []
+  },
+  {
+   "id": "x-timer",
+   "kind": "actor",
+   "name": "Timers",
+   "status": "works",
+   "summary": "Schedules inside the apps that start work without anyone asking.",
+   "code": [
+    "packages/shared/src/worker/CommonWorker.ts",
+    "apps/consolidator/src/services/BackgroundConsolidator.ts",
+    "packages/components/transfeero/src/TransfeeroWorker.ts",
+    "packages/shared/src/worker/TimeExclusionsCleaner.ts"
+   ],
+   "floors": [
+    "collect"
+   ],
+   "how": [
+    "Fetch delay per worker: 20 s by default, editable from Telegram.",
+    "Schedule round: every 10 minutes.",
+    "Transfeero session refresh: every 3 minutes.",
+    "Clean-up of past blocked hours: every 10 minutes."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 4,
+   "lines": 399,
+   "actor_group": "timer",
+   "leads_to_floors": []
+  },
+  {
+   "id": "x-mail",
+   "kind": "actor",
+   "name": "Offer mailbox",
+   "status": "works",
+   "summary": "The Gmail inbox where Connecto sends its offers.",
+   "code": [
+    "packages/components/connecto/src/services/ImapService.ts",
+    "packages/components/connecto/src/models/ImapServiceConfig.ts"
+   ],
+   "floors": [
+    "catch"
+   ],
+   "how": [
+    "Read over IMAP with a user and password from config.",
+    "The inbox is opened read-only; mails are never marked or moved."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 2,
+   "lines": 123,
+   "actor_group": "mailbox",
+   "leads_to_floors": []
+  },
+  {
+   "id": "x-controller",
+   "kind": "actor",
+   "name": "Controller API",
+   "status": "works",
+   "summary": "The central system that receives orders. It is not in this repository.",
+   "code": [
+    "packages/shared/src/services/OrderPublisher.ts"
+   ],
+   "floors": [
+    "catch",
+    "collect"
+   ],
+   "how": [
+    "Only one call is used: POST /addOrders with a list of orders.",
+    "Address and API key come from each app's config."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 1,
+   "lines": 22,
+   "actor_group": "controller",
+   "leads_to_floors": []
+  },
+  {
+   "id": "x-server",
+   "kind": "actor",
+   "name": "The server",
+   "status": "works",
+   "summary": "The Linux host that everything is deployed to.",
+   "code": [
+    "ansible/inventory/hosts.yml",
+    "ansible/ansible.cfg"
+   ],
+   "floors": [
+    "steer",
+    "run"
+   ],
+   "how": [
+    "One host plays both roles in the inventory: app server and image registry."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 2,
+   "lines": 19,
+   "actor_group": "admin",
+   "leads_to_floors": []
+  },
+  {
+   "id": "x-wp",
+   "kind": "platform",
+   "name": "Welcome Pickups",
+   "status": "works",
+   "summary": "Platform with a live worker; its bookings are read from the site's own JSON list.",
+   "code": [
+    "packages/components/wpickups/src/Pages.ts",
+    "packages/components/wpickups/src/actions/GetAssignedTransfers.ts",
+    "packages/components/wpickups/src/index.ts",
+    "packages/components/wpickups/src/actions/index.ts",
+    "packages/components/wpickups/src/models/index.ts",
+    "packages/components/wpickups/package.json",
+    "packages/components/wpickups/tsconfig.json"
+   ],
+   "floors": [
+    "catch",
+    "collect"
+   ],
+   "how": [
+    "Floor 1: unassigned transfers are polled and fitting ones get a driver assigned.",
+    "Floor 3: asks for assigned upcoming transfers of the next 2 days."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 7,
+   "lines": 82,
+   "actor_group": "platforms",
+   "leads_to_floors": []
+  },
+  {
+   "id": "x-tf",
+   "kind": "platform",
+   "name": "Transfeero",
+   "status": "works",
+   "summary": "Platform with a live worker; its bookings are read by replaying the site's own request.",
+   "code": [
+    "packages/components/transfeero/src/Pages.ts",
+    "packages/components/transfeero/src/actions/GetAssignedTransfers.ts",
+    "packages/components/transfeero/src/actions/RequestUpcomingRides.ts",
+    "packages/components/transfeero/src/index.ts",
+    "packages/components/transfeero/src/actions/index.ts",
+    "packages/components/transfeero/src/models/index.ts",
+    "packages/components/transfeero/package.json",
+    "packages/components/transfeero/tsconfig.json"
+   ],
+   "floors": [
+    "catch",
+    "collect"
+   ],
+   "how": [
+    "Floor 1: new rides are polled and fitting ones accepted.",
+    "Floor 3: opens 'upcoming rides', captures the request the page makes, and sends it again."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 8,
+   "lines": 113,
+   "actor_group": "platforms",
+   "leads_to_floors": []
+  },
+  {
+   "id": "x-cn",
+   "kind": "platform",
+   "name": "Connecto",
+   "status": "works",
+   "summary": "Platform with a live worker fed by e-mail; its bookings are read from the confirmed-transfers table.",
+   "code": [
+    "packages/components/connecto/src/Pages.ts",
+    "packages/components/connecto/src/actions/GetAssignedTransfers.ts",
+    "packages/components/connecto/src/actions/ParseAssignedTransfers.ts",
+    "packages/components/connecto/src/models/CredentialsWithPin.ts",
+    "packages/components/connecto/src/index.ts",
+    "packages/components/connecto/src/actions/index.ts",
+    "packages/components/connecto/src/models/index.ts",
+    "packages/components/connecto/src/services/index.ts",
+    "packages/components/connecto/src/telegram/index.ts",
+    "packages/components/connecto/package.json",
+    "packages/components/connecto/tsconfig.json"
+   ],
+   "floors": [
+    "catch",
+    "collect"
+   ],
+   "how": [
+    "Floor 1: offers arrive as e-mails with a link to the offer page.",
+    "Floor 3: signs in with e-mail, password and a PIN, then reads every page of confirmed transfers."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 11,
+   "lines": 238,
+   "actor_group": "platforms",
+   "leads_to_floors": []
+  },
+  {
+   "id": "x-atob",
+   "kind": "platform",
+   "name": "AtoB Transfer",
+   "status": "works",
+   "summary": "Bookings are read from the upcoming-bookings table, then each booking is opened for details.",
+   "code": [
+    "packages/components/atob/"
+   ],
+   "floors": [
+    "collect"
+   ],
+   "how": [
+    "The table gives id, date, route, vehicle; each booking page adds client name, phone, price, passengers."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 9,
+   "lines": 229,
+   "actor_group": "platforms",
+   "leads_to_floors": []
+  },
+  {
+   "id": "x-kiwi",
+   "kind": "platform",
+   "name": "Kiwitaxi",
+   "status": "works",
+   "summary": "Bookings are read by re-sending the site's own data request, asking only for scheduled orders.",
+   "code": [
+    "packages/components/kiwi/"
+   ],
+   "floors": [
+    "collect"
+   ],
+   "how": [
+    "Opens the orders page, captures the GraphQL request it makes, changes the status filter to 'scheduled' and sends it again."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 9,
+   "lines": 172,
+   "actor_group": "platforms",
+   "leads_to_floors": []
+  },
+  {
+   "id": "x-cataxis",
+   "kind": "platform",
+   "name": "City Airport Taxis",
+   "status": "works",
+   "summary": "Bookings are read from the site's search endpoint, then each one is opened for details.",
+   "code": [
+    "packages/components/ca-taxis/"
+   ],
+   "floors": [
+    "collect"
+   ],
+   "how": [
+    "Each booking page adds client name, phone, vehicle type and net rate.",
+    "When the page is flagged 'doubled' (three sections) the net rate is halved."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 12,
+   "lines": 286,
+   "actor_group": "platforms",
+   "leads_to_floors": []
+  },
+  {
+   "id": "x-shuttle",
+   "kind": "platform",
+   "name": "Shuttle Spain",
+   "status": "works",
+   "summary": "Bookings are caught from the data the services page loads by itself.",
+   "code": [
+    "packages/components/shuttlespain/"
+   ],
+   "floors": [
+    "collect"
+   ],
+   "how": [
+    "Opens the services list and listens for the site's own 'get all services' answer."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 9,
+   "lines": 184,
+   "actor_group": "platforms",
+   "leads_to_floors": []
+  },
+  {
+   "id": "x-gsheet",
+   "kind": "platform",
+   "name": "Google Sheet",
+   "status": "works",
+   "summary": "Bookings kept by hand in a spreadsheet, read through a Google service account. No browser involved.",
+   "code": [
+    "packages/components/google-sheets/"
+   ],
+   "floors": [
+    "collect"
+   ],
+   "how": [
+    "Reads 100 rows at a time from a start row until a short page comes back.",
+    "Which column means what (date, time, from, to, price, passenger…) is a template in config."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 10,
+   "lines": 174,
+   "actor_group": "platforms",
+   "leads_to_floors": []
+  },
+  {
+   "id": "x-talixo",
+   "kind": "platform",
+   "name": "Talixo",
+   "status": "partial",
+   "summary": "Bookings are read from the jobs table, but no booking id is read.",
+   "code": [
+    "packages/components/talixo/"
+   ],
+   "floors": [
+    "collect"
+   ],
+   "how": [
+    "Reads date, time, from, to, vehicle and price from each table row."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [
+    "The order id is a random string made up on every read."
+   ],
+   "files": 8,
+   "lines": 208,
+   "actor_group": "platforms",
+   "leads_to_floors": []
+  },
+  {
+   "id": "x-wtdriver",
+   "kind": "platform",
+   "name": "World Transfer",
+   "status": "partial",
+   "summary": "Bookings are read from the driver app's Confirmed tab; ids are placeholders.",
+   "code": [
+    "packages/components/wtdriver/"
+   ],
+   "floors": [
+    "collect"
+   ],
+   "how": [
+    "Signs in with a 'GTU' code, user and password; reads the cards; logs out."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [
+    "Signs in on every round — cookie reuse is commented out.",
+    "The order id is a random number, marked 'to be replaced' in the code."
+   ],
+   "files": 12,
+   "lines": 231,
+   "actor_group": "platforms",
+   "leads_to_floors": []
+  },
+  {
+   "id": "x-elife",
+   "kind": "platform",
+   "name": "Elife",
+   "status": "partial",
+   "summary": "Bookings are caught from data the page loads while each ride is opened in turn.",
+   "code": [
+    "packages/components/elife/"
+   ],
+   "floors": [
+    "collect"
+   ],
+   "how": [
+    "Scrolls until 'no more items', opens every ride tile, and collects the ride data the page fetches."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [
+    "The 'already signed in?' check is a stub that always says no, so it signs in every round.",
+    "OpenMyRides.ts is kept in the package but its call is commented out."
+   ],
+   "files": 14,
+   "lines": 403,
+   "actor_group": "platforms",
+   "leads_to_floors": []
+  },
+  {
+   "id": "x-chofix",
+   "kind": "platform",
+   "name": "Chofix",
+   "status": "partial",
+   "summary": "Newest platform. Bookings are read from the confirmed-rides table, without an id.",
+   "code": [
+    "packages/components/chofix/"
+   ],
+   "floors": [
+    "collect"
+   ],
+   "how": [
+    "Reads date, time, route, passengers, vehicle, price and the comment tooltip from each row."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [
+    "The order id is the literal text 'unknown' (marked todo).",
+    "Debug prints are still in the table reader."
+   ],
+   "files": 6,
+   "lines": 164,
+   "actor_group": "platforms",
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-poll",
+   "kind": "part",
+   "name": "Polls for open offers",
+   "status": "works",
+   "summary": "Asks Welcome Pickups and Transfeero, again and again, for offers nobody has taken yet.",
+   "code": [
+    "packages/shared/src/worker/CommonWorker.ts",
+    "packages/components/wpickups/src/actions/RequestTransfers.ts",
+    "packages/components/wpickups/src/WPickupsWorker.ts",
+    "packages/components/wpickups/src/models/Transfer.ts",
+    "packages/components/wpickups/src/models/TransfersResponse.ts",
+    "packages/components/transfeero/src/actions/RequestNewRides.ts",
+    "packages/components/transfeero/src/TransfeeroWorker.ts",
+    "packages/components/transfeero/src/models/Ride.ts",
+    "packages/components/transfeero/src/models/RidesResponse.ts"
+   ],
+   "floors": [
+    "catch"
+   ],
+   "how": [
+    "Runs every fetch delay: 20 s unless changed from Telegram.",
+    "A poll that fails is retried (5 in the code), then skipped until the next tick.",
+    "Welcome Pickups: the site's JSON list of unassigned upcoming transfers, next 14 days, first 100.",
+    "Transfeero: the site's own 'new rides' request, captured from the page and sent again."
+   ],
+   "must_hold": [
+    "The request is made from inside the signed-in browser page, so it only works while the session is alive."
+   ],
+   "change_here": [
+    "How far ahead Welcome Pickups looks: filter.days default in WPickupsWorker.ts.",
+    "Retry count and pause: nextAction in CommonWorker.ts."
+   ],
+   "watch_out": [],
+   "files": 9,
+   "lines": 576,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-mail",
+   "kind": "part",
+   "name": "Reads emailed Connecto offers",
+   "status": "works",
+   "summary": "Finds new Connecto mails in the inbox, opens the link inside, and reads the offer.",
+   "code": [
+    "packages/components/connecto/src/ConnectoWorker.ts",
+    "packages/components/connecto/src/services/ImapService.ts",
+    "packages/components/connecto/src/actions/GetTransferVoucherDetails.ts",
+    "packages/components/connecto/src/actions/GetTransferProposalDetails.ts",
+    "packages/components/connecto/src/models/Mail.ts",
+    "packages/components/connecto/src/models/ConnectoTransferDetails.ts",
+    "packages/components/connecto/src/models/ConnectoConfig.ts"
+   ],
+   "floors": [
+    "catch"
+   ],
+   "how": [
+    "Every fetch delay: looks for mail from Connecto newer than the last one handled.",
+    "Four kinds, told apart by subject: Transfer voucher, Transfer proposal, New Transfer, Transfer Available.",
+    "Opens the link from the mail in the browser and reads from, to, date, vehicle and price.",
+    "An offer whose page says it expired is skipped."
+   ],
+   "must_hold": [
+    "The time of the last handled mail is saved, so a mail is handled once — even if taking it fails.",
+    "On its very first start the worker only notes 'now'; older mail is ignored."
+   ],
+   "change_here": [
+    "How each mail kind's link is found: the extract… functions in ConnectoWorker.ts."
+   ],
+   "watch_out": [
+    "The page is also checked for 'Transfer cancellation', but nothing uses that flag."
+   ],
+   "files": 7,
+   "lines": 525,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-judge",
+   "kind": "part",
+   "name": "Decides if an offer fits",
+   "status": "works",
+   "summary": "Compares each offer with the operator's rules. Only a fitting offer is taken.",
+   "code": [
+    "packages/components/wpickups/src/WPickupsWorker.ts",
+    "packages/components/transfeero/src/TransfeeroWorker.ts",
+    "packages/components/connecto/src/ConnectoWorker.ts",
+    "packages/shared/src/worker/CommonWorker.ts"
+   ],
+   "floors": [
+    "catch"
+   ],
+   "how": [
+    "Welcome Pickups: not cancelled; driver's cost at least the minimum for a minivan or sedan (any other vehicle never fits); cost per km at least the minimal rate.",
+    "Transfeero: start or end contains 'Alicante'; payout at least the minimal order cost; vehicle class is in the configured vehicle map.",
+    "Connecto: some line of the accept list matches — same from, same to, vehicle contains, price at least.",
+    "All three: the pickup time must be outside every blocked window."
+   ],
+   "must_hold": [
+    "A fitting offer is taken without asking anyone.",
+    "A misfit is reported, never taken."
+   ],
+   "change_here": [
+    "Each platform's rule is one function: transferCompliance in WPickupsWorker.ts and ConnectoWorker.ts, rideCompliance in TransfeeroWorker.ts.",
+    "The 'Alicante' test is written into TransfeeroWorker.ts.",
+    "The numbers themselves are changed from Telegram — floor 2."
+   ],
+   "watch_out": [],
+   "files": 4,
+   "lines": 614,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "t-rules",
+   "kind": "thing",
+   "name": "Acceptance rules",
+   "status": "works",
+   "summary": "Per worker: fetch delay, blocked hours, minimal costs, and Connecto's accept list.",
+   "code": [
+    "packages/shared/src/models/CommonWorkerState.ts",
+    "packages/shared/src/models/CommonFilterOptions.ts",
+    "packages/shared/src/models/TimeRange.ts",
+    "packages/components/wpickups/src/models/WPickupsFilterOptions.ts",
+    "packages/components/wpickups/src/models/WPickupsState.ts",
+    "packages/components/connecto/src/models/ConnectoFilterOptions.ts",
+    "packages/components/connecto/src/models/ConnectoState.ts",
+    "packages/components/transfeero/src/models/TransfeeroState.ts",
+    "packages/shared/src/worker/BasicWorker.ts"
+   ],
+   "floors": [
+    "catch",
+    "steer"
+   ],
+   "how": [
+    "Saved as a file in each worker's storage folder; survives restarts.",
+    "Defaults: delay 20 s, no blocked hours, minimal order cost 10000.",
+    "Welcome Pickups defaults: 1000 per vehicle, rate 100 per km, 14 days ahead.",
+    "Connecto default: an empty accept list, so nothing fits until one is uploaded."
+   ],
+   "must_hold": [
+    "Blocked hours are stored as UTC instants; the bot shows and reads them in local time."
+   ],
+   "change_here": [
+    "Defaults: BasicWorker.ts (common), WPickupsWorker.ts and ConnectoWorker.ts constructors."
+   ],
+   "watch_out": [],
+   "files": 9,
+   "lines": 130,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-take-wp",
+   "kind": "part",
+   "name": "Assigns driver and car",
+   "status": "works",
+   "summary": "Takes a Welcome Pickups transfer by assigning one of the company's drivers and a vehicle on the site.",
+   "code": [
+    "packages/components/wpickups/src/actions/AssignDriverForTransfer.ts",
+    "packages/components/wpickups/src/actions/AssignDriver.ts",
+    "packages/components/wpickups/src/actions/AssignVehicle.ts",
+    "packages/components/wpickups/src/actions/CheckAssigned.ts",
+    "packages/components/wpickups/src/actions/ClickAssign.ts",
+    "packages/components/wpickups/src/actions/OpenAssignDriverModal.ts",
+    "packages/components/wpickups/src/actions/OpenTransfers.ts",
+    "packages/components/wpickups/src/models/WPickupsConfig.ts"
+   ],
+   "floors": [
+    "catch"
+   ],
+   "how": [
+    "Opens the transfers page and the transfer's 'Assign driver' dialog.",
+    "Picks a random driver who is not on the configured exclude list, and the first vehicle offered.",
+    "Clicks assign and waits up to 10 s for the site to confirm.",
+    "Then checks that the transfer shows up among the assigned ones. The whole sequence is tried up to 5 times, with a screenshot on failure."
+   ],
+   "must_hold": [
+    "It gives up when no driver is left after exclusions or no vehicle is offered."
+   ],
+   "change_here": [
+    "Drivers never to pick: driversToExclude in the worker's config.",
+    "Driver choice (random) and vehicle choice (first): AssignDriver.ts, AssignVehicle.ts."
+   ],
+   "watch_out": [],
+   "files": 8,
+   "lines": 348,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-take-tf",
+   "kind": "part",
+   "name": "Accepts the Transfeero ride",
+   "status": "works",
+   "summary": "Takes a Transfeero ride: opens it, picks the vehicle, clicks accept, waits for the site's answer.",
+   "code": [
+    "packages/components/transfeero/src/actions/AcceptRide.ts",
+    "packages/components/transfeero/src/actions/OpenNewRidePage.ts",
+    "packages/components/transfeero/src/actions/SelectVehicle.ts",
+    "packages/components/transfeero/src/actions/ClickAccept.ts",
+    "packages/components/transfeero/src/actions/HandleTurnstile.ts",
+    "packages/components/transfeero/src/models/TransfeeroConfig.ts",
+    "packages/components/transfeero/src/actions/GetSemiCompliantRideDate.ts"
+   ],
+   "floors": [
+    "catch"
+   ],
+   "how": [
+    "Opens the ride's page; waits out Transfeero's 'Security Check' room if it shows up.",
+    "Passes the Cloudflare checkbox (up to 10 s).",
+    "Selects the vehicle that the config maps to the ride's class.",
+    "Clicks accept and waits up to 10 s; only an answer with status 200 counts as taken.",
+    "Every stage is timed in the log."
+   ],
+   "must_hold": [],
+   "change_here": [
+    "Which of your vehicles answers which ride class: vehicleTypeMap in config. A class missing from the map never fits.",
+    "Oldest first or newest first: processingOrder in config."
+   ],
+   "watch_out": [
+    "GetSemiCompliantRideDate.ts exists in the package but nothing calls it."
+   ],
+   "files": 7,
+   "lines": 274,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-take-cn",
+   "kind": "part",
+   "name": "Clicks accept on offer",
+   "status": "works",
+   "summary": "Takes a Connecto offer by pressing the accept control on the offer page that is already open.",
+   "code": [
+    "packages/components/connecto/src/actions/AcceptTransferVoucher.ts",
+    "packages/components/connecto/src/actions/AcceptTransferProposal.ts"
+   ],
+   "floors": [
+    "catch"
+   ],
+   "how": [
+    "Proposal mails use the 'accept proposal' control; the other three kinds use the page's success button."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [
+    "After the click it only waits half a second; nothing checks that the site confirmed."
+   ],
+   "files": 2,
+   "lines": 16,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "t-order",
+   "kind": "thing",
+   "name": "Order",
+   "status": "works",
+   "summary": "The one record that every platform's offer or booking is turned into.",
+   "code": [
+    "packages/shared/src/models/Order.ts",
+    "packages/components/wpickups/src/utils.ts",
+    "packages/components/transfeero/src/utils.ts",
+    "packages/components/connecto/src/utils.ts"
+   ],
+   "floors": [
+    "catch"
+   ],
+   "how": [
+    "Carries id, platform, pickup time, from, to, car type, passengers, cost, traveler (name, phone, comment).",
+    "Has a type: compliant (fits, taken or already booked) or non-compliant (misfit).",
+    "Platform extras ride along: distance, commission, payment method, flight number."
+   ],
+   "must_hold": [
+    "Pickup time is meant as a UTC instant; each platform converts from its own date format using the current UTC offset (+1 or +2)."
+   ],
+   "change_here": [
+    "The fields: Order.ts. How a platform fills them: its mapToOrder function."
+   ],
+   "watch_out": [],
+   "files": 4,
+   "lines": 97,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-announce",
+   "kind": "part",
+   "name": "Announces orders in chat",
+   "status": "works",
+   "summary": "Tells the chats bound to a worker about every new order.",
+   "code": [
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts",
+    "apps/dispatcher/src/index.ts"
+   ],
+   "floors": [
+    "catch"
+   ],
+   "how": [
+    "Three marks: green for taken, yellow for 'does not fit', red for 'failed to accept'.",
+    "Shows id, pickup time, route, distance, car type, cost; traveler and passenger count only on taken orders.",
+    "More than 10 misfits in one batch become a single summary line.",
+    "Only chats bound to that worker get the message; with no bound chat nothing is sent."
+   ],
+   "must_hold": [],
+   "change_here": [
+    "Wording and fields: formatOrder in TelegramManageBot.ts."
+   ],
+   "watch_out": [
+    "Writing the message adds the UTC offset to the order's pickup time in place, once per bound chat — and the same order object is handed to the publisher right after. Read from the code, not run."
+   ],
+   "files": 2,
+   "lines": 337,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-publish",
+   "kind": "part",
+   "name": "Publishes orders to controller",
+   "status": "works",
+   "summary": "Sends orders to the central controller over HTTP.",
+   "code": [
+    "packages/shared/src/services/OrderPublisher.ts",
+    "apps/dispatcher/src/index.ts",
+    "apps/consolidator/src/index.ts"
+   ],
+   "floors": [
+    "catch",
+    "collect"
+   ],
+   "how": [
+    "POST to the controller's /addOrders with the list of orders and an API key header.",
+    "Floor 1: every new order, taken or misfit, as it appears. Failed accepts are not sent.",
+    "Floor 3: the whole schedule after every round."
+   ],
+   "must_hold": [
+    "A send that fails is logged and dropped: no retry, no queue."
+   ],
+   "change_here": [
+    "Address and key: the controller section of each app's config file."
+   ],
+   "watch_out": [],
+   "files": 3,
+   "lines": 201,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-session",
+   "kind": "part",
+   "name": "Keeps the session signed in",
+   "status": "works",
+   "summary": "Gets each platform's page into a signed-in state and keeps it there.",
+   "code": [
+    "packages/shared/src/actions/",
+    "packages/components/wpickups/src/actions/SignIn.ts",
+    "packages/components/wpickups/src/actions/CheckSignedIn.ts",
+    "packages/components/transfeero/src/actions/SignIn.ts",
+    "packages/components/transfeero/src/actions/CheckSignedIn.ts",
+    "packages/components/transfeero/src/actions/HandleWaitroom.ts",
+    "packages/components/transfeero/src/actions/GetRequestInfoForURL.ts",
+    "packages/components/transfeero/src/models/RequestRidesInfo.ts",
+    "packages/shared/src/models/Credentials.ts",
+    "apps/consolidator/src/actions/"
+   ],
+   "floors": [
+    "catch",
+    "collect"
+   ],
+   "how": [
+    "Loads saved cookies, opens the platform, and looks whether it lands on the working page.",
+    "If not, it types the e-mail and password from config into the login form and saves the fresh cookies.",
+    "Transfeero worker: repeats the check and re-captures its requests every 3 minutes.",
+    "Cloudflare's checkbox is clicked by position; Transfeero's 'Security Check' room is waited out for up to 60 s.",
+    "Floor 3 wipes all cookies before each platform, then loads that platform's saved ones."
+   ],
+   "must_hold": [
+    "Logins come only from the config file, never from the repository."
+   ],
+   "change_here": [],
+   "watch_out": [
+    "The Welcome Pickups worker clicks the Cloudflare box once a second only while the worker is stopped — as written.",
+    "The Connecto worker never signs in; it only opens the links from its mails."
+   ],
+   "files": 15,
+   "lines": 368,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-browser",
+   "kind": "part",
+   "name": "Drives a real Chrome",
+   "status": "works",
+   "summary": "Does every click and request through a real Chrome browser running in its own container.",
+   "code": [
+    "packages/shared/src/services/BrowsersManager.ts",
+    "packages/shared/src/worker/BasicWorker.ts",
+    "packages/shared/src/models/PageActionContext.ts",
+    "packages/shared/src/interfaces/IPageAction.ts",
+    "packages/shared/src/utils/page.ts",
+    "packages/shared/src/models/ResponseWrapper.ts",
+    "apps/dispatcher/docker-compose.yml",
+    "apps/consolidator/docker-compose.yml",
+    "packages/shared/package.json",
+    "packages/shared/tsconfig.json",
+    "packages/shared/src/index.ts",
+    "packages/shared/src/models/index.ts",
+    "packages/shared/src/interfaces/index.ts",
+    "packages/shared/src/services/index.ts",
+    "packages/shared/src/utils/index.ts",
+    "packages/shared/src/worker/index.ts",
+    "packages/shared/src/telegram/index.ts"
+   ],
+   "floors": [
+    "catch",
+    "collect",
+    "run"
+   ],
+   "how": [
+    "Connects to a Chrome container by the address in config (10 tries, 3 s apart).",
+    "Floor 1: one Chrome per worker, so sessions never mix. Floor 3: one Chrome for all platforms.",
+    "Worker pages run at 1600×1024 in the Rome time zone with a 10 s default timeout.",
+    "Uses a patched Puppeteer build and a mouse-event fix so the sites see an ordinary browser.",
+    "Each container can show its screen over VNC, and keeps its Chrome profile in a volume."
+   ],
+   "must_hold": [
+    "Every worker name in config needs a Chrome address under the same name, or start-up fails."
+   ],
+   "change_here": [
+    "Which Chrome a worker uses: the browsers section of the dispatcher config, and the compose file."
+   ],
+   "watch_out": [
+    "If Chrome disconnects it is only logged; nothing reconnects until the app restarts."
+   ],
+   "files": 17,
+   "lines": 461,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-run",
+   "kind": "part",
+   "name": "Starts and stops workers",
+   "status": "works",
+   "summary": "Creates one worker per config entry and remembers which ones are running.",
+   "code": [
+    "apps/dispatcher/src/services/WorkersManager.ts",
+    "apps/dispatcher/src/services/index.ts",
+    "packages/shared/src/interfaces/IWorker.ts",
+    "packages/shared/src/models/CommonWorkerConfig.ts",
+    "apps/dispatcher/src/dev.ts"
+   ],
+   "floors": [
+    "catch",
+    "steer"
+   ],
+   "how": [
+    "Three worker types exist: wpickups, transfeero, connecto. Several workers may share a type — the compose file runs three Chrome containers for Transfeero.",
+    "Running yes/no is saved per worker; after a restart the running ones start again by themselves.",
+    "Start and Stop come from the Telegram menu (floor 2).",
+    "Passes each worker's new orders and accept failures on to the chat and the controller."
+   ],
+   "must_hold": [
+    "An unknown worker type in config stops the app at start."
+   ],
+   "change_here": [
+    "A new platform with live taking = a new case in WorkersManager.ts plus a worker package under packages/components/."
+   ],
+   "watch_out": [
+    "In --dev mode only workers already marked running are set up, and the manage bot is not started."
+   ],
+   "files": 5,
+   "lines": 141,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-gate",
+   "kind": "part",
+   "name": "Lets in known chats only",
+   "status": "works",
+   "summary": "Ignores Telegram messages from chats that are not on the allowed list.",
+   "code": [
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts",
+    "apps/dispatcher/src/models/TelegramOptions.ts",
+    "apps/dispatcher/src/telegram/index.ts"
+   ],
+   "floors": [
+    "steer"
+   ],
+   "how": [
+    "Allowed chat ids come from the bot's config.",
+    "Four commands: /config, /worker, /restart_app, /reboot_host."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [
+    "Button presses are routed without that check in this repo's code. The base bot class is in an outside package, so whether it filters them is unverified."
+   ],
+   "files": 3,
+   "lines": 256,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-bind",
+   "kind": "part",
+   "name": "Binds chat to a worker",
+   "status": "works",
+   "summary": "/worker <name> makes this chat talk to one worker, and hear from it.",
+   "code": [
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts"
+   ],
+   "floors": [
+    "steer"
+   ],
+   "how": [
+    "An unknown name is answered with the list of available workers.",
+    "A chat with no binding quietly uses the first worker in config."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 1,
+   "lines": 245,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "t-binding",
+   "kind": "thing",
+   "name": "Chat-to-worker binding",
+   "status": "works",
+   "summary": "Which Telegram chat belongs to which worker.",
+   "code": [
+    "packages/shared/src/models/TelegramBotPreferences.ts",
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts"
+   ],
+   "floors": [
+    "steer"
+   ],
+   "how": [
+    "Saved as a file; survives restarts.",
+    "Used twice: to pick the worker a chat's menu controls, and to pick the chats that get a worker's order messages (floor 1)."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 2,
+   "lines": 248,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-menu",
+   "kind": "part",
+   "name": "Shows the worker menu",
+   "status": "works",
+   "summary": "/config opens a button menu for the worker this chat is bound to.",
+   "code": [
+    "packages/shared/src/telegram/CommonBotComponent.ts",
+    "packages/shared/src/telegram/BotComponent.ts",
+    "packages/components/wpickups/src/telegram/WPickupsBotComponent.ts",
+    "packages/components/wpickups/src/telegram/index.ts",
+    "packages/components/connecto/src/telegram/ConnectoBotComponent.ts",
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts"
+   ],
+   "floors": [
+    "steer"
+   ],
+   "how": [
+    "Top screen: worker name, running or stopped; buttons Start, Stop, Fetch delay, Filter.",
+    "Filter: time exclusions and minimal order cost.",
+    "Welcome Pickups adds a cost per vehicle and a per-km rate. Connecto swaps cost for 'order details' — its accept list.",
+    "After a button asks for a value, the next message from that chat is taken as the answer."
+   ],
+   "must_hold": [],
+   "change_here": [
+    "Common screens: CommonBotComponent.ts. A platform's extra screens: its own BotComponent file."
+   ],
+   "watch_out": [
+    "On Welcome Pickups, the Back button shown after a wrongly typed rate points at a misspelt menu id and does nothing."
+   ],
+   "files": 6,
+   "lines": 889,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-edit",
+   "kind": "part",
+   "name": "Changes the rules",
+   "status": "works",
+   "summary": "Turns what the operator typed or uploaded into new rules for the worker.",
+   "code": [
+    "packages/shared/src/telegram/CommonBotComponent.ts",
+    "packages/shared/src/utils/timeRange.ts",
+    "packages/components/wpickups/src/telegram/WPickupsBotComponent.ts",
+    "packages/components/connecto/src/telegram/ConnectoBotComponent.ts",
+    "packages/components/connecto/src/models/ConnectoTransferDetails.ts"
+   ],
+   "floors": [
+    "steer"
+   ],
+   "how": [
+    "Fetch delay: a number of seconds.",
+    "Blocked hours: 'HH:MM-HH:MM DD.MM' in local time, one day at a time. Removed by number: 1, 1-3 or 1,3,5.",
+    "Minimal order cost: a number; on Welcome Pickups one per vehicle, plus a per-km rate.",
+    "Connecto accept list: a text file with one 'from - to - vehicle - price' per line. It replaces the whole list and can be downloaded back."
+   ],
+   "must_hold": [
+    "A value that does not parse changes nothing and is answered with an error.",
+    "A change is saved at once and is used from the next poll."
+   ],
+   "change_here": [],
+   "watch_out": [],
+   "files": 5,
+   "lines": 710,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-expire",
+   "kind": "part",
+   "name": "Forgets past blocked hours",
+   "status": "works",
+   "summary": "Every 10 minutes removes blocked windows whose end has passed.",
+   "code": [
+    "packages/shared/src/worker/TimeExclusionsCleaner.ts"
+   ],
+   "floors": [
+    "steer"
+   ],
+   "how": [
+    "Runs only while the worker is running."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 1,
+   "lines": 33,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-host",
+   "kind": "part",
+   "name": "Restarts app or server",
+   "status": "partial",
+   "summary": "Two commands that end the running app from the chat.",
+   "code": [
+    "apps/dispatcher/src/services/HostService.ts",
+    "apps/dispatcher/src/telegram/TelegramManageBot.ts"
+   ],
+   "floors": [
+    "steer"
+   ],
+   "how": [
+    "/restart_app: the app exits with code 2 and Docker's restart policy brings it back.",
+    "/reboot_host: runs the system's reboot command from inside the app."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [
+    "In the shipped deployment the app runs in a container; whether 'reboot' there reaches the host is unverified."
+   ],
+   "files": 2,
+   "lines": 257,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-ask",
+   "kind": "part",
+   "name": "Answers schedule requests",
+   "status": "works",
+   "summary": "The second Telegram bot: /services, /collect <platform>, /collect_all.",
+   "code": [
+    "apps/consolidator/src/telegram/TelegramConsolidatorBot.ts",
+    "apps/consolidator/src/models/TelegramOptions.ts",
+    "apps/consolidator/src/telegram/index.ts"
+   ],
+   "floors": [
+    "collect"
+   ],
+   "how": [
+    "Replies 'Collecting...' first, and the schedule when it is ready.",
+    "Answers only chats on its own allowed list."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 3,
+   "lines": 183,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-round",
+   "kind": "part",
+   "name": "Runs collection rounds",
+   "status": "works",
+   "summary": "Starts a full round by itself every 10 minutes, and on request.",
+   "code": [
+    "apps/consolidator/src/services/BackgroundConsolidator.ts",
+    "apps/consolidator/src/services/index.ts"
+   ],
+   "floors": [
+    "collect"
+   ],
+   "how": [
+    "The next round starts 10 minutes after the previous one ends.",
+    "One round at a time: a request that arrives mid-round waits for it and gets its result.",
+    "A result younger than 60 s is reused for requests.",
+    "A request for one platform re-reads just that one and keeps the rest."
+   ],
+   "must_hold": [
+    "After every round, full or single, the whole kept schedule is published again."
+   ],
+   "change_here": [
+    "The 10 minutes and the 60 seconds: BackgroundConsolidator.ts."
+   ],
+   "watch_out": [],
+   "files": 2,
+   "lines": 119,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-walk",
+   "kind": "part",
+   "name": "Visits platforms one by one",
+   "status": "works",
+   "summary": "Goes through the configured platforms in order, in one browser.",
+   "code": [
+    "apps/consolidator/src/services/ConsolidatorService.ts",
+    "apps/consolidator/src/models/ConsolidatorConfig.ts",
+    "apps/consolidator/src/models/Config.ts",
+    "apps/consolidator/src/models/index.ts"
+   ],
+   "floors": [
+    "collect"
+   ],
+   "how": [
+    "Before each platform all browser cookies are wiped.",
+    "A platform that errors is tried up to 3 times, with a screenshot on each failure.",
+    "Pickups already in the past are dropped.",
+    "One platform failing does not stop the others: its slot holds the error."
+   ],
+   "must_hold": [],
+   "change_here": [
+    "A new platform: a case in ConsolidatorService.ts, a config type in ConsolidatorConfig.ts, and a package under packages/components/."
+   ],
+   "watch_out": [],
+   "files": 4,
+   "lines": 203,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-read",
+   "kind": "part",
+   "name": "Reads booked transfers",
+   "status": "partial",
+   "summary": "Signs in to one platform and turns its list of booked transfers into orders.",
+   "code": [
+    "packages/shared/src/actions/CommonScrapeAction.ts"
+   ],
+   "floors": [
+    "collect"
+   ],
+   "how": [
+    "Every platform package has one 'get assigned transfers' action that returns orders.",
+    "Asking the site's own data endpoint from inside the page: Welcome Pickups, Transfeero, Kiwitaxi, City Airport Taxis.",
+    "Catching the data the page itself loads: Elife, Shuttle Spain.",
+    "Reading the HTML table or cards: Connecto, Talixo, AtoB, World Transfer, Chofix.",
+    "Google Sheet needs no browser."
+   ],
+   "must_hold": [
+    "Every booking is marked compliant: it is already yours."
+   ],
+   "change_here": [
+    "How one platform is read: its package's GetAssignedTransfers.ts."
+   ],
+   "watch_out": [
+    "Four of twelve have gaps: Talixo, World Transfer and Chofix give no real booking id; Elife and World Transfer sign in on every round."
+   ],
+   "files": 1,
+   "lines": 29,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "t-schedule",
+   "kind": "thing",
+   "name": "Latest schedule",
+   "status": "works",
+   "summary": "What the last round found: per platform, either its upcoming bookings or the error.",
+   "code": [
+    "apps/consolidator/src/models/ConsolidationResult.ts",
+    "apps/consolidator/src/services/BackgroundConsolidator.ts"
+   ],
+   "floors": [
+    "collect"
+   ],
+   "how": [
+    "Kept in memory only; empty after a restart until the first round ends."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 2,
+   "lines": 125,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-format",
+   "kind": "part",
+   "name": "Writes the schedule message",
+   "status": "works",
+   "summary": "Turns the schedule into Telegram messages sorted by pickup time.",
+   "code": [
+    "apps/consolidator/src/telegram/TelegramConsolidatorBot.ts"
+   ],
+   "floors": [
+    "collect"
+   ],
+   "how": [
+    "Platforms that failed are listed first.",
+    "Each booking shows platform, id, pickup time, from, to, vehicle, price.",
+    "Covers the first two calendar days that have bookings, with a rule between days.",
+    "Split into messages of at most 4000 characters."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [
+    "It shifts pickup times to local time inside the kept schedule itself, so a second request within the 60-second reuse shifts them again. Read from the code, not run."
+   ],
+   "files": 1,
+   "lines": 172,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-prepare",
+   "kind": "part",
+   "name": "Prepares a fresh server",
+   "status": "works",
+   "summary": "One playbook that makes a bare Linux host ready for the apps.",
+   "code": [
+    "ansible/playbooks/bootstrap.yml",
+    "ansible/roles/common-base/",
+    "ansible/roles/docker-engine/"
+   ],
+   "floors": [
+    "run"
+   ],
+   "how": [
+    "Installs base packages; creates the app user and folders.",
+    "Adds the registry's hostname to /etc/hosts and trusts its certificate.",
+    "Installs Docker Engine and the Compose plugin."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 6,
+   "lines": 176,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-registry",
+   "kind": "part",
+   "name": "Keeps the app images",
+   "status": "works",
+   "summary": "A private Docker registry on the server, with TLS and a password.",
+   "code": [
+    "ansible/playbooks/deploy-registry.yml",
+    "ansible/roles/docker-registry/",
+    "scripts/generate-registry-certs.sh"
+   ],
+   "floors": [
+    "run"
+   ],
+   "how": [
+    "A script makes a self-signed certificate, valid 10 years.",
+    "The playbook installs the registry with basic auth and an optional web UI on port 5010."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 6,
+   "lines": 219,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-build",
+   "kind": "part",
+   "name": "Builds the app images",
+   "status": "partial",
+   "summary": "Compiles each app and bundles it into one JavaScript file inside a small Node image.",
+   "code": [
+    "apps/dispatcher/Dockerfile",
+    "apps/consolidator/Dockerfile",
+    "apps/dispatcher/rollup.config.js",
+    "apps/consolidator/rollup.config.js",
+    "package.json",
+    "pnpm-workspace.yaml",
+    "tsconfig.json",
+    ".dockerignore",
+    "apps/dispatcher/package.json",
+    "apps/consolidator/package.json",
+    "apps/dispatcher/tsconfig.json",
+    "apps/consolidator/tsconfig.json",
+    "scripts/clean.sh",
+    "scripts/clean-modules.sh",
+    "README.MD"
+   ],
+   "floors": [
+    "run"
+   ],
+   "how": [
+    "Two stages per app: build all workspace packages and bundle with Rollup, then copy the single bundle into a slim image.",
+    "A private npm token is needed at build time for the 'dispatcher-commons' package, which is not in this repository.",
+    "Images are tagged for the private registry."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [
+    "Root scripts bundle-dispatcher and bundle-consolidator call 'npm run build', which the root package.json does not define.",
+    "README says the bundle script also pushes the image; no tracked script pushes.",
+    "README still describes packages/launcher and lerna; the code is apps/dispatcher and pnpm. The code wins."
+   ],
+   "files": 15,
+   "lines": 553,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-ship",
+   "kind": "part",
+   "name": "Ships an app to server",
+   "status": "works",
+   "summary": "A playbook per app: write its config, pull its image, start it next to its Chrome containers.",
+   "code": [
+    "ansible/playbooks/deploy-dispatcher.yml",
+    "ansible/playbooks/deploy-consolidator.yml",
+    "ansible/roles/dispatcher-deploy/",
+    "ansible/roles/consolidator-deploy/",
+    "ansible/roles/docker-stack/"
+   ],
+   "floors": [
+    "run"
+   ],
+   "how": [
+    "Writes the app's config file from an Ansible variable and templates the compose file.",
+    "Logs in to the registry, pulls the latest image, starts the stack.",
+    "If the config changed, the app container is recreated.",
+    "The dispatcher ships with five Chrome containers, the consolidator with one."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [
+    "The role docker-stack is not used by any playbook and points at a compose file that is not in the repository."
+   ],
+   "files": 11,
+   "lines": 471,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "t-config",
+   "kind": "thing",
+   "name": "Config and secrets",
+   "status": "works",
+   "summary": "Everything private: platform logins, bot tokens, chat ids, controller address and key, Chrome addresses.",
+   "code": [
+    "apps/dispatcher/src/models/Config.ts",
+    "apps/dispatcher/src/models/index.ts",
+    ".gitignore",
+    ".gitattributes"
+   ],
+   "floors": [
+    "run"
+   ],
+   "how": [
+    "One config file per app, read once at start; never in git.",
+    "On the server it is written from Ansible variables that are also git-ignored."
+   ],
+   "must_hold": [
+    "A config change takes effect only after the app restarts."
+   ],
+   "change_here": [],
+   "watch_out": [],
+   "files": 4,
+   "lines": 33,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "r-watch",
+   "kind": "part",
+   "name": "Runs the workers",
+   "status": "works",
+   "summary": "The dispatcher app: everything on floors 1 and 2 runs inside this one process.",
+   "code": [
+    "apps/dispatcher/src/index.ts",
+    "apps/dispatcher/src/services/index.ts",
+    "apps/dispatcher/test/test.ts",
+    ".vscode/launch.json"
+   ],
+   "floors": [
+    "run"
+   ],
+   "how": [
+    "Start order: storage, config, manage bot, then each worker's Chrome and the workers that were running.",
+    "The UTC offset (+1 or +2) is worked out once at start from daylight-saving time.",
+    "Started with --dev it skips the manage bot and only sets up workers already marked running."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [
+    "After a daylight-saving switch the old offset stays until the app restarts.",
+    "test/test.ts is a scratch file of manual experiments, not a test suite."
+   ],
+   "files": 4,
+   "lines": 251,
+   "actor_group": null,
+   "leads_to_floors": [
+    "catch",
+    "steer"
+   ]
+  },
+  {
+   "id": "r-collect",
+   "kind": "part",
+   "name": "Runs schedule collection",
+   "status": "works",
+   "summary": "The consolidator app: everything on floor 3 runs inside this one process.",
+   "code": [
+    "apps/consolidator/src/index.ts",
+    "apps/consolidator/test/test.ts"
+   ],
+   "floors": [
+    "run"
+   ],
+   "how": [
+    "Start order: storage, config, the one browser, the schedule bot, then the first round."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [
+    "test/test.ts is a scratch file that reads one platform by hand, not a test suite."
+   ],
+   "files": 2,
+   "lines": 135,
+   "actor_group": null,
+   "leads_to_floors": [
+    "collect"
+   ]
+  },
+  {
+   "id": "p-monitor",
+   "kind": "part",
+   "name": "Collects metrics and logs",
+   "status": "works",
+   "summary": "A monitoring stack beside the apps that gathers host numbers, container numbers and container logs.",
+   "code": [
+    "monitoring/docker-compose.yml",
+    "monitoring/prometheus/",
+    "monitoring/loki/",
+    "monitoring/promtail/",
+    "ansible/playbooks/deploy-monitoring.yml",
+    "ansible/roles/monitoring-deploy/"
+   ],
+   "floors": [
+    "run"
+   ],
+   "how": [
+    "Logs: Promtail tails the app and Chrome containers into Loki.",
+    "Metrics: node-exporter (host) and cAdvisor (containers) into Prometheus.",
+    "Both keep 30 days."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [
+    "The log filter names chrome-transfeero-1 and -2 but not -3.",
+    "App-level metrics are planned: the scrape entries for the two apps are commented out."
+   ],
+   "files": 8,
+   "lines": 589,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-dash",
+   "kind": "part",
+   "name": "Shows dashboards",
+   "status": "works",
+   "summary": "Grafana on port 3001 with two ready-made dashboards.",
+   "code": [
+    "monitoring/grafana/"
+   ],
+   "floors": [
+    "run"
+   ],
+   "how": [
+    "Server Overview: CPU, memory, disk, network, load, uptime, containers, app logs.",
+    "Container Metrics: per-container CPU, memory, network, disk, restarts, plus Chrome panels and logs.",
+    "In the Ansible deployment only Grafana is open to the outside by default."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [],
+   "files": 4,
+   "lines": 490,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-log-tg",
+   "kind": "part",
+   "name": "Sends logs to Telegram",
+   "status": "partial",
+   "summary": "A log bot that would post app logs and failure screenshots to a Telegram chat. Switched off.",
+   "code": [
+    "apps/dispatcher/src/index.ts",
+    "apps/consolidator/src/index.ts",
+    "packages/shared/src/utils/page.ts"
+   ],
+   "floors": [
+    "run"
+   ],
+   "how": [
+    "Both apps have the lines that start it commented out; the latest commit is 'disable tg logger'.",
+    "Logs now go to the console only, and from there into Loki.",
+    "Screenshots are still taken on failures, into a local file."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [
+    "Whether the stand-in logger does anything with those screenshots is unverified — its class is in an outside package."
+   ],
+   "files": 3,
+   "lines": 233,
+   "actor_group": null,
+   "leads_to_floors": []
+  },
+  {
+   "id": "p-health",
+   "kind": "part",
+   "name": "Answers health checks",
+   "status": "planned",
+   "summary": "Each app image declares a health check against a local /health address that nothing serves yet.",
+   "code": [
+    "apps/dispatcher/Dockerfile",
+    "apps/consolidator/Dockerfile",
+    "monitoring/prometheus/prometheus.yml"
+   ],
+   "floors": [
+    "run"
+   ],
+   "how": [
+    "The images probe port 9091 (dispatcher) and 9092 (consolidator).",
+    "No tracked code listens on those ports.",
+    "The Prometheus entries for the same ports are commented out 'until app metrics are added'."
+   ],
+   "must_hold": [],
+   "change_here": [],
+   "watch_out": [
+    "Unverified: the outside 'dispatcher-commons' package could open such a port; nothing in this repo asks it to."
+   ],
+   "files": 3,
+   "lines": 153,
+   "actor_group": null,
+   "leads_to_floors": []
+  }
+ ],
+ "links": [
+  {
+   "id": "catch:x-wp>p-poll",
+   "floor": "catch",
+   "from": "x-wp",
+   "to": "p-poll",
+   "kind": "flow",
+   "label": "unassigned transfers",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "catch:x-tf>p-poll",
+   "floor": "catch",
+   "from": "x-tf",
+   "to": "p-poll",
+   "kind": "flow",
+   "label": "new rides",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "catch:x-mail>p-mail",
+   "floor": "catch",
+   "from": "x-mail",
+   "to": "p-mail",
+   "kind": "flow",
+   "label": "offer mails",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "catch:x-cn>p-mail",
+   "floor": "catch",
+   "from": "x-cn",
+   "to": "p-mail",
+   "kind": "flow",
+   "label": "offer page",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "catch:p-poll>p-judge",
+   "floor": "catch",
+   "from": "p-poll",
+   "to": "p-judge",
+   "kind": "flow",
+   "label": "offer",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "catch:p-mail>p-judge",
+   "floor": "catch",
+   "from": "p-mail",
+   "to": "p-judge",
+   "kind": "flow",
+   "label": "offer details",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "catch:t-rules>p-judge",
+   "floor": "catch",
+   "from": "t-rules",
+   "to": "p-judge",
+   "kind": "flow",
+   "label": "limits, blocked hours",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "catch:p-judge>p-take-wp",
+   "floor": "catch",
+   "from": "p-judge",
+   "to": "p-take-wp",
+   "kind": "flow",
+   "label": "fits",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "catch:p-judge>p-take-tf",
+   "floor": "catch",
+   "from": "p-judge",
+   "to": "p-take-tf",
+   "kind": "flow",
+   "label": "fits",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "catch:p-judge>p-take-cn",
+   "floor": "catch",
+   "from": "p-judge",
+   "to": "p-take-cn",
+   "kind": "flow",
+   "label": "fits",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "catch:p-judge>t-order",
+   "floor": "catch",
+   "from": "p-judge",
+   "to": "t-order",
+   "kind": "flow",
+   "label": "misfit",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "catch:p-take-wp>t-order",
+   "floor": "catch",
+   "from": "p-take-wp",
+   "to": "t-order",
+   "kind": "flow",
+   "label": "taken or failed",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "catch:p-take-tf>t-order",
+   "floor": "catch",
+   "from": "p-take-tf",
+   "to": "t-order",
+   "kind": "flow",
+   "label": "taken or failed",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "catch:p-take-cn>t-order",
+   "floor": "catch",
+   "from": "p-take-cn",
+   "to": "t-order",
+   "kind": "flow",
+   "label": "taken or failed",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "catch:t-order>p-announce",
+   "floor": "catch",
+   "from": "t-order",
+   "to": "p-announce",
+   "kind": "flow",
+   "label": "every order",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "catch:t-order>p-publish",
+   "floor": "catch",
+   "from": "t-order",
+   "to": "p-publish",
+   "kind": "flow",
+   "label": "taken + misfits",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "catch:p-announce>x-chat",
+   "floor": "catch",
+   "from": "p-announce",
+   "to": "x-chat",
+   "kind": "flow",
+   "label": "order message",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "catch:p-publish>x-controller",
+   "floor": "catch",
+   "from": "p-publish",
+   "to": "x-controller",
+   "kind": "flow",
+   "label": "orders over HTTP",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "catch:p-take-wp>x-wp",
+   "floor": "catch",
+   "from": "p-take-wp",
+   "to": "x-wp",
+   "kind": "act",
+   "label": "driver + vehicle",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "catch:p-take-tf>x-tf",
+   "floor": "catch",
+   "from": "p-take-tf",
+   "to": "x-tf",
+   "kind": "act",
+   "label": "vehicle, accept",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "catch:p-take-cn>x-cn",
+   "floor": "catch",
+   "from": "p-take-cn",
+   "to": "x-cn",
+   "kind": "act",
+   "label": "accept click",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "catch:p-browser>p-session",
+   "floor": "catch",
+   "from": "p-browser",
+   "to": "p-session",
+   "kind": "support",
+   "label": "a Chrome page",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "catch:p-session>p-poll",
+   "floor": "catch",
+   "from": "p-session",
+   "to": "p-poll",
+   "kind": "support",
+   "label": "signed-in page",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "catch:p-run>p-browser",
+   "floor": "catch",
+   "from": "p-run",
+   "to": "p-browser",
+   "kind": "support",
+   "label": "one Chrome per worker",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "catch:p-run>p-poll",
+   "floor": "catch",
+   "from": "p-run",
+   "to": "p-poll",
+   "kind": "support",
+   "label": "start again",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "steer:x-chat>p-gate",
+   "floor": "steer",
+   "from": "x-chat",
+   "to": "p-gate",
+   "kind": "flow",
+   "label": "command, button, text",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "steer:p-gate>p-bind",
+   "floor": "steer",
+   "from": "p-gate",
+   "to": "p-bind",
+   "kind": "flow",
+   "label": "/worker name",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "steer:p-bind>t-binding",
+   "floor": "steer",
+   "from": "p-bind",
+   "to": "t-binding",
+   "kind": "flow",
+   "label": "chat → worker",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "steer:p-gate>p-menu",
+   "floor": "steer",
+   "from": "p-gate",
+   "to": "p-menu",
+   "kind": "flow",
+   "label": "/config, buttons",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "steer:t-binding>p-menu",
+   "floor": "steer",
+   "from": "t-binding",
+   "to": "p-menu",
+   "kind": "flow",
+   "label": "which worker",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "steer:p-menu>p-edit",
+   "floor": "steer",
+   "from": "p-menu",
+   "to": "p-edit",
+   "kind": "flow",
+   "label": "typed value, file",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "steer:p-menu>p-run",
+   "floor": "steer",
+   "from": "p-menu",
+   "to": "p-run",
+   "kind": "flow",
+   "label": "Start / Stop",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "steer:p-edit>t-rules",
+   "floor": "steer",
+   "from": "p-edit",
+   "to": "t-rules",
+   "kind": "flow",
+   "label": "new values",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "steer:p-expire>t-rules",
+   "floor": "steer",
+   "from": "p-expire",
+   "to": "t-rules",
+   "kind": "flow",
+   "label": "drops past windows",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "steer:p-gate>p-host",
+   "floor": "steer",
+   "from": "p-gate",
+   "to": "p-host",
+   "kind": "flow",
+   "label": "restart, reboot",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "steer:p-host>x-server",
+   "floor": "steer",
+   "from": "p-host",
+   "to": "x-server",
+   "kind": "flow",
+   "label": "exit, reboot",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "steer:p-menu>x-chat",
+   "floor": "steer",
+   "from": "p-menu",
+   "to": "x-chat",
+   "kind": "reply",
+   "label": "menu, replies",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "collect:x-chat>p-ask",
+   "floor": "collect",
+   "from": "x-chat",
+   "to": "p-ask",
+   "kind": "flow",
+   "label": "/collect…",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "collect:x-timer>p-round",
+   "floor": "collect",
+   "from": "x-timer",
+   "to": "p-round",
+   "kind": "flow",
+   "label": "every 10 min",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "collect:p-ask>p-round",
+   "floor": "collect",
+   "from": "p-ask",
+   "to": "p-round",
+   "kind": "flow",
+   "label": "one or all",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "collect:p-round>p-walk",
+   "floor": "collect",
+   "from": "p-round",
+   "to": "p-walk",
+   "kind": "flow",
+   "label": "platforms to read",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "collect:p-walk>p-read",
+   "floor": "collect",
+   "from": "p-walk",
+   "to": "p-read",
+   "kind": "flow",
+   "label": "one at a time",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "collect:x-wp>p-read",
+   "floor": "collect",
+   "from": "x-wp",
+   "to": "p-read",
+   "kind": "flow",
+   "label": "booked transfers",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "collect:x-tf>p-read",
+   "floor": "collect",
+   "from": "x-tf",
+   "to": "p-read",
+   "kind": "flow",
+   "label": "booked transfers",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "collect:x-cn>p-read",
+   "floor": "collect",
+   "from": "x-cn",
+   "to": "p-read",
+   "kind": "flow",
+   "label": "booked transfers",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "collect:x-atob>p-read",
+   "floor": "collect",
+   "from": "x-atob",
+   "to": "p-read",
+   "kind": "flow",
+   "label": "booked transfers",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "collect:x-kiwi>p-read",
+   "floor": "collect",
+   "from": "x-kiwi",
+   "to": "p-read",
+   "kind": "flow",
+   "label": "booked transfers",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "collect:x-cataxis>p-read",
+   "floor": "collect",
+   "from": "x-cataxis",
+   "to": "p-read",
+   "kind": "flow",
+   "label": "booked transfers",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "collect:x-shuttle>p-read",
+   "floor": "collect",
+   "from": "x-shuttle",
+   "to": "p-read",
+   "kind": "flow",
+   "label": "booked transfers",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "collect:x-gsheet>p-read",
+   "floor": "collect",
+   "from": "x-gsheet",
+   "to": "p-read",
+   "kind": "flow",
+   "label": "booked transfers",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "collect:x-talixo>p-read",
+   "floor": "collect",
+   "from": "x-talixo",
+   "to": "p-read",
+   "kind": "flow",
+   "label": "booked transfers",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "collect:x-wtdriver>p-read",
+   "floor": "collect",
+   "from": "x-wtdriver",
+   "to": "p-read",
+   "kind": "flow",
+   "label": "booked transfers",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "collect:x-elife>p-read",
+   "floor": "collect",
+   "from": "x-elife",
+   "to": "p-read",
+   "kind": "flow",
+   "label": "booked transfers",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "collect:x-chofix>p-read",
+   "floor": "collect",
+   "from": "x-chofix",
+   "to": "p-read",
+   "kind": "flow",
+   "label": "booked transfers",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "collect:p-read>t-schedule",
+   "floor": "collect",
+   "from": "p-read",
+   "to": "t-schedule",
+   "kind": "flow",
+   "label": "orders or error",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "collect:t-schedule>p-format",
+   "floor": "collect",
+   "from": "t-schedule",
+   "to": "p-format",
+   "kind": "flow",
+   "label": "bookings, failures",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "collect:p-format>x-chat",
+   "floor": "collect",
+   "from": "p-format",
+   "to": "x-chat",
+   "kind": "reply",
+   "label": "schedule message",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "collect:t-schedule>p-publish",
+   "floor": "collect",
+   "from": "t-schedule",
+   "to": "p-publish",
+   "kind": "flow",
+   "label": "whole schedule",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "collect:p-publish>x-controller",
+   "floor": "collect",
+   "from": "p-publish",
+   "to": "x-controller",
+   "kind": "flow",
+   "label": "orders over HTTP",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "collect:p-ask>x-chat",
+   "floor": "collect",
+   "from": "p-ask",
+   "to": "x-chat",
+   "kind": "reply",
+   "label": "platform list",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "collect:p-browser>p-session",
+   "floor": "collect",
+   "from": "p-browser",
+   "to": "p-session",
+   "kind": "support",
+   "label": "the one Chrome",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "collect:p-session>p-read",
+   "floor": "collect",
+   "from": "p-session",
+   "to": "p-read",
+   "kind": "support",
+   "label": "signed-in page",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "run:x-admin>p-prepare",
+   "floor": "run",
+   "from": "x-admin",
+   "to": "p-prepare",
+   "kind": "flow",
+   "label": "bootstrap playbook",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "run:p-prepare>x-server",
+   "floor": "run",
+   "from": "p-prepare",
+   "to": "x-server",
+   "kind": "flow",
+   "label": "Docker, user, trust",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "run:x-admin>p-build",
+   "floor": "run",
+   "from": "x-admin",
+   "to": "p-build",
+   "kind": "flow",
+   "label": "compose build",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "run:p-build>p-registry",
+   "floor": "run",
+   "from": "p-build",
+   "to": "p-registry",
+   "kind": "flow",
+   "label": "app images",
+   "secondary": false,
+   "note": "unverified: no tracked script pushes the images"
+  },
+  {
+   "id": "run:x-admin>p-ship",
+   "floor": "run",
+   "from": "x-admin",
+   "to": "p-ship",
+   "kind": "flow",
+   "label": "deploy playbook",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "run:t-config>p-ship",
+   "floor": "run",
+   "from": "t-config",
+   "to": "p-ship",
+   "kind": "flow",
+   "label": "config, secrets",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "run:p-registry>p-ship",
+   "floor": "run",
+   "from": "p-registry",
+   "to": "p-ship",
+   "kind": "flow",
+   "label": "pulled images",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "run:p-ship>r-watch",
+   "floor": "run",
+   "from": "p-ship",
+   "to": "r-watch",
+   "kind": "flow",
+   "label": "app + 5 Chromes",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "run:p-ship>r-collect",
+   "floor": "run",
+   "from": "p-ship",
+   "to": "r-collect",
+   "kind": "flow",
+   "label": "app + 1 Chrome",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "run:r-watch>p-browser",
+   "floor": "run",
+   "from": "r-watch",
+   "to": "p-browser",
+   "kind": "flow",
+   "label": "page commands",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "run:r-collect>p-browser",
+   "floor": "run",
+   "from": "r-collect",
+   "to": "p-browser",
+   "kind": "flow",
+   "label": "page commands",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "run:r-watch>p-monitor",
+   "floor": "run",
+   "from": "r-watch",
+   "to": "p-monitor",
+   "kind": "flow",
+   "label": "logs, metrics",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "run:r-collect>p-monitor",
+   "floor": "run",
+   "from": "r-collect",
+   "to": "p-monitor",
+   "kind": "flow",
+   "label": "logs, metrics",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "run:p-browser>p-monitor",
+   "floor": "run",
+   "from": "p-browser",
+   "to": "p-monitor",
+   "kind": "flow",
+   "label": "logs, metrics",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "run:p-monitor>p-dash",
+   "floor": "run",
+   "from": "p-monitor",
+   "to": "p-dash",
+   "kind": "flow",
+   "label": "series, log lines",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "run:p-dash>x-admin",
+   "floor": "run",
+   "from": "p-dash",
+   "to": "x-admin",
+   "kind": "reply",
+   "label": "dashboards",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "run:r-watch>p-log-tg",
+   "floor": "run",
+   "from": "r-watch",
+   "to": "p-log-tg",
+   "kind": "off",
+   "label": "log lines",
+   "secondary": false,
+   "note": null
+  },
+  {
+   "id": "run:x-admin>p-registry",
+   "floor": "run",
+   "from": "x-admin",
+   "to": "p-registry",
+   "kind": "flow",
+   "label": "registry playbook",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "run:x-admin>r-watch",
+   "floor": "run",
+   "from": "x-admin",
+   "to": "r-watch",
+   "kind": "flow",
+   "label": "pnpm dev",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "run:p-browser>x-admin",
+   "floor": "run",
+   "from": "p-browser",
+   "to": "x-admin",
+   "kind": "reply",
+   "label": "screen over VNC",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "run:r-watch>p-health",
+   "floor": "run",
+   "from": "r-watch",
+   "to": "p-health",
+   "kind": "off",
+   "label": "health probe",
+   "secondary": true,
+   "note": null
+  },
+  {
+   "id": "run:r-collect>p-health",
+   "floor": "run",
+   "from": "r-collect",
+   "to": "p-health",
+   "kind": "off",
+   "label": "health probe",
+   "secondary": false,
+   "note": null
+  }
+ ],
+ "routes": [
+  {
+   "id": "take-wp",
+   "group": "catch",
+   "name": "Take a Welcome Pickups transfer",
+   "status": "works",
+   "who": [
+    "timer",
+    "platforms",
+    "controller"
+   ],
+   "summary": "A transfer that fits the rules gets one of your drivers assigned, with nobody clicking.",
+   "steps": [
+    "catch:x-wp>p-poll",
+    "catch:p-poll>p-judge",
+    "catch:t-rules>p-judge",
+    "catch:p-judge>p-take-wp",
+    "catch:p-take-wp>x-wp",
+    "catch:p-take-wp>t-order",
+    "catch:t-order>p-announce",
+    "catch:p-announce>x-chat",
+    "catch:t-order>p-publish",
+    "catch:p-publish>x-controller"
+   ],
+   "step_titles": [
+    "Ask for open transfers",
+    "Look at each one",
+    "Apply the rules",
+    "It fits: take it",
+    "Assign driver and car",
+    "Make it an order",
+    "Hand it to the announcer",
+    "Green 'New order' message",
+    "Hand it to the publisher",
+    "Send to the controller"
+   ],
+   "step_notes": [
+    "Every fetch delay (20 s by default) the worker asks the site for unassigned upcoming transfers: next 14 days, first 100.",
+    "Every transfer in the answer is checked on every poll.",
+    "It fits when it is not cancelled, the driver's cost reaches the minimum for a minivan or sedan, the cost per km reaches the minimal rate, and the pickup is outside all blocked hours.",
+    "No one is asked. A fitting transfer is taken straight away.",
+    "On the site: open 'Assign driver', pick a random driver who is not excluded and the first vehicle, click assign, wait for the OK, then verify. Up to 5 tries.",
+    "The transfer becomes an order marked compliant, with the traveler's name and phone.",
+    "Every order a worker reports goes to the chat side.",
+    "Chats bound to this worker get pickup time, route, distance, car, traveler and cost.",
+    "The same order goes to the controller side.",
+    "The order is posted to the controller's addOrders address. A failed send is only logged."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "take-tf",
+   "group": "catch",
+   "name": "Take a Transfeero ride",
+   "status": "works",
+   "who": [
+    "timer",
+    "platforms",
+    "controller"
+   ],
+   "summary": "A new ride that fits the rules is accepted with the right vehicle, with nobody clicking.",
+   "steps": [
+    "catch:x-tf>p-poll",
+    "catch:p-poll>p-judge",
+    "catch:t-rules>p-judge",
+    "catch:p-judge>p-take-tf",
+    "catch:p-take-tf>x-tf",
+    "catch:p-take-tf>t-order",
+    "catch:t-order>p-announce",
+    "catch:p-announce>x-chat",
+    "catch:t-order>p-publish",
+    "catch:p-publish>x-controller"
+   ],
+   "step_titles": [
+    "Ask for new rides",
+    "Look at each one",
+    "Apply the rules",
+    "It fits: take it",
+    "Pick vehicle, accept",
+    "Make it an order",
+    "Hand it to the announcer",
+    "Green 'New order' message",
+    "Hand it to the publisher",
+    "Send to the controller"
+   ],
+   "step_notes": [
+    "Every fetch delay the worker re-sends the site's own 'new rides' request from inside the page.",
+    "Every ride in the answer is checked on every poll.",
+    "It fits when the pickup is outside blocked hours, start or end contains 'Alicante', the payout reaches the minimal order cost, and the vehicle class is in the configured vehicle map.",
+    "Fitting rides are taken one after another; config can reverse their order.",
+    "On the site: open the ride, pass the security room and the Cloudflare box, select the mapped vehicle, click accept, wait up to 10 s. Only status 200 counts.",
+    "The ride becomes an order marked compliant, with the customer's note as comment.",
+    "Every order a worker reports goes to the chat side.",
+    "Chats bound to this worker get pickup time, route, distance, car, passengers and cost.",
+    "The same order goes to the controller side.",
+    "The order is posted to the controller's addOrders address."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "take-cn",
+   "group": "catch",
+   "name": "Take a Connecto email offer",
+   "status": "works",
+   "who": [
+    "mailbox",
+    "platforms",
+    "controller"
+   ],
+   "summary": "An offer that arrives by e-mail and matches the accept list is accepted on Connecto's page.",
+   "steps": [
+    "catch:x-mail>p-mail",
+    "catch:x-cn>p-mail",
+    "catch:p-mail>p-judge",
+    "catch:t-rules>p-judge",
+    "catch:p-judge>p-take-cn",
+    "catch:p-take-cn>x-cn",
+    "catch:p-take-cn>t-order",
+    "catch:t-order>p-announce",
+    "catch:p-announce>x-chat",
+    "catch:t-order>p-publish",
+    "catch:p-publish>x-controller"
+   ],
+   "step_titles": [
+    "Find new offer mails",
+    "Open the offer page",
+    "Check the offer",
+    "Apply the accept list",
+    "It fits: take it",
+    "Click accept",
+    "Make it an order",
+    "Hand it to the announcer",
+    "Green 'New order' message",
+    "Hand it to the publisher",
+    "Send to the controller"
+   ],
+   "step_notes": [
+    "Every fetch delay the worker looks in the inbox for Connecto mail newer than the last one it handled.",
+    "It pulls the link out of the mail, opens it in the browser and reads from, to, date, vehicle and price. Expired offers are skipped.",
+    "Each offer is judged once.",
+    "It fits when the pickup is outside blocked hours and a line of the uploaded list has the same from, the same to, a vehicle name the offer contains, and a price the offer reaches.",
+    "No one is asked.",
+    "The accept control on the open offer page is pressed. Nothing checks afterwards that the site confirmed.",
+    "The offer becomes an order marked compliant. Connecto orders carry no traveler details.",
+    "Every order a worker reports goes to the chat side.",
+    "Chats bound to this worker get pickup time, route, car and cost.",
+    "The same order goes to the controller side.",
+    "The order is posted to the controller's addOrders address."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "report-misfit",
+   "group": "catch",
+   "name": "Report offers that don't fit",
+   "status": "works",
+   "who": [
+    "timer",
+    "platforms",
+    "controller"
+   ],
+   "summary": "An offer that fails the rules is left alone, but the operator and the controller still hear about it.",
+   "steps": [
+    "catch:p-poll>p-judge",
+    "catch:p-judge>t-order",
+    "catch:t-order>p-announce",
+    "catch:p-announce>x-chat",
+    "catch:t-order>p-publish",
+    "catch:p-publish>x-controller"
+   ],
+   "step_titles": [
+    "An offer comes in",
+    "It fails the rules",
+    "Hand it to the announcer",
+    "Yellow 'non-compliant' message",
+    "Hand it to the publisher",
+    "Send to the controller"
+   ],
+   "step_notes": [
+    "From a poll — or, for Connecto, from a mail.",
+    "It is not taken. It becomes an order marked non-compliant. Welcome Pickups and Transfeero remember, in memory, which ones they already reported.",
+    "Misfits go the same way as taken orders.",
+    "Without traveler details. More than 10 misfits at once become one summary line.",
+    "Misfits are published too.",
+    "Posted with its type set to non-compliant."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "report-failed",
+   "group": "catch",
+   "name": "Report a failed accept",
+   "status": "works",
+   "who": [
+    "timer",
+    "platforms"
+   ],
+   "summary": "When taking a fitting offer goes wrong, the operator gets a red message so a person can step in.",
+   "steps": [
+    "catch:p-judge>p-take-tf",
+    "catch:p-take-tf>x-tf",
+    "catch:p-take-tf>t-order",
+    "catch:t-order>p-announce",
+    "catch:p-announce>x-chat"
+   ],
+   "step_titles": [
+    "A fitting offer is being taken",
+    "The accept goes wrong",
+    "Flag the order as failed",
+    "Hand it to the announcer",
+    "Red 'Failed to accept' message"
+   ],
+   "step_notes": [
+    "Shown here for Transfeero; the other two platforms behave the same.",
+    "The site says no, a step times out, or a control is missing.",
+    "The offer is still turned into an order, so the message can show it.",
+    "Failures go to the chat side only.",
+    "A failed order is not sent to the controller. Welcome Pickups and Transfeero try again on the next poll; a Connecto mail is handled only once."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "stay-signed-in",
+   "group": "catch",
+   "name": "Stay signed in",
+   "status": "works",
+   "who": [
+    "timer"
+   ],
+   "summary": "Workers log in by themselves and keep their sessions, so polling never needs a person.",
+   "steps": [
+    "catch:p-browser>p-session",
+    "p-session",
+    "catch:p-session>p-poll"
+   ],
+   "step_titles": [
+    "Get the worker's Chrome page",
+    "Load saved cookies",
+    "Sign in if needed"
+   ],
+   "step_notes": [
+    "Each worker has its own Chrome, with its own profile.",
+    "Cookies from the last successful sign-in are put back into the browser.",
+    "It opens the platform; if that does not land on the working page it types the login from config and saves the new cookies. Transfeero repeats this every 3 minutes."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "resume",
+   "group": "catch",
+   "name": "Resume workers after restart",
+   "status": "works",
+   "who": [
+    "admin"
+   ],
+   "summary": "After the app restarts, the workers that were running start again without anyone pressing Start.",
+   "steps": [
+    "p-run",
+    "catch:p-run>p-browser",
+    "catch:p-run>p-poll"
+   ],
+   "step_titles": [
+    "Read who was running",
+    "Connect each worker's Chrome",
+    "Start them again"
+   ],
+   "step_notes": [
+    "Running yes/no is saved for every worker.",
+    "10 tries, 3 s apart. If a Chrome cannot be reached the app exits.",
+    "Workers marked running sign in and begin polling; the others wait for Start."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "bind-chat",
+   "group": "steer",
+   "name": "Point chat at a worker",
+   "status": "works",
+   "who": [
+    "operator"
+   ],
+   "summary": "/worker <name> decides which worker this chat controls and whose orders it hears about.",
+   "steps": [
+    "steer:x-chat>p-gate",
+    "steer:p-gate>p-bind",
+    "steer:p-bind>t-binding"
+   ],
+   "step_titles": [
+    "Send /worker name",
+    "Look the worker up",
+    "Save the binding"
+   ],
+   "step_notes": [
+    "Only chats on the allowed list are answered.",
+    "An unknown name is answered with the list of workers.",
+    "From now on this chat's menu controls that worker, and that worker's order messages come here."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "start-stop",
+   "group": "steer",
+   "name": "Start or stop a worker",
+   "status": "works",
+   "who": [
+    "operator"
+   ],
+   "summary": "Two buttons in the /config menu switch a worker's polling on and off.",
+   "steps": [
+    "steer:x-chat>p-gate",
+    "steer:p-gate>p-menu",
+    "steer:t-binding>p-menu",
+    "steer:p-menu>p-run",
+    "steer:p-menu>x-chat"
+   ],
+   "step_titles": [
+    "Send /config",
+    "Open the menu",
+    "For the bound worker",
+    "Press Start or Stop",
+    "See the result"
+   ],
+   "step_notes": [
+    "Only chats on the allowed list are answered.",
+    "The menu opens as a message with buttons.",
+    "It shows that worker's name and whether it is running.",
+    "Start signs in first, so it can fail; the error text is then shown. The new state is saved and survives restarts.",
+    "'Worker started' or 'Worker stopped', with a Back button."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "set-delay",
+   "group": "steer",
+   "name": "Change the fetch delay",
+   "status": "works",
+   "who": [
+    "operator"
+   ],
+   "summary": "How many seconds a worker waits between two polls.",
+   "steps": [
+    "steer:x-chat>p-gate",
+    "steer:p-gate>p-menu",
+    "steer:p-menu>p-edit",
+    "steer:p-edit>t-rules"
+   ],
+   "step_titles": [
+    "Send /config",
+    "Fetch delay, Set delay",
+    "Type the seconds",
+    "Saved"
+   ],
+   "step_notes": [
+    "Only chats on the allowed list are answered.",
+    "The menu shows the current delay and asks for a new one.",
+    "The next message from this chat is read as the number.",
+    "The very next wait already uses it."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "block-hours",
+   "group": "steer",
+   "name": "Block out hours",
+   "status": "works",
+   "who": [
+    "operator",
+    "timer"
+   ],
+   "summary": "Time exclusions: windows in which no offer fits, whatever its price.",
+   "steps": [
+    "steer:x-chat>p-gate",
+    "steer:p-gate>p-menu",
+    "steer:p-menu>p-edit",
+    "steer:p-edit>t-rules",
+    "steer:p-expire>t-rules"
+   ],
+   "step_titles": [
+    "Send /config",
+    "Filter, time exclusions",
+    "Type the window",
+    "Saved",
+    "Past windows vanish"
+   ],
+   "step_notes": [
+    "Only chats on the allowed list are answered.",
+    "The menu lists the current windows in local time.",
+    "Format 'HH:MM-HH:MM DD.MM', local time, one day at a time. Remove by number: 1, 1-3 or 1,3,5.",
+    "Offers with a pickup inside the window stop fitting from the next poll.",
+    "Every 10 minutes, while the worker runs, windows that have ended are removed."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "min-cost",
+   "group": "steer",
+   "name": "Set the minimal order cost",
+   "status": "works",
+   "who": [
+    "operator"
+   ],
+   "summary": "The price below which an offer does not fit.",
+   "steps": [
+    "steer:x-chat>p-gate",
+    "steer:p-gate>p-menu",
+    "steer:p-menu>p-edit",
+    "steer:p-edit>t-rules"
+   ],
+   "step_titles": [
+    "Send /config",
+    "Filter, minimal order cost",
+    "Type the amount",
+    "Saved"
+   ],
+   "step_notes": [
+    "Only chats on the allowed list are answered.",
+    "Transfeero: one number. Welcome Pickups: one per vehicle (minivan, sedan) and a separate per-km rate. Connecto has no such screen.",
+    "Anything that is not a number is refused.",
+    "Used from the next poll."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "accept-list",
+   "group": "steer",
+   "name": "Upload Connecto accept list",
+   "status": "works",
+   "who": [
+    "operator"
+   ],
+   "summary": "The list of routes, vehicles and lowest prices that Connecto offers are accepted against.",
+   "steps": [
+    "steer:x-chat>p-gate",
+    "steer:p-gate>p-menu",
+    "steer:p-menu>p-edit",
+    "steer:p-edit>t-rules"
+   ],
+   "step_titles": [
+    "Send /config",
+    "Filter, order details",
+    "Send the text file",
+    "List replaced"
+   ],
+   "step_notes": [
+    "The chat must be bound to a Connecto worker.",
+    "Shows how many entries the list has; offers Upload and Download.",
+    "One line per entry: 'from - to - vehicle - price'. A line that does not parse rejects the whole file.",
+    "The new list replaces the old one entirely."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "restart-app",
+   "group": "steer",
+   "name": "Restart the app",
+   "status": "works",
+   "who": [
+    "operator"
+   ],
+   "summary": "/restart_app ends the dispatcher process so that it starts fresh.",
+   "steps": [
+    "steer:x-chat>p-gate",
+    "steer:p-gate>p-host",
+    "steer:p-host>x-server"
+   ],
+   "step_titles": [
+    "Send /restart_app",
+    "Reply, then exit",
+    "Docker starts it again"
+   ],
+   "step_notes": [
+    "Only chats on the allowed list are answered.",
+    "The bot answers 'Restarting application' and the process exits with code 2.",
+    "The container's restart policy brings the app back; workers that were running resume (floor 1)."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "reboot",
+   "group": "steer",
+   "name": "Reboot the server",
+   "status": "unknown",
+   "who": [
+    "operator"
+   ],
+   "summary": "/reboot_host asks the operating system to reboot.",
+   "steps": [
+    "steer:x-chat>p-gate",
+    "steer:p-gate>p-host",
+    "steer:p-host>x-server"
+   ],
+   "step_titles": [
+    "Send /reboot_host",
+    "Reply, then reboot",
+    "Effect unverified"
+   ],
+   "step_notes": [
+    "Only chats on the allowed list are answered.",
+    "The bot answers 'Restarting server' and runs the system's reboot command.",
+    "The shipped app runs inside a container. Whether a reboot issued there reaches the host cannot be told from the repository."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "refresh",
+   "group": "collect",
+   "name": "Refresh schedule every 10 min",
+   "status": "works",
+   "who": [
+    "timer",
+    "platforms",
+    "controller"
+   ],
+   "summary": "Without being asked, the app re-reads every platform and sends the whole schedule to the controller.",
+   "steps": [
+    "collect:x-timer>p-round",
+    "collect:p-round>p-walk",
+    "collect:p-walk>p-read",
+    "p-read",
+    "collect:p-read>t-schedule",
+    "collect:t-schedule>p-publish",
+    "collect:p-publish>x-controller"
+   ],
+   "step_titles": [
+    "The timer fires",
+    "Start a round",
+    "Platform after platform",
+    "Read its booked transfers",
+    "Keep what was found",
+    "Hand over everything",
+    "Send to the controller"
+   ],
+   "step_notes": [
+    "10 minutes after the previous round ended. The first round starts with the app.",
+    "Only one round runs at a time.",
+    "In config order, in the single Chrome. Cookies are wiped before each one. Up to 3 tries per platform.",
+    "Sign in if needed, then read the transfers already assigned to the company.",
+    "Past pickups are dropped. A platform that failed keeps its error instead.",
+    "All platforms' bookings together.",
+    "The whole schedule is posted after every round."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "collect-all",
+   "group": "collect",
+   "name": "Ask for the full schedule",
+   "status": "works",
+   "who": [
+    "operator"
+   ],
+   "summary": "/collect_all returns the upcoming booked transfers of all platforms in one sorted list.",
+   "steps": [
+    "collect:x-chat>p-ask",
+    "collect:p-ask>p-round",
+    "collect:p-round>p-walk",
+    "collect:p-walk>p-read",
+    "collect:p-read>t-schedule",
+    "collect:t-schedule>p-format",
+    "collect:p-format>x-chat"
+   ],
+   "step_titles": [
+    "Send /collect_all",
+    "Fresh enough?",
+    "Run a round",
+    "Platform after platform",
+    "Keep what was found",
+    "Sort and cut",
+    "Schedule message"
+   ],
+   "step_notes": [
+    "The bot answers 'Collecting...' at once.",
+    "A result younger than 60 s is reused. Otherwise a round starts, or the one already running is awaited.",
+    "Same round as the timer's.",
+    "Up to 3 tries each.",
+    "Past pickups are dropped.",
+    "Sorted by pickup time; only the first two calendar days with bookings are shown.",
+    "Failed platforms first, then one block per booking; long lists are split at 4000 characters."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "collect-one",
+   "group": "collect",
+   "name": "Ask for one platform",
+   "status": "works",
+   "who": [
+    "operator",
+    "controller"
+   ],
+   "summary": "/collect <platform> re-reads just one platform and returns its bookings.",
+   "steps": [
+    "collect:x-chat>p-ask",
+    "collect:p-ask>p-round",
+    "collect:p-round>p-walk",
+    "collect:p-walk>p-read",
+    "collect:p-read>t-schedule",
+    "collect:t-schedule>p-format",
+    "collect:p-format>x-chat",
+    "collect:t-schedule>p-publish"
+   ],
+   "step_titles": [
+    "Send /collect name",
+    "Fresh enough?",
+    "Only that platform",
+    "Read it",
+    "Replace its slot",
+    "Sort and cut",
+    "Schedule message",
+    "Republish everything"
+   ],
+   "step_notes": [
+    "The name is the platform's id from config — see /services.",
+    "A result younger than 60 s is reused.",
+    "Its slot in the schedule is replaced; the rest is kept.",
+    "Up to 3 tries.",
+    "Past pickups are dropped.",
+    "Only that platform's bookings.",
+    "Same layout as the full schedule.",
+    "The whole kept schedule goes to the controller again, not only this platform."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "services",
+   "group": "collect",
+   "name": "List the platforms",
+   "status": "works",
+   "who": [
+    "operator"
+   ],
+   "summary": "/services shows the platform ids this app is configured to read.",
+   "steps": [
+    "collect:x-chat>p-ask",
+    "collect:p-ask>x-chat"
+   ],
+   "step_titles": [
+    "Send /services",
+    "List of platform ids"
+   ],
+   "step_notes": [
+    "Only chats on the allowed list are answered.",
+    "Exactly the ids from the config file, in order."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "read-wp",
+   "group": "collect",
+   "name": "Read Welcome Pickups bookings",
+   "status": "works",
+   "who": [
+    "platforms"
+   ],
+   "summary": "Asks the site's own JSON list for assigned upcoming transfers of the next 2 days.",
+   "steps": [
+    "collect:p-walk>p-read",
+    "collect:x-wp>p-read",
+    "collect:p-read>t-schedule"
+   ],
+   "step_titles": [
+    "Its turn comes",
+    "Read the bookings",
+    "Into the schedule"
+   ],
+   "step_notes": [
+    "Cookies are wiped, this platform's saved ones are loaded, and it signs in if needed.",
+    "Asks the site's own JSON list for assigned upcoming transfers of the next 2 days.",
+    "Past pickups are dropped; an error is kept in the platform's slot instead."
+   ],
+   "platform": "x-wp",
+   "variant": true
+  },
+  {
+   "id": "read-tf",
+   "group": "collect",
+   "name": "Read Transfeero bookings",
+   "status": "works",
+   "who": [
+    "platforms"
+   ],
+   "summary": "Opens 'upcoming rides', captures the request the page makes, and sends it again.",
+   "steps": [
+    "collect:p-walk>p-read",
+    "collect:x-tf>p-read",
+    "collect:p-read>t-schedule"
+   ],
+   "step_titles": [
+    "Its turn comes",
+    "Read the bookings",
+    "Into the schedule"
+   ],
+   "step_notes": [
+    "Cookies are wiped, this platform's saved ones are loaded, and it signs in if needed.",
+    "Opens 'upcoming rides', captures the request the page makes, and sends it again.",
+    "Past pickups are dropped; an error is kept in the platform's slot instead."
+   ],
+   "platform": "x-tf",
+   "variant": true
+  },
+  {
+   "id": "read-cn",
+   "group": "collect",
+   "name": "Read Connecto bookings",
+   "status": "works",
+   "who": [
+    "platforms"
+   ],
+   "summary": "Signs in with e-mail, password and PIN, then reads every page of the confirmed-transfers table.",
+   "steps": [
+    "collect:p-walk>p-read",
+    "collect:x-cn>p-read",
+    "collect:p-read>t-schedule"
+   ],
+   "step_titles": [
+    "Its turn comes",
+    "Read the bookings",
+    "Into the schedule"
+   ],
+   "step_notes": [
+    "Cookies are wiped, this platform's saved ones are loaded, and it signs in if needed.",
+    "Signs in with e-mail, password and PIN, then reads every page of the confirmed-transfers table.",
+    "Past pickups are dropped; an error is kept in the platform's slot instead."
+   ],
+   "platform": "x-cn",
+   "variant": true
+  },
+  {
+   "id": "read-atob",
+   "group": "collect",
+   "name": "Read AtoB Transfer bookings",
+   "status": "works",
+   "who": [
+    "platforms"
+   ],
+   "summary": "Reads the upcoming-bookings table, then opens every booking for client name, phone, price and passengers.",
+   "steps": [
+    "collect:p-walk>p-read",
+    "collect:x-atob>p-read",
+    "collect:p-read>t-schedule"
+   ],
+   "step_titles": [
+    "Its turn comes",
+    "Read the bookings",
+    "Into the schedule"
+   ],
+   "step_notes": [
+    "Cookies are wiped, this platform's saved ones are loaded, and it signs in if needed.",
+    "Reads the upcoming-bookings table, then opens every booking for client name, phone, price and passengers.",
+    "Past pickups are dropped; an error is kept in the platform's slot instead."
+   ],
+   "platform": "x-atob",
+   "variant": true
+  },
+  {
+   "id": "read-kiwi",
+   "group": "collect",
+   "name": "Read Kiwitaxi bookings",
+   "status": "works",
+   "who": [
+    "platforms"
+   ],
+   "summary": "Captures the site's data request and re-sends it asking only for 'scheduled' orders.",
+   "steps": [
+    "collect:p-walk>p-read",
+    "collect:x-kiwi>p-read",
+    "collect:p-read>t-schedule"
+   ],
+   "step_titles": [
+    "Its turn comes",
+    "Read the bookings",
+    "Into the schedule"
+   ],
+   "step_notes": [
+    "Cookies are wiped, this platform's saved ones are loaded, and it signs in if needed.",
+    "Captures the site's data request and re-sends it asking only for 'scheduled' orders.",
+    "Past pickups are dropped; an error is kept in the platform's slot instead."
+   ],
+   "platform": "x-kiwi",
+   "variant": true
+  },
+  {
+   "id": "read-cataxis",
+   "group": "collect",
+   "name": "Read City Airport Taxis bookings",
+   "status": "works",
+   "who": [
+    "platforms"
+   ],
+   "summary": "Asks the site's search endpoint, then opens each booking for client, vehicle and net rate (halved when flagged 'doubled').",
+   "steps": [
+    "collect:p-walk>p-read",
+    "collect:x-cataxis>p-read",
+    "collect:p-read>t-schedule"
+   ],
+   "step_titles": [
+    "Its turn comes",
+    "Read the bookings",
+    "Into the schedule"
+   ],
+   "step_notes": [
+    "Cookies are wiped, this platform's saved ones are loaded, and it signs in if needed.",
+    "Asks the site's search endpoint, then opens each booking for client, vehicle and net rate (halved when flagged 'doubled').",
+    "Past pickups are dropped; an error is kept in the platform's slot instead."
+   ],
+   "platform": "x-cataxis",
+   "variant": true
+  },
+  {
+   "id": "read-shuttle",
+   "group": "collect",
+   "name": "Read Shuttle Spain bookings",
+   "status": "works",
+   "who": [
+    "platforms"
+   ],
+   "summary": "Opens the services list and catches the data the page loads by itself.",
+   "steps": [
+    "collect:p-walk>p-read",
+    "collect:x-shuttle>p-read",
+    "collect:p-read>t-schedule"
+   ],
+   "step_titles": [
+    "Its turn comes",
+    "Read the bookings",
+    "Into the schedule"
+   ],
+   "step_notes": [
+    "Cookies are wiped, this platform's saved ones are loaded, and it signs in if needed.",
+    "Opens the services list and catches the data the page loads by itself.",
+    "Past pickups are dropped; an error is kept in the platform's slot instead."
+   ],
+   "platform": "x-shuttle",
+   "variant": true
+  },
+  {
+   "id": "read-gsheet",
+   "group": "collect",
+   "name": "Read Google Sheet bookings",
+   "status": "works",
+   "who": [
+    "platforms"
+   ],
+   "summary": "No browser: reads spreadsheet rows through a Google service account, columns mapped by a template in config.",
+   "steps": [
+    "collect:p-walk>p-read",
+    "collect:x-gsheet>p-read",
+    "collect:p-read>t-schedule"
+   ],
+   "step_titles": [
+    "Its turn comes",
+    "Read the bookings",
+    "Into the schedule"
+   ],
+   "step_notes": [
+    "Cookies are wiped, this platform's saved ones are loaded, and it signs in if needed.",
+    "No browser: reads spreadsheet rows through a Google service account, columns mapped by a template in config.",
+    "Past pickups are dropped; an error is kept in the platform's slot instead."
+   ],
+   "platform": "x-gsheet",
+   "variant": true
+  },
+  {
+   "id": "read-talixo",
+   "group": "collect",
+   "name": "Read Talixo bookings",
+   "status": "partial",
+   "who": [
+    "platforms"
+   ],
+   "summary": "Reads the jobs table. No booking id is read: a random one is made up on every read.",
+   "steps": [
+    "collect:p-walk>p-read",
+    "collect:x-talixo>p-read",
+    "collect:p-read>t-schedule"
+   ],
+   "step_titles": [
+    "Its turn comes",
+    "Read the bookings",
+    "Into the schedule"
+   ],
+   "step_notes": [
+    "Cookies are wiped, this platform's saved ones are loaded, and it signs in if needed.",
+    "Reads the jobs table. No booking id is read: a random one is made up on every read.",
+    "Past pickups are dropped; an error is kept in the platform's slot instead."
+   ],
+   "platform": "x-talixo",
+   "variant": true
+  },
+  {
+   "id": "read-wtdriver",
+   "group": "collect",
+   "name": "Read World Transfer bookings",
+   "status": "partial",
+   "who": [
+    "platforms"
+   ],
+   "summary": "Signs in every round, reads the Confirmed tab, logs out. The id is a random number, 'to be replaced'.",
+   "steps": [
+    "collect:p-walk>p-read",
+    "collect:x-wtdriver>p-read",
+    "collect:p-read>t-schedule"
+   ],
+   "step_titles": [
+    "Its turn comes",
+    "Read the bookings",
+    "Into the schedule"
+   ],
+   "step_notes": [
+    "Cookies are wiped, this platform's saved ones are loaded, and it signs in if needed.",
+    "Signs in every round, reads the Confirmed tab, logs out. The id is a random number, 'to be replaced'.",
+    "Past pickups are dropped; an error is kept in the platform's slot instead."
+   ],
+   "platform": "x-wtdriver",
+   "variant": true
+  },
+  {
+   "id": "read-elife",
+   "group": "collect",
+   "name": "Read Elife bookings",
+   "status": "partial",
+   "who": [
+    "platforms"
+   ],
+   "summary": "Always signs in again (the check is a stub), opens every ride, and catches the data the page fetches.",
+   "steps": [
+    "collect:p-walk>p-read",
+    "collect:x-elife>p-read",
+    "collect:p-read>t-schedule"
+   ],
+   "step_titles": [
+    "Its turn comes",
+    "Read the bookings",
+    "Into the schedule"
+   ],
+   "step_notes": [
+    "Cookies are wiped, this platform's saved ones are loaded, and it signs in if needed.",
+    "Always signs in again (the check is a stub), opens every ride, and catches the data the page fetches.",
+    "Past pickups are dropped; an error is kept in the platform's slot instead."
+   ],
+   "platform": "x-elife",
+   "variant": true
+  },
+  {
+   "id": "read-chofix",
+   "group": "collect",
+   "name": "Read Chofix bookings",
+   "status": "partial",
+   "who": [
+    "platforms"
+   ],
+   "summary": "Reads the confirmed-rides table. The id is the literal text 'unknown'; debug prints remain.",
+   "steps": [
+    "collect:p-walk>p-read",
+    "collect:x-chofix>p-read",
+    "collect:p-read>t-schedule"
+   ],
+   "step_titles": [
+    "Its turn comes",
+    "Read the bookings",
+    "Into the schedule"
+   ],
+   "step_notes": [
+    "Cookies are wiped, this platform's saved ones are loaded, and it signs in if needed.",
+    "Reads the confirmed-rides table. The id is the literal text 'unknown'; debug prints remain.",
+    "Past pickups are dropped; an error is kept in the platform's slot instead."
+   ],
+   "platform": "x-chofix",
+   "variant": true
+  },
+  {
+   "id": "prepare",
+   "group": "run",
+   "name": "Prepare a new server",
+   "status": "works",
+   "who": [
+    "admin"
+   ],
+   "summary": "One playbook turns a bare Linux host into one that can run the apps.",
+   "steps": [
+    "run:x-admin>p-prepare",
+    "run:p-prepare>x-server"
+   ],
+   "step_titles": [
+    "Run the bootstrap playbook",
+    "Server made ready"
+   ],
+   "step_notes": [
+    "From the ansible folder.",
+    "Base packages, app user and folders, the registry's name and certificate, Docker Engine with Compose."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "registry",
+   "group": "run",
+   "name": "Host the image registry",
+   "status": "works",
+   "who": [
+    "admin"
+   ],
+   "summary": "A private, password-protected place on the server for the two app images.",
+   "steps": [
+    "run:x-admin>p-registry",
+    "p-registry"
+   ],
+   "step_titles": [
+    "Make a certificate, run the playbook",
+    "Registry is up"
+   ],
+   "step_notes": [
+    "'generate-certs' makes a self-signed certificate; 'deploy-registry' installs the registry with TLS, basic auth and a web UI.",
+    "The playbook waits until the registry answers."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "build",
+   "group": "run",
+   "name": "Build the app images",
+   "status": "partial",
+   "who": [
+    "admin"
+   ],
+   "summary": "Each app is compiled and bundled into one file inside a Docker image named for the private registry.",
+   "steps": [
+    "run:x-admin>p-build",
+    "run:p-build>p-registry"
+   ],
+   "step_titles": [
+    "Build with Docker Compose",
+    "Images to the registry"
+   ],
+   "step_notes": [
+    "The compose file of each app has a build section. The root 'bundle' scripts call a 'build' script the root package.json does not define.",
+    "Unverified: the images are tagged for the registry, but no tracked script pushes them."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "ship-dispatcher",
+   "group": "run",
+   "name": "Ship the dispatcher",
+   "status": "works",
+   "who": [
+    "admin"
+   ],
+   "summary": "One playbook puts the dispatcher app and its five Chrome containers on the server.",
+   "steps": [
+    "run:x-admin>p-ship",
+    "run:t-config>p-ship",
+    "run:p-registry>p-ship",
+    "run:p-ship>r-watch",
+    "run:r-watch>p-browser"
+   ],
+   "step_titles": [
+    "Run deploy-dispatcher",
+    "Write the config file",
+    "Pull the latest image",
+    "Start the stack",
+    "App connects to its Chromes"
+   ],
+   "step_notes": [
+    "npm run deploy-dispatcher.",
+    "From a git-ignored Ansible variable holding the whole config as JSON.",
+    "After logging in to the private registry.",
+    "The app plus Chrome for wpickups, transfeero-1, -2, -3 and connecto. The app is recreated when its config changed.",
+    "One per worker, by the addresses in config."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "ship-consolidator",
+   "group": "run",
+   "name": "Ship the consolidator",
+   "status": "works",
+   "who": [
+    "admin"
+   ],
+   "summary": "One playbook puts the schedule app and its single Chrome container on the server.",
+   "steps": [
+    "run:x-admin>p-ship",
+    "run:t-config>p-ship",
+    "run:p-registry>p-ship",
+    "run:p-ship>r-collect",
+    "run:r-collect>p-browser"
+   ],
+   "step_titles": [
+    "Run deploy-consolidator",
+    "Write the config file",
+    "Pull the latest image",
+    "Start the stack",
+    "App connects to its Chrome"
+   ],
+   "step_notes": [
+    "npm run deploy-consolidator.",
+    "From a git-ignored Ansible variable.",
+    "After logging in to the private registry.",
+    "The app plus one Chrome. The app is recreated when its config changed.",
+    "One browser for all platforms."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "monitor",
+   "group": "run",
+   "name": "Watch server and logs",
+   "status": "works",
+   "who": [
+    "admin"
+   ],
+   "summary": "Dashboards for the host, every container, and the apps' logs.",
+   "steps": [
+    "x-admin",
+    "run:r-watch>p-monitor",
+    "run:p-browser>p-monitor",
+    "run:p-monitor>p-dash",
+    "run:p-dash>x-admin"
+   ],
+   "step_titles": [
+    "Run deploy-monitoring",
+    "App logs and numbers flow in",
+    "Chrome containers too",
+    "30 days kept",
+    "Open Grafana"
+   ],
+   "step_notes": [
+    "The playbook uploads the configs and dashboards and starts six monitoring containers.",
+    "Container logs are tailed; CPU, memory, network and disk are measured per container and for the host.",
+    "Their logs as well — except chrome-transfeero-3, which the log filter does not name.",
+    "Metrics in Prometheus, logs in Loki.",
+    "Port 3001: 'Server Overview' and 'Container Metrics'."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "vnc",
+   "group": "run",
+   "name": "Look inside a browser",
+   "status": "works",
+   "who": [
+    "admin"
+   ],
+   "summary": "Every Chrome container can show its screen over VNC, to watch or to click by hand.",
+   "steps": [
+    "run:p-browser>x-admin"
+   ],
+   "step_titles": [
+    "Connect with a VNC viewer"
+   ],
+   "step_notes": [
+    "Ports 5901 to 5905 for the workers' Chromes, 5910 for the schedule one. Off by default in the Ansible deployment, on in the local compose files."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "dev",
+   "group": "run",
+   "name": "Run it in dev mode",
+   "status": "works",
+   "who": [
+    "admin"
+   ],
+   "summary": "Starting the dispatcher with --dev runs the workers quietly, without the Telegram manage bot.",
+   "steps": [
+    "run:x-admin>r-watch"
+   ],
+   "step_titles": [
+    "Start with --dev"
+   ],
+   "step_notes": [
+    "The manage bot is not started, and only workers already marked running are set up. They still need reachable Chrome addresses."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "tg-logs",
+   "group": "run",
+   "name": "Send logs to Telegram",
+   "status": "partial",
+   "who": [
+    "admin"
+   ],
+   "summary": "A log bot for posting logs and failure screenshots to a chat. It is switched off in both apps.",
+   "steps": [
+    "run:r-watch>p-log-tg"
+   ],
+   "step_titles": [
+    "Switched off"
+   ],
+   "step_notes": [
+    "The lines that start the log bot are commented out; logs go to the console and on to Loki."
+   ],
+   "platform": null,
+   "variant": false
+  },
+  {
+   "id": "health",
+   "group": "run",
+   "name": "Expose app health and metrics",
+   "status": "planned",
+   "who": [
+    "admin"
+   ],
+   "summary": "A /health address and app metrics are prepared for in the images and the monitoring config, but not served.",
+   "steps": [
+    "run:r-watch>p-health",
+    "run:r-collect>p-health"
+   ],
+   "step_titles": [
+    "Image probes /health",
+    "Same for the schedule app"
+   ],
+   "step_notes": [
+    "Port 9091 for the dispatcher; nothing in the repository listens there.",
+    "Port 9092. The matching Prometheus entries are commented out until app metrics exist."
+   ],
+   "platform": null,
+   "variant": false
+  }
+ ],
+ "layout": {
+  "note": "Drawing hints only: grid positions and edge routing. The content above does not depend on them.",
+  "floors": {
+   "catch": {
+    "hue": "#0B7A75",
+    "cols": 6,
+    "band": {
+     "row": 3.95,
+     "label": "Under every step"
+    },
+    "place": {
+     "x-wp": [
+      0,
+      0
+     ],
+     "x-tf": [
+      0,
+      1
+     ],
+     "x-mail": [
+      0,
+      2
+     ],
+     "x-cn": [
+      0,
+      3
+     ],
+     "p-poll": [
+      1,
+      0.5
+     ],
+     "p-mail": [
+      1,
+      2.5
+     ],
+     "t-rules": [
+      2,
+      0
+     ],
+     "p-judge": [
+      2,
+      1.25
+     ],
+     "p-take-wp": [
+      3,
+      0
+     ],
+     "p-take-tf": [
+      3,
+      1
+     ],
+     "p-take-cn": [
+      3,
+      2
+     ],
+     "t-order": [
+      4,
+      1.25
+     ],
+     "x-chat": [
+      5,
+      0
+     ],
+     "p-announce": [
+      5,
+      0.85
+     ],
+     "p-publish": [
+      5,
+      1.85
+     ],
+     "x-controller": [
+      5,
+      2.7
+     ],
+     "p-run": [
+      0.5,
+      4.3
+     ],
+     "p-session": [
+      1.5,
+      4.3
+     ],
+     "p-browser": [
+      2.6,
+      4.3
+     ]
+    }
+   },
+   "steer": {
+    "hue": "#5B4BB7",
+    "cols": 6,
+    "band": null,
+    "place": {
+     "x-chat": [
+      0,
+      1.5
+     ],
+     "p-gate": [
+      1,
+      1.5
+     ],
+     "p-bind": [
+      2,
+      0.4
+     ],
+     "t-binding": [
+      3,
+      0.4
+     ],
+     "p-menu": [
+      3,
+      1.5
+     ],
+     "p-edit": [
+      4,
+      1.05
+     ],
+     "p-run": [
+      4,
+      2.05
+     ],
+     "p-expire": [
+      5,
+      0.05
+     ],
+     "t-rules": [
+      5,
+      1.05
+     ],
+     "p-host": [
+      2,
+      2.6
+     ],
+     "x-server": [
+      3,
+      2.6
+     ]
+    }
+   },
+   "collect": {
+    "hue": "#B4531A",
+    "cols": 6,
+    "band": {
+     "row": 3.42,
+     "label": "Under every step"
+    },
+    "place": {
+     "x-chat": [
+      0,
+      0
+     ],
+     "x-timer": [
+      0,
+      1.4
+     ],
+     "p-ask": [
+      1,
+      0
+     ],
+     "p-round": [
+      1,
+      1.4
+     ],
+     "p-walk": [
+      2,
+      1.4
+     ],
+     "p-read": [
+      3,
+      1.4
+     ],
+     "p-format": [
+      4,
+      0
+     ],
+     "t-schedule": [
+      4,
+      1.4
+     ],
+     "p-publish": [
+      5,
+      1.4
+     ],
+     "x-controller": [
+      5,
+      2.5
+     ],
+     "p-session": [
+      4.1,
+      3.75
+     ],
+     "p-browser": [
+      5.0,
+      3.75
+     ]
+    }
+   },
+   "run": {
+    "hue": "#2F6FB2",
+    "cols": 6,
+    "band": null,
+    "place": {
+     "x-admin": [
+      0,
+      1.7
+     ],
+     "p-prepare": [
+      1,
+      0
+     ],
+     "p-build": [
+      1,
+      1.1
+     ],
+     "t-config": [
+      1,
+      3.2
+     ],
+     "x-server": [
+      2,
+      0
+     ],
+     "p-registry": [
+      2,
+      1.1
+     ],
+     "p-ship": [
+      2,
+      2.3
+     ],
+     "r-watch": [
+      3,
+      1.7
+     ],
+     "r-collect": [
+      3,
+      3.0
+     ],
+     "p-log-tg": [
+      4,
+      0.8
+     ],
+     "p-browser": [
+      4,
+      2.35
+     ],
+     "p-dash": [
+      5,
+      0.9
+     ],
+     "p-monitor": [
+      5,
+      2.0
+     ],
+     "p-health": [
+      5,
+      3.4
+     ]
+    }
+   }
+  },
+  "links": {
+   "catch:x-wp>p-poll": {
+    "lp": 0.42
+   },
+   "catch:p-judge>p-take-tf": {
+    "show_label": false
+   },
+   "catch:p-judge>p-take-cn": {
+    "show_label": false
+   },
+   "catch:p-judge>t-order": {
+    "path": "under",
+    "lane": 2.72
+   },
+   "catch:p-take-wp>t-order": {
+    "lp": 0.42
+   },
+   "catch:p-take-tf>t-order": {
+    "show_label": false
+   },
+   "catch:p-take-cn>t-order": {
+    "show_label": false
+   },
+   "catch:t-order>p-announce": {
+    "lp": 0.36
+   },
+   "catch:t-order>p-publish": {
+    "lp": 0.4
+   },
+   "catch:p-take-wp>x-wp": {
+    "path": "over",
+    "lane": -0.42
+   },
+   "catch:p-take-tf>x-tf": {
+    "path": "under",
+    "lane": 1.56
+   },
+   "catch:p-take-cn>x-cn": {
+    "path": "under",
+    "lane": 3.36
+   },
+   "catch:p-session>p-poll": {
+    "path": "elbow",
+    "lp": 0.45
+   },
+   "catch:p-run>p-browser": {
+    "path": "over",
+    "lane": 4.0
+   },
+   "catch:p-run>p-poll": {
+    "path": "elbow",
+    "lp": 0.45
+   },
+   "steer:p-menu>x-chat": {
+    "path": "under",
+    "lane": 2.03
+   },
+   "collect:p-format>x-chat": {
+    "path": "over",
+    "lane": -0.62
+   },
+   "collect:p-ask>x-chat": {
+    "path": "over",
+    "lane": -0.38
+   },
+   "run:r-collect>p-browser": {
+    "show_label": false
+   },
+   "run:p-browser>p-monitor": {
+    "show_label": false
+   },
+   "run:p-dash>x-admin": {
+    "path": "over",
+    "lane": -0.62
+   },
+   "run:p-browser>x-admin": {
+    "path": "under",
+    "lane": 4.0
+   }
+  },
+  "sources": {
+   "ids": [
+    "x-wp",
+    "x-tf",
+    "x-cn",
+    "x-atob",
+    "x-kiwi",
+    "x-cataxis",
+    "x-shuttle",
+    "x-gsheet",
+    "x-talixo",
+    "x-wtdriver",
+    "x-elife",
+    "x-chofix"
+   ],
+   "col": 0.72,
+   "row": 2.62,
+   "per_row": 4,
+   "label": "12 platforms the code can read; config picks which, and the order"
+  }
+ }
+}

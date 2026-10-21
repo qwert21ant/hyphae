@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Continuo: the walk, tick by tick</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{
+  --paper:#DFE4E0; --panel:#F5F7F3; --ink:#15202B; --ink2:#52606B; --line:#9FABAB; --faint:#C9D1CE;
+  --ok:#1C7A4C; --ok-bg:#D2E8D9; --part:#B56A00; --part-bg:#F6E2B8; --plan:#7B878D;
+  --bad:#B3271E; --sel:#3536D0; --sel-bg:#E3E4FB;
+  --p-game:#12365E; --p-tests:#5B8FC7; --p-reasoned:#C3D6EA;
+  --sign:"Bahnschrift","DIN Alternate","Roboto Condensed","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --text:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --mono:"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--paper);overflow:hidden}
+body{color:var(--ink);font-family:var(--sign);font-stretch:87%;font-size:13.5px;line-height:1.25}
+#stage{position:absolute;width:1440px;height:900px;transform-origin:0 0;background:var(--paper)}
+#stage *{position:absolute}
+#wires{left:0;top:0;width:1440px;height:900px;pointer-events:none;z-index:1}
+#wires line{stroke:var(--ink);stroke-width:1.6;fill:none}
+#wires line.hit{stroke:transparent;stroke-width:14;pointer-events:stroke;cursor:pointer}
+#wires line.bad{stroke:var(--bad)}
+#wires line.end{stroke:var(--ink2);stroke-dasharray:5 4}
+#wires line.x{stroke:var(--ink2)}
+#wires line.sel{stroke:var(--sel);stroke-width:3}
+#wires line.dim{opacity:.22}
+
+/* text helpers: inner flow content is static, not absolute */
+#stage .flow, #stage .flow *{position:static}
+#stage .flow .chip, #stage .flow .dot, #stage .flow .pin{position:relative}
+
+.h{font-size:13px;color:var(--ink2);letter-spacing:.01em}
+.title{left:20px;top:7px;font-size:25px;font-weight:700;font-stretch:80%;letter-spacing:.01em}
+.tagline{left:142px;top:16px;font-size:15px;color:var(--ink2)}
+.commit{left:560px;top:18px;font-size:12px;color:var(--ink2);font-family:var(--mono);font-stretch:100%}
+
+/* lens switch */
+#lens{right:16px;top:8px;height:30px;display:flex;gap:0;position:absolute}
+#lens a{position:static;display:block;padding:6px 14px 0;height:30px;border:1.5px solid var(--ink);border-left-width:0;color:var(--ink);text-decoration:none;font-size:14px;background:var(--panel)}
+#lens a:first-child{border-left-width:1.5px;border-radius:15px 0 0 15px}
+#lens a:last-child{border-radius:0 15px 15px 0}
+#lens a.on{background:var(--ink);color:var(--panel)}
+
+/* the element base */
+.el{cursor:pointer;outline:0;z-index:2}
+#stage .k-job>*{position:static}
+#stage .k-job>.ord{position:absolute;left:-13px;top:2px}
+.el:focus-visible{outline:2px solid var(--sel);outline-offset:2px}
+.s-works{--m:var(--ok);--mb:var(--ok);--ms:solid}
+.s-partial{--m:var(--part);--mb:linear-gradient(90deg,var(--part) 50%,transparent 50%);--ms:solid}
+.s-planned{--m:var(--plan);--mb:transparent;--ms:solid}
+body[data-lens=proof] .p-game,.chip.p-game,.lpk.p-game{--m:var(--p-game);--mb:var(--p-game);--ms:solid}
+body[data-lens=proof] .p-tests,.chip.p-tests,.lpk.p-tests{--m:var(--p-tests);--mb:var(--p-tests);--ms:solid}
+body[data-lens=proof] .p-reasoned,.chip.p-reasoned,.lpk.p-reasoned{--m:var(--p-game);--mb:var(--p-reasoned);--ms:dotted}
+body[data-lens=proof] .p-none,.lpk.p-none{--m:var(--plan);--mb:transparent;--ms:solid}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;border:1.5px var(--ms,solid) var(--m,var(--ok));background:var(--mb,var(--ok));flex:none;vertical-align:baseline;margin-right:6px}
+.gap{display:inline-block;margin-left:5px;color:var(--part);font-size:10px;transform:translateY(-1px)}
+body[data-lens=proof] .dot,.chip .dot,.lpk .dot{border-radius:2px}
+#stage .lp-row *{position:static}
+body[data-lens=proof] .gap{display:none}
+
+/* selection and focus */
+.el.sel{box-shadow:0 0 0 2.5px var(--sel)}
+.k-job.sel,.k-link.sel,.k-out.sel,.lp-row.sel{background:var(--sel-bg)}
+.el.rel{box-shadow:0 0 0 1.5px var(--sel)}
+.el.cur{box-shadow:0 0 0 3px var(--sel);background:var(--sel-bg)}
+.el.dim{opacity:.28}
+.k-mode.dim{opacity:1;border-color:var(--line)}
+.k-mode.dim>.mhead{opacity:.28}
+.ord{display:none;min-width:17px;height:17px;border-radius:9px;background:var(--sel);color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:17px;padding:0 4px;z-index:6;font-stretch:100%}
+.onroute>.ord,.cur>.ord{display:block}
+
+/* roadmap */
+#road{left:0;top:46px;width:1440px;height:56px}
+#road .h{left:20px;top:4px}
+#road .track{left:104px;top:13px;width:1318px;height:0;border-top:2px solid var(--ink)}
+#road .track.todo{border-top:2px dashed var(--line)}
+.k-ms{height:48px;top:2px;padding:0;border-radius:6px}
+.k-ms .stn{left:0;top:4px;width:16px;height:16px;border-radius:50%;border:2px solid var(--ink);background:var(--mb)}
+.k-ms.s-planned .stn,body[data-lens=proof] .k-ms.p-none .stn{border-color:var(--plan);background:var(--paper)}
+.k-ms.s-partial .stn{background:linear-gradient(90deg,var(--part) 50%,var(--panel) 50%)}
+body[data-lens=proof] .k-ms.s-partial .stn{background:var(--mb)}
+.k-ms .num{left:18px;top:3px;font-size:13px;font-weight:700;background:var(--paper);padding:0 5px 0 4px}
+.k-ms .nm{left:0;top:25px;font-size:13px;white-space:nowrap}
+.k-ms.s-planned .nm,.k-ms.s-planned .num{color:var(--ink2)}
+.k-ms .here{left:52px;top:2px;font-size:11.5px;background:var(--ink);color:var(--panel);padding:2px 7px 1px;border-radius:9px;white-space:nowrap}
+
+/* left column */
+.keyrow{left:16px;width:182px;height:40px;border-radius:6px}
+.keycap{left:0;top:2px;width:34px;height:34px;border:1.5px solid var(--ink);border-bottom-width:4px;border-radius:6px;background:var(--panel);font-size:18px;font-weight:700;text-align:center;line-height:28px}
+.keyrow .kn{left:46px;top:9px;font-size:14.5px;white-space:nowrap}
+.keyrow.has-tool .kn{top:1px}
+.keyrow .ksub{left:44px;top:20px;font-size:12.5px;color:var(--ink2);white-space:nowrap}
+.keyrow .ksub .dot{width:7px;height:7px;margin-right:4px}
+.k-tool{left:58px;width:140px;height:18px;border-radius:4px;font-size:12.5px;color:var(--ink2);white-space:nowrap}
+#lp{left:16px;top:340px;width:186px;height:290px}
+#lp .h{left:0;top:0}
+.lp-row{left:0;width:190px;height:22px;padding:3px 2px 0 4px;border-radius:4px;font-size:13.5px;white-space:nowrap;overflow:hidden}
+body[data-lens=rules] .lp-row{font-size:13px;font-stretch:84%}
+.lp-row .n{color:var(--ink2);margin-left:4px}
+.lp-row .enf{float:right;font-size:11.5px;color:var(--ink2)}
+#legend{left:16px;top:636px;width:186px;height:92px;font-size:12.5px;color:var(--ink2)}
+#legend .flow div{margin-bottom:3px;white-space:nowrap}
+#legend .dot{margin-right:4px}
+#legend .dot:first-child{margin-left:0}
+
+/* standby */
+.k-standby{width:108px;height:58px;border:1.5px solid var(--ink);border-radius:10px;background:repeating-linear-gradient(135deg,var(--panel) 0 6px,#E6EAE5 6px 12px);padding:8px 8px}
+.k-standby .flow{font-size:14.5px;font-weight:600;line-height:1.15}
+.k-link{height:18px;padding:1px 6px 0;font-size:12.5px;white-space:nowrap;background:var(--paper);border-radius:3px;z-index:3}
+.k-link.bad{color:var(--bad)}
+.k-link.end{color:var(--ink2)}
+
+/* the frame */
+#frame{left:340px;top:122px;width:784px;height:606px;border:1.5px solid var(--ink);border-radius:18px;background:#E9EDE8}
+.k-guard{left:372px;top:111px;height:22px;padding:2px 10px 0;background:var(--ink);color:var(--panel);border-radius:11px;font-size:13.5px;white-space:nowrap;z-index:2}
+.k-guard .dot{border-color:var(--panel);background:var(--panel)}
+.axis{font-size:15px;font-weight:700;color:var(--ink2);text-align:center;white-space:nowrap}
+.axis.v{transform:rotate(-90deg);transform-origin:0 0;}
+
+.k-mode{border:2px solid var(--ink);border-radius:14px;background:var(--panel);padding:0}
+.k-mode>.mhead{left:14px;top:9px;right:10px;height:46px}
+.k-mode .mname{left:0;top:0;font-size:25px;font-weight:700;font-stretch:80%;white-space:nowrap}
+.k-mode .mname .dot{width:11px;height:11px;margin-right:8px}
+.k-mode .mtag{left:20px;top:30px;font-size:13px;color:var(--ink2);white-space:nowrap}
+.k-mode>.jobs{left:8px;right:8px;top:62px}
+.k-mode>.mnote{left:16px;bottom:10px;font-size:13px;color:var(--ink2);white-space:nowrap}
+.k-job{position:relative!important;display:flex;align-items:center;height:21px;padding:0 6px;border-radius:4px;font-size:14px;white-space:nowrap}
+.k-job .nm{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis}
+.k-job:hover,.k-link:hover,.k-out:hover,.lp-row:hover,.keyrow:hover,.k-tool:hover,.k-door:hover,.k-beat:hover,.k-ms:hover{background:var(--sel-bg)}
+
+.k-out{height:21px;padding:2px 9px 0 7px;border:1.3px solid var(--ink2);border-radius:11px;background:var(--panel);font-size:12.5px;white-space:nowrap;z-index:3;display:flex!important;align-items:center}
+.k-out .dot{width:8px;height:8px;margin-right:5px}
+#anystrip{left:372px;top:694px;width:740px;height:24px;display:flex;align-items:center;gap:10px}
+#anystrip>*{position:static}
+#anystrip .h{margin-right:2px}
+#anystrip .k-link{background:var(--panel);border:1.2px solid var(--line);height:21px;padding-top:2px}
+
+/* chips and pins */
+.chip{display:none;align-items:center;height:17px;margin-left:5px;padding:0 6px 0 5px;border-radius:3px;font-size:12px;font-stretch:95%;border:1.2px solid var(--p-game);background:var(--panel);color:var(--ink);white-space:nowrap;z-index:5;flex:none}
+#stage .chip>*{position:static}
+.chip{font-weight:400;font-stretch:95%;letter-spacing:0}
+.k-mode .mname .chip{vertical-align:4px;margin-left:10px}
+.k-mode .mname .chip .dot{width:7px;height:7px;margin-right:4px}
+.chip .dot{width:7px;height:7px;margin-right:4px}
+.chip.p-reasoned{border-style:dashed}
+body[data-lens=dials] .chip{display:inline-flex}
+.pin{display:none;margin-left:5px;font-size:11.5px;color:var(--sel);white-space:nowrap;flex:none}
+body[data-lens=rules] .pin{display:inline}
+body[data-lens=dials] .gap,body[data-lens=rules] .gap{display:none}
+
+/* the game column */
+#border{left:1137px;top:112px;width:0;height:616px;border-left:2px dashed var(--ink2)}
+.k-door{left:1150px;width:134px;height:44px;border:1.5px solid var(--ink);border-left-width:5px;background:var(--panel);padding:5px 6px 0 7px;font-size:13.5px;line-height:1.15}
+.k-ver{left:1296px;width:128px;border:1.5px solid var(--ink);background:var(--panel);padding:8px 8px}
+.k-ver.s-planned{border-style:dashed;border-color:var(--plan);background:transparent;color:var(--ink2)}
+.k-ver .flow .vn{font-size:15px;font-weight:700;line-height:1.1}
+.k-ver .flow .vs{font-size:13px;color:var(--ink2);margin-top:2px}
+.k-ver .flow .dot{width:8px;height:8px}
+
+/* the tick strip */
+#tick{left:16px;top:738px;width:1408px;height:150px;border:1.5px solid var(--ink);border-radius:14px;background:var(--panel)}
+#tick .big{left:14px;top:30px;font-size:25px;font-weight:700;font-stretch:80%;white-space:nowrap}
+#tick .small{left:14px;top:62px;font-size:13px;color:var(--ink2);width:86px;line-height:1.2}
+.phase{top:10px;height:17px;font-size:12.5px;color:var(--ink2);border-bottom:1.5px solid var(--ink2);white-space:nowrap}
+.k-beat{top:38px;width:98px;height:100px;border-radius:8px;padding:0}
+.k-beat .bn{left:6px;top:6px;width:26px;height:26px;border-radius:50%;border:1.5px solid var(--ink);background:var(--paper);font-size:14px;font-weight:700;text-align:center;line-height:23px}
+.k-beat .bl{left:6px;top:38px;width:90px;font-size:14px;line-height:1.15}
+.k-beat .bd{left:40px;top:11px;white-space:nowrap}
+.g4{left:7px;top:78px;width:25px;height:17px;display:grid;grid-template-columns:11px 11px;grid-template-rows:7px 7px;gap:2px 3px}
+#stage .g4 i{position:static;border:1.2px solid var(--ink2);border-radius:1.5px}
+#stage .g4 i.on{background:var(--ink);border-color:var(--ink)}
+.k-beat.lit .bn{background:var(--ink);color:var(--panel)}
+.k-beat.off{opacity:.25}
+#gamemove{top:44px;width:62px;height:88px;border-left:2px dashed var(--ink2);border-right:2px dashed var(--ink2);font-size:12.5px;color:var(--ink2);text-align:center;padding-top:20px;line-height:1.2}
+
+/* drawer */
+#drawer{display:none;top:106px;width:318px;height:626px;background:#FFFFFF;border:2px solid var(--ink);border-radius:14px;z-index:20;overflow:hidden;box-shadow:6px 6px 0 rgba(21,32,43,.14)}
+#drawer.open{display:block}
+#drawer.right{left:1114px}
+#drawer.left{left:8px}
+#drawer .body{left:0;top:0;right:0;bottom:0;overflow-y:auto;padding:14px 16px 18px}
+#drawer .body, #drawer .body *{position:static}
+#drawer .x{position:absolute;right:8px;top:8px;width:26px;height:26px;border:0;background:transparent;font-size:20px;line-height:1;cursor:pointer;color:var(--ink);z-index:2}
+#drawer .kind{font-size:12.5px;color:var(--ink2);margin-right:24px}
+#drawer h2{font-size:23px;font-stretch:80%;margin:2px 24px 6px 0;line-height:1.1}
+#drawer .badges{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px}
+#drawer .badge{font-size:12px;padding:2px 7px 1px;border-radius:9px;border:1.2px solid var(--ink2);white-space:nowrap}
+.badge.b-works{border-color:var(--ok);background:var(--ok-bg)}
+.badge.b-partial{border-color:var(--part);background:var(--part-bg)}
+.badge.b-planned{border-style:dashed}
+.badge.b-game{background:var(--p-game);color:#fff;border-color:var(--p-game)}
+.badge.b-tests{background:var(--p-tests);color:#fff;border-color:var(--p-tests)}
+.badge.b-reasoned{background:var(--p-reasoned);border:1.2px dotted var(--p-game)}
+#drawer p{font-family:var(--text);font-stretch:100%;font-size:13.5px;line-height:1.4;margin:0 0 10px}
+#drawer h3{font-size:12.5px;font-weight:700;color:var(--ink2);margin:12px 0 4px;border-top:1px solid var(--faint);padding-top:8px}
+#drawer ul{margin:0;padding:0 0 0 16px;font-family:var(--text);font-stretch:100%;font-size:13px;line-height:1.38}
+#drawer ul.gaps li::marker{color:var(--part)}
+#drawer .log{font-family:var(--mono);font-stretch:100%;font-size:11.5px;line-height:1.35;background:#EEF1EC;border-left:3px solid var(--ink);padding:4px 7px;margin:0 0 4px;word-break:break-word}
+#drawer .code{font-family:var(--mono);font-stretch:100%;font-size:11px;line-height:1.35;word-break:break-all;margin-bottom:3px;color:var(--ink)}
+#drawer .code b{font-weight:400;color:var(--ink2)}
+#drawer a.ref{display:inline-block;margin:0 4px 4px 0;padding:2px 7px 1px;border:1.2px solid var(--line);border-radius:4px;color:var(--ink);text-decoration:none;font-size:13px}
+#drawer a.ref:hover{background:var(--sel-bg);border-color:var(--sel)}
+#drawer a.ref .v{color:var(--ink2);margin-left:5px}
+#drawer .big{font-size:30px;font-weight:700;font-stretch:80%;margin:0 0 6px}
+#drawer ol.steps{list-style:none;margin:0 0 10px;padding:0}
+#drawer ol.steps li{margin:0}
+#drawer ol.steps a{display:flex;gap:8px;padding:4px 6px;border-radius:5px;text-decoration:none;color:var(--ink);font-family:var(--text);font-stretch:100%;font-size:13px;line-height:1.3}
+#drawer ol.steps a .o{flex:none;width:18px;height:18px;border-radius:9px;border:1.3px solid var(--ink2);font-size:11px;text-align:center;line-height:16px;font-family:var(--sign)}
+#drawer ol.steps a.cur{background:var(--sel-bg)}
+#drawer ol.steps a.cur .o{background:var(--sel);border-color:var(--sel);color:#fff}
+#drawer ol.steps a.past .o{background:var(--ink2);color:#fff}
+#drawer .nav{display:flex;gap:8px;margin:0 0 10px}
+#drawer .nav a{flex:1;text-align:center;padding:6px 0 4px;border:1.5px solid var(--ink);border-radius:6px;text-decoration:none;color:var(--ink);font-size:14px}
+#drawer .nav a.off{opacity:.3;pointer-events:none}
+#drawer .card{border:1.3px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px}
+#drawer .card .t{font-size:15px;font-weight:700;margin-bottom:3px}
+#drawer .card p{margin-bottom:6px;font-size:13px}
+
+#tip{display:none;max-width:290px;background:var(--ink);color:#fff;padding:7px 10px;border-radius:6px;font-family:var(--text);font-stretch:100%;font-size:12.5px;line-height:1.35;z-index:40;pointer-events:none}
+#tip b{font-family:var(--sign);font-stretch:87%;font-size:13.5px;display:block;margin-bottom:2px}
+@media (prefers-reduced-motion:no-preference){.el,#wires line{transition:opacity .15s}}
+</style>
+</head>
+<body data-lens="flow">
+<div id="stage">
+  <svg id="wires" viewBox="0 0 1440 900" xmlns="http://www.w3.org/2000/svg"></svg>
+</div>
+<script>
+const DATA = {"commit":"a2142f1","elements":[{"id":"key-h","kind":"key","name":"Mark this spot","keycap":"H","status":"works","proof":"game","summary":"Remembers the block you are standing on as the goal; a new press replaces the old mark.","facts":["Logs \"Continuo: path goal marked at x y z\"","The mark is forgotten when the world or dimension changes","There is no other way to name a destination yet"],"log":["Continuo: path goal marked at <x> <y> <z>"],"evidence":"In-game run 2026-09-02: the route test turned the player toward the marked goal on both versions.","code":["runtime/src/main/java/dev/continuo/runtime/PathProbe.java","adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/ContinuoFabricMod.java","adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ContinuoForgeMod.java"]},{"id":"key-k","kind":"key","name":"Walk to the mark","keycap":"K","status":"works","proof":"tests","summary":"Starts a walk to the marked block, replacing any walk already in progress.","facts":["Pressed with nothing marked: logs a hint and does nothing","Presses made outside a world are thrown away","This key is the only way to start the bot today"],"log":["Continuo: walking to (x, y, z)","Continuo: no goal marked -- stand on the destination and press the mark key"],"evidence":"The key itself was exercised in game through 2026-09-02, but then it drove a 40-tick straight walk. No run is recorded since it was rewired to the route walker.","code":["adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/ContinuoFabricMod.java","adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ContinuoForgeMod.java","runtime/src/main/java/dev/continuo/runtime/AdapterRuntime.java","core-engine/src/main/java/dev/continuo/engine/ContinuoCore.java"]},{"id":"key-l","kind":"key","name":"Test a route","keycap":"L","status":"works","proof":"game","summary":"Developer key: searches for a route to the mark without walking it, and writes a report.","facts":["Pressing it mid-walk is expected to produce spurious notices"],"code":["adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/ContinuoFabricMod.java","adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ContinuoForgeMod.java","runtime/src/main/java/dev/continuo/runtime/PathProbe.java"]},{"id":"key-j","kind":"key","name":"Dump a block row","keycap":"J","status":"works","proof":"game","summary":"Developer key: writes how the bot sees the 32 blocks east of you to a text file.","code":["adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/ContinuoFabricMod.java","adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ContinuoForgeMod.java","runtime/src/main/java/dev/continuo/runtime/BlockDumpWalker.java"]},{"id":"tool-probe","kind":"tool","name":"Route test report","status":"works","proof":"game","summary":"Runs the route search on the live world three times, times it, draws the route as a text map and checks the player readings.","facts":["Writes continuo-path-probe.txt in the game folder","Allows gap jumps, unlike a real walk","Runs twice more on a frozen copy to separate reading cost from thinking cost","Warns if \"on ground\" disagrees with the block under the feet","Warns if the view did not turn as asked"],"log":["Continuo path probe: FOUND, 2 segments, 245 steps, 25053 expanded, cost ...","Continuo: wrote path probe map to <path>"],"gaps":["Sand, gravel, ladders and vines draw as \"?\" on the map","The map drawing has no time budget"],"evidence":"Run in real clients on 2026-08-26, 08-31 and 09-02; the same 245-step route came back bit-identical each time.","code":["runtime/src/main/java/dev/continuo/runtime/PathProbe.java","runtime/src/main/java/dev/continuo/runtime/ProbeReport.java","runtime/src/main/java/dev/continuo/runtime/ProbeBounds.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/PathRenderer.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/BlockLegend.java","docs/superpowers/specs/2026-08-24-in-game-path-probe-design.md"]},{"id":"tool-dump","kind":"tool","name":"Block reading check","status":"works","proof":"game","summary":"The dump from each game version is committed, and a test fails if the two versions name the same blocks differently.","facts":["Writes continuo-block-dump.txt in the game folder","A human builds the same 32-block row in both versions","27 of 32 rows are compared across versions; 2 really differ (carpet, farmland) and 3 blocks exist only in 1.21.11","Each dump is also compared with a human-reviewed \"golden\" copy"],"log":["Continuo: wrote block dump to <path>","Continuo: could not write the block dump"],"gaps":["Agreement between versions is not proof the reading is right","No modded blocks were ever in the row"],"evidence":"Dumps produced in both real clients and signed off 2026-08-15.","code":["runtime/src/main/java/dev/continuo/runtime/BlockDumpWalker.java","docs/parity/","core/src/test/java/dev/continuo/core/BlockParityTest.java"]},{"id":"sb-noworld","kind":"standby","name":"No world loaded","status":"works","proof":"game","summary":"At the title screen or between worlds the bot receives no ticks at all.","facts":["A world is \"loaded\" when both a level and a player exist","Queued K presses are discarded here"],"evidence":"Title-screen and quit-to-title steps passed on both versions (2026-08-13 to 08-15); also covered offline by the conformance tests.","code":["runtime/src/main/java/dev/continuo/runtime/AdapterRuntime.java"]},{"id":"sb-crashed","kind":"standby","name":"Crashed, sitting out","status":"works","proof":"tests","summary":"After the bot code throws, its keys are released and it gets no more ticks until the next world load.","facts":["The error is logged with a stack trace","The game itself keeps running","K presses are discarded while sitting out"],"log":["Continuo core faulted; no further ticks until the next world load","Continuo fault cleared by world load"],"gaps":["Never exercised in a real game: it needs a deliberate crash"],"evidence":"Asserted offline by the conformance tests; the repo says no manual step can reach it.","code":["runtime/src/main/java/dev/continuo/runtime/AdapterRuntime.java","platform-testkit/src/main/java/dev/continuo/testkit/AdapterConformanceTest.java"]},{"id":"g-gate","kind":"guard","name":"Guards every tick","status":"works","proof":"game","summary":"One shared gatekeeper decides, each tick, whether the bot may run: only inside a loaded world, never after a crash, and never across a world change.","facts":["Same code for both game versions","Watches the world object itself; a new one means \"stop\"","Wraps every call into the bot so an error cannot reach the game","Starts the bot exactly once per game session","On 1.21.11 it also stops the bot when the game closes; 1.7.10 has no such hook"],"log":["Continuo stopping: client level changed","Continuo stopping: client shutting down"],"evidence":"World-change behaviour seen in game on both versions (portal and quit steps, 2026-08-13); crash handling is tests only.","code":["runtime/src/main/java/dev/continuo/runtime/AdapterRuntime.java","runtime/src/main/java/dev/continuo/runtime/ClickSource.java","core/src/main/java/dev/continuo/core/CoreApi.java","runtime/src/test/java/dev/continuo/runtime/AdapterRuntimeConformanceTest.java","platform-testkit/src/main/java/dev/continuo/testkit/AdapterConformanceTest.java"]},{"id":"m-idle","kind":"mode","name":"Idle","tag":"waiting for K","note":"writes no keys at all","status":"works","proof":"tests","summary":"No route and no search: the bot does nothing and writes no keys, so it never fights your keyboard.","facts":["Writes nothing, not even a key release","Every stop and every world change lands here"],"beats":["b1","b2","b11","b12"],"code":["core-engine/src/main/java/dev/continuo/engine/ContinuoCore.java","core-engine/src/main/java/dev/continuo/engine/PathExecutor.java"]},{"id":"m-search","kind":"mode","name":"Searching","tag":"feet still, finding a route","status":"works","proof":"tests","summary":"No route yet, one search running: the player stands still while the bot works through a slice of the search each tick.","facts":["Used for the first search and for every retry","Always searches from where the player stands now","The measured 245-step route took about 13 ticks (0.65 s) to find","Gap jumps are not allowed in a real walk"],"beats":["b1","b2","b3","b4","b11","b12"],"evidence":"The search itself was run in real clients through the route test; the walker driving it is tests only.","code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/SegmentedSearch.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/Run.java"]},{"id":"m-walk","kind":"mode","name":"Walking","tag":"following the route","status":"works","proof":"tests","summary":"A route and no search: each tick the bot works out where it is on the route and states the keys that follow from that.","facts":["Remembers nothing about last tick; recomputes everything","A screen opening costs one tick, then it carries on","Walks only: never sprints, sneaks or strafes"],"beats":["b1","b2","b5","b6","b7","b8","b9","b10","b11","b12"],"gaps":["Never recorded as run in a real game","All seven of its tuning numbers are extrapolated"],"evidence":"65 automated tests against a pretend player. The checklist says steps 13 to 22, which cover the walker, \"have never been run\".","code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java","core-engine/src/main/java/dev/continuo/engine/PathFollower.java","core-engine/src/main/java/dev/continuo/engine/HumanizedActuator.java","docs/superpowers/specs/2026-09-03-d2-path-executor-design.md","docs/smoke-checklist.md"]},{"id":"m-walkplan","kind":"mode","name":"Walking and planning","tag":"both at once","note":"plus all Walking, Searching jobs","status":"works","proof":"tests","summary":"A route and a search at once: the player keeps walking while a second search extends the route from its far end.","facts":["Only happens when the route stops short of the goal","That means the search ran out of budget part-way","Trouble here cancels the planning and searches afresh"],"beats":["b1","b2","b3","b4","b5","b6","b7","b8","b9","b10","b11","b12"],"gaps":["Never recorded as run in a real game","The checklist expects this on any 100-block walk; in code it needs a search that gave up part-way"],"code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java","core-engine/src/main/java/dev/continuo/engine/PathFollower.java"]},{"id":"j-goal","kind":"job","in":"m-idle","name":"Remembers the marked goal","status":"works","proof":"game","summary":"Holds the one block marked with H until K asks for it or the world changes.","facts":["Lives inside the developer route-test tool","Cleared on any world or dimension change"],"gaps":["On the one tick a world change shows up, a queued K can still read the old mark","A real \"goto x y z\" command is planned, not built"],"code":["runtime/src/main/java/dev/continuo/runtime/PathProbe.java","adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/ContinuoFabricMod.java","adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ContinuoForgeMod.java"]},{"id":"j-hear","kind":"job","in":"m-idle","name":"Hears your K press","status":"works","proof":"tests","summary":"Each tick, takes queued K presses and turns each one into \"walk to the mark\".","code":["runtime/src/main/java/dev/continuo/runtime/AdapterRuntime.java","adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/ContinuoFabricMod.java","adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ContinuoForgeMod.java","core-engine/src/main/java/dev/continuo/engine/ContinuoCore.java"]},{"id":"j-copy","kind":"job","in":"m-search","name":"Copies terrain as it reads","status":"works","proof":"game","summary":"Every block the search looks at is kept in a private copy, so each spot is asked of the game only once.","facts":["A search reads each spot 4 to 16 times; the copy makes that one","Stored in small 4×4×4 cubes","A fresh copy per search; never refreshed while searching"],"gaps":["A chunk cache was drafted but not built","The route is never re-checked against the live world"],"evidence":"Measured in game 2026-08-31: 145,076 spots served 1,842,387 reads.","code":["core/src/main/java/dev/continuo/core/WorldSnapshot.java","core/src/main/java/dev/continuo/core/SectionStore.java","core/src/main/java/dev/continuo/core/SealedSnapshot.java","core/src/main/java/dev/continuo/core/BlockSource.java","docs/superpowers/specs/2026-08-25-c3-world-snapshot-design.md"]},{"id":"j-name","kind":"job","in":"m-search","name":"Names each block's shape","status":"works","proof":"game","summary":"Turns the raw facts the game reports about a block into one of nine shapes plus fluid and tags, the same way on both versions.","facts":["Shapes: air, full, bottom slab, top slab, thin layer, stair, fence, partial, unknown","Shape comes from the collision boxes, not from the block name","A small table per version adds what geometry cannot say (lava is harmful, soul sand is slow)","Each distinct block state is named once per world"],"gaps":["\"Slow\", \"falling\" and \"climbable\" are worked out but nothing uses them","Ice counts as plain stone; slipperiness is not modelled","Powder snow, berry bushes, bubble columns and lily pads were never checked"],"evidence":"Both real clients agreed on 27 of 27 compared blocks (2026-08-15).","code":["core/src/main/java/dev/continuo/core/BlockLookup.java","core/src/main/java/dev/continuo/core/BlockClassifier.java","core/src/main/java/dev/continuo/core/BlockData.java","core/src/main/java/dev/continuo/core/BlockShape.java","core/src/main/java/dev/continuo/core/BlockTag.java","core/src/main/java/dev/continuo/core/Fluid.java","core/src/main/java/dev/continuo/core/BlockTable.java","core/src/main/java/dev/continuo/core/BlockTableLoader.java","core/src/main/resources/blocks/","docs/superpowers/specs/2026-08-14-b1-block-model-design.md"]},{"id":"j-fit","kind":"job","in":"m-search","name":"Decides where feet fit","status":"works","proof":"tests","summary":"The one place that says what can be walked through and what can be stood on.","facts":["Standing needs two clear blocks above a floor","Carpet and snow layers are walked through","Fences, fluids and harmful blocks are never a floor","Bottom slabs are neither a floor nor passable"],"gaps":["No swimming and no ladder climbing"],"code":["core-movement/src/main/java/dev/continuo/movement/Standability.java"]},{"id":"j-steps","kind":"job","in":"m-search","name":"Tries four kinds of step","status":"works","proof":"tests","summary":"From each spot the search asks four step types where they could take the player next: walk, diagonal, step up, drop down.","facts":["Step up: one block, needs head room","Drop: lands on the first floor, up to 3 blocks down","Diagonal: both corners must be clear","New step types plug in without touching the search"],"gaps":["Which steps a game version or the player supports is not negotiated; only a caller switch exists"],"code":["core-pathfinder/src/main/java/dev/continuo/pathfinder/TraverseMove.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/AscendMove.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/DescendMove.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/DiagonalMove.java","core-movement/src/main/java/dev/continuo/movement/IMovementType.java","core-movement/src/main/java/dev/continuo/movement/MovementRegistry.java","core-movement/src/main/java/dev/continuo/movement/ActiveMovements.java","core-movement/src/main/java/dev/continuo/movement/MoveSink.java","core-movement/src/main/java/dev/continuo/movement/Cardinals.java","core-movement/src/main/java/dev/continuo/movement/Capability.java","core-movement/src/main/java/dev/continuo/movement/CapabilitySet.java","docs/superpowers/specs/2026-08-17-c2-movement-registry-design.md"]},{"id":"j-parkour","kind":"job","in":"m-search","name":"Gap jumps: test only","status":"partial","proof":"tests","summary":"A fifth step type, a sprint-jump over a one-block gap, is found by the route test but never used or walked by the bot.","facts":["Ships as a separate plug-in module","The walker searches with it switched off","If handed such a step, the walker stops"],"gaps":["Walking it needs sprint, jump timing and velocity, none built"],"code":["movement-parkour/src/main/java/dev/continuo/movement/parkour/ParkourMove.java","movement-parkour/src/main/resources/META-INF/services/dev.continuo.movement.IMovementType","runtime/src/main/java/dev/continuo/runtime/PathProbe.java","core-engine/src/main/java/dev/continuo/engine/PathExecutor.java"]},{"id":"j-cheapest","kind":"job","in":"m-search","name":"Keeps the cheapest route","status":"works","proof":"game","summary":"An A* search over block positions that returns the route costing the fewest game ticks to one exact block.","facts":["Cost is time: walking 3.56 ticks, climbing 6.56, dropping 8.2 to 12","Stops after examining 25,000 spots","Identical world, identical route, every time"],"gaps":["Costs assume sprinting, but the walker never sprints","Costs were derived from game source and never timed","A \"any height at this X,Z\" goal exists but nothing uses it","No turn penalty"],"evidence":"The same 245-step route returned bit-identical in real clients across three refactors.","code":["core-pathfinder/src/main/java/dev/continuo/pathfinder/AStarPathfinder.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/Search.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/QueuedNode.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/QueuedNodeOrder.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/PathNode.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/Pos.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/Goal.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/GoalBlock.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/GoalXZ.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/PathResult.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/Step.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/Steps.java","core-movement/src/main/java/dev/continuo/movement/MovementCosts.java","core-movement/src/main/java/dev/continuo/movement/HeuristicRates.java","core-movement/src/main/java/dev/continuo/movement/MovementKind.java","docs/superpowers/specs/2026-08-15-c1-pathfinder-core-design.md"]},{"id":"j-partway","kind":"job","in":"m-search","name":"Settles for part-way","status":"works","proof":"game","summary":"When the budget runs out, the search keeps the route to the spot nearest the goal and searches on from there.","facts":["Only if that spot is at least 4 blocks closer","Repeats until the goal, a dead end, or no progress","A safety net; it fails below about 70% of the needed budget"],"evidence":"In-game run 2026-08-31 returned FOUND in 2 segments, identical to the earlier runs of that route.","code":["core-pathfinder/src/main/java/dev/continuo/pathfinder/SegmentedSearch.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/Run.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/SegmentSelector.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/SegmentedResult.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/PathOutcome.java","docs/superpowers/specs/2026-08-26-c4-segmentation-design.md"]},{"id":"j-slices","kind":"job","in":"m-search","name":"Spreads work over ticks","status":"works","proof":"game","summary":"A search is cut into slices of 2,000 spots, one per tick, so the game never freezes while the bot thinks.","facts":["Sliced and unsliced searches give the same answer","Worst slice measured: 22 ms cold, 6 to 9 ms warm, of a 50 ms tick","Runs on the game thread; a background thread was rejected"],"evidence":"Measured in real clients 2026-08-31 and 2026-09-02.","code":["core-pathfinder/src/main/java/dev/continuo/pathfinder/Run.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/Search.java","core-engine/src/main/java/dev/continuo/engine/PathExecutor.java","docs/superpowers/specs/2026-08-30-c5-time-sliced-search-design.md"]},{"id":"j-anchor","kind":"job","in":"m-walk","name":"Finds itself on the route","status":"works","proof":"tests","summary":"Each tick, picks the route step nearest the player, looking only a few steps either side of last tick’s answer.","facts":["The narrow window stops it skipping a loop of a spiral staircase","A knock back simply moves the answer back"],"gaps":["The window size was reasoned from an uncounted staircase"],"code":["core-engine/src/main/java/dev/continuo/engine/PathFollower.java"]},{"id":"j-face","kind":"job","in":"m-walk","name":"Faces the next step","status":"works","proof":"tests","summary":"Aims the view at the centre of the block the current step ends on; pitch is left alone.","facts":["Diagonals are walked by facing them, not strafing"],"code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java","core/src/main/java/dev/continuo/core/Yaw.java"]},{"id":"j-press","kind":"job","in":"m-walk","name":"Holds Forward, jumps on climbs","status":"works","proof":"tests","summary":"States all seven keys every tick: Forward down, Jump down only on a step up while on the ground, everything else up.","facts":["Jump is released in the air so the next jump is not throttled","Past the last step it keeps walking at the final block"],"gaps":["Sprint is always off, though route costs assume sprint","Whether \"on ground\" behaves the same on both versions is unchecked"],"code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java","platform/src/main/java/dev/continuo/platform/Input.java"]},{"id":"j-turn","kind":"job","in":"m-walk","name":"Turns gently, not instantly","status":"works","proof":"tests","summary":"Limits how far the view may turn in one tick, starting from where the player really faces now.","facts":["A full about-turn takes 6 ticks (0.3 s)","The intended place to add human-like behaviour later"],"gaps":["Only turning is softened; key presses are passed straight through"],"code":["core-engine/src/main/java/dev/continuo/engine/HumanizedActuator.java","core/src/main/java/dev/continuo/core/Yaw.java"]},{"id":"j-moved","kind":"job","in":"m-walk","name":"Notices it was moved","status":"works","proof":"tests","summary":"If the player is too far from every nearby route step (a teleport, a long fall) the route is abandoned.","facts":["Nothing tells the bot it was moved; it just looks","This replaced a planned \"server corrected you\" signal"],"gaps":["Whether looking is enough is the main open question for the in-game run"],"code":["core-engine/src/main/java/dev/continuo/engine/PathFollower.java","core-engine/src/main/java/dev/continuo/engine/PathExecutor.java","docs/superpowers/specs/2026-09-02-d1-spi-player-state-design.md"]},{"id":"j-stuck","kind":"job","in":"m-walk","name":"Notices no progress","status":"works","proof":"tests","summary":"Counts ticks in which the player got no further along the route; too many and the route is abandoned.","facts":["Measures progress along the route, not speed"],"code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java"]},{"id":"j-ahead","kind":"job","in":"m-walkplan","name":"Searches from route's end","status":"works","proof":"tests","summary":"Starts a new search from the last block of the current route toward the goal, without stopping the walk.","code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java"]},{"id":"j-join","kind":"job","in":"m-walkplan","name":"Joins the new part on","status":"works","proof":"tests","summary":"Appends the continuation to the far end of the route, so the player’s place on it is untouched.","facts":["The continuation must start exactly where the route ends"],"code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java","core-engine/src/main/java/dev/continuo/engine/PathFollower.java"]},{"id":"o-arrived","kind":"outcome","name":"Arrived","short":"arrived","status":"works","proof":"tests","summary":"The player is on the final block and that block is the goal: every key is released once.","log":["Continuo executor: arrived"],"code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java","core-engine/src/main/java/dev/continuo/engine/PathFollower.java"]},{"id":"o-refuse","kind":"outcome","name":"Refuses an unwalkable step","short":"can't walk this step","status":"works","proof":"tests","summary":"If the next step is a gap jump or has no known type, the bot stops rather than guess.","facts":["Cannot happen from the bot’s own searches today"],"log":["Continuo executor: stopping at <pos> -- a parkour step, which this executor does not grant or execute"],"code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java","core-movement/src/main/java/dev/continuo/movement/MovementKind.java"]},{"id":"o-nopath","kind":"outcome","name":"No route exists","short":"no route exists","status":"works","proof":"tests","summary":"Everything reachable was examined and the goal was not there; the bot stops and does not retry.","facts":["Any part-way route already found is thrown away"],"log":["Continuo executor: no path to the goal -- stopping rather than retrying a goal already proven impossible"],"code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/PathOutcome.java"]},{"id":"o-budget","kind":"outcome","name":"Budget spent, nothing found","short":"budget ran out","status":"works","proof":"reasoned","summary":"The search hit its limit without getting usefully closer; a route may exist but the bot stops.","gaps":["No automated test reaches this","The checklist calls it near-unreachable and wants it reported if seen"],"log":["Continuo executor: search exceeded its budget with nothing to show for it -- stopping"],"code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/Run.java"]},{"id":"o-gaveup","kind":"outcome","name":"Gave up after 3 retries","short":"gave up retrying","status":"works","proof":"tests","summary":"A fourth retry in a row without any progress along a route ends the walk with every key released.","facts":["Any progress resets the count"],"log":["Continuo executor: giving up after 3 repaths without progress"],"code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java"]},{"id":"door-ticks","kind":"door","name":"Sends 20 ticks a second","status":"works","proof":"game","summary":"The game calls in at the start and the end of every tick; that heartbeat is the only thing that makes the bot run.","facts":["The start-of-tick call is meant to land before the game reads the keys","The end-of-tick call is delivered but ignored by the bot"],"code":["platform/src/main/java/dev/continuo/platform/IGameEvents.java","platform/src/main/java/dev/continuo/platform/TickPhase.java","adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/ContinuoFabricMod.java","adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ContinuoForgeMod.java"]},{"id":"door-blocks","kind":"door","name":"Describes any block","status":"works","proof":"game","summary":"Answers six raw facts about the block at a position: its id, state, collision boxes, fluid, climbable, falls.","facts":["Raw facts only; the meaning is decided on the bot side","Unloaded or out-of-range positions come back \"unreadable\""],"gaps":["On 1.7.10, block boxes lose precision about a million blocks from the origin"],"code":["platform/src/main/java/dev/continuo/platform/IBlockView.java","platform/src/main/java/dev/continuo/platform/BlockDescription.java","adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/FabricBlockView.java","adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ForgeBlockView.java"]},{"id":"door-info","kind":"door","name":"Names its version","status":"works","proof":"game","summary":"Reports the game version and mod loader, used to pick the block table and for the startup log line.","log":["Continuo core started on 1.21.11 / FABRIC","Continuo core started on 1.7.10 / FORGE"],"gaps":["Carries no list of what the version can do"],"code":["platform/src/main/java/dev/continuo/platform/IPlatformInfo.java","platform/src/main/java/dev/continuo/platform/Loader.java","adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/FabricPlatformInfo.java","adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ForgePlatformInfo.java"]},{"id":"door-player","kind":"door","name":"Reports the player","status":"works","proof":"game","summary":"Gives the player’s position (feet), facing and whether it is on the ground.","facts":["On 1.7.10 \"y\" is taken from the bottom of the body box, not the eye height"],"gaps":["No velocity, health, inventory or \"in water\""],"evidence":"Checked in game 2026-09-02: reported position matched F3 on both versions.","code":["platform/src/main/java/dev/continuo/platform/IPlayerView.java","adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/FabricPlayerView.java","adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ForgePlayerView.java"]},{"id":"door-keys","kind":"door","name":"Presses keys, turns view","status":"works","proof":"game","summary":"The only way the bot affects the game: hold or release one of seven movement keys, and set where the player looks.","facts":["Keys: forward, back, left, right, jump, sneak, sprint","The game may clear held keys at any time (any screen opening)","Works even if you unbind the key in Controls"],"gaps":["No clicking, block breaking, item use or hotbar"],"code":["platform/src/main/java/dev/continuo/platform/IActuator.java","platform/src/main/java/dev/continuo/platform/Input.java","adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/FabricActuator.java","adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ForgeActuator.java","adapters/adapter-forge-1.7.10/src/main/resources/META-INF/continuo_at.cfg"]},{"id":"v-fabric","kind":"version","name":"Minecraft 1.21.11","sub":"Fabric","status":"works","proof":"game","summary":"The translator for modern Minecraft: wiring only, it holds no decisions.","facts":["Built with Fabric Loom","Also stops the bot when the game closes"],"gaps":["No automated tests; only the manual checklist"],"code":["adapters/adapter-fabric-1.21.11/","docs/toolchain-decision.md","docs/smoke-checklist.md"]},{"id":"v-forge","kind":"version","name":"Minecraft 1.7.10","sub":"Forge","status":"works","proof":"game","summary":"The translator for 2014-era Minecraft, running the very same bot code.","facts":["Built with RetroFuturaGradle","Needs a small access patch to press keys","Has no \"game is closing\" event, so that stop is skipped"],"gaps":["No automated tests; only the manual checklist","Never run \"gradlew clean\": it deletes the decompiled game source used for review"],"code":["adapters/adapter-forge-1.7.10/","docs/superpowers/specs/2026-08-12-a2a-legacy-adapter-design.md","docs/smoke-checklist.md"]},{"id":"v-fake","kind":"version","name":"Pretend game","sub":"for tests","status":"works","proof":"tests","summary":"A stand-in game with a scripted world and player, so the bot and the gatekeeper can be tested with no Minecraft.","facts":["28 conformance tests any gatekeeper must pass","About 590 automated tests in the repo overall","Five recorded real-terrain worlds for route tests"],"code":["platform-testkit/","core-pathfinder/src/test/resources/terrain/",".github/workflows/ci.yml"]},{"id":"v-more","kind":"version","name":"More versions","sub":"planned","status":"planned","proof":"none","summary":"Further versions and loaders (NeoForge, 1.20.x) are planned; each should need only a new translator.","code":["docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md","docs/injection-strategy.md"]},{"id":"b1","kind":"beat","n":1,"phase":"gate","name":"World changed?","status":"works","proof":"game","summary":"If the world object differs from last tick the bot is stopped first; a crash flag is cleared by a world load.","code":["runtime/src/main/java/dev/continuo/runtime/AdapterRuntime.java"]},{"id":"b2","kind":"beat","n":2,"phase":"gate","name":"Your K press","status":"works","proof":"tests","summary":"Queued K presses are handed to the bot inside a world, and thrown away outside one or after a crash.","code":["runtime/src/main/java/dev/continuo/runtime/AdapterRuntime.java"]},{"id":"b3","kind":"beat","n":3,"phase":"think","name":"Search one slice","status":"works","proof":"game","summary":"A running search examines up to 2,000 more spots.","code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/Run.java"]},{"id":"b4","kind":"beat","n":4,"phase":"think","name":"Take a finished route","status":"works","proof":"tests","summary":"A search that just finished is adopted in the same tick: replacing the route, or joined onto its end.","code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java"]},{"id":"b5","kind":"beat","n":5,"phase":"think","name":"Where am I?","status":"works","proof":"tests","summary":"Finds the nearest route step to the player; too far from all of them means off route.","code":["core-engine/src/main/java/dev/continuo/engine/PathFollower.java"]},{"id":"b6","kind":"beat","n":6,"phase":"think","name":"Arrived?","status":"works","proof":"tests","summary":"On the last step, close enough, and that step is the goal: stop.","code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java","core-engine/src/main/java/dev/continuo/engine/PathFollower.java"]},{"id":"b7","kind":"beat","n":7,"phase":"think","name":"Stuck?","status":"works","proof":"tests","summary":"No progress along the route for too many ticks in a row: search again.","code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java"]},{"id":"b8","kind":"beat","n":8,"phase":"think","name":"Route running out?","status":"works","proof":"tests","summary":"Few steps left and the route stops short of the goal: start planning ahead.","code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java"]},{"id":"b9","kind":"beat","n":9,"phase":"act","name":"State all 7 keys","status":"works","proof":"tests","summary":"Writes the full set of seven keys, whether or not anything changed since last tick.","code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java"]},{"id":"b10","kind":"beat","n":10,"phase":"act","name":"Turn toward next step","status":"works","proof":"tests","summary":"Asks for the new facing; the turn limiter caps how far the view moves this tick.","code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java","core-engine/src/main/java/dev/continuo/engine/HumanizedActuator.java"]},{"id":"b11","kind":"beat","n":11,"phase":"end","name":"H, L, J handled","status":"works","proof":"game","summary":"After the game has moved the player: mark a goal, advance a route test by one slice, write a dump.","facts":["These keys bypass the gatekeeper; each has its own error catch"],"code":["adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/ContinuoFabricMod.java","adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ContinuoForgeMod.java"]},{"id":"b12","kind":"beat","n":12,"phase":"end","name":"End-of-tick call","status":"partial","proof":"tests","summary":"The gatekeeper delivers an end-of-tick call, paired with the start one, but the bot ignores it.","gaps":["Nothing acts on it yet"],"code":["runtime/src/main/java/dev/continuo/runtime/AdapterRuntime.java","core-engine/src/main/java/dev/continuo/engine/ContinuoCore.java"]},{"id":"ms1","kind":"milestone","n":1,"name":"Bot walks forward","status":"works","proof":"game","summary":"A first bot on Minecraft 1.21.11 that held Forward for 40 ticks, driven by code that knows no Minecraft.","facts":["Merged 2026-08-11","That demo walk has since been replaced by the route walker"],"code":["docs/superpowers/specs/2026-08-01-a1-walking-skeleton-design.md","docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md"]},{"id":"ms2","kind":"milestone","n":2,"name":"Same bot on 1.7.10","status":"works","proof":"game","summary":"The unmodified bot code runs on a game fifteen years older, behind a shared gatekeeper with a conformance test suite.","facts":["Merged 2026-08-13 and 08-14"],"code":["docs/superpowers/specs/2026-08-12-a2a-legacy-adapter-design.md","docs/superpowers/specs/2026-08-13-a2b-conformance-testkit-design.md","docs/superpowers/specs/2026-08-11-spi-behavioural-contract-design.md"]},{"id":"ms3","kind":"milestone","n":3,"name":"Understands blocks","status":"works","proof":"game","summary":"Both versions report raw block facts and one shared rule set names them.","facts":["Merged 2026-08-15"],"code":["docs/superpowers/specs/2026-08-14-b1-block-model-design.md","docs/superpowers/specs/2026-08-14-b2-world-view-design.md"]},{"id":"ms4","kind":"milestone","n":4,"name":"Finds routes","status":"works","proof":"game","summary":"Route search with pluggable step types, part-way fallback, a terrain copy and tick-sized slices.","facts":["Merged in stages, 2026-08-17 to 09-01"],"gaps":["Negotiating abilities with the game version was not built","The roadmap text does not mark this milestone done"],"code":["docs/superpowers/specs/2026-08-15-c1-pathfinder-core-design.md","docs/superpowers/specs/2026-08-17-c2-movement-registry-design.md","docs/superpowers/specs/2026-08-25-c1a-heuristic-rates-design.md","docs/superpowers/specs/2026-08-25-c3-world-snapshot-design.md","docs/superpowers/specs/2026-08-26-c4-segmentation-design.md","docs/superpowers/specs/2026-08-30-c5-time-sliced-search-design.md"]},{"id":"ms5","kind":"milestone","n":5,"name":"Walks a found route","here":true,"status":"partial","proof":"tests","summary":"The bot can see and steer the player and walk a found route; goals, a task manager and a \"goto\" command are not built.","facts":["Part 1, seeing and pointing the player: merged 2026-09-02, verified in game","Part 2, the route walker: merged 2026-09-04","Part 3, goals, task manager, goto: not started"],"gaps":["Part 2’s in-game checklist (steps 13 to 22) has no recorded run","The translator-code audit set for this milestone waits on part 3"],"code":["docs/superpowers/specs/2026-09-02-d1-spi-player-state-design.md","docs/superpowers/specs/2026-09-03-d2-path-executor-design.md","docs/smoke-checklist.md"]},{"id":"ms6","kind":"milestone","n":6,"name":"Remote control link","status":"planned","proof":"none","summary":"Planned: a local network link so an outside program can set goals, watch the search and change settings.","code":["docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md","mc-automation-architecture.md"]},{"id":"ms7","kind":"milestone","n":7,"name":"Browser control panel","status":"planned","proof":"none","summary":"Planned, in a separate repository: drive and watch the bot from a web page.","code":["docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md","mc-automation-architecture.md"]},{"id":"ms8","kind":"milestone","n":8,"name":"Mining and building","status":"planned","proof":"none","summary":"Planned: scripts on top of route walking, such as mining a vein or building from a schematic.","facts":["The roadmap calls this point \"the product\""],"code":["docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md","mc-automation-architecture.md"]},{"id":"ms9","kind":"milestone","n":9,"name":"More game versions","status":"planned","proof":"none","summary":"Planned: third and fourth translators, each a re-test of the boundary.","code":["docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md","docs/injection-strategy.md"]},{"id":"ms10","kind":"milestone","n":10,"name":"Flying, modded moves","status":"planned","proof":"none","summary":"Planned: elytra flight and mod-specific movement, with the search tracking extra state such as charge.","code":["docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md","mc-automation-architecture.md"]},{"id":"r-nocrash","kind":"rule","name":"Bot errors never crash game","enforced":"tests","status":"works","proof":"tests","summary":"Whatever the bot code throws is caught, logged, and followed by releasing its keys; the game’s own tick never sees it.","pins":["g-gate","sb-crashed","t-throw"],"code":["runtime/src/main/java/dev/continuo/runtime/AdapterRuntime.java","platform/src/main/java/dev/continuo/platform/package-info.java","platform-testkit/src/main/java/dev/continuo/testkit/AdapterConformanceTest.java"]},{"id":"r-idle","kind":"rule","name":"Idle bot touches no keys","enforced":"tests","status":"works","proof":"tests","summary":"When not walking, the bot writes nothing at all, so it cannot fight your own keyboard.","pins":["m-idle","m-search"],"facts":["While searching with no route it also writes nothing, after one release"],"code":["core-engine/src/main/java/dev/continuo/engine/ContinuoCore.java","core-engine/src/main/java/dev/continuo/engine/PathExecutor.java","platform/src/main/java/dev/continuo/platform/package-info.java"]},{"id":"r-restate","kind":"rule","name":"All seven keys, every tick","enforced":"tests","status":"works","proof":"game","summary":"While walking, the bot states its whole wanted key set and facing each tick and never relies on an earlier press still holding.","pins":["m-walk","m-walkplan","b9","j-press","door-keys"],"evidence":"With the earlier demo walk, opening the inventory mid-walk no longer stopped the player (2026-09-02, both versions).","code":["platform/src/main/java/dev/continuo/platform/package-info.java","core-engine/src/main/java/dev/continuo/engine/PathExecutor.java","core-engine/src/test/java/dev/continuo/engine/PathExecutorDriveTest.java"]},{"id":"r-stop","kind":"rule","name":"World change always stops it","enforced":"tests","status":"works","proof":"game","summary":"Leaving, joining or switching dimension stops the bot and releases its keys, on both versions, by one shared check.","pins":["g-gate","b1","t-world","sb-noworld","j-goal"],"code":["runtime/src/main/java/dev/continuo/runtime/AdapterRuntime.java","platform/src/main/java/dev/continuo/platform/package-info.java"]},{"id":"r-thread","kind":"rule","name":"Everything on the game thread","enforced":"review","status":"works","proof":"reasoned","summary":"Every call between bot and game happens on the game’s main thread and may not block; this is why searches are sliced.","pins":["door-ticks","door-blocks","door-player","door-keys","j-slices"],"facts":["Stated as unfalsifiable by a test"],"code":["platform/src/main/java/dev/continuo/platform/package-info.java"]},{"id":"r-pure","kind":"rule","name":"Bot core knows no Minecraft","enforced":"build","status":"works","proof":"tests","summary":"The build fails if any bot-side module mentions Minecraft, Fabric or Forge in its code or dependencies.","pins":["m-idle","m-search","m-walk","m-walkplan","g-gate"],"code":["buildSrc/src/main/kotlin/continuo-pure-module.gradle.kts","buildSrc/src/main/kotlin/dev/continuo/build/ClassScan.kt",".github/workflows/ci.yml"]},{"id":"r-java8","kind":"rule","name":"Bot core stays Java 8","enforced":"build","status":"works","proof":"tests","summary":"The build fails if bot-side code compiles to anything newer than Java 8, because 1.7.10 must load the same jar.","pins":["v-forge","g-gate"],"code":["buildSrc/src/main/kotlin/continuo-pure-module.gradle.kts"]},{"id":"r-oneway","kind":"rule","name":"Parts depend one way","enforced":"build","status":"works","proof":"tests","summary":"A single allow-list says which module may use which; nothing may depend on a translator. Breaking it fails the build.","pins":["v-fabric","v-forge","g-gate"],"code":["build.gradle.kts"]},{"id":"r-thin","kind":"rule","name":"Translators decide nothing","enforced":"review","status":"works","proof":"reasoned","summary":"A translator may only rename and guard; any real decision belongs on the bot side. Checked by reading, not by a machine.","pins":["v-fabric","v-forge","door-blocks","door-keys","door-player"],"facts":["Last audit, 2026-08-15, read the two block readers: 14 conditionals, none about block identity"],"gaps":["The next audit is tied to the unbuilt third part of milestone 5"],"code":["docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md","adapters/"]},{"id":"r-agree","kind":"rule","name":"Both versions see same blocks","enforced":"tests","status":"works","proof":"game","summary":"The committed block dumps from the two games must match each other and their reviewed golden copies.","pins":["j-name","door-blocks","tool-dump"],"code":["core/src/test/java/dev/continuo/core/BlockParityTest.java","docs/parity/"]},{"id":"r-same","kind":"rule","name":"Same world, same route","enforced":"tests","status":"works","proof":"game","summary":"Limits are counted in spots examined, never in milliseconds, and ties break in a fixed order, so tests can assert the exact route.","pins":["j-cheapest","j-slices","j-steps"],"code":["core-pathfinder/src/main/java/dev/continuo/pathfinder/AStarPathfinder.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/QueuedNodeOrder.java","core-pathfinder/src/test/java/dev/continuo/pathfinder/SliceEquivalenceTest.java"]},{"id":"r-shortest","kind":"rule","name":"Distance guess never overshoots","enforced":"tests","status":"works","proof":"tests","summary":"The search’s estimate of remaining cost is always a lower bound, which is what makes the returned route the cheapest; every step type’s claim is audited.","pins":["j-cheapest","j-steps","j-parkour"],"code":["core-movement/src/main/java/dev/continuo/movement/HeuristicRates.java","core-movement/src/main/java/dev/continuo/movement/MovementContract.java","core-pathfinder/src/main/java/dev/continuo/pathfinder/Goal.java","core-pathfinder/src/test/java/dev/continuo/pathfinder/BuiltInMovementContractTest.java"]},{"id":"r-named","kind":"rule","name":"Every step has one name","enforced":"tests","status":"works","proof":"tests","summary":"A step’s type is worked out from where it goes; a test fails if a new step type would make that ambiguous.","pins":["j-steps","j-press","o-refuse"],"code":["core-movement/src/main/java/dev/continuo/movement/MovementKind.java","core-pathfinder/src/test/java/dev/continuo/pathfinder/MovementKindCoverageTest.java"]},{"id":"r-unknown","kind":"rule","name":"Unreadable block means wall","enforced":"tests","status":"works","proof":"tests","summary":"A block that cannot be read (unloaded, out of range) is never walked through and never stood on.","pins":["j-fit","j-copy","door-blocks"],"code":["core-movement/src/main/java/dev/continuo/movement/Standability.java","core/src/main/java/dev/continuo/core/BlockSource.java","core/src/main/java/dev/continuo/core/BlockData.java"]},{"id":"r-nofluid","kind":"rule","name":"Never routes through water, lava","enforced":"tests","status":"works","proof":"tests","summary":"Any fluid block and any block tagged harmful is neither passable nor a floor.","pins":["j-fit","j-name"],"code":["core-movement/src/main/java/dev/continuo/movement/Standability.java","core/src/main/resources/blocks/"]},{"id":"dial-keys","kind":"dial","name":"Default key bindings","value":"H K L J","on":"key-h","status":"works","proof":"game","summary":"Defaults set in each translator; rebind them in the game’s Controls screen under \"Continuo\".","code":["adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/ContinuoFabricMod.java","adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ContinuoForgeMod.java","adapters/adapter-fabric-1.21.11/src/main/resources/assets/continuo/lang/en_us.json","adapters/adapter-forge-1.7.10/src/main/resources/assets/continuo/lang/en_US.lang"]},{"id":"dial-map","kind":"dial","name":"Route map size","value":"64","on":"tool-probe","status":"works","proof":"tests","summary":"The text map is cut to 64 blocks per axis around the start, with 2 blocks of padding.","code":["runtime/src/main/java/dev/continuo/runtime/ProbeBounds.java:29","runtime/src/main/java/dev/continuo/runtime/ProbeBounds.java:32"]},{"id":"dial-table","kind":"dial","name":"Per-version block table","value":"2 files","on":"j-name","status":"works","proof":"game","summary":"Nine rows for 1.21.11 and eight for 1.7.10 mark blocks as fluid, harmful or slow. Add a row to make the bot avoid a block.","facts":["Unknown names in the file fail loudly at startup"],"code":["core/src/main/resources/blocks/1.21.11.json","core/src/main/resources/blocks/1.7.10.json","core/src/main/java/dev/continuo/core/BlockTableLoader.java"]},{"id":"dial-passable","kind":"dial","name":"Walk-through height","value":"≤ 0.25","on":"j-fit","status":"works","proof":"tests","summary":"A block whose collision reaches no higher than a quarter block can be walked through.","code":["core-movement/src/main/java/dev/continuo/movement/Standability.java:36"]},{"id":"dial-floor","kind":"dial","name":"Floor height range","value":"0.9–1.0","on":"j-fit","status":"works","proof":"tests","summary":"A block is a floor if its top is between 0.9 and 1.0 of a block; 0.9 admits modern farmland.","code":["core-movement/src/main/java/dev/continuo/movement/Standability.java:39","core-movement/src/main/java/dev/continuo/movement/Standability.java:49"]},{"id":"dial-fall","kind":"dial","name":"Deepest drop taken","value":"3 blocks","on":"j-steps","status":"works","proof":"reasoned","summary":"The largest fall without damage, read from both versions’ game source.","code":["core-movement/src/main/java/dev/continuo/movement/MovementCosts.java:167"]},{"id":"dial-grant","kind":"dial","name":"Gap jumps switch","value":"off","on":"j-parkour","status":"works","proof":"tests","summary":"The walker searches with no abilities granted; the route test grants gap jumps. Turning it on for walks is not enough: the walker still refuses the step.","code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java:390","runtime/src/main/java/dev/continuo/runtime/PathProbe.java:323","runtime/src/main/java/dev/continuo/runtime/PathProbe.java:526"]},{"id":"dial-costs","kind":"dial","name":"Step costs, in ticks","value":"costs","on":"j-cheapest","status":"works","proof":"reasoned","summary":"Walk 3.5636, diagonal 5.0397, step up 6.5582, drops add 4.61 / 6.79 / 8.47. Derived from game physics at sprint speed.","facts":["The code says: self-consistent, \"not validated\""],"code":["core-movement/src/main/java/dev/continuo/movement/MovementCosts.java:93","core-movement/src/main/java/dev/continuo/movement/MovementCosts.java:102","core-movement/src/main/java/dev/continuo/movement/MovementCosts.java:134","core-movement/src/main/java/dev/continuo/movement/MovementCosts.java:141","core-movement/src/main/java/dev/continuo/movement/MovementCosts.java:147"]},{"id":"dial-budget","kind":"dial","name":"Search limit","value":"25,000","on":"m-search","status":"works","proof":"tests","summary":"How many positions one search may examine. Set from five recorded real routes; the hardest needed 17,423.","code":["core-pathfinder/src/main/java/dev/continuo/pathfinder/AStarPathfinder.java:36","runtime/src/main/java/dev/continuo/runtime/PathProbe.java:82"]},{"id":"dial-progress","kind":"dial","name":"Part-way must gain","value":"4 blocks","on":"j-partway","status":"works","proof":"tests","summary":"A part-way route counts only if it ends this much closer to the goal. Swept in tests: 1 to 8 tie, 16 breaks.","code":["core-pathfinder/src/main/java/dev/continuo/pathfinder/AStarPathfinder.java:60"]},{"id":"dial-slice","kind":"dial","name":"Work per tick","value":"2,000 a tick","on":"j-slices","status":"works","proof":"game","summary":"Spots examined per tick. Measured in game: halved from 4,000 after a 35.6 ms first slice.","code":["core-pathfinder/src/main/java/dev/continuo/pathfinder/Run.java:59"]},{"id":"dial-window","kind":"dial","name":"Look-along window","value":"±6 steps","on":"j-anchor","status":"works","proof":"reasoned","summary":"How many route steps either side of the last position are considered. Too large skips a staircase loop.","facts":["Checklist step 22 is meant to measure or observe this; no run is recorded"],"code":["core-engine/src/main/java/dev/continuo/engine/PathFollower.java:39","docs/smoke-checklist.md"]},{"id":"dial-turn","kind":"dial","name":"Turn speed","value":"30° a tick","on":"j-turn","status":"works","proof":"reasoned","summary":"The most the view may turn per tick. Extrapolated, not yet observed.","facts":["Checklist step 17 is meant to measure or observe this; no run is recorded"],"code":["core-engine/src/main/java/dev/continuo/engine/HumanizedActuator.java:48","docs/smoke-checklist.md"]},{"id":"dial-offpath","kind":"dial","name":"Off-route distance","value":"2.0 blocks","on":"j-moved","status":"works","proof":"reasoned","summary":"Further than this from every nearby route step counts as off the route. Extrapolated.","facts":["Checklist steps 13 and 16 are meant to measure or observe this; no run is recorded"],"code":["core-engine/src/main/java/dev/continuo/engine/PathFollower.java:47","docs/smoke-checklist.md"]},{"id":"dial-stuck","kind":"dial","name":"Stuck patience","value":"40 ticks","on":"j-stuck","status":"works","proof":"reasoned","summary":"Two seconds without progress along the route triggers a new search. Extrapolated.","facts":["Checklist step 19 is meant to measure or observe this; no run is recorded"],"code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java:74","docs/smoke-checklist.md"]},{"id":"dial-arrive","kind":"dial","name":"Arrival distance","value":"0.5 block","on":"o-arrived","status":"works","proof":"reasoned","summary":"How close to the final block counts as arrived. Extrapolated.","facts":["Checklist steps 5, 6, 13 and 14 are meant to measure or observe this; no run is recorded"],"code":["core-engine/src/main/java/dev/continuo/engine/PathFollower.java:54","docs/smoke-checklist.md"]},{"id":"dial-retries","kind":"dial","name":"Retries before giving up","value":"3","on":"o-gaveup","status":"works","proof":"reasoned","summary":"Searches in a row without progress before the walk is abandoned. Extrapolated.","facts":["Checklist step 20 is meant to measure or observe this; no run is recorded"],"code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java:82","docs/smoke-checklist.md"]},{"id":"dial-ahead","kind":"dial","name":"Plan-ahead distance","value":"20 steps","on":"t-runout","status":"works","proof":"reasoned","summary":"Steps left on the route when planning ahead starts. Extrapolated.","facts":["Checklist step 21 is meant to measure or observe this; no run is recorded"],"code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java:65","docs/smoke-checklist.md"]}],"links":[{"id":"t-press","from":"m-idle","to":"m-search","kind":"transition","label":"K pressed","summary":"With a goal marked, K stops anything in progress and starts a search from where the player stands.","log":["Continuo: walking to (x, y, z)"],"code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java","core-engine/src/main/java/dev/continuo/engine/ContinuoCore.java"]},{"id":"t-found","from":"m-search","to":"m-walk","kind":"transition","label":"route found","summary":"The finished search’s route, whole or part-way, becomes the route being walked, in the same tick.","code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java"]},{"id":"t-runout","from":"m-walk","to":"m-walkplan","kind":"transition","label":"route nearly used up","summary":"Few steps remain and the route ends short of the goal, so a search from the route’s end begins.","code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java"]},{"id":"t-joined","from":"m-walkplan","to":"m-walk","kind":"transition","label":"new part joined","summary":"The continuation is appended and the walk carries on without a pause.","code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java","core-engine/src/main/java/dev/continuo/engine/PathFollower.java"]},{"id":"t-repath","from":"m-walk","to":"m-search","kind":"trouble","label":"off route or stuck","summary":"The route is dropped, every key is released once, and a new search starts from the player; the retry count goes up.","log":["Continuo executor: off path, repathing","Continuo executor: stuck, repathing"],"code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java"]},{"id":"t-repath2","from":"m-walkplan","to":"m-search","kind":"trouble","label":"off route or stuck","summary":"Same as from plain walking, and the planning search in flight is cancelled.","log":["Continuo executor: off path, repathing","Continuo executor: stuck, repathing"],"code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java"]},{"id":"t-end-search","from":"m-search","to":"m-idle","kind":"ending","label":"search ends badly","summary":"No route, an empty-handed budget, or too many retries all end the walk.","carries":["o-nopath","o-budget","o-gaveup"],"code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java"]},{"id":"t-end-walk","from":"m-walk","to":"m-idle","kind":"ending","label":"walk ends","summary":"Arrival, or a step the bot will not walk, ends the walk and releases every key once.","carries":["o-arrived","o-refuse"],"code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java"]},{"id":"t-plan-nopath","from":"m-walkplan","to":"m-idle","kind":"ending","label":"no route onward","drawn":false,"summary":"If planning ahead proves the goal unreachable, the walk stops at once. Not drawn on the picture.","carries":["o-nopath","o-budget"],"code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java"]},{"id":"t-nogoal","from":"m-idle","to":"m-idle","kind":"ending","label":"K with nothing marked","drawn":false,"summary":"K with no goal marked only logs a hint.","log":["Continuo: no goal marked -- stand on the destination and press the mark key"],"code":["adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/ContinuoFabricMod.java","adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ContinuoForgeMod.java"]},{"id":"t-again","from":"any","to":"m-search","kind":"transition","label":"K again: start over","summary":"K during a walk or search abandons it, releases the keys, and searches toward the current mark.","code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java"]},{"id":"t-world","from":"any","to":"m-idle","kind":"ending","label":"world changes: stop","summary":"A new or missing world object stops the bot, cancels any search and forgets the block names it learned.","log":["Continuo stopping: client level changed"],"code":["runtime/src/main/java/dev/continuo/runtime/AdapterRuntime.java","core-engine/src/main/java/dev/continuo/engine/ContinuoCore.java"]},{"id":"t-throw","from":"any","to":"sb-crashed","kind":"trouble","label":"bot code throws","summary":"Any error inside the bot is caught; the bot is stopped and benched.","log":["Continuo core faulted; no further ticks until the next world load"],"code":["runtime/src/main/java/dev/continuo/runtime/AdapterRuntime.java"]},{"id":"t-recover","from":"sb-crashed","to":"m-idle","kind":"transition","label":"next world load","summary":"Loading a world clears the crash flag before the bot is stopped afresh.","log":["Continuo fault cleared by world load"],"code":["runtime/src/main/java/dev/continuo/runtime/AdapterRuntime.java"]},{"id":"t-load","from":"sb-noworld","to":"m-idle","kind":"transition","label":"world loads","summary":"Once a world and a player exist, ticks start flowing and the bot is idle.","code":["runtime/src/main/java/dev/continuo/runtime/AdapterRuntime.java"]},{"id":"t-unload","from":"any","to":"sb-noworld","kind":"ending","label":"world unloads","summary":"Quitting to the title screen or disconnecting stops the bot and ends the ticks.","code":["runtime/src/main/java/dev/continuo/runtime/AdapterRuntime.java"]},{"id":"x-ticks","from":"door-ticks","to":"g-gate","kind":"exchange","label":"tick start, tick end","summary":"The heartbeat: two calls per game tick.","code":["platform/src/main/java/dev/continuo/platform/IGameEvents.java"]},{"id":"x-blocks","from":"door-blocks","to":"m-search","kind":"exchange","label":"raw block facts","summary":"Collision boxes, fluid, climbable and falling flags for one position.","code":["platform/src/main/java/dev/continuo/platform/IBlockView.java","core/src/main/java/dev/continuo/core/BlockLookup.java"]},{"id":"x-info","from":"door-info","to":"j-name","kind":"exchange","label":"game version","summary":"Chooses which block table is loaded.","code":["platform/src/main/java/dev/continuo/platform/IPlatformInfo.java","core/src/main/java/dev/continuo/core/BlockTableLoader.java"]},{"id":"x-player","from":"door-player","to":"m-walk","kind":"exchange","label":"position, facing, on ground","summary":"Read fresh every tick; also gives a search its starting block.","code":["platform/src/main/java/dev/continuo/platform/IPlayerView.java"]},{"id":"x-keys","from":"m-walk","to":"door-keys","kind":"exchange","label":"seven keys and a facing","summary":"Written before the game reads its input for the tick.","code":["platform/src/main/java/dev/continuo/platform/IActuator.java"]},{"id":"k-mark","from":"key-h","to":"j-goal","kind":"input","label":"goal block","summary":"H stores the block under your feet.","code":["runtime/src/main/java/dev/continuo/runtime/PathProbe.java"]},{"id":"k-walk","from":"key-k","to":"j-hear","kind":"input","label":"walk request","summary":"K is queued by the game and collected at the next tick start.","code":["runtime/src/main/java/dev/continuo/runtime/AdapterRuntime.java"]},{"id":"k-probe","from":"key-l","to":"tool-probe","kind":"input","label":"start a route test","summary":"L starts a sliced search toward the mark.","code":["runtime/src/main/java/dev/continuo/runtime/PathProbe.java"]},{"id":"k-dump","from":"key-j","to":"tool-dump","kind":"input","label":"dump 32 blocks","summary":"J writes the row of blocks east of you.","code":["runtime/src/main/java/dev/continuo/runtime/BlockDumpWalker.java"]},{"id":"k-goal","from":"j-goal","to":"m-search","kind":"input","label":"goal block","summary":"The marked block is what every search aims for.","code":["core-engine/src/main/java/dev/continuo/engine/PathExecutor.java"]}],"routes":[{"id":"walk","name":"Walk to a marked spot","steps":[["key-h","Stand on the destination and press H"],["j-goal","The block under your feet is remembered"],["key-k","Walk away, then press K"],["t-press","The log names the block it will walk to"],["m-search","The player stands still for about half a second"],["j-cheapest","The cheapest route in ticks is found"],["t-found","The route is adopted the tick it is ready"],["m-walk","Forward is held; the view turns step by step"],["o-arrived","On the marked block: keys released"],["m-idle","The bot goes quiet again"]]},{"id":"inventory","name":"You open the inventory","steps":[["m-walk","The bot is walking a route"],["door-keys","Opening any screen makes the game drop held keys"],["b9","Next tick the bot states all seven keys again"],["r-restate","So the walk loses one tick, not the rest of the route"]]},{"id":"teleport","name":"Teleported mid-walk","steps":[["m-walk","The bot is walking a route"],["j-moved","Suddenly no nearby route step is within 2 blocks"],["t-repath","Keys released; the log says \"off path, repathing\""],["m-search","A new search starts from where the player now is"],["t-found","A fresh route replaces the old one"],["m-walk","The walk resumes"]]},{"id":"wall","name":"Something blocks the way","steps":[["m-walk","The player pushes against an obstacle"],["j-stuck","40 ticks pass with no progress along the route"],["t-repath","The log says \"stuck, repathing\""],["j-copy","The new search reads the terrain afresh and sees the obstacle"],["t-found","A route around it is adopted"],["m-walk","The walk resumes"]]},{"id":"thrash","name":"Knocked off again and again","steps":[["m-walk","The bot is walking"],["t-repath","Off route: retry 1"],["m-search","Each new search starts before any progress is made"],["o-gaveup","The fourth retry in a row is refused"],["m-idle","Every key is up; the player must not drift"]]},{"id":"unreachable","name":"The goal can't be reached","steps":[["key-k","K is pressed toward a sealed-off mark"],["m-search","Everything reachable is examined"],["o-nopath","The goal is not among it: stop, no retry"],["m-idle","The bot goes quiet"]]},{"id":"far","name":"Goal beyond the search budget","steps":[["m-search","A segment runs out of its 25,000 spots"],["j-partway","It keeps the route to the nearest useful spot"],["t-found","A route that stops short of the goal is adopted"],["m-walk","The player walks it"],["t-runout","20 steps from its end, planning starts"],["m-walkplan","Walking continues while the next search runs"],["t-joined","The continuation is appended"],["m-walk","No pause at the join"]]},{"id":"leave","name":"You leave the world mid-walk","steps":[["m-walk","The bot is walking"],["b1","At tick start the world object has changed"],["t-world","The bot is stopped and its keys released"],["sb-noworld","At the title screen no ticks arrive"],["t-load","Rejoining starts idle; nothing is stuck down"],["m-idle","The old mark is gone too"]]},{"id":"crash","name":"The bot code crashes","steps":[["g-gate","Every call into the bot is wrapped"],["t-throw","An error is caught and logged with its trace"],["sb-crashed","Keys released; no more ticks for the bot"],["t-recover","The next world load clears the flag"],["m-idle","The bot is usable again"]]},{"id":"probe","name":"Test a route without walking","steps":[["key-h","Mark the destination"],["key-l","Press L from somewhere else"],["tool-probe","The search runs a slice per tick, gap jumps allowed"],["door-keys","The view turns to face the goal as a self-check"],["tool-probe","A summary is logged and a text map is written"]]},{"id":"parity","name":"Check both versions agree","steps":[["key-j","In each version, stand at the test row and press J"],["door-blocks","Raw facts for 32 blocks are read"],["j-name","Each is named by the shared rules"],["tool-dump","The two files are committed and compared by a test"],["r-agree","A difference fails the build"]]}],"proofLevels":{"game":"Seen working in a real game, recorded in the repo","tests":"Automated tests only; no in-game record","reasoned":"Reasoned or extrapolated; not measured or not tested","none":"Not built"},"kinds":{"key":"A key you press","tool":"A developer tool","standby":"A state outside a loaded world","guard":"The shared gatekeeper around the bot","mode":"One of the four modes the bot can be in","job":"A job done while in a mode","outcome":"A way a walk ends, with its log line","door":"One of the five openings between bot and game","version":"A game the bot is plugged into","beat":"A step that happens, in order, every tick","milestone":"A stage of the build plan","rule":"Something that must always hold","dial":"A number or switch that changes behaviour"}};
+(function(){
+'use strict';
+var stage=document.getElementById('stage'), svg=document.getElementById('wires');
+var EL={}, LK={};
+DATA.elements.forEach(function(e){EL[e.id]=e;});
+DATA.links.forEach(function(l){LK[l.id]=l;});
+function thing(id){return EL[id]||LK[id];}
+var LENSES=[['flow','What happens'],['dials','What can I tune'],['proof','How sure are we'],['rules','What must hold']];
+var STATUS={works:'works',partial:'partly built',planned:'planned',unknown:'unknown'};
+var PROOF={game:'seen in a real game',tests:'tests only',reasoned:'reasoned, not measured',none:'not built'};
+var KINDNAME={key:'Key you press',tool:'Developer tool',standby:'Outside a loaded world',guard:'Gatekeeper',mode:'Mode',job:'Job',outcome:'How a walk ends',door:'Door to the game',version:'Game version',beat:'Step of one tick',milestone:'Build plan stage',rule:'Rule',dial:'Dial',transition:'What moves it on',trouble:'Trouble',ending:'Ending',exchange:'Crosses to the game',input:'From you'};
+var ENF={build:'the build fails',tests:'automated tests',review:'human review only'};
+
+/* which dials sit on which element, which rules pin which element */
+var dialsOn={}, rulesOn={};
+DATA.elements.forEach(function(e){
+  if(e.kind==='dial'){(dialsOn[e.on]=dialsOn[e.on]||[]).push(e);}
+  if(e.kind==='rule'){e.pins.forEach(function(p){(rulesOn[p]=rulesOn[p]||[]).push(e);});}
+});
+
+function h(tag,cls,html){var n=document.createElement(tag); if(cls)n.className=cls; if(html!=null)n.innerHTML=html; return n;}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function place(n,x,y,w,hh){n.style.left=x+'px';n.style.top=y+'px';if(w!=null)n.style.width=w+'px';if(hh!=null)n.style.height=hh+'px';stage.appendChild(n);return n;}
+function cls(e){return ' s-'+(e.status||'works')+' p-'+(e.proof||'tests');}
+function extras(id){
+  var s='', e=EL[id];
+  if(e&&e.gaps&&e.gaps.length)s+='<span class="gap" title="has known gaps">&#9650;</span>';
+  (dialsOn[id]||[]).forEach(function(d){s+='<span class="el chip p-'+d.proof+'" data-id="'+d.id+'"><i class="dot"></i>'+esc(d.value)+'</span>';});
+  if(rulesOn[id])s+='<span class="pin">&#9670;'+rulesOn[id].length+'</span>';
+  return s;
+}
+function mk(id,klass,inner){var e=thing(id);var n=h('div','el '+klass+(EL[id]?cls(e):''),inner);n.dataset.id=id;n.tabIndex=0;n.setAttribute('role','button');return n;}
+
+/* ---------- header ---------- */
+place(h('div','title','Continuo'),20,7);
+place(h('div','tagline','walks your Minecraft player to a block you marked'),142,16);
+var lens=h('div',null);lens.id='lens';stage.appendChild(lens);
+LENSES.forEach(function(l){var a=h('a',null,l[1]);a.dataset.lens=l[0];a.href='#/'+l[0];lens.appendChild(a);});
+
+/* ---------- roadmap ---------- */
+var road=h('div');road.id='road';stage.appendChild(road);
+road.appendChild(h('div','h','Build plan'));
+var tr1=h('div','track');tr1.style.width=(131.8*4+60)+'px';road.appendChild(tr1);
+var tr2=h('div','track todo');tr2.style.left=(104+131.8*4+60)+'px';tr2.style.width=(1318-131.8*4-60-60)+'px';road.appendChild(tr2);
+DATA.elements.filter(function(e){return e.kind==='milestone';}).forEach(function(e,i){
+  var n=mk(e.id,'k-ms','<div class="stn"></div><div class="num">M'+e.n+'</div><div class="nm">'+esc(e.name)+'</div>'+(e.here?'<div class="here">you are here</div>':'')+'<div class="ord"></div>');
+  n.style.left=(104+i*131.8)+'px';n.style.width='128px';road.appendChild(n);
+  n.querySelector('.ord').style.cssText='left:-6px;top:-6px';
+});
+
+/* ---------- left column: keys ---------- */
+place(h('div','h','You press'),16,124);
+var keyY={'key-h':150,'key-k':196,'key-l':242,'key-j':288};
+['key-h','key-k','key-l','key-j'].forEach(function(id){
+  var e=EL[id];
+  var n=mk(id,'keyrow'+(id==='key-l'||id==='key-j'?' has-tool':''),'<div class="keycap">'+e.keycap+'</div><div class="kn"><span class="flow"><i class="dot"></i>'+esc(e.name)+extras(id)+'</span></div><div class="ord" style="left:-8px;top:-6px"></div>');
+  place(n,16,keyY[id]);
+});
+[['tool-probe',242],['tool-dump',288]].forEach(function(t){
+  var e=EL[t[0]];
+  var n=mk(t[0],'k-tool','<span class="flow"><i class="dot" style="width:7px;height:7px;margin-right:4px"></i>'+esc(e.name.toLowerCase())+extras(t[0])+'</span><div class="ord" style="left:-20px;top:0"></div>');
+  place(n,62,t[1]+20);
+});
+EL['key-l']._row=1;EL['key-j']._row=1;
+var lp=h('div');lp.id='lp';stage.appendChild(lp);
+var legend=h('div');legend.id='legend';stage.appendChild(legend);
+
+/* ---------- standby ---------- */
+function standby(id,y){var e=EL[id];place(mk(id,'k-standby','<div class="flow"><i class="dot"></i>'+esc(e.name)+extras(id)+'</div><div class="ord" style="left:-8px;top:-8px"></div>'),208,y);}
+standby('sb-noworld',252);standby('sb-crashed',470);
+function tag(id,x,y,klass,text,anchor){
+  var l=LK[id];var n=mk(id,'k-link '+(l.kind==='trouble'?'bad':l.kind==='ending'?'end':'')+' '+(klass||''),'<span class="flow">'+esc(text||l.label)+'</span><div class="ord" style="left:-10px;top:-10px"></div>');
+  place(n,x,y);
+  if(anchor==='c')n.style.transform='translateX(-50%)';
+  if(anchor==='r')n.style.transform='translateX(-100%)';
+  return n;
+}
+tag('t-load',208,314,'','world loads →');
+tag('t-unload',208,334,'','← world unloads');
+tag('t-recover',208,532,'','next world load →');
+
+/* ---------- frame and modes ---------- */
+var frame=h('div');frame.id='frame';stage.appendChild(frame);
+place(mk('g-gate','k-guard','<span class="flow"><i class="dot"></i>Inside a loaded world'+extras('g-gate')+'</span><div class="ord" style="left:-8px;top:-8px"></div>'),372,111);
+var Q={'m-idle':[372,158,296,234],'m-search':[814,158,296,234],'m-walk':[372,468,296,218],'m-walkplan':[814,468,296,218]};
+place(h('div','h','same bot code on both versions'),930,699,180).style.textAlign='right';
+var ax1=h('div','axis','not searching');place(ax1,372,137,296);
+var ax2=h('div','axis','searching for a route');place(ax2,814,137,296);
+var ay1=h('div','axis v','standing still');place(ay1,346,392,234);
+var ay2=h('div','axis v','walking a route');place(ay2,346,686,218);
+Object.keys(Q).forEach(function(id){
+  var e=EL[id],q=Q[id];
+  var n=mk(id,'k-mode','<div class="mhead"><div class="mname flow"><i class="dot"></i>'+esc(e.name)+extras(id)+'</div><div class="mtag">'+esc(e.tag)+'</div></div><div class="jobs"></div>'+(e.note?'<div class="mnote">'+esc(e.note)+'</div>':'')+'<div class="ord" style="left:-9px;top:-9px"></div>');
+  place(n,q[0],q[1],q[2],q[3]);
+  var jobs=n.querySelector('.jobs');
+  DATA.elements.filter(function(j){return j.kind==='job'&&j.in===id;}).forEach(function(j){
+    var jn=mk(j.id,'k-job','<i class="dot"></i><span class="nm">'+esc(j.name)+'</span>'+extras(j.id)+'<div class="ord"></div>');
+    jobs.appendChild(jn);
+  });
+});
+function pill(id,x,y){var e=EL[id];var n=mk(id,'k-out','<i class="dot" style="position:static"></i><span style="position:static">'+esc(e.short||e.name.toLowerCase())+'</span>'+extras(id).replace(/class="/g,'style="position:static" class="')+'<div class="ord" style="left:-10px;top:-10px"></div>');place(n,x,y);return n;}
+/* top gap */
+tag('t-press',741,178,'',null,'c');
+tag('t-end-search',741,240,'','stops when','c');
+pill('o-nopath',672,272);pill('o-budget',672,297);pill('o-gaveup',672,322);
+/* left gap */
+tag('t-end-walk',440,397,'','stops when');
+pill('o-arrived',440,420);pill('o-refuse',574,420);
+/* bottom gap */
+tag('t-runout',741,518,'',null,'c');
+tag('t-joined',741,590,'',null,'c');
+(function(){var d=EL['dial-ahead'];var c=mk(d.id,'chip p-'+d.proof,'<i class="dot" style="position:static"></i><span style="position:static">'+esc(d.value)+'</span>');c.className='el chip p-'+d.proof;place(c,741,547);c.style.transform='translateX(-50%)';c.style.marginLeft='0';})();
+/* diagonals and right gap */
+tag('t-found',776,396,'',null,'r');
+tag('t-repath',738,446,'');
+tag('t-repath2',1040,420,'',null,'r');
+/* from any mode */
+var any=h('div');any.id='anystrip';stage.appendChild(any);
+any.appendChild(h('span','h','From any mode'));
+[['t-again','K again → search afresh'],['t-world','world changes → idle'],['t-throw','bot code throws → sits out']].forEach(function(a){
+  var l=LK[a[0]];var n=mk(a[0],'k-link '+(l.kind==='trouble'?'bad':l.kind==='ending'?'end':''),'<span class="flow">'+esc(a[1])+(rulesOn[a[0]]?'<span class="pin">&#9670;'+rulesOn[a[0]].length+'</span>':'')+'</span>');any.appendChild(n);
+});
+
+/* ---------- the game ---------- */
+var bd=h('div');bd.id='border';stage.appendChild(bd);
+place(h('div','h','Only this side knows Minecraft'),1150,116);
+var doorY={'door-ticks':150,'door-blocks':234,'door-info':318,'door-player':500,'door-keys':584};
+Object.keys(doorY).forEach(function(id){var e=EL[id];place(mk(id,'k-door','<div class="flow"><i class="dot"></i>'+esc(e.name)+extras(id)+'</div><div class="ord" style="left:-12px;top:-9px"></div>'),1150,doorY[id]);});
+[['v-fabric',140,150],['v-forge',302,150],['v-fake',464,104],['v-more',580,90]].forEach(function(v){
+  var e=EL[v[0]];var n=mk(v[0],'k-ver','<div class="flow"><div class="vn">'+esc(e.name)+'</div><div class="vs"><i class="dot"></i>'+esc(e.sub)+extras(v[0])+'</div></div><div class="ord" style="left:-9px;top:-9px"></div>');
+  place(n,1296,v[1],128,v[2]);
+});
+place(h('div','h','one set of doors per version'),1150,684,274).style.cssText+='white-space:normal;line-height:1.2';
+
+/* ---------- one tick ---------- */
+function grid4(bid){return '<div class="g4">'+['m-idle','m-search','m-walk','m-walkplan'].map(function(m){return '<i class="'+(bid&&EL[m].beats.indexOf(bid)>=0?'on':'')+'"></i>';}).join('')+'</div>';}
+var tick=h('div');tick.id='tick';stage.appendChild(tick);
+tick.appendChild(h('div','big','One tick'));
+tick.appendChild(h('div','small','20 a second, fixed order'));
+var gl=h('div','small','<span style="position:static">modes that run a step</span>');gl.style.top='112px';gl.style.left='44px';gl.style.width='60px';gl.style.fontSize='11.5px';gl.style.lineHeight='1.05';tick.appendChild(gl);var gg=h('div',null,grid4('b3'));gg.style.cssText='left:7px;top:36px';tick.appendChild(gg);
+var bx=104, phases={gate:['tick starts',null,null],think:['the bot thinks',null,null],act:['the bot acts',null,null],end:['tick ends',null,null]};
+DATA.elements.filter(function(e){return e.kind==='beat';}).forEach(function(e){
+  if(e.n===11){var g=h('div',null,'the game moves the player');g.id='gamemove';g.style.left=(bx+4)+'px';tick.appendChild(g);bx+=76;}
+  var n=mk(e.id,'k-beat','<div class="bn">'+e.n+'</div><div class="bd"><span class="flow"><i class="dot"></i>'+extras(e.id)+'</span></div>'+grid4(e.id)+'<div class="bl">'+esc(e.name)+'</div><div class="ord" style="left:-4px;top:-6px"></div>');
+  n.style.left=bx+'px';tick.appendChild(n);
+  var p=phases[e.phase];if(p[1]==null)p[1]=bx;p[2]=bx+98;
+  bx+=102;
+});
+Object.keys(phases).forEach(function(k){var p=phases[k];var n=h('div','phase',p[0]);n.style.left=(p[1]+6)+'px';n.style.width=(p[2]-p[1]-14)+'px';tick.appendChild(n);});
+
+/* ---------- wires ---------- */
+var NS='http://www.w3.org/2000/svg';
+var defs=document.createElementNS(NS,'defs');svg.appendChild(defs);
+[['go','#15202B'],['bad','#B3271E'],['end','#52606B'],['x','#52606B'],['sel','#3536D0']].forEach(function(m){
+  var mk2=document.createElementNS(NS,'marker');mk2.setAttribute('id','ah-'+m[0]);mk2.setAttribute('viewBox','0 0 10 10');mk2.setAttribute('refX','9');mk2.setAttribute('refY','5');mk2.setAttribute('markerWidth','8');mk2.setAttribute('markerHeight','8');mk2.setAttribute('orient','auto-start-reverse');mk2.setAttribute('markerUnits','userSpaceOnUse');
+  var p=document.createElementNS(NS,'path');p.setAttribute('d','M0,0 L10,5 L0,10 z');p.setAttribute('fill',m[1]);mk2.appendChild(p);defs.appendChild(mk2);
+});
+var WIRES=[
+ ['k-mark',200,170,370,170,'go'],['k-walk',200,216,370,216,'go'],
+ ['t-load',316,270,339,270,'go'],['t-unload',339,292,317,292,'end'],
+ ['t-recover',316,488,339,488,'go'],['t-throw',339,512,317,512,'bad'],
+ ['t-press',668,202,812,202,'go'],['t-end-search',814,264,670,264,'end'],
+ ['t-end-walk',430,468,430,394,'end'],
+ ['t-runout',668,542,812,542,'go'],['t-joined',814,614,670,614,'go'],
+ ['t-repath2',1050,468,1050,394,'bad'],
+ ['t-found',810,393,652,467,'go'],['t-repath',690,467,848,393,'bad'],
+ ['x-ticks',1150,172,1126,172,'x'],['x-blocks',1150,256,1112,256,'x'],['x-info',1150,340,1112,340,'x'],
+ ['x-player',1150,522,1112,522,'x'],['x-keys',1110,606,1148,606,'go']
+];
+WIRES.forEach(function(w){
+  var l=document.createElementNS(NS,'line');l.setAttribute('x1',w[1]);l.setAttribute('y1',w[2]);l.setAttribute('x2',w[3]);l.setAttribute('y2',w[4]);l.setAttribute('class',w[5]);l.setAttribute('marker-end','url(#ah-'+w[5]+')');l.dataset.wire=w[0];l.dataset.k=w[5];svg.appendChild(l);
+  var hit=document.createElementNS(NS,'line');hit.setAttribute('x1',w[1]);hit.setAttribute('y1',w[2]);hit.setAttribute('x2',w[3]);hit.setAttribute('y2',w[4]);hit.setAttribute('class','hit');hit.dataset.id=w[0];svg.appendChild(hit);
+});
+
+/* ---------- drawer and tip ---------- */
+var drawer=h('div');drawer.id='drawer';drawer.innerHTML='<button class="x" aria-label="Close">&times;</button><div class="body"></div>';stage.appendChild(drawer);
+var dbody=drawer.querySelector('.body');
+var tip=h('div');tip.id='tip';stage.appendChild(tip);
+
+/* ---------- state ---------- */
+var st={lens:'flow',type:null,id:null,step:0};
+function parse(){
+  var p=location.hash.replace(/^#\/?/,'').split('/').filter(Boolean);
+  var s={lens:'flow',type:null,id:null,step:0};
+  if(p[0]&&LENSES.some(function(l){return l[0]===p[0];}))s.lens=p.shift();
+  if(p[0]==='el'&&thing(p[1])){s.type='el';s.id=p[1];}
+  else if(p[0]==='story'){var r=DATA.routes.filter(function(r){return r.id===p[1];})[0];if(r){s.type='story';s.id=r.id;s.step=Math.max(1,Math.min(r.steps.length,parseInt(p[2]||'1',10)||1));}}
+  else if(p[0]==='level'&&PROOF[p[1]]){s.type='level';s.id=p[1];s.lens='proof';}
+  if(s.type==='el'&&EL[s.id]){if(EL[s.id].kind==='dial')s.lens='dials';if(EL[s.id].kind==='rule')s.lens='rules';}
+  return s;
+}
+function href(lensId,type,id,step){var s='#/'+lensId;if(type)s+='/'+type+'/'+id;if(step)s+='/'+step;return s;}
+function go(type,id,step){location.hash=href(st.lens,type,id,step);}
+function ref(id,label){var t=thing(id);var nm=label||(t.name||t.label);return '<a class="ref" href="'+href(st.lens,'el',id)+'">'+esc(nm)+(t.value?'<span class="v">'+esc(t.value)+'</span>':'')+'</a>';}
+function codeList(arr){return (arr||[]).map(function(c){var m=c.match(/^(.*\/)([^\/]*)$/);return '<div class="code">'+(m?'<b>'+esc(m[1])+'</b>'+esc(m[2]):esc(c))+'</div>';}).join('');}
+function logList(arr){return (arr||[]).map(function(c){return '<div class="log">'+esc(c)+'</div>';}).join('');}
+function ul(arr,c){return arr&&arr.length?'<ul'+(c?' class="'+c+'"':'')+'>'+arr.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>':'';}
+function name(id){if(id==='any')return 'any mode';var t=thing(id);return t.name||t.label;}
+
+function detail(id,compact){
+  var e=thing(id), isLink=!!LK[id], s='';
+  s+='<div class="kind">'+esc(KINDNAME[e.kind]||e.kind)+(e.n&&e.kind==='beat'?' '+e.n+' of 12':'')+(e.kind==='milestone'?' '+e.n+' of 10':'')+'</div>';
+  s+='<h2>'+esc(e.name||e.label)+(e.sub?', '+esc(e.sub):'')+'</h2>';
+  if(!isLink){s+='<div class="badges"><span class="badge b-'+e.status+'">'+STATUS[e.status]+'</span><span class="badge b-'+e.proof+'">'+PROOF[e.proof]+'</span>'+(e.enforced?'<span class="badge">kept by: '+ENF[e.enforced]+'</span>':'')+'</div>';}
+  else{s+='<div class="badges"><span class="badge">'+esc(name(e.from))+' → '+esc(name(e.to))+'</span>'+(e.drawn===false?'<span class="badge b-planned">not drawn on the picture</span>':'')+'</div>';}
+  if(e.kind==='dial')s+='<div class="big">'+esc(e.value)+'</div>';
+  s+='<p>'+esc(e.summary)+'</p>';
+  if(e.log)s+='<h3>What the log shows</h3>'+logList(e.log);
+  if(compact)return s;
+  if(e.facts)s+='<h3>Worth knowing</h3>'+ul(e.facts);
+  if(e.gaps)s+='<h3>Not there yet</h3>'+ul(e.gaps,'gaps');
+  if(e.evidence)s+='<h3>How we know</h3><p>'+esc(e.evidence)+'</p>';
+  if(e.carries)s+='<h3>Ends as</h3>'+e.carries.map(function(c){return ref(c);}).join('');
+  if(e.kind==='mode'){
+    s+='<h3>Jobs done in this mode</h3>'+DATA.elements.filter(function(j){return j.in===id;}).map(function(j){return ref(j.id);}).join('');
+    s+='<h3>Leaves this mode when</h3>'+DATA.links.filter(function(l){return (l.from===id&&l.to!==id)||(l.from==='any'&&l.to!==id);}).map(function(l){return ref(l.id,l.label+' → '+name(l.to));}).join('');
+    s+='<h3>Each tick, in this mode</h3>'+e.beats.map(function(b){return ref(b,EL[b].n+'. '+EL[b].name);}).join('');
+  }
+  if(e.in)s+='<h3>Done while</h3>'+ref(e.in);
+  if(e.kind==='beat'){s+='<h3>Runs in</h3>'+DATA.elements.filter(function(m){return m.kind==='mode'&&m.beats.indexOf(id)>=0;}).map(function(m){return ref(m.id);}).join('');}
+  if(e.kind==='outcome'){s+='<h3>Reached by</h3>'+DATA.links.filter(function(l){return l.carries&&l.carries.indexOf(id)>=0;}).map(function(l){return ref(l.id,name(l.from)+' → '+name(l.to));}).join('');}
+  if(e.kind==='rule')s+='<h3>Applies to</h3>'+e.pins.map(function(p){return ref(p);}).join('');
+  if(e.kind==='dial')s+='<h3>Governs</h3>'+ref(e.on);
+  if(dialsOn[id])s+='<h3>Dials</h3>'+dialsOn[id].map(function(d){return ref(d.id);}).join('');
+  if(rulesOn[id])s+='<h3>Must hold here</h3>'+rulesOn[id].map(function(r){return ref(r.id);}).join('');
+  var st2=DATA.routes.filter(function(r){return r.steps.some(function(x){return x[0]===id;});});
+  if(st2.length)s+='<h3>Appears in stories</h3>'+st2.map(function(r){var i=r.steps.findIndex(function(x){return x[0]===id;});return '<a class="ref" href="'+href('flow','story',r.id,i+1)+'">'+esc(r.name)+'</a>';}).join('');
+  s+='<h3>'+(e.kind==='dial'?'Change it here':'Where the code is')+'</h3>'+codeList(e.code);
+  return s;
+}
+function storyPanel(r,step){
+  var s='<div class="kind">Story '+(DATA.routes.indexOf(r)+1)+' of '+DATA.routes.length+'</div><h2>'+esc(r.name)+'</h2>';
+  s+='<div class="nav"><a class="'+(step<=1?'off':'')+'" href="'+href(st.lens,'story',r.id,step-1)+'">← back</a><a class="'+(step>=r.steps.length?'off':'')+'" href="'+href(st.lens,'story',r.id,step+1)+'">next →</a></div>';
+  s+='<ol class="steps">'+r.steps.map(function(x,i){return '<li><a class="'+(i+1===step?'cur':i+1<step?'past':'')+'" href="'+href(st.lens,'story',r.id,i+1)+'"><span class="o">'+(i+1)+'</span><span>'+esc(x[1])+'</span></a></li>';}).join('')+'</ol>';
+  var cur=r.steps[step-1][0];
+  s+='<div class="card">'+detail(cur,true)+'<a class="ref" href="'+href(st.lens,'el',cur)+'">open this part</a></div>';
+  return s;
+}
+
+/* ---------- lens panel ---------- */
+function drawn(e){return e.kind!=='rule';}
+function renderLP(){
+  var s='',y=22;
+  function row(hrefv,html,key){s+='<a class="el lp-row" data-row="'+key+'" href="'+hrefv+'" style="top:'+y+'px;color:inherit;text-decoration:none;display:block">'+html+'</a>';y+=23;}
+  if(st.lens==='flow'){s+='<div class="h">Follow a story</div>';DATA.routes.forEach(function(r){row(href('flow','story',r.id,1),esc(r.name),'story:'+r.id);});}
+  else if(st.lens==='dials'){
+    s+='<div class="h">'+DATA.elements.filter(function(e){return e.kind==='dial';}).length+' dials, marked by proof</div>';
+    [['game','measured in a real game'],['tests','set from tests'],['reasoned','extrapolated, unmeasured']].forEach(function(p){var n=DATA.elements.filter(function(e){return e.kind==='dial'&&e.proof===p[0];}).length;
+      s+='<div class="lp-row" style="top:'+y+'px"><span class="chip p-'+p[0]+'" style="display:inline-flex;margin:0 6px 0 0;vertical-align:-3px"><i class="dot"></i>'+n+'</span>'+p[1]+'</div>';y+=25;});
+    y+=6;s+='<div class="h" style="top:'+y+'px">Click a chip for details</div>';
+  }
+  else if(st.lens==='proof'){s+='<div class="h">How we know it works</div>';
+    ['game','tests','reasoned','none'].forEach(function(p){var n=DATA.elements.filter(function(e){return drawn(e)&&e.kind!=='dial'&&e.proof===p;}).length;
+      row(href('proof','level',p),'<span class="lpk p-'+p+'"><i class="dot"></i></span>'+PROOF[p]+'<span class="n">'+n+'</span>','level:'+p);});}
+  else{s+='<div class="h">'+DATA.elements.filter(function(e){return e.kind==='rule';}).length+' rules that must hold</div>';DATA.elements.filter(function(e){return e.kind==='rule';}).forEach(function(r){row(href('rules','el',r.id),'<span style="color:var(--sel)">&#9670;</span> '+esc(r.name),'el:'+r.id);});
+    s=s.replace('height:290px','');}
+  lp.innerHTML=s;
+  lp.style.height=(st.lens==='rules'?390:290)+'px';
+  var L='<div class="flow">';
+  if(st.lens==='proof')L+='<div class="lpk p-tests"><i class="dot"></i>square marks: proof, not status</div>';
+  else L+='<div class="s-works"><i class="dot"></i>works<span class="s-partial" style="margin-left:10px"><i class="dot"></i></span>partly<span class="s-planned" style="margin-left:10px"><i class="dot"></i></span>planned</div>'+(st.lens==='flow'?'<div><span style="color:var(--part);font-size:10px;margin:0 5px 0 1px">&#9650;</span>has known gaps</div>':'<div><span class="chip p-reasoned" style="display:inline-flex;margin:0 5px 0 0;vertical-align:-3px"><i class="dot"></i>n</span>a number you can change</div>');
+  L+='<div><span style="color:var(--bad)">→</span> trouble &nbsp; <span style="color:var(--ink2)">⇢</span> a walk ends</div>';
+  L+='<div>read at commit '+DATA.commit+'</div></div>';
+  legend.innerHTML=L;
+  legend.style.display=st.lens==='rules'?'none':'block';
+}
+
+/* ---------- apply ---------- */
+function nodes(id){return Array.prototype.slice.call(stage.querySelectorAll('[data-id="'+id+'"]'));}
+function modeOf(id){var e=EL[id];if(!e)return null;if(e.kind==='mode')return id;if(e.in)return e.in;if(e.kind==='dial'&&EL[e.on])return modeOf(e.on);return null;}
+function apply(){
+  st=parse();
+  document.body.dataset.lens=st.lens;
+  Array.prototype.forEach.call(lens.children,function(a){a.className=a.dataset.lens===st.lens?'on':'';var keepSel=!(st.type==='level'||(st.type==='el'&&EL[st.id]&&(EL[st.id].kind==='dial'||EL[st.id].kind==='rule')));a.href=href(a.dataset.lens,keepSel?st.type:null,st.id,st.type==='story'?st.step:0);});
+  renderLP();
+  var all=Array.prototype.slice.call(stage.querySelectorAll('.el'));
+  all.forEach(function(n){n.classList.remove('sel','rel','dim','cur','onroute','lit','off');});
+  Array.prototype.forEach.call(svg.querySelectorAll('line:not(.hit)'),function(l){l.setAttribute('class',l.dataset.k);l.setAttribute('marker-end','url(#ah-'+l.dataset.k+')');});
+  var keep={}, focus=false, mode=null, side='right', selId=null;
+  function wire(id,c){Array.prototype.forEach.call(svg.querySelectorAll('line[data-wire="'+id+'"]'),function(l){l.setAttribute('class',l.dataset.k+' '+c);if(c==='sel')l.setAttribute('marker-end','url(#ah-sel)');});}
+  if(st.type==='el'){
+    selId=st.id;var e=thing(st.id);keep[st.id]='sel';
+    if(LK[st.id]){[e.from,e.to].forEach(function(x){if(x!=='any')keep[x]=keep[x]||'rel';});(e.carries||[]).forEach(function(c){keep[c]='rel';});focus=true;wire(st.id,'sel');}
+    else if(e.kind==='rule'){e.pins.forEach(function(p){keep[p]='rel';});focus=true;}
+    else if(e.kind==='dial'){keep[e.on]='rel';}
+    else if(e.kind==='beat'){DATA.elements.forEach(function(m){if(m.kind==='mode'&&m.beats.indexOf(st.id)>=0)keep[m.id]='rel';});focus=true;}
+    else if(e.kind==='outcome'){DATA.links.forEach(function(l){if(l.carries&&l.carries.indexOf(st.id)>=0)wire(l.id,'sel');});}
+    mode=modeOf(st.id);if(!mode&&LK[st.id]&&EL[e.from]&&EL[e.from].kind==='mode')mode=e.from;
+    drawer.querySelector('.body').innerHTML=detail(st.id);
+  } else if(st.type==='story'){
+    var r=DATA.routes.filter(function(r){return r.id===st.id;})[0];focus=true;
+    r.steps.forEach(function(x,i){if(i<st.step){keep[x[0]]=(i===st.step-1)?'cur':(keep[x[0]]==='cur'?'cur':'onroute');
+      nodes(x[0]).forEach(function(n){var o=n.querySelector(':scope > .ord');if(o){var prev=(n._ord||[]);if(prev.indexOf(i+1)<0)prev.push(i+1);n._ord=prev;}});
+      if(LK[x[0]])wire(x[0],'sel');}});
+    selId=r.steps[st.step-1][0];mode=modeOf(selId);if(!mode&&LK[selId]&&EL[LK[selId].from]&&EL[LK[selId].from].kind==='mode')mode=LK[selId].from;
+    dbody.innerHTML=storyPanel(r,st.step);
+    keep['story:'+r.id]='sel';
+  } else if(st.type==='level'){
+    focus=true;DATA.elements.forEach(function(e){if(e.proof===st.id&&e.kind!=='dial')keep[e.id]='rel';});
+  }
+  /* order badges for stories */
+  all.forEach(function(n){var o=n.querySelector(':scope > .ord');if(o){o.textContent=(st.type==='story'&&n._ord)?n._ord.join(' '):'';}n._ord=null;});
+  all.forEach(function(n){
+    var id=n.dataset.id||n.dataset.row, k=keep[id];
+    if(n.dataset.row){ if((st.type==='story'&&n.dataset.row==='story:'+st.id)||(st.type==='level'&&n.dataset.row==='level:'+st.id)||(st.type==='el'&&n.dataset.row==='el:'+st.id))n.classList.add('sel'); return; }
+    if(k==='sel')n.classList.add('sel'); else if(k==='rel')n.classList.add('rel'); else if(k==='cur')n.classList.add('cur'); else if(k==='onroute')n.classList.add('onroute');
+    else if(focus&&!n.classList.contains('chip')&&!(n.classList.contains('k-beat')&&(st.type==='story'||LK[st.id])))n.classList.add('dim');
+  });
+  if(focus)Array.prototype.forEach.call(svg.querySelectorAll('line:not(.hit)'),function(l){if(!/sel/.test(l.getAttribute('class'))&&!keep[l.dataset.wire])l.setAttribute('class',l.getAttribute('class')+' dim');});
+  /* tick strip follows the mode in focus */
+  if(mode){var bs=EL[mode].beats;nodes(mode);DATA.elements.forEach(function(b){if(b.kind!=='beat')return;nodes(b.id).forEach(function(n){n.classList.remove('dim');if(bs.indexOf(b.id)>=0)n.classList.add('lit');else if(!keep[b.id])n.classList.add('off');});});}
+  /* drawer side */
+  if(st.type==='el'||st.type==='story'){
+    var n0=nodes(selId)[0];
+    if(n0){var r0=n0.getBoundingClientRect(), s0=stage.getBoundingClientRect();var cx=(r0.left+r0.width/2-s0.left)/(s0.width/1440);side=cx>1124?'left':'right';}
+    drawer.className='open '+side;dbody.scrollTop=0;
+  } else drawer.className='';
+  tip.style.display='none';
+}
+
+/* ---------- events ---------- */
+stage.addEventListener('click',function(ev){
+  if(ev.target.closest('#drawer')){if(ev.target.closest('.x')){ev.preventDefault();location.hash=href(st.lens);}return;}
+  var a=ev.target.closest('a');if(a)return;
+  var n=ev.target.closest('[data-id]');
+  if(n){ev.preventDefault();var id=n.dataset.id;if(st.type==='el'&&st.id===id)location.hash=href(st.lens);else go('el',id);return;}
+  if(st.type)location.hash=href(st.lens);
+});
+svg.addEventListener('click',function(ev){var n=ev.target.closest('[data-id]');if(n){ev.stopPropagation();go('el',n.dataset.id);}});
+document.addEventListener('keydown',function(ev){
+  if(ev.key==='Escape'&&st.type)location.hash=href(st.lens);
+  if(st.type==='story'){var r=DATA.routes.filter(function(r){return r.id===st.id;})[0];
+    if(ev.key==='ArrowRight'&&st.step<r.steps.length)go('story',st.id,st.step+1);
+    if(ev.key==='ArrowLeft'&&st.step>1)go('story',st.id,st.step-1);}
+  if((ev.key==='Enter'||ev.key===' ')&&document.activeElement&&document.activeElement.dataset&&document.activeElement.dataset.id){ev.preventDefault();go('el',document.activeElement.dataset.id);}
+});
+stage.addEventListener('mouseover',function(ev){
+  var n=ev.target.closest('[data-id]');if(!n||ev.target.closest('#drawer')){tip.style.display='none';return;}
+  var e=thing(n.dataset.id);if(!e)return;
+  tip.innerHTML='<b>'+esc(e.name||e.label)+(e.value?' · '+esc(e.value):'')+'</b>'+esc(e.summary);
+  tip.style.display='block';
+  var s0=stage.getBoundingClientRect(),k=s0.width/1440,r=n.getBoundingClientRect();
+  var x=(r.left-s0.left)/k,y=(r.bottom-s0.top)/k+6;
+  if(x+300>1436)x=1436-300;if(y+90>896)y=(r.top-s0.top)/k-tip.offsetHeight-6;
+  tip.style.left=Math.max(4,x)+'px';tip.style.top=y+'px';
+});
+stage.addEventListener('mouseleave',function(){tip.style.display='none';});
+function fit(){var s=Math.min(window.innerWidth/1440,window.innerHeight/900);stage.style.transform='scale('+s+')';stage.style.left=Math.max(0,(window.innerWidth-1440*s)/2)+'px';stage.style.top=Math.max(0,(window.innerHeight-900*s)/2)+'px';}
+window.addEventListener('resize',fit);window.addEventListener('hashchange',apply);
+fit();apply();
+})();
+</script>
+</body>
+</html>

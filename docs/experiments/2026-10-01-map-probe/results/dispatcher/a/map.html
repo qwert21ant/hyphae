@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dispatcher floor</title>
+<style>
+:root{
+  --floor:#E4E8EA; --zone:#EDF0F2; --zone-line:#9CA8B0; --zone-ink:#5A6873;
+  --ink:#14212B; --ink-2:#44525D; --ink-3:#7A868F; --paper:#FFFFFF; --panel:#F8F9F9; --line:#CDD4D8;
+  --job:#1560A8; --talk:#8B2A78; --access:#55636E; --tick:#7A858D; --ops:#8A640F;
+  --ok:#1E8E5A; --gap:#C97A00; --plan:#6B7B8A;
+  --mark:#FFD21F; --mark-soft:#FFF4BF;
+  --sign:Bahnschrift,"DIN Alternate","Roboto Condensed","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --text:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --code:Consolas,"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--floor);color:var(--ink);font:13px/1.4 var(--text);overflow:hidden;
+  display:grid;grid-template-columns:284px minmax(0,1fr);grid-template-rows:44px minmax(0,1fr) 40px;}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+/* ---------- top bar */
+#bar{grid-column:1/3;display:flex;align-items:center;gap:14px;padding:0 14px;background:var(--ink);color:#fff}
+#bar .mark{font:600 19px/1 var(--sign);letter-spacing:.02em}
+#bar .tag{color:#B9C4CC;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.seg{display:flex;border:1px solid #5A6873;border-radius:5px;overflow:hidden}
+.seg button{padding:5px 12px;font:500 13px/1 var(--sign);letter-spacing:.02em;color:#C9D2D8}
+.seg button[aria-pressed="true"]{background:#fff;color:var(--ink)}
+.zoom{display:flex;align-items:center;gap:2px}
+.zoom button{width:26px;height:26px;border-radius:4px;text-align:center;font:500 16px/1 var(--sign);color:#fff}
+.zoom button:hover{background:#2A3945}
+.zoom .lvl{min-width:86px;text-align:center;font:12px/1 var(--sign);color:#B9C4CC}
+.zoom .fit{width:auto;padding:0 8px;font-size:12.5px}
+
+/* ---------- left panel */
+#panel{grid-row:2/3;background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:10px 0 16px}
+#panel h2{font:600 17px/1.15 var(--sign);margin:0}
+.p-head{display:flex;align-items:baseline;gap:8px;padding:2px 14px 6px}
+.p-head .n{color:var(--ink-3);font:13px var(--sign)}
+.keyline{display:flex;gap:10px;padding:0 14px 6px;color:var(--ink-2);font-size:11.5px}
+.keyline span{display:inline-flex;align-items:center;gap:4px}
+.grp{margin:8px 0 0}
+.grp h3{font:600 11.5px/1 var(--sign);letter-spacing:.05em;color:var(--ink-3);margin:0;padding:5px 14px 4px}
+.uc{display:block}
+.uc>button{display:flex;align-items:center;gap:8px;width:100%;padding:3.5px 14px;font:500 13.5px/1.25 var(--sign);border-left:4px solid transparent}
+.uc>button:hover{background:#ECEFF0}
+.uc.on>button{background:var(--mark-soft);border-left-color:var(--mark);font-weight:600}
+.uc.touch>button{border-left-color:var(--ink)}
+.uc.fade>button{opacity:.38}
+.st{flex:none;width:11px;height:11px}
+.uc .body{padding:4px 14px 8px 18px;background:#FFFBE3;border-left:4px solid var(--mark)}
+.uc .sum{margin:2px 0 6px;color:var(--ink-2);font-size:12px;line-height:1.35}
+.steps{list-style:none;margin:0;padding:0}
+.steps li button{display:grid;grid-template-columns:20px 1fr;column-gap:7px;width:100%;padding:2.5px 0;border-radius:3px}
+.steps li button:hover{background:#FFF0A6}
+.num{display:inline-block;min-width:18px;height:18px;border-radius:9px;background:var(--mark);color:var(--ink);
+  font:700 11px/18px var(--sign);text-align:center;grid-row:1/3;align-self:start}
+.steps .what{font:500 12.5px/1.25 var(--sign)}
+.steps .where{font-size:11px;color:var(--ink-3);line-height:1.25}
+.steps li.cur .what{text-decoration:underline}
+
+.det{padding:0 14px}
+.back{display:inline-block;margin:0 0 8px;padding:3px 8px 3px 6px;border:1px solid var(--line);border-radius:4px;font:500 12px/1.2 var(--sign);background:#fff}
+.back:hover{background:#ECEFF0}
+.crumb{margin:0 -14px 10px;padding:6px 14px 7px;background:var(--mark-soft);border-left:4px solid var(--mark)}
+.crumb .rn{font:600 13px/1.2 var(--sign);display:flex;gap:6px;align-items:center}
+.crumb .nums{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px}
+.crumb .nums button{min-width:18px;height:18px;border-radius:9px;background:#fff;border:1px solid #D9B400;font:700 11px/16px var(--sign);text-align:center}
+.crumb .nums button.cur{background:var(--mark)}
+.kind{font:500 11.5px/1.2 var(--sign);color:var(--ink-3);letter-spacing:.03em}
+.kind button{text-decoration:underline;color:inherit;font:inherit}
+.det h2{margin:2px 0 4px;font-size:19px}
+.status{display:inline-flex;align-items:center;gap:5px;font:500 12px/1 var(--sign);color:var(--ink-2);margin-bottom:6px}
+.status .app{margin-left:8px;padding-left:8px;border-left:1px solid var(--line);color:var(--ink-3)}
+.det p.sum{margin:0 0 10px;font-size:13px;line-height:1.42}
+.sec{margin:0 0 10px}
+.sec h4{margin:0 0 3px;font:600 11.5px/1.2 var(--sign);letter-spacing:.05em;color:var(--ink-3)}
+.sec ul{margin:0;padding:0;list-style:none}
+.sec li{font-size:12.5px;line-height:1.38;padding:1.5px 0 1.5px 11px;position:relative}
+.sec li::before{content:"";position:absolute;left:1px;top:8px;width:4px;height:4px;background:var(--ink-3);border-radius:50%}
+.sec.gaps li::before{background:var(--gap)}
+.sec.unv li::before{background:none;border:1px solid var(--ink-2);width:5px;height:5px;top:7px;left:0}
+.sec.flow li{padding-left:0}
+.sec.flow li::before{display:none}
+.sec.flow button,.sec.inside button,.sec.used button{display:flex;gap:6px;align-items:baseline;width:100%;padding:1px 0;font-size:12.5px;line-height:1.3;border-radius:3px}
+.sec.flow button:hover,.sec.inside button:hover,.sec.used button:hover{background:#ECEFF0}
+.sec.inside li,.sec.used li{padding-left:0}
+.sec.inside li::before,.sec.used li::before{display:none}
+.sec.inside button,.sec.used button{align-items:center}
+.dot{flex:none;width:8px;height:8px;border-radius:2px;display:inline-block;position:relative;top:0}
+.muted{color:var(--ink-3)}
+.code li{padding:2px 0;font:11.5px/1.35 var(--code);overflow-wrap:anywhere}
+.code li b{font-weight:600}
+.code li::before{display:none}
+.code .dir{color:var(--ink-3)}
+.pills{display:flex;flex-wrap:wrap;gap:3px;align-items:center;font:500 11.5px/1 var(--sign)}
+.pills span.pill{border:1px solid var(--ink-2);border-radius:9px;padding:3px 7px;background:#fff}
+.pills span.ar{color:var(--ink-3)}
+
+/* ---------- stage */
+#stage{position:relative;overflow:hidden;background:var(--floor)}
+#stage svg{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none}
+#floor{cursor:grab}
+#floor.drag{cursor:grabbing}
+body[data-view="floor"] #things{display:none}
+body[data-view="things"] #floor{display:none}
+body[data-view="things"] .zoom{visibility:hidden}
+
+svg text{font-family:var(--sign)}
+.district rect{fill:var(--zone);stroke:var(--zone-line);stroke-width:1.2}
+.district text{fill:var(--zone-ink);font-weight:600;font-size:12px;letter-spacing:.05em}
+.district .big{display:none;font-size:27px;letter-spacing:.03em;fill:var(--ink)}
+.district:hover rect{stroke:var(--ink-2)}
+.district{cursor:pointer}
+.district.sel rect{stroke:#B89500;stroke-width:3}
+
+.node{cursor:pointer}
+.node .box{fill:var(--paper);stroke:var(--ink);stroke-width:1.3}
+.node .bar{fill:var(--ink)}
+.node .lid{fill:none;stroke:var(--ink);stroke-width:1.1}
+.node .name{font-size:13.5px;font-weight:600;fill:var(--ink)}
+.node .tag{font-size:10.5px;fill:var(--ink-3);letter-spacing:.01em}
+.node .name-s{display:none;font-size:5.6px;font-weight:600;fill:var(--ink)}
+.node:hover .box{stroke-width:2.1}
+.node .ring{fill:none;stroke:none}
+.node.sel .ring{stroke:var(--mark);stroke-width:5}
+.node.sel .box{stroke-width:2.1}
+.node.planned .box{stroke-dasharray:4 3}
+.terminal.person .box{fill:var(--ink);stroke:var(--ink)}
+.terminal.person .name{fill:#fff}
+.terminal.person .glyph{stroke:#fff;fill:none;stroke-width:1.4}
+.terminal.system .box{stroke-width:2}
+.terminal.clock .box{stroke-width:1.6;stroke-dasharray:1.5 3;stroke-linecap:round}
+.terminal .glyph{stroke:var(--ink);fill:none;stroke-width:1.4}
+.terminal .name{font-size:11.5px;font-weight:600}
+.part{display:none;cursor:pointer}
+.part rect{fill:#EFF2F3;stroke:var(--ink);stroke-width:.45}
+.part text{fill:var(--ink);font-weight:500}
+.part:hover rect{fill:#fff;stroke-width:.8}
+.part.sel rect{fill:var(--mark-soft);stroke:var(--ink);stroke-width:1}
+.part.planned rect{stroke-dasharray:1.6 1.2}
+.gapn{font-size:9.5px;font-weight:600;fill:#9A5D00}
+.sg-ok{fill:var(--ok)}
+.sg-gap{fill:var(--gap)}
+.sg-ring{fill:#fff;stroke:var(--gap);stroke-width:1.3}
+.sg-plan{fill:#fff;stroke:var(--plan);stroke-width:1.3;stroke-dasharray:2 1.4}
+.sg-unk{fill:#fff;stroke:var(--ink-3);stroke-width:1.2}
+
+.belt .case{fill:none;stroke:#E8EBED;stroke-width:6.5;stroke-linejoin:round}
+.belt .line{fill:none;stroke-width:2.3;stroke-linejoin:round}
+.belt .hit{fill:none;stroke:transparent;stroke-width:12;cursor:pointer}
+.belt.job .line{stroke:var(--job)} .belt.job .head{fill:var(--job)}
+.belt.talk .line{stroke:var(--talk)} .belt.talk .head{fill:var(--talk)}
+.belt.access .line{stroke:var(--access);stroke-width:1.7;stroke-dasharray:5 3} .belt.access .head{fill:var(--access)}
+.belt.tick .line{stroke:var(--tick);stroke-width:2;stroke-dasharray:.1 4.2;stroke-linecap:round} .belt.tick .head{fill:var(--tick)}
+.belt.ops .line{stroke:var(--ops)} .belt.ops .head{fill:var(--ops)}
+.belt:hover .line{stroke-width:3.4}
+.blabel{font-size:10.5px;font-weight:500;paint-order:stroke;stroke:#E8EBED;stroke-width:3.6px;stroke-linejoin:round;pointer-events:none;font-stretch:92%}
+.blabel.job{fill:#0E4A85} .blabel.talk{fill:#74205F} .blabel.access{fill:#3F4C56} .blabel.tick{fill:#56626B} .blabel.ops{fill:#6B4C06}
+.belt.sel .line{stroke-width:3.6}
+
+@keyframes flow{to{stroke-dashoffset:-13}}
+.focus .belt.lit .line{stroke-width:3.4;stroke-dasharray:8 5;animation:flow .8s linear infinite}
+.focus .belt.lit.tick .line,.focus .belt.lit.access .line{stroke-width:2.6}
+.focus .belt:not(.lit){opacity:.13}
+.focus .blabel:not(.lit){opacity:.16}
+.focus .node:not(.lit){opacity:.2}
+.focus .district:not(.lit){opacity:.5}
+.focus .part:not(.lit){opacity:.22}
+.focus .key{opacity:.25}
+@media (prefers-reduced-motion:reduce){.focus .belt.lit .line{animation:none}}
+
+.badge rect{fill:var(--mark);stroke:var(--ink);stroke-width:1}
+.badge text{font-size:10.5px;font-weight:700;fill:var(--ink)}
+.badge.small{display:none}
+.badge.small rect{stroke-width:.4}
+.badge.small text{font-size:3.6px}
+
+.key text{font-size:10.5px;fill:var(--ink-2)}
+.key .kt{font-weight:600;font-size:12px;fill:var(--zone-ink);letter-spacing:.05em}
+.key .frame{fill:none;stroke:var(--zone-line);stroke-width:1;stroke-dasharray:2 3}
+
+/* levels of detail */
+.lod0 .node.inner,.lod0 .belt.inner,.lod0 .blabel.inner,.lod0 .key,.lod0 .badge.onnode{display:none}
+.lod0 .district .small{display:none}
+.lod0 .district .big{display:block}
+.lod0 .district rect{stroke-width:2}
+.lod0 .blabel{font-size:14px;stroke-width:4.5px}
+.lod0 .belt .line{stroke-width:3}
+.lod0 .terminal .name{font-size:12.5px}
+.lod2 .part{display:block}
+.lod2 .node.has-parts .name,.lod2 .node.has-parts .tag,.lod2 .node.has-parts .sg{display:none}
+.lod2 .node.has-parts .name-s{display:block}
+.lod2 .blabel{font-size:6px;stroke-width:2px}
+.lod2 .belt .line{stroke-width:1.3}
+.lod2 .belt .case{stroke-width:3.4}
+.lod2.focus .belt.lit .line{stroke-width:1.9;stroke-dasharray:5 3}
+.lod2 .badge.small{display:block}
+.lod2 .badge.onnode{transform-box:fill-box;transform-origin:0 0;transform:scale(.5)}
+.lod2 .district text.small{font-size:7px}
+
+/* ---------- things map */
+#things .card{cursor:pointer}
+#things .card .box{fill:var(--paper);stroke:var(--ink);stroke-width:1.2}
+#things .card:hover .box{stroke-width:2.1}
+#things .card .ring{fill:none}
+#things .card.sel .ring{stroke:var(--mark);stroke-width:5}
+#things .card .name{font-size:15px;font-weight:600;fill:var(--ink)}
+#things .card .field{font-size:11px;fill:var(--ink-2)}
+#things .card .rule{stroke:var(--line);stroke-width:1}
+#things .card .pill rect{fill:#fff;stroke:var(--ink-2);stroke-width:.9}
+#things .card .pill text{font-size:10px;font-weight:500;fill:var(--ink)}
+#things .card .ar{fill:none;stroke:var(--ink-3);stroke-width:1.1}
+#things .rel .line{fill:none;stroke:var(--ink-2);stroke-width:1.5}
+#things .rel .head{fill:var(--ink-2)}
+#things .rel text{font-size:11px;font-weight:500;fill:var(--ink-2);paint-order:stroke;stroke:var(--floor);stroke-width:4px;stroke-linejoin:round}
+#things .band{font-size:12px;font-weight:600;letter-spacing:.05em;fill:var(--zone-ink)}
+#things.focus .card:not(.lit){opacity:.22}
+#things.focus .rel:not(.lit){opacity:.15}
+
+/* ---------- bottom strip */
+#strip{grid-column:1/3;display:flex;align-items:center;gap:6px;padding:0 12px;background:#DCE1E4;border-top:1px solid var(--line);overflow:hidden;white-space:nowrap}
+#strip .lead{font:600 11.5px/1 var(--sign);letter-spacing:.05em;color:var(--zone-ink);margin-right:6px}
+.chip{display:inline-flex;align-items:center;padding:4px 7px 4px 6px;border-radius:3px;background:#fff;border:1px solid #B9C2C8;border-left-width:4px;font:500 12px/1 var(--sign)}
+.chip:hover{background:#F1F3F4}
+.chip.lit{box-shadow:0 0 0 2px var(--mark)}
+#strip.focus .chip:not(.lit){opacity:.4}
+.chip.sel{background:var(--mark-soft)}
+#bar .src{color:#8FA0AB;font:12px/1 var(--sign);white-space:nowrap}
+
+/* ---------- tooltip */
+#tip{position:absolute;z-index:5;max-width:280px;padding:7px 9px 8px;background:var(--ink);color:#fff;border-radius:5px;font-size:12px;line-height:1.36;pointer-events:none;display:none}
+#tip b{display:block;font:600 13px/1.2 var(--sign);margin-bottom:2px}
+#tip .s{color:#FFD21F;font:500 11px/1.2 var(--sign);display:block;margin-top:3px}
+#err{position:fixed;left:300px;top:50px;z-index:9;background:#B00020;color:#fff;padding:8px 10px;font:12px var(--code);max-width:700px;display:none;white-space:pre-wrap}
+</style>
+</head>
+<body data-view="floor">
+<header id="bar">
+  <span class="mark">Dispatcher</span>
+  <span class="tag" id="tagline"></span>
+  <div class="seg" role="group" aria-label="View">
+    <button data-view="floor" aria-pressed="true">Floor</button>
+    <button data-view="things" aria-pressed="false">Things</button>
+  </div>
+  <div class="zoom" aria-label="Zoom">
+    <button data-zoom="out" title="Zoom out" aria-label="Zoom out">&minus;</button>
+    <span class="lvl" id="lvl"></span>
+    <button data-zoom="in" title="Zoom in" aria-label="Zoom in">+</button>
+    <button data-zoom="home" class="fit" title="Show the whole floor">Whole floor</button>
+  </div>
+  <span class="src" id="src"></span>
+</header>
+<aside id="panel" aria-label="Use cases and details"></aside>
+<main id="stage">
+  <svg id="floor" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Factory floor of the project"></svg>
+  <svg id="things" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Things map"></svg>
+  <div id="tip"></div>
+</main>
+<footer id="strip"></footer>
+<div id="err"></div>
+<script id="map-data" type="application/json">{"title":"Dispatcher: factory floor","repo":{"path":"/home/qwert21/projects/Dispatcher","commit":"db051fa","read":"2026-10-01","method":"Tracked files read; nothing built, installed or run."},"project":{"name":"Dispatcher","tagline":"accepts the transfer orders that fit, and gathers the ones already assigned","summary":"Two small apps for a transfer company. One watches three booking platforms and accepts the orders that pass the operator's filter. The other reads the transfers already assigned on twelve services. Both report to the operator on Telegram and post orders to a controller outside this repository."},"world":{"w":1156,"h":816},"vocabulary":{"kinds":{"district":"A labelled area of the floor grouping machines that work together.","machine":"A job the project does. It takes things in and puts things out.","part":"A smaller machine inside a machine, visible when zoomed in.","store":"A place where things are kept between jobs.","terminal":"A person or outside system at the edge of the floor.","thing":"A noun of the project: what a belt carries or a store keeps."},"linkKinds":{"job":"Orders and transfers","talk":"Operator's say","access":"Site access","tick":"Timer","ops":"Running it","relation":"How two things relate (things map)"},"status":{"works":"Implemented end to end in the code that was read. Nothing was run.","partial":"Implemented, with a gap that is spelled out on the element.","planned":"Prepared for, but the code that would do it is not there.","unknown":"Lives outside this repository, so it cannot be judged from here."}},"families":[{"id":"job","name":"Orders and transfers","color":"#1560A8"},{"id":"talk","name":"Operator's say","color":"#8B2A78"},{"id":"access","name":"Site access","color":"#55636E"},{"id":"tick","name":"Timer","color":"#7A858D"},{"id":"ops","name":"Running it","color":"#8A640F"}],"groups":[{"id":"g-catch","name":"Catching orders"},{"id":"g-operator","name":"Operator's controls"},{"id":"g-collect","name":"Assigned transfers"},{"id":"g-access","name":"Staying signed in"},{"id":"g-ops","name":"Running it"}],"elements":[{"id":"catch","kind":"district","name":"Catch new orders","summary":"Workers poll three platforms, judge every new order against the operator's filter and accept the ones that comply.","code":["apps/dispatcher/src/services/WorkersManager.ts","packages/shared/src/worker/","packages/components/wpickups/src/","packages/components/transfeero/src/","packages/components/connecto/src/"],"status":"works","pos":{"x":156,"y":22,"w":600,"h":168},"label":{"x":166,"y":39,"anchor":"start"}},{"id":"handoff","kind":"district","name":"Hand-off","summary":"Where orders leave for the controller, the system outside this repository that receives them.","code":["packages/shared/src/services/OrderPublisher.ts"],"status":"works","pos":{"x":824,"y":16,"w":168,"h":90},"label":{"x":834,"y":33,"anchor":"start"}},{"id":"desk","kind":"district","name":"Operator desk","summary":"Two Telegram bots: one tells the operator about orders and takes worker settings, the other answers requests for the collected transfers.","code":["apps/dispatcher/src/telegram/","apps/consolidator/src/telegram/","packages/shared/src/telegram/"],"status":"works","pos":{"x":824,"y":122,"w":168,"h":290},"label":{"x":834,"y":139,"anchor":"start"}},{"id":"access","kind":"district","name":"Access and filters","summary":"What the two apps lean on: signed-in browsers, saved sessions, and the saved filters and switches of every worker.","code":["packages/shared/src/services/BrowsersManager.ts","packages/shared/src/actions/","packages/shared/src/models/","packages/shared/src/worker/BasicWorker.ts"],"status":"works","pos":{"x":156,"y":232,"w":384,"h":156},"label":{"x":530,"y":381,"anchor":"end"}},{"id":"collect","kind":"district","name":"Collect assigned transfers","summary":"Every ten minutes, or on request, visits every service one by one and reads the transfers already assigned to the company.","code":["apps/consolidator/src/"],"status":"works","pos":{"x":156,"y":440,"w":440,"h":204},"label":{"x":586,"y":457,"anchor":"end"}},{"id":"ops","kind":"district","name":"Run and watch","summary":"How the two apps get onto the server and how their health is watched.","code":["ansible/","monitoring/","apps/dispatcher/Dockerfile","apps/consolidator/Dockerfile"],"status":"partial","pos":{"x":156,"y":672,"w":836,"h":104},"label":{"x":166,"y":689,"anchor":"start"}},{"id":"platforms","kind":"terminal","role":"system","name":"Platforms offering orders","summary":"Three transfer platforms where new orders appear and can be taken: Welcome Pickups, Transfeero and Connecto.","code":["packages/components/wpickups/src/Pages.ts","packages/components/transfeero/src/Pages.ts","packages/components/connecto/src/Pages.ts"],"status":"unknown","pos":{"x":6,"y":94,"w":100,"h":40},"rules":["Everything is done through each platform's own web pages, as a signed-in partner account."]},{"id":"mailbox","kind":"terminal","role":"system","name":"Connecto mailbox","summary":"A Gmail inbox, read over IMAP, where Connecto's order emails arrive.","code":["packages/components/connecto/src/services/ImapService.ts","packages/components/connecto/src/models/ImapServiceConfig.ts"],"status":"unknown","pos":{"x":6,"y":140,"w":100,"h":40},"rules":["The mailbox is opened read-only; mails are never marked or moved.","If the connection closes, a new one is opened after 2 seconds."]},{"id":"clock","kind":"terminal","role":"clock","name":"Clock","summary":"Timers that set the pace: the workers' fetch delay, the ten-minute collection round, the ten-minute exclusion clean-up and Transfeero's three-minute session refresh.","code":["packages/shared/src/worker/CommonWorker.ts","apps/consolidator/src/services/BackgroundConsolidator.ts","packages/shared/src/worker/TimeExclusionsCleaner.ts","packages/components/transfeero/src/TransfeeroWorker.ts"],"status":"works","pos":{"x":6,"y":200,"w":100,"h":32}},{"id":"sources","kind":"terminal","role":"system","name":"Services to collect from","summary":"Eleven platform sites and one Google Sheet that list the transfers already assigned to the company.","code":["apps/consolidator/src/models/ConsolidatorConfig.ts","packages/components/"],"status":"unknown","pos":{"x":6,"y":570,"w":100,"h":40},"rules":["Which services are visited, and under which names, is decided by the config file."]},{"id":"developer","kind":"terminal","role":"person","name":"Developer","summary":"Builds the images and runs the deploy playbooks from a workstation or the dev container.","code":["package.json",".devcontainer/"],"status":"unknown","pos":{"x":6,"y":712,"w":100,"h":40}},{"id":"controller","kind":"terminal","role":"system","name":"Controller API","summary":"The central system that receives orders at its /addOrders endpoint; it is not part of this repository.","code":["packages/shared/src/services/OrderPublisher.ts"],"status":"unknown","pos":{"x":1046,"y":50,"w":100,"h":40},"unverified":["What the controller does with the orders cannot be seen from this repository."]},{"id":"operator","kind":"terminal","role":"person","name":"Operator on Telegram","summary":"The person running the company's dispatching, reached through Telegram chats that the config allows.","code":["apps/dispatcher/src/telegram/TelegramManageBot.ts","apps/consolidator/src/telegram/TelegramConsolidatorBot.ts"],"status":"unknown","pos":{"x":1046,"y":150,"w":100,"h":248},"rules":["Only chats whose ids are listed in the config are answered.","There are two separate bots: one in the dispatcher app, one in the consolidator app."]},{"id":"grafana","kind":"terminal","role":"person","name":"Grafana viewer","summary":"Whoever opens the Grafana dashboards on port 3001 to see how the server is doing.","code":["monitoring/grafana/"],"status":"unknown","pos":{"x":1046,"y":712,"w":100,"h":40}},{"id":"watch","kind":"machine","district":"catch","name":"Watch for new orders","tag":"3 platforms","summary":"Each running worker asks its platform for open orders, again and again, a fetch delay apart.","code":["packages/shared/src/worker/CommonWorker.ts","packages/shared/src/worker/BasicWorker.ts","apps/dispatcher/src/services/WorkersManager.ts"],"status":"works","pos":{"x":168,"y":100,"w":144,"h":68},"rules":["The next fetch starts one fetch delay (20 seconds unless changed) after the previous one ended.","A fetch that fails is tried again, 5 attempts in all, then skipped until the next turn.","Workers that were running before a restart start again on their own.","Which workers exist, and their type, comes from the config file; an unknown type stops the app at start."],"app":"dispatcher","parts":["watch-wp","watch-tf","watch-co"]},{"id":"watch-wp","kind":"part","parent":"watch","district":"catch","name":"Poll Welcome Pickups","summary":"Fetches the list of unassigned upcoming transfers (14 days ahead, at most 100) from inside the signed-in page.","code":["packages/components/wpickups/src/WPickupsWorker.ts","packages/components/wpickups/src/actions/RequestTransfers.ts"],"status":"works","pos":{"x":177.0,"y":112.0,"w":42.0,"h":52.0},"rows":1,"caveats":["The 14-day window is a saved setting with no menu entry to change it."]},{"id":"watch-tf","kind":"part","parent":"watch","district":"catch","name":"Poll Transfeero","summary":"Replays the site's own request for new rides, with headers and body captured from the page.","code":["packages/components/transfeero/src/TransfeeroWorker.ts","packages/components/transfeero/src/actions/RequestNewRides.ts","packages/components/transfeero/src/actions/GetRequestInfoForURL.ts"],"status":"works","pos":{"x":221.5,"y":112.0,"w":42.0,"h":52.0},"rows":1,"rules":["Every 3 minutes one turn is spent on signing in again if needed and re-capturing the request, instead of polling."]},{"id":"watch-co","kind":"part","parent":"watch","district":"catch","name":"Read Connecto emails","summary":"Looks for mails from Connecto newer than the last one handled and opens the link found in each.","code":["packages/components/connecto/src/ConnectoWorker.ts","packages/components/connecto/src/services/ImapService.ts"],"status":"works","pos":{"x":266.0,"y":112.0,"w":42.0,"h":52.0},"rows":1,"rules":["Four kinds are recognised by how the subject starts: Transfer voucher, Transfer proposal, New Transfer, Transfer Available. Anything else is logged and skipped.","The time of the last handled mail is saved, so a mail is handled once.","On its very first start the worker begins from now; older mail is ignored."]},{"id":"judge","kind":"machine","district":"catch","name":"Judge the order","tag":"per-platform filter","summary":"Decides whether a new order complies with the operator's filter; each platform has its own test.","code":["packages/components/wpickups/src/WPickupsWorker.ts","packages/components/transfeero/src/TransfeeroWorker.ts","packages/components/connecto/src/ConnectoWorker.ts","packages/shared/src/worker/CommonWorker.ts"],"status":"works","pos":{"x":384,"y":100,"w":144,"h":68},"rules":["An order whose pickup time falls inside a time exclusion never complies.","A non-compliant order is reported once, not on every fetch."],"caveats":["For Welcome Pickups and Transfeero the list of already reported orders is kept in memory only, so a restart reports them again."],"app":"dispatcher","parts":["judge-wp","judge-tf","judge-co"]},{"id":"judge-wp","kind":"part","parent":"judge","district":"catch","name":"Welcome Pickups test","summary":"Complies when the transfer is not cancelled, the driver's pay reaches the minimum for its vehicle, the pay per kilometre reaches the minimum rate, and the pickup is not excluded.","code":["packages/components/wpickups/src/WPickupsWorker.ts","packages/components/wpickups/src/models/WPickupsFilterOptions.ts"],"status":"works","pos":{"x":393.0,"y":112.0,"w":42.0,"h":52.0},"rows":1,"rules":["Only minivans and sedans can comply; any other vehicle type is refused with a warning in the log.","Untouched defaults are 1000 per vehicle type and 100 per kilometre."]},{"id":"judge-tf","kind":"part","parent":"judge","district":"catch","name":"Transfeero test","summary":"Complies when the pickup is not excluded, the start or the end mentions Alicante, the partner payout reaches the minimal order cost, and the vehicle class is in the configured vehicle map.","code":["packages/components/transfeero/src/TransfeeroWorker.ts","packages/components/transfeero/src/models/TransfeeroConfig.ts"],"status":"works","pos":{"x":437.5,"y":112.0,"w":42.0,"h":52.0},"rows":1,"rules":["The Alicante condition is written into the code, not a setting.","The untouched default for minimal order cost is 10000."]},{"id":"judge-co","kind":"part","parent":"judge","district":"catch","name":"Connecto test","summary":"Complies when the pickup is not excluded and a line of the uploaded order details matches: same from, same to, vehicle name contains the listed vehicle, price at least the listed price.","code":["packages/components/connecto/src/ConnectoWorker.ts","packages/components/connecto/src/models/ConnectoFilterOptions.ts"],"status":"works","pos":{"x":482.0,"y":112.0,"w":42.0,"h":52.0},"rows":1,"caveats":["The page's cancellation notice is read into the transfer details but plays no part in the decision.","An empty list of order details means nothing complies."]},{"id":"accept","kind":"machine","district":"catch","name":"Accept the order","tag":"drives the page","summary":"Takes a compliant order on the platform by operating its web page.","code":["packages/components/wpickups/src/actions/AssignDriverForTransfer.ts","packages/components/transfeero/src/actions/AcceptRide.ts","packages/components/connecto/src/actions/AcceptTransferVoucher.ts","packages/components/connecto/src/actions/AcceptTransferProposal.ts"],"status":"works","pos":{"x":600,"y":100,"w":144,"h":68},"rules":["Accepting uses the same browser page the worker polls with, so a worker does one thing at a time.","A failed accept is reported to the operator and is not sent to the controller."],"app":"dispatcher","parts":["accept-wp","accept-tf","accept-co"]},{"id":"accept-wp","kind":"part","parent":"accept","district":"catch","name":"Assign driver and vehicle","summary":"Opens the Assign driver dialog, picks a random driver who is not on the excluded list, takes the first vehicle, presses assign and then checks the transfer shows up as assigned.","code":["packages/components/wpickups/src/actions/AssignDriverForTransfer.ts","packages/components/wpickups/src/actions/AssignDriver.ts","packages/components/wpickups/src/actions/AssignVehicle.ts","packages/components/wpickups/src/actions/OpenAssignDriverModal.ts","packages/components/wpickups/src/actions/ClickAssign.ts","packages/components/wpickups/src/actions/CheckAssigned.ts"],"status":"works","pos":{"x":609.0,"y":112.0,"w":42.0,"h":52.0},"rows":1,"rules":["Up to 5 attempts, with a screenshot after each failed one.","The excluded drivers come from the config file."]},{"id":"accept-tf","kind":"part","parent":"accept","district":"catch","name":"Accept Transfeero ride","summary":"Opens the ride page, gets past the bot check, selects the vehicle mapped to the ride's class, presses accept and waits up to 10 seconds for the site's answer.","code":["packages/components/transfeero/src/actions/AcceptRide.ts","packages/components/transfeero/src/actions/SelectVehicle.ts","packages/components/transfeero/src/actions/ClickAccept.ts","packages/components/transfeero/src/actions/OpenNewRidePage.ts"],"status":"works","pos":{"x":653.5,"y":112.0,"w":42.0,"h":52.0},"rows":1,"rules":["The ride counts as accepted only when the site answers with status 200.","With processing order set to reverse in the config, compliant rides are taken from the end of the list first."]},{"id":"accept-co","kind":"part","parent":"accept","district":"catch","name":"Accept Connecto transfer","summary":"Presses the accept button on the voucher or proposal page that was opened from the email.","code":["packages/components/connecto/src/actions/AcceptTransferVoucher.ts","packages/components/connecto/src/actions/AcceptTransferProposal.ts"],"status":"works","pos":{"x":698.0,"y":112.0,"w":42.0,"h":52.0},"rows":1,"caveats":["No answer is read back from the site: a press that raises no error counts as accepted."]},{"id":"publish","kind":"machine","district":"handoff","name":"Publish orders","tag":"to the controller","summary":"Posts orders to the controller, signed with an API key from the config.","code":["packages/shared/src/services/OrderPublisher.ts","apps/dispatcher/src/index.ts","apps/consolidator/src/index.ts"],"status":"works","pos":{"x":836,"y":44,"w":144,"h":52},"rules":["The dispatcher app sends every new order as it happens, compliant or not, marked by its type.","The consolidator app sends the whole list of upcoming transfers after every collection.","A post that fails is only logged: no retry, no queue."],"unverified":["Both Telegram bots add the local-time offset to an order's pickup time on the order itself, not on a copy, and the same order is what gets posted. Whether the controller therefore receives shifted times was not checked by running the code."],"app":"both"},{"id":"announce","kind":"machine","district":"desk","name":"Announce new orders","tag":"Telegram messages","summary":"Sends the operator a message for each new order: accepted, non-compliant, or failed to accept.","code":["apps/dispatcher/src/telegram/TelegramManageBot.ts","apps/dispatcher/src/index.ts"],"status":"works","pos":{"x":836,"y":150,"w":144,"h":56},"rules":["A message goes to the chats that chose that worker; if no chat chose it, nobody is told.","More than 10 non-compliant orders at once become a single line with the count.","Traveler name, phone and comment are shown only for compliant orders.","Pickup time is shown in local time; the offset (UTC+1, or +2 in summer time) is worked out once, when the app starts."],"app":"dispatcher","parts":["ann-accepted","ann-noncompliant","ann-failed"]},{"id":"ann-accepted","kind":"part","parent":"announce","district":"desk","name":"Accepted order message","summary":"Green New order message with id, pickup time, route, car type, traveler and cost.","code":["apps/dispatcher/src/telegram/TelegramManageBot.ts"],"status":"works","pos":{"x":845.0,"y":162.0,"w":42.0,"h":40.0},"rows":1},{"id":"ann-noncompliant","kind":"part","parent":"announce","district":"desk","name":"Non-compliant order message","summary":"Yellow New order (non-compliant) message without traveler details.","code":["apps/dispatcher/src/telegram/TelegramManageBot.ts"],"status":"works","pos":{"x":889.5,"y":162.0,"w":42.0,"h":40.0},"rows":1},{"id":"ann-failed","kind":"part","parent":"announce","district":"desk","name":"Failed accept message","summary":"Red Failed to accept order message, sent when accepting raised an error or the platform said no.","code":["apps/dispatcher/src/telegram/TelegramManageBot.ts","apps/dispatcher/src/index.ts"],"status":"works","pos":{"x":934.0,"y":162.0,"w":42.0,"h":40.0},"rows":1},{"id":"commands","kind":"machine","district":"desk","name":"Take worker commands","tag":"Telegram menu","summary":"The Telegram menu where the operator starts and stops workers and edits their filters.","code":["apps/dispatcher/src/telegram/TelegramManageBot.ts","packages/shared/src/telegram/CommonBotComponent.ts","packages/components/wpickups/src/telegram/WPickupsBotComponent.ts","packages/components/connecto/src/telegram/ConnectoBotComponent.ts","apps/dispatcher/src/services/HostService.ts"],"status":"works","pos":{"x":836,"y":246,"w":144,"h":56},"rules":["Each chat talks to one worker at a time; a chat that never chose one gets the first worker.","A typed value is expected only right after the menu asked for it.","The bot is not started when the app runs in development mode."],"app":"dispatcher","parts":["cmd-worker","cmd-startstop","cmd-delay","cmd-excl","cmd-cost","cmd-details","cmd-host"]},{"id":"cmd-worker","kind":"part","parent":"commands","district":"desk","name":"Choose the chat's worker","summary":"The /worker command ties the chat to one worker; menus and order messages follow that choice.","code":["apps/dispatcher/src/telegram/TelegramManageBot.ts"],"status":"works","pos":{"x":845.0,"y":258.0,"w":30.88,"h":18.75},"rows":2},{"id":"cmd-startstop","kind":"part","parent":"commands","district":"desk","name":"Start or stop worker","summary":"The Start and Stop buttons under /config.","code":["packages/shared/src/telegram/CommonBotComponent.ts","packages/shared/src/worker/CommonWorker.ts"],"status":"works","pos":{"x":878.38,"y":258.0,"w":30.88,"h":18.75},"rows":2},{"id":"cmd-delay","kind":"part","parent":"commands","district":"desk","name":"Set fetch delay","summary":"Shows the delay between fetches in seconds and takes a new number.","code":["packages/shared/src/telegram/CommonBotComponent.ts"],"status":"works","pos":{"x":911.75,"y":258.0,"w":30.88,"h":18.75},"rows":2},{"id":"cmd-excl","kind":"part","parent":"commands","district":"desk","name":"Edit time exclusions","summary":"Lists the exclusions in local time, adds one typed as time-from, time-to and a date, removes by number, range or list.","code":["packages/shared/src/telegram/CommonBotComponent.ts","packages/shared/src/utils/timeRange.ts"],"status":"works","pos":{"x":945.12,"y":258.0,"w":30.88,"h":18.75},"rows":2,"rules":["An exclusion is entered for one day of the current year; a month already past is taken as next year."]},{"id":"cmd-cost","kind":"part","parent":"commands","district":"desk","name":"Set minimal order cost","summary":"One number for Transfeero; for Welcome Pickups one per vehicle type plus a cost-per-kilometre rate.","code":["packages/shared/src/telegram/CommonBotComponent.ts","packages/components/wpickups/src/telegram/WPickupsBotComponent.ts"],"status":"works","pos":{"x":845.0,"y":279.25,"w":30.88,"h":18.75},"rows":2,"caveats":["After a wrongly typed rate, the Back button of the Welcome Pickups menu names an operation that does not exist, so it does nothing.","The Connecto menu has no cost entry; its prices live in the order details file."]},{"id":"cmd-details","kind":"part","parent":"commands","district":"desk","name":"Upload Connecto order details","summary":"Takes a text file with one line per accepted route (from, to, vehicle, price) and replaces the whole list; the current list can be downloaded.","code":["packages/components/connecto/src/telegram/ConnectoBotComponent.ts","packages/components/connecto/src/models/ConnectoTransferDetails.ts"],"status":"works","pos":{"x":878.38,"y":279.25,"w":30.88,"h":18.75},"rows":2,"rules":["One wrong line rejects the whole file and keeps the old list."]},{"id":"cmd-host","kind":"part","parent":"commands","district":"desk","name":"Restart app, reboot server","summary":"/restart_app ends the process so the container restarts it; /reboot_host runs the reboot command.","code":["apps/dispatcher/src/services/HostService.ts","apps/dispatcher/src/telegram/TelegramManageBot.ts"],"status":"partial","pos":{"x":911.75,"y":279.25,"w":30.88,"h":18.75},"rows":2,"unverified":["The app now runs inside a container; whether the reboot command reaches the server from there was not verified."]},{"id":"report","kind":"machine","district":"desk","name":"Report collected transfers","tag":"Telegram replies","summary":"Answers /collect_all, /collect and /services with the assigned transfers sorted by pickup time.","code":["apps/consolidator/src/telegram/TelegramConsolidatorBot.ts"],"status":"works","pos":{"x":836,"y":342,"w":144,"h":56},"rules":["Services that failed are named first, in red.","Only the first two calendar days found in the result are listed.","Each transfer shows service, id, pickup time, from, to, vehicle and price; no traveler data.","Long answers are split into messages of about 4000 characters."],"unverified":["The reply adds the local-time offset to the pickup time on the collected transfer itself. Asking twice within a minute reuses the same collection, so the shown time may move again; not checked by running."],"app":"consolidator","parts":["rep-all","rep-one","rep-list"]},{"id":"rep-all","kind":"part","parent":"report","district":"desk","name":"All services","summary":"/collect_all replies with the transfers of every service.","code":["apps/consolidator/src/telegram/TelegramConsolidatorBot.ts"],"status":"works","pos":{"x":845.0,"y":354.0,"w":42.0,"h":40.0},"rows":1},{"id":"rep-one","kind":"part","parent":"report","district":"desk","name":"One service","summary":"/collect followed by a service name collects that service again and replies with its transfers only.","code":["apps/consolidator/src/telegram/TelegramConsolidatorBot.ts","apps/consolidator/src/services/BackgroundConsolidator.ts"],"status":"works","pos":{"x":889.5,"y":354.0,"w":42.0,"h":40.0},"rows":1},{"id":"rep-list","kind":"part","parent":"report","district":"desk","name":"List the services","summary":"/services lists the service names taken from the config.","code":["apps/consolidator/src/telegram/TelegramConsolidatorBot.ts"],"status":"works","pos":{"x":934.0,"y":354.0,"w":42.0,"h":40.0},"rows":1},{"id":"browsers","kind":"machine","district":"access","name":"Drive the browsers","tag":"one Chrome each","summary":"Connects to a remote Chrome for every worker and one for collecting, keeps it signed in and gets it past bot checks.","code":["packages/shared/src/services/BrowsersManager.ts","packages/shared/src/actions/","packages/shared/src/utils/page.ts","packages/shared/src/worker/BasicWorker.ts"],"status":"works","pos":{"x":168,"y":292,"w":144,"h":56},"rules":["Every worker name needs its own browser address in the config, or the app stops at start.","Connecting is tried 10 times, 3 seconds apart.","Worker pages run with the Europe/Rome time zone and a 1600 by 1024 window."],"holds":["browser","session"],"app":"both","parts":["br-connect","br-session","br-signin","br-botcheck","br-shot"]},{"id":"br-connect","kind":"part","parent":"browsers","district":"access","name":"Connect to Chrome","summary":"Attaches to a Chrome container over its remote-debugging address; a local Chrome can be launched instead for testing.","code":["packages/shared/src/services/BrowsersManager.ts"],"status":"works","pos":{"x":177.0,"y":304.0,"w":42.0,"h":18.75},"rows":2},{"id":"br-session","kind":"part","parent":"browsers","district":"access","name":"Reuse the saved session","summary":"Loads saved cookies, checks whether the site still counts as signed in, and signs in and saves again only if not.","code":["packages/shared/src/actions/CommonScrapeAction.ts","packages/shared/src/actions/LoadCookies.ts","packages/shared/src/actions/StoreCookies.ts"],"status":"works","pos":{"x":221.5,"y":304.0,"w":42.0,"h":18.75},"rows":2},{"id":"br-signin","kind":"part","parent":"browsers","district":"access","name":"Sign in to a site","summary":"Types the account's email and password the way a person would; Connecto adds a PIN step, World Transfer a company code.","code":["packages/components/wpickups/src/actions/SignIn.ts","packages/components/transfeero/src/actions/SignIn.ts","packages/components/connecto/src/actions/GetAssignedTransfers.ts","packages/components/wtdriver/src/actions/SignIn.ts"],"status":"works","pos":{"x":266.0,"y":304.0,"w":42.0,"h":18.75},"rows":2},{"id":"br-botcheck","kind":"part","parent":"browsers","district":"access","name":"Get past bot checks","summary":"Clicks the Cloudflare Turnstile box and waits out Transfeero's security-check page for up to 60 seconds.","code":["packages/shared/src/actions/ClickTurnstile.ts","packages/components/transfeero/src/actions/HandleWaitroom.ts","packages/components/transfeero/src/actions/HandleTurnstile.ts","packages/components/wpickups/src/WPickupsWorker.ts"],"status":"works","pos":{"x":177.0,"y":325.25,"w":42.0,"h":18.75},"rows":2,"rules":["While the Welcome Pickups worker is stopped, it still clicks a Turnstile box on its page once a second if one is there."]},{"id":"br-shot","kind":"part","parent":"browsers","district":"access","name":"Screenshot on failure","summary":"Saves a screenshot of the page and hands it to the logger.","code":["packages/shared/src/utils/page.ts"],"status":"partial","pos":{"x":221.5,"y":325.25,"w":42.0,"h":18.75},"rows":2,"caveats":["With the Telegram log bot switched off, the logger's image handler does nothing, so the picture is saved but shown to nobody."]},{"id":"rules","kind":"store","district":"access","name":"Filters and switches","tag":"per worker","summary":"The saved settings of each worker: fetch delay, time exclusions, cost limits, Connecto order details, plus which workers are switched on and which chat follows which worker.","code":["packages/shared/src/models/CommonWorkerState.ts","packages/shared/src/models/CommonFilterOptions.ts","packages/components/wpickups/src/models/WPickupsFilterOptions.ts","packages/components/connecto/src/models/ConnectoFilterOptions.ts","packages/shared/src/worker/BasicWorker.ts","apps/dispatcher/src/services/WorkersManager.ts","apps/dispatcher/src/telegram/TelegramManageBot.ts"],"status":"works","pos":{"x":384,"y":246,"w":144,"h":52},"rules":["Settings are written to the storage folder, which is a Docker volume, so they survive restarts and new versions.","A new worker starts with fetch delay 20 seconds, no exclusions and minimal order cost 10000."],"unverified":["The storage classes come from a private package outside this repository; file names are known from the code, the exact folder layout is not."],"holds":["filter","exclusion","worker","chat"],"app":"dispatcher","parts":["expire"]},{"id":"expire","kind":"part","parent":"rules","district":"access","name":"Drop past time exclusions","summary":"Every 10 minutes while a worker runs, removes the exclusions whose end has passed.","code":["packages/shared/src/worker/TimeExclusionsCleaner.ts"],"status":"works","pos":{"x":388.0,"y":266.0,"w":136.0,"h":28.0},"rows":1},{"id":"sessions","kind":"store","district":"access","name":"Saved sessions","tag":"cookies","summary":"Cookies kept per worker and per collected service, so a restart does not mean signing in again.","code":["packages/shared/src/actions/LoadCookies.ts","packages/shared/src/actions/StoreCookies.ts","packages/shared/src/worker/CommonWorker.ts","apps/consolidator/src/services/ConsolidatorService.ts"],"status":"works","pos":{"x":384,"y":312,"w":144,"h":44},"caveats":["World Transfer and the Google Sheet keep no session; Elife saves one but signs in again every time."],"holds":["session"],"app":"both"},{"id":"rounds","kind":"machine","district":"collect","name":"Make the rounds","tag":"every 10 min","summary":"Starts a collection every 10 minutes and whenever the operator asks, and makes sure only one runs at a time.","code":["apps/consolidator/src/services/BackgroundConsolidator.ts","apps/consolidator/src/services/ConsolidatorService.ts","apps/consolidator/src/index.ts"],"status":"works","pos":{"x":168,"y":472,"w":144,"h":52},"rules":["One collection at a time; a request that arrives during one waits for it and gets its result.","A result younger than 60 seconds is reused instead of collecting again.","Services are visited one after another in config order, all in the same browser page.","A service gets up to 3 tries; if it still fails it is marked failed and the round goes on."],"app":"consolidator"},{"id":"read","kind":"machine","district":"collect","name":"Read assigned transfers","tag":"12 services","summary":"Signs in to one service with a clean browser, reads the transfers assigned to the company and turns each into a standard order.","code":["apps/consolidator/src/services/ConsolidatorService.ts","packages/shared/src/actions/CommonScrapeAction.ts","apps/consolidator/src/actions/ClearCooies.ts","packages/components/"],"status":"works","pos":{"x":168,"y":552,"w":200,"h":76},"rules":["The browser's cookies are wiped before every service; then that service's saved cookies are loaded.","Transfers whose pickup time has already passed are dropped.","Pickup times are turned from local time into UTC.","When a service fails, a screenshot is taken."],"app":"consolidator","parts":["src-wpickups","src-transfeero","src-connecto","src-talixo","src-atob","src-kiwi","src-wtdriver","src-elife","src-cataxis","src-shuttlespain","src-chofix","src-sheets"]},{"id":"src-wpickups","kind":"part","parent":"read","district":"collect","name":"Welcome Pickups","summary":"Reads the assigned transfers of the next 2 days from the site's own data feed.","code":["packages/components/wpickups/src/actions/GetAssignedTransfers.ts","packages/components/wpickups/src/actions/RequestTransfers.ts"],"status":"works","pos":{"x":177.0,"y":564.0,"w":44.88,"h":18.33},"rows":3},{"id":"src-transfeero","kind":"part","parent":"read","district":"collect","name":"Transfeero","summary":"Replays the site's request for upcoming rides.","code":["packages/components/transfeero/src/actions/GetAssignedTransfers.ts","packages/components/transfeero/src/actions/RequestUpcomingRides.ts"],"status":"works","pos":{"x":224.38,"y":564.0,"w":44.88,"h":18.33},"rows":3},{"id":"src-connecto","kind":"part","parent":"read","district":"collect","name":"Connecto","summary":"Signs in with email, password and PIN, then reads every page of confirmed transfers.","code":["packages/components/connecto/src/actions/GetAssignedTransfers.ts","packages/components/connecto/src/actions/ParseAssignedTransfers.ts"],"status":"works","pos":{"x":271.75,"y":564.0,"w":44.88,"h":18.33},"rows":3},{"id":"src-talixo","kind":"part","parent":"read","district":"collect","name":"Talixo","summary":"Reads the jobs table of the manager page.","code":["packages/components/talixo/src/actions/GetAssignedTransfers.ts","packages/components/talixo/src/actions/ParseAvailiableTransfers.ts"],"status":"partial","pos":{"x":319.12,"y":564.0,"w":44.88,"h":18.33},"rows":3,"caveats":["No booking number is read; each transfer gets a new random id on every collection."]},{"id":"src-atob","kind":"part","parent":"read","district":"collect","name":"AtoB","summary":"Reads the upcoming bookings table, then opens each booking for client, price and passengers.","code":["packages/components/atob/src/actions/GetAssignedTransfers.ts","packages/components/atob/src/actions/ParseTransfersTable.ts","packages/components/atob/src/actions/ParseTransfer.ts"],"status":"works","pos":{"x":177.0,"y":584.83,"w":44.88,"h":18.33},"rows":3},{"id":"src-kiwi","kind":"part","parent":"read","district":"collect","name":"Kiwitaxi","summary":"Captures the site's own orders request and replays it asking for scheduled orders.","code":["packages/components/kiwi/src/actions/GetAssignedTransfers.ts","packages/components/kiwi/src/actions/RequestScheduledTransfers.ts"],"status":"works","pos":{"x":224.38,"y":584.83,"w":44.88,"h":18.33},"rows":3},{"id":"src-wtdriver","kind":"part","parent":"read","district":"collect","name":"World Transfer","summary":"Signs in with company code, user and password, reads the confirmed cards and logs out.","code":["packages/components/wtdriver/src/actions/GetAssignedTransfers.ts","packages/components/wtdriver/src/actions/ParseApprovedTransfers.ts"],"status":"partial","pos":{"x":271.75,"y":584.83,"w":44.88,"h":18.33},"rows":3,"caveats":["Each transfer gets a new random id on every collection (marked to be replaced in the code).","No session is kept; it signs in on every visit."]},{"id":"src-elife","kind":"part","parent":"read","district":"collect","name":"Elife","summary":"Opens every booked ride tile and catches the ride data the site loads for it.","code":["packages/components/elife/src/actions/GetAssignedTransfers.ts","packages/components/elife/src/actions/RideResponseInterceptor.ts","packages/components/elife/src/actions/OpenTransferPage.ts"],"status":"partial","pos":{"x":319.12,"y":584.83,"w":44.88,"h":18.33},"rows":3,"caveats":["The signed-in check is a to-do that always says no, so it signs in and accepts the supplier agreement on every visit."]},{"id":"src-cataxis","kind":"part","parent":"read","district":"collect","name":"City Airport Taxis","summary":"Asks the site for the upcoming list, then opens each reservation for client, vehicle and net rate.","code":["packages/components/ca-taxis/src/actions/GetAssignedTransfers.ts","packages/components/ca-taxis/src/actions/RequestUpcomingTransfers.ts","packages/components/ca-taxis/src/actions/ParseTransferDetails.ts"],"status":"works","pos":{"x":177.0,"y":605.67,"w":44.88,"h":18.33},"rows":3,"rules":["When the reservation page shows a doubled booking, the net rate is halved."]},{"id":"src-shuttlespain","kind":"part","parent":"read","district":"collect","name":"Shuttle Spain","summary":"Opens the services list and catches the data the page loads.","code":["packages/components/shuttlespain/src/actions/GetAssignedTransfers.ts","packages/components/shuttlespain/src/actions/RideResponseInterceptor.ts"],"status":"works","pos":{"x":224.38,"y":605.67,"w":44.88,"h":18.33},"rows":3},{"id":"src-chofix","kind":"part","parent":"read","district":"collect","name":"Chofix","summary":"Reads the table of confirmed services. The newest of the twelve.","code":["packages/components/chofix/src/actions/GetAssignedTransfers.ts"],"status":"partial","pos":{"x":271.75,"y":605.67,"w":44.88,"h":18.33},"rows":3,"caveats":["Every transfer gets the id unknown (a to-do in the code)."]},{"id":"src-sheets","kind":"part","parent":"read","district":"collect","name":"Google Sheet","summary":"Reads rows through the Google Sheets API with a service account; the config says which column holds what.","code":["packages/components/google-sheets/src/services/GoogleSheetsService.ts","packages/components/google-sheets/src/models/SheetTarget.ts"],"status":"works","pos":{"x":319.12,"y":605.67,"w":44.88,"h":18.33},"rows":3,"rules":["No browser is involved; rows are read 100 at a time from the configured start row."]},{"id":"snapshot","kind":"store","district":"collect","name":"Last collection","tag":"fresh for 60 s","summary":"The latest result per service, either its upcoming transfers or its error, kept in memory with the time it was taken.","code":["apps/consolidator/src/services/BackgroundConsolidator.ts","apps/consolidator/src/models/ConsolidationResult.ts"],"status":"works","pos":{"x":440,"y":566,"w":144,"h":48},"rules":["It lives in memory only and is empty after a restart until the first collection ends.","Collecting one service replaces only that service's part."],"holds":["snapshot-thing","order"],"app":"consolidator"},{"id":"ship","kind":"machine","district":"ops","name":"Build and ship","tag":"Docker and Ansible","summary":"Bundles each app into a Docker image, keeps images in a private registry and rolls them out with Ansible playbooks.","code":["apps/dispatcher/Dockerfile","apps/consolidator/Dockerfile","apps/dispatcher/rollup.config.js","apps/consolidator/rollup.config.js","ansible/playbooks/","ansible/roles/","package.json",".devcontainer/"],"status":"partial","pos":{"x":168,"y":704,"w":144,"h":56},"caveats":["The README still describes packages/launcher and lerna; the code has apps/dispatcher and pnpm workspaces. The code is what was mapped.","The role ansible/roles/docker-stack is used by no playbook and points at a compose file that is not in the repository."],"parts":["ship-build","ship-registry","ship-deploy","ship-bootstrap"]},{"id":"ship-build","kind":"part","parent":"ship","district":"ops","name":"Build the app image","summary":"Installs dependencies with a private-registry token passed as a build secret, compiles, and bundles the app into a single file.","code":["apps/dispatcher/Dockerfile","apps/consolidator/Dockerfile","apps/dispatcher/rollup.config.js","package.json"],"status":"partial","pos":{"x":177.0,"y":716.0,"w":64.25,"h":18.75},"rows":2,"caveats":["The root scripts bundle-dispatcher and bundle-consolidator call a build script that package.json does not define; the Dockerfiles build inside the app folder and do not depend on it."]},{"id":"ship-registry","kind":"part","parent":"ship","district":"ops","name":"Private image registry","summary":"A Docker registry with TLS and password login, set up by its own playbook; a script makes the self-signed certificate.","code":["ansible/roles/docker-registry/","ansible/playbooks/deploy-registry.yml","scripts/generate-registry-certs.sh"],"status":"works","pos":{"x":243.75,"y":716.0,"w":64.25,"h":18.75},"rows":2},{"id":"ship-deploy","kind":"part","parent":"ship","district":"ops","name":"Roll out an app","summary":"Writes the app's config file from inventory variables, templates the compose file, pulls the image and starts the stack.","code":["ansible/roles/dispatcher-deploy/","ansible/roles/consolidator-deploy/","ansible/playbooks/deploy-dispatcher.yml","ansible/playbooks/deploy-consolidator.yml"],"status":"works","pos":{"x":177.0,"y":737.25,"w":64.25,"h":18.75},"rows":2,"rules":["When the config changed, the app container is recreated.","The config and secret variable files are kept out of git."]},{"id":"ship-bootstrap","kind":"part","parent":"ship","district":"ops","name":"Prepare a new server","summary":"Installs base packages, an app user, Docker, and trust for the registry's certificate.","code":["ansible/playbooks/bootstrap.yml","ansible/roles/common-base/","ansible/roles/docker-engine/"],"status":"works","pos":{"x":243.75,"y":737.25,"w":64.25,"h":18.75},"rows":2},{"id":"containers","kind":"store","district":"ops","name":"Running containers","tag":"apps and Chromes","summary":"On the server: the dispatcher with five Chrome containers, and the consolidator with one.","code":["ansible/roles/dispatcher-deploy/templates/docker-compose.yml.j2","ansible/roles/consolidator-deploy/templates/docker-compose.yml.j2","apps/dispatcher/docker-compose.yml","apps/consolidator/docker-compose.yml"],"status":"works","pos":{"x":384,"y":708,"w":160,"h":48},"rules":["The dispatcher's Chromes are named for Welcome Pickups, Transfeero 1, 2 and 3, and Connecto.","Every Chrome keeps its profile in a volume and can be watched over VNC on its own port.","Each app has its storage folder in a volume and its config file mounted read-only.","All containers restart by themselves unless stopped on purpose."],"holds":["image","browser","config"]},{"id":"health","kind":"machine","district":"ops","name":"Watch server health","tag":"Grafana stack","summary":"Gathers container logs and machine metrics and shows them on two Grafana dashboards.","code":["monitoring/","ansible/roles/monitoring-deploy/","ansible/playbooks/deploy-monitoring.yml"],"status":"partial","pos":{"x":836,"y":704,"w":144,"h":56},"parts":["hl-logs","hl-metrics","hl-dash","hl-app","hl-tglog"]},{"id":"hl-logs","kind":"part","parent":"health","district":"ops","name":"Gather container logs","summary":"Promtail tails the Docker logs of the named containers and sends them to Loki, kept 30 days.","code":["monitoring/promtail/promtail.yml","monitoring/loki/loki.yml"],"status":"partial","pos":{"x":845.0,"y":716.0,"w":42.0,"h":18.75},"rows":2,"caveats":["The list of containers names the first two Transfeero Chromes but not the third."]},{"id":"hl-metrics","kind":"part","parent":"health","district":"ops","name":"Gather machine metrics","summary":"Node exporter and cAdvisor feed Prometheus every 15 seconds, kept 30 days.","code":["monitoring/prometheus/prometheus.yml","monitoring/docker-compose.yml"],"status":"works","pos":{"x":889.5,"y":716.0,"w":42.0,"h":18.75},"rows":2},{"id":"hl-dash","kind":"part","parent":"health","district":"ops","name":"Show dashboards","summary":"Grafana on port 3001 with two ready dashboards: Server Overview and Container Metrics.","code":["monitoring/grafana/dashboards/","monitoring/grafana/provisioning/"],"status":"works","pos":{"x":934.0,"y":716.0,"w":42.0,"h":18.75},"rows":2},{"id":"hl-app","kind":"part","parent":"health","district":"ops","name":"App health and metrics","summary":"The Dockerfiles probe a /health address on ports 9091 and 9092 and Prometheus has commented-out jobs for the apps.","code":["apps/dispatcher/Dockerfile","apps/consolidator/Dockerfile","monitoring/prometheus/prometheus.yml"],"status":"planned","pos":{"x":845.0,"y":737.25,"w":42.0,"h":18.75},"rows":2,"caveats":["No code in this repository answers on those ports, so the health probe has nothing to reach."]},{"id":"hl-tglog","kind":"part","parent":"health","district":"ops","name":"Logs to Telegram","summary":"A Telegram log bot is prepared in both apps but commented out; logs go to the console only.","code":["apps/dispatcher/src/index.ts","apps/consolidator/src/index.ts"],"status":"partial","pos":{"x":889.5,"y":737.25,"w":42.0,"h":18.75},"rows":2,"caveats":["Switched off in the latest commit (dispatcher: disable tg logger)."]},{"id":"mail","kind":"thing","family":"job","name":"Connecto email","summary":"A mail from Connecto that points at an order page.","code":["packages/components/connecto/src/models/Mail.ts","packages/components/connecto/src/ConnectoWorker.ts"],"status":"works","pos":{"x":30,"y":34,"w":180,"h":190},"fields":["subject","time received","link to the order"],"states":["new","handled"]},{"id":"offer","kind":"thing","family":"job","name":"Open order","summary":"An order a platform offers for taking, still in the platform's own shape: an unassigned transfer, a new ride, a voucher or a proposal.","code":["packages/components/wpickups/src/models/Transfer.ts","packages/components/transfeero/src/models/Ride.ts","packages/components/connecto/src/models/ConnectoTransferDetails.ts"],"status":"works","pos":{"x":256,"y":34,"w":180,"h":190},"fields":["pickup time","from, to","vehicle","pay","distance"],"states":["open","compliant","accepted"],"altStates":["open","non-compliant"]},{"id":"order","kind":"thing","family":"job","name":"Order","summary":"The project's one standard record of a transfer, whatever platform it came from.","code":["packages/shared/src/models/Order.ts"],"status":"works","pos":{"x":482,"y":34,"w":180,"h":190},"fields":["id, platform","pickup time (UTC)","from, to","car type, passengers","cost","customer","compliant or not"],"states":["made","announced","published"],"rules":["Pickup time is kept in UTC; local time is UTC+1, or +2 in summer time.","Customer name, phone and comment are filled only where the platform shows them.","A collected transfer is always marked compliant."]},{"id":"snapshot-thing","kind":"thing","family":"job","name":"Collection result","summary":"What one collection brought back: for each service its upcoming transfers or its error.","code":["apps/consolidator/src/models/ConsolidationResult.ts","apps/consolidator/src/services/BackgroundConsolidator.ts"],"status":"works","pos":{"x":708,"y":34,"w":180,"h":190},"fields":["per service: transfers","per service: error","time taken"],"states":["fresh (60 s)","stale","replaced"]},{"id":"source","kind":"thing","family":"job","name":"Service","summary":"One place that lists the company's assigned transfers, under the name the config gives it.","code":["apps/consolidator/src/models/ConsolidatorConfig.ts"],"status":"works","pos":{"x":934,"y":34,"w":180,"h":190},"fields":["name","kind (one of 12)","credentials","sheet and columns"]},{"id":"exclusion","kind":"thing","family":"talk","name":"Time exclusion","summary":"A stretch of time in which no order is to be accepted.","code":["packages/shared/src/models/TimeRange.ts","packages/shared/src/utils/timeRange.ts","packages/shared/src/worker/TimeExclusionsCleaner.ts"],"status":"works","pos":{"x":30,"y":296,"w":180,"h":190},"fields":["from","to"],"states":["active","past","dropped"]},{"id":"filter","kind":"thing","family":"talk","name":"Filter","summary":"A worker's own test for which orders to accept.","code":["packages/shared/src/models/CommonFilterOptions.ts","packages/components/wpickups/src/models/WPickupsFilterOptions.ts","packages/components/connecto/src/models/ConnectoFilterOptions.ts"],"status":"works","pos":{"x":256,"y":296,"w":180,"h":190},"fields":["time exclusions","minimal order cost","cost per vehicle type","cost per km rate","Connecto order details"],"rules":["Per vehicle type and per km apply to Welcome Pickups only; order details apply to Connecto only."]},{"id":"notice","kind":"thing","family":"talk","name":"Telegram message","summary":"What the bots send to the operator: order notices, menus and transfer lists.","code":["apps/dispatcher/src/telegram/TelegramManageBot.ts","apps/consolidator/src/telegram/TelegramConsolidatorBot.ts"],"status":"works","pos":{"x":934,"y":296,"w":180,"h":190},"fields":["green: accepted","yellow: non-compliant","red: failed","transfer list"]},{"id":"chat","kind":"thing","family":"talk","name":"Operator chat","summary":"A Telegram chat the config allows; it follows one worker.","code":["packages/shared/src/models/TelegramBotPreferences.ts","apps/dispatcher/src/telegram/TelegramManageBot.ts"],"status":"works","pos":{"x":708,"y":296,"w":180,"h":190},"fields":["chat id","chosen worker","value awaited"],"states":["idle","awaiting a value"]},{"id":"command","kind":"thing","family":"talk","name":"Command","summary":"Anything the operator sends: a slash command, a menu press, a typed value, a file.","code":["apps/dispatcher/src/telegram/TelegramManageBot.ts","packages/shared/src/telegram/BotComponent.ts","apps/consolidator/src/telegram/TelegramConsolidatorBot.ts"],"status":"works","pos":{"x":482,"y":296,"w":180,"h":190},"fields":["/config, /worker","/restart_app, /reboot_host","/collect, /collect_all","/services"]},{"id":"config","kind":"thing","family":"access","name":"Config file","summary":"One read-only file per app, written by the deploy: accounts, bot tokens, allowed chats, browser addresses, controller address and key.","code":["apps/dispatcher/src/models/Config.ts","apps/consolidator/src/models/Config.ts"],"status":"works","pos":{"x":30,"y":558,"w":180,"h":190},"fields":["workers or services","accounts","Telegram bots and chats","browser addresses","controller address, key"],"rules":["It is kept out of git; the secrets in it never appear in the repository."]},{"id":"worker","kind":"thing","family":"access","name":"Worker","summary":"One platform account being watched. It has a type, a filter, a fetch delay and a browser of its own.","code":["packages/shared/src/interfaces/IWorker.ts","packages/shared/src/models/CommonWorkerConfig.ts","packages/shared/src/models/CommonWorkerState.ts"],"status":"works","pos":{"x":256,"y":558,"w":180,"h":190},"fields":["name","type (one of 3)","fetch delay","filter","account"],"states":["stopped","running"],"loop":true,"rules":["The types are Welcome Pickups, Transfeero and Connecto.","The running switch is saved, so a restart brings running workers back."]},{"id":"browser","kind":"thing","family":"access","name":"Browser","summary":"A Chrome in its own container that a worker, or the collector, drives from outside.","code":["packages/shared/src/services/BrowsersManager.ts","apps/dispatcher/docker-compose.yml"],"status":"works","pos":{"x":482,"y":558,"w":180,"h":190},"fields":["remote address","profile volume","VNC port"],"states":["connected","disconnected"],"loop":true},{"id":"session","kind":"thing","family":"access","name":"Session","summary":"The saved cookies that keep one account signed in on one site.","code":["packages/shared/src/actions/StoreCookies.ts","packages/shared/src/actions/LoadCookies.ts","packages/shared/src/actions/CommonScrapeAction.ts"],"status":"works","pos":{"x":708,"y":558,"w":180,"h":190},"fields":["cookies"],"states":["signed in","signed out"],"loop":true},{"id":"image","kind":"thing","family":"ops","name":"App image","summary":"A Docker image holding one app bundled into a single file.","code":["apps/dispatcher/Dockerfile","apps/consolidator/Dockerfile"],"status":"works","pos":{"x":934,"y":558,"w":180,"h":88},"fields":["dispatcher","consolidator"]},{"id":"logs","kind":"thing","family":"ops","name":"Logs and metrics","summary":"What the containers print and how much of the machine they use.","code":["monitoring/promtail/promtail.yml","monitoring/prometheus/prometheus.yml"],"status":"works","pos":{"x":934,"y":660,"w":180,"h":88},"fields":["container logs","host and container use"]}],"links":[{"id":"l-offers","from":"platforms","to":"watch","kind":"job","label":"open orders","view":"floor","carries":["offer"],"summary":"Unassigned transfers and new rides, as the platforms list them.","path":[[106,114],[168,114]],"labelPos":{"x":137,"y":109,"anchor":"middle"}},{"id":"l-mail","from":"mailbox","to":"watch","kind":"job","label":"order emails","view":"floor","carries":["mail"],"summary":"Connecto's voucher, proposal and new-transfer emails.","path":[[106,156],[168,156]],"labelPos":{"x":137,"y":151,"anchor":"middle"}},{"id":"l-tick-watch","from":"clock","to":"watch","kind":"tick","label":"fetch delay","view":"floor","summary":"Each worker waits its fetch delay between two fetches.","path":[[106,216],[190,216],[190,168]],"labelPos":{"x":148,"y":211,"anchor":"middle"}},{"id":"l-watch-judge","from":"watch","to":"judge","kind":"job","label":"new orders","view":"floor","carries":["offer"],"summary":"Every open order found in a fetch.","path":[[312,134],[384,134]],"labelPos":{"x":348.0,"y":129,"anchor":"middle"}},{"id":"l-rules-judge","from":"rules","to":"judge","kind":"talk","label":"filter","view":"floor","carries":["filter","exclusion"],"summary":"The worker's saved filter, read at every judgement.","path":[[456,246],[456,168]],"labelPos":{"x":462,"y":216,"anchor":"start"}},{"id":"l-rules-watch","from":"rules","to":"watch","kind":"talk","label":"on/off, delay","view":"floor","carries":["worker"],"summary":"Start and stop act on the worker at once; the switch is saved so the worker resumes after a restart. The fetch delay is read before every wait.","path":[[384,262],[280,262],[280,168]],"labelPos":{"x":332,"y":257,"anchor":"middle"}},{"id":"l-judge-accept","from":"judge","to":"accept","kind":"job","label":"compliant","view":"floor","carries":["offer"],"summary":"Orders that passed the filter.","path":[[528,134],[600,134]],"labelPos":{"x":564.0,"y":129,"anchor":"middle"}},{"id":"l-misfit-publish","from":"judge","to":"publish","kind":"job","label":"non-compliant orders","view":"floor","carries":["order"],"summary":"Orders that failed the filter, as standard orders marked non-compliant.","path":[[506,168],[506,209],[780,209],[780,74],[836,74]],"labelPos":{"x":640,"y":204,"anchor":"middle"}},{"id":"l-misfit-announce","from":"judge","to":"announce","kind":"job","view":"floor","carries":["order"],"summary":"The same non-compliant orders, on their way to the operator.","path":[[506,168],[506,209],[780,209],[780,160],[836,160]],"labelPos":{"x":643.0,"y":204,"anchor":"middle"}},{"id":"l-accept","from":"accept","to":"platforms","kind":"job","label":"accept","view":"floor","carries":["offer"],"summary":"The clicks that take the order: driver and vehicle assigned, or the accept button pressed.","path":[[672,100],[672,58],[56,58],[56,94]],"labelPos":{"x":380,"y":53,"anchor":"middle"}},{"id":"l-accepted-announce","from":"accept","to":"announce","kind":"job","label":"accepted, failed","view":"floor","carries":["order"],"summary":"Accepted orders, and orders whose accept failed.","path":[[744,160],[836,160]],"labelPos":{"x":790,"y":155,"anchor":"middle"}},{"id":"l-accepted-publish","from":"accept","to":"publish","kind":"job","view":"floor","carries":["order"],"summary":"Accepted orders on their way to the controller. Failed accepts do not travel here.","path":[[744,160],[780,160],[780,74],[836,74]],"labelPos":{"x":786,"y":120.5,"anchor":"start"}},{"id":"l-publish-controller","from":"publish","to":"controller","kind":"job","label":"orders","view":"floor","carries":["order"],"summary":"A list of orders in one web request.","path":[[980,70],[1046,70]],"labelPos":{"x":1013.0,"y":65,"anchor":"middle"}},{"id":"l-announce-operator","from":"announce","to":"operator","kind":"talk","label":"notices","view":"floor","carries":["notice"],"summary":"One Telegram message per order, or a count.","path":[[980,178],[1046,178]],"labelPos":{"x":1013.0,"y":173,"anchor":"middle"}},{"id":"l-operator-commands","from":"operator","to":"commands","kind":"talk","label":"commands","view":"floor","carries":["command"],"summary":"Slash commands, menu presses, typed values and one uploaded file.","path":[[1046,262],[980,262]],"labelPos":{"x":1013.0,"y":257,"anchor":"middle"}},{"id":"l-commands-operator","from":"commands","to":"operator","kind":"talk","label":"replies","view":"floor","carries":["notice"],"summary":"Menus, current values and confirmations.","path":[[980,286],[1046,286]],"labelPos":{"x":1013,"y":299,"anchor":"middle"}},{"id":"l-commands-rules","from":"commands","to":"rules","kind":"talk","label":"filter changes, start and stop","view":"floor","carries":["command","filter"],"summary":"What the operator set, written into the worker's saved state.","path":[[836,274],[528,274]],"labelPos":{"x":655,"y":269,"anchor":"middle"}},{"id":"l-operator-report","from":"operator","to":"report","kind":"talk","label":"requests","view":"floor","carries":["command"],"summary":"/collect_all, /collect and /services.","path":[[1046,358],[980,358]],"labelPos":{"x":1013.0,"y":353,"anchor":"middle"}},{"id":"l-report-operator","from":"report","to":"operator","kind":"talk","label":"transfers","view":"floor","carries":["notice"],"summary":"The transfers of the next two days, as one or more messages.","path":[[980,382],[1046,382]],"labelPos":{"x":1013,"y":395,"anchor":"middle"}},{"id":"l-report-rounds","from":"report","to":"rounds","kind":"talk","label":"collect now","view":"floor","carries":["command"],"summary":"A request to collect, for all services or for one.","path":[[836,370],[612,370],[612,426],[260,426],[260,472]],"labelPos":{"x":430,"y":421,"anchor":"middle"}},{"id":"l-tick-rounds","from":"clock","to":"rounds","kind":"tick","label":"every 10 min","view":"floor","summary":"Ten minutes after a collection ends, the next one starts.","path":[[36,232],[36,498],[168,498]],"labelPos":{"x":42,"y":372,"anchor":"start"}},{"id":"l-rounds-read","from":"rounds","to":"read","kind":"job","label":"next service","view":"floor","carries":["source"],"summary":"The service to visit now.","path":[[240,524],[240,552]],"labelPos":{"x":246,"y":542,"anchor":"start"}},{"id":"l-bookings","from":"sources","to":"read","kind":"job","label":"assigned","view":"floor","carries":["order"],"summary":"Transfers the company already holds, as each service lists them.","path":[[106,590],[168,590]],"labelPos":{"x":137,"y":585,"anchor":"middle"}},{"id":"l-read-snapshot","from":"read","to":"snapshot","kind":"job","label":"upcoming","view":"floor","carries":["order","snapshot-thing"],"summary":"Standard orders for the transfers still ahead, or the error that stopped the service.","path":[[368,590],[440,590]],"labelPos":{"x":404.0,"y":585,"anchor":"middle"}},{"id":"l-snapshot-report","from":"snapshot","to":"report","kind":"job","label":"last collection","view":"floor","carries":["snapshot-thing","order"],"summary":"The result the reply is built from.","path":[[584,600],[870,600],[870,398]],"labelPos":{"x":720,"y":613,"anchor":"middle"}},{"id":"l-snapshot-publish","from":"snapshot","to":"publish","kind":"job","label":"all upcoming transfers","view":"floor","carries":["order"],"summary":"After every collection, the upcoming transfers of all services in one list.","path":[[584,578],[780,578],[780,74],[836,74]],"labelPos":{"x":682,"y":573,"anchor":"middle"}},{"id":"l-browsers-catch","from":"browsers","to":"catch","kind":"access","label":"signed-in page","view":"floor","carries":["session","browser"],"summary":"One browser page per worker, used for polling and for accepting.","path":[[215,292],[215,190]],"labelPos":{"x":221,"y":283,"anchor":"start"}},{"id":"l-browsers-collect","from":"browsers","to":"collect","kind":"access","label":"signed-in page","view":"floor","carries":["session","browser"],"summary":"One browser page shared by all services, cleaned between them.","path":[[215,348],[215,440]],"labelPos":{"x":221,"y":412,"anchor":"start"}},{"id":"l-browsers-sessions","from":"browsers","to":"sessions","kind":"access","label":"cookies","view":"floor","carries":["session"],"summary":"Saved after signing in, loaded before the next visit.","both":true,"path":[[312,334],[384,334]],"labelPos":{"x":348.0,"y":329,"anchor":"middle"}},{"id":"l-dev-ship","from":"developer","to":"ship","kind":"ops","label":"code, config","view":"floor","carries":["config"],"summary":"The source tree and the config variables kept outside git.","path":[[106,732],[168,732]],"labelPos":{"x":137,"y":727,"anchor":"middle"}},{"id":"l-ship-containers","from":"ship","to":"containers","kind":"ops","label":"app images","view":"floor","carries":["image","config"],"summary":"One image per app, pulled from the private registry, plus its config file.","path":[[312,732],[384,732]],"labelPos":{"x":348.0,"y":727,"anchor":"middle"}},{"id":"l-containers-health","from":"containers","to":"health","kind":"ops","label":"logs and metrics","view":"floor","carries":["logs"],"summary":"What the containers print, and how much processor, memory, network and disk they use.","path":[[544,732],[836,732]],"labelPos":{"x":690.0,"y":727,"anchor":"middle"}},{"id":"l-health-grafana","from":"health","to":"grafana","kind":"ops","label":"dashboards","view":"floor","carries":["logs"],"summary":"Server Overview and Container Metrics.","path":[[980,732],[1046,732]],"labelPos":{"x":1013.0,"y":727,"anchor":"middle"}},{"id":"t-mail-offer","from":"mail","to":"offer","kind":"relation","label":"leads to","view":"things","path":[[210,94],[256,94]],"labelPos":{"x":233.0,"y":89,"anchor":"middle"}},{"id":"t-offer-order","from":"offer","to":"order","kind":"relation","label":"becomes","view":"things","path":[[436,94],[482,94]],"labelPos":{"x":459.0,"y":89,"anchor":"middle"}},{"id":"t-snapshot-order","from":"snapshot-thing","to":"order","kind":"relation","label":"holds","view":"things","path":[[708,94],[662,94]],"labelPos":{"x":685.0,"y":89,"anchor":"middle"}},{"id":"t-source-snapshot","from":"source","to":"snapshot-thing","kind":"relation","label":"fills","view":"things","path":[[934,94],[888,94]],"labelPos":{"x":911.0,"y":89,"anchor":"middle"}},{"id":"t-filter-offer","from":"filter","to":"offer","kind":"relation","label":"judges","view":"things","path":[[346,296],[346,224]],"labelPos":{"x":352,"y":263.5,"anchor":"start"}},{"id":"t-filter-exclusion","from":"filter","to":"exclusion","kind":"relation","label":"has","view":"things","path":[[256,356],[210,356]],"labelPos":{"x":233.0,"y":351,"anchor":"middle"}},{"id":"t-command-filter","from":"command","to":"filter","kind":"relation","label":"changes","view":"things","path":[[482,356],[436,356]],"labelPos":{"x":459.0,"y":351,"anchor":"middle"}},{"id":"t-chat-command","from":"chat","to":"command","kind":"relation","label":"sends","view":"things","path":[[708,356],[662,356]],"labelPos":{"x":685.0,"y":351,"anchor":"middle"}},{"id":"t-notice-chat","from":"notice","to":"chat","kind":"relation","label":"sent to","view":"things","path":[[934,356],[888,356]],"labelPos":{"x":911.0,"y":351,"anchor":"middle"}},{"id":"t-notice-order","from":"notice","to":"order","kind":"relation","label":"shows","view":"things","path":[[1024,296],[1024,260],[572,260],[572,224]],"labelPos":{"x":798.0,"y":255,"anchor":"middle"}},{"id":"t-worker-filter","from":"worker","to":"filter","kind":"relation","label":"has","view":"things","path":[[286,558],[286,486]],"labelPos":{"x":292,"y":525.5,"anchor":"start"}},{"id":"t-chat-worker","from":"chat","to":"worker","kind":"relation","label":"follows","view":"things","path":[[758,486],[758,514],[366,514],[366,558]],"labelPos":{"x":562.0,"y":509,"anchor":"middle"}},{"id":"t-config-worker","from":"config","to":"worker","kind":"relation","label":"defines","view":"things","path":[[210,618],[256,618]],"labelPos":{"x":233.0,"y":613,"anchor":"middle"}},{"id":"t-worker-browser","from":"worker","to":"browser","kind":"relation","label":"drives","view":"things","path":[[436,618],[482,618]],"labelPos":{"x":459.0,"y":613,"anchor":"middle"}},{"id":"t-browser-session","from":"browser","to":"session","kind":"relation","label":"loads","view":"things","path":[[662,618],[708,618]],"labelPos":{"x":685.0,"y":613,"anchor":"middle"}},{"id":"t-source-session","from":"source","to":"session","kind":"relation","label":"keeps","view":"things","path":[[1114,154],[1132,154],[1132,536],[828,536],[828,558]],"labelPos":{"x":958,"y":531,"anchor":"middle"}}],"routes":[{"id":"accept-wp","name":"Accept a Welcome Pickups order","group":"g-catch","status":"works","trigger":"clock","summary":"A compliant unassigned transfer gets a driver and a vehicle before anyone else takes it, and the operator and the controller are told.","steps":["clock","l-tick-watch","watch-wp","l-offers","l-watch-judge","judge-wp","l-rules-judge","l-judge-accept","accept-wp","l-accept","l-accepted-announce","announce","l-announce-operator","l-accepted-publish","publish","l-publish-controller"],"stepNotes":["fetch delay passes","fetch unassigned transfers","cost, rate, time test","assign driver, vehicle","green message","post to controller"]},{"id":"accept-tf","name":"Accept a Transfeero ride","group":"g-catch","status":"works","trigger":"clock","summary":"A compliant new ride near Alicante is accepted with the vehicle mapped to its class.","steps":["clock","l-tick-watch","watch-tf","l-offers","l-watch-judge","judge-tf","l-rules-judge","l-judge-accept","accept-tf","l-accept","l-accepted-announce","announce","l-announce-operator","l-accepted-publish","publish","l-publish-controller"],"stepNotes":["fetch delay passes","replay new-rides request","Alicante, cost, class test","select vehicle, accept","green message","post to controller"]},{"id":"accept-co","name":"Accept a Connecto transfer","group":"g-catch","status":"works","trigger":"mail","summary":"An emailed voucher or proposal that matches the uploaded order details is accepted on its page.","steps":["mailbox","l-mail","watch-co","l-watch-judge","judge-co","l-rules-judge","l-judge-accept","accept-co","l-accept","l-accepted-announce","announce","l-announce-operator","l-accepted-publish","publish","l-publish-controller"],"stepNotes":["mail arrives","open the mail's link","match order details","press accept","green message","post to controller"]},{"id":"non-compliant","name":"Report a non-compliant order","group":"g-catch","status":"works","trigger":"clock","summary":"An order that fails the filter is not taken, but the operator and the controller still hear about it, once.","steps":["watch","l-watch-judge","judge","l-rules-judge","l-misfit-announce","announce","l-announce-operator","l-misfit-publish","publish","l-publish-controller"],"stepNotes":["new order found","fails the filter","yellow message","post, marked non-compliant"]},{"id":"accept-failed","name":"Report a failed accept","group":"g-catch","status":"works","trigger":"clock","summary":"When accepting goes wrong the operator gets a red message with the order; nothing is sent to the controller.","steps":["judge","l-judge-accept","accept","l-accepted-announce","announce","l-announce-operator"],"stepNotes":["order complies","accept fails","red message"]},{"id":"start-stop","name":"Start or stop a worker","group":"g-operator","status":"works","trigger":"operator","summary":"The operator switches a worker on or off from Telegram; the switch is remembered across restarts.","steps":["operator","l-operator-commands","cmd-startstop","l-commands-rules","rules","l-rules-watch","watch","l-commands-operator"],"stepNotes":["/config, then Start or Stop","start or stop the worker","switch saved","polling begins or ends"]},{"id":"add-exclusion","name":"Add a time exclusion","group":"g-operator","status":"works","trigger":"operator","summary":"The operator blocks out a stretch of time; orders with a pickup inside it stop complying.","steps":["operator","l-operator-commands","cmd-excl","l-commands-rules","rules","l-rules-judge","judge","l-commands-operator"],"stepNotes":["type times and a date","parse into a time range","saved in the filter","pickups inside never comply"]},{"id":"set-cost","name":"Set minimal order cost","group":"g-operator","status":"works","trigger":"operator","summary":"The operator raises or lowers the price below which orders are not accepted.","steps":["operator","l-operator-commands","cmd-cost","l-commands-rules","rules","l-rules-judge","judge","l-commands-operator"],"stepNotes":["type a number","check it is a number","saved in the filter","cheaper orders never comply"]},{"id":"upload-details","name":"Upload Connecto order details","group":"g-operator","status":"works","trigger":"operator","summary":"The operator sends a file listing the routes, vehicles and prices Connecto transfers may be accepted for.","steps":["operator","l-operator-commands","cmd-details","l-commands-rules","rules","l-rules-judge","judge-co","l-commands-operator"],"stepNotes":["send a text file","parse every line","whole list replaced","transfers matched against it"]},{"id":"set-delay","name":"Set the fetch delay","group":"g-operator","status":"works","trigger":"operator","summary":"The operator changes how many seconds a worker waits between fetches.","steps":["operator","l-operator-commands","cmd-delay","l-commands-rules","rules","l-rules-watch","watch","l-commands-operator"],"stepNotes":["type seconds","check it is a number","saved","used for the next wait"]},{"id":"choose-worker","name":"Choose a chat's worker","group":"g-operator","status":"works","trigger":"operator","summary":"A chat is tied to one worker: its menu controls that worker and its order messages arrive there.","steps":["operator","l-operator-commands","cmd-worker","l-commands-rules","rules","announce","l-announce-operator"],"stepNotes":["/worker and a name","check the worker exists","chat's choice saved","messages follow the choice"]},{"id":"restart","name":"Restart app or server","group":"g-operator","status":"partial","trigger":"operator","summary":"The operator restarts the dispatcher app, or asks for the server to reboot, from Telegram.","steps":["operator","l-operator-commands","cmd-host","containers"],"stepNotes":["/restart_app or /reboot_host","end the process or run reboot","container starts again"]},{"id":"drop-exclusions","name":"Drop past time exclusions","group":"g-operator","status":"works","trigger":"clock","summary":"Exclusions that have ended are removed without anyone asking.","steps":["clock","expire"],"stepNotes":["every 10 minutes","remove ended exclusions"]},{"id":"collect-round","name":"Collect transfers every 10 min","group":"g-collect","status":"works","trigger":"clock","summary":"All services are visited in turn and the upcoming transfers of all of them are sent to the controller as one list.","steps":["clock","l-tick-rounds","rounds","l-rounds-read","read","l-browsers-collect","l-bookings","l-read-snapshot","snapshot","l-snapshot-publish","publish","l-publish-controller"],"stepNotes":["10 minutes pass","start a round","sign in, read, drop past ones","result kept","post the whole list"]},{"id":"ask-all","name":"Ask for all transfers","group":"g-collect","status":"works","trigger":"operator","summary":"The operator asks in Telegram and gets the transfers of the next two days across every service.","steps":["operator","l-operator-report","rep-all","l-report-rounds","rounds","l-rounds-read","read","l-bookings","l-read-snapshot","snapshot","l-snapshot-report","report","l-report-operator","l-snapshot-publish","publish","l-publish-controller"],"stepNotes":["/collect_all","reply Collecting","reuse if under 60 s, else collect","visit every service","result kept","sort, cut to two days, send","list posted again"]},{"id":"ask-one","name":"Ask about one service","group":"g-collect","status":"works","trigger":"operator","summary":"The operator asks for one service; only that one is collected again.","steps":["operator","l-operator-report","rep-one","l-report-rounds","rounds","l-rounds-read","read","l-bookings","l-read-snapshot","snapshot","l-snapshot-report","report","l-report-operator","l-snapshot-publish","publish","l-publish-controller"],"stepNotes":["/collect and a name","reply Collecting","collect that service","visit it, up to 3 tries","its part replaced","send its transfers","whole list posted again"]},{"id":"stay-signed-in","name":"Stay signed in","group":"g-access","status":"works","trigger":"clock","summary":"Sessions are saved and reused; when a site has signed the account out, it is signed in again and bot checks are clicked through.","steps":["br-connect","l-browsers-sessions","sessions","br-session","br-signin","br-botcheck","l-browsers-catch","l-browsers-collect"],"stepNotes":["connect to Chrome","cookies loaded","still signed in?","if not, sign in and save","click through bot checks"]},{"id":"ship-version","name":"Ship a new version","group":"g-ops","status":"partial","trigger":"developer","summary":"The developer builds an image, pushes it to the private registry and runs the deploy playbook.","steps":["developer","l-dev-ship","ship-build","ship-registry","ship-deploy","l-ship-containers","containers"],"stepNotes":["run build and deploy","bundle into an image","push to the registry","write config, pull, start","new containers run"]},{"id":"watch-health","name":"Watch server health","group":"g-ops","status":"partial","trigger":"clock","summary":"Logs and metrics of the server and its containers flow into Grafana.","steps":["containers","l-containers-health","hl-logs","hl-metrics","hl-dash","l-health-grafana","grafana"],"stepNotes":["containers run","tail the logs","scrape the metrics","two dashboards","someone looks"]},{"id":"app-health","name":"Check app health","group":"g-ops","status":"planned","trigger":"clock","summary":"The images already probe a health address and Prometheus has scrape jobs waiting, but the apps answer on no port yet.","steps":["containers","hl-app"],"stepNotes":["probe /health","nothing answers yet"]},{"id":"tg-logs","name":"Send logs to Telegram","group":"g-ops","status":"partial","trigger":"clock","summary":"A Telegram log bot is wired in both apps but switched off; logs and failure screenshots stay on the server.","steps":["hl-tglog","br-shot"],"stepNotes":["log bot commented out","screenshots shown to nobody"]}]}</script>
+<script>
+(function(){
+'use strict';
+window.addEventListener('error', function(ev){ var b=document.getElementById('err'); b.style.display='block'; b.textContent += (ev.message||ev)+' @'+(ev.lineno||'')+'\n'; });
+
+var D = JSON.parse(document.getElementById('map-data').textContent);
+var W = D.world.w, H = D.world.h, ZMIN = 0.55, ZMAX = 6, HOME = {z:1, cx:W/2, cy:H/2};
+var E = {}, L = {}, R = {}, FAM = {};
+D.elements.forEach(function(e){ E[e.id] = e; });
+D.links.forEach(function(l){ L[l.id] = l; });
+D.routes.forEach(function(r){ R[r.id] = r; });
+D.families.forEach(function(f){ FAM[f.id] = f; });
+var FLOOR_LINKS = D.links.filter(function(l){ return l.view === 'floor'; });
+var THING_LINKS = D.links.filter(function(l){ return l.view === 'things'; });
+var THINGS = D.elements.filter(function(e){ return e.kind === 'thing'; });
+var STATUS_WORD = {works:'Works', partial:'Has a gap', planned:'Planned', unknown:'Outside this repository'};
+var APP_WORD = {dispatcher:'runs in the dispatcher app', consolidator:'runs in the consolidator app', both:'runs in both apps'};
+var KIND_WORD = {district:'District', machine:'Machine', store:'Store', terminal:'At the edge', part:'Part', thing:'Thing'};
+
+var NS = 'http://www.w3.org/2000/svg';
+function s(tag, attrs){
+  var el = document.createElementNS(NS, tag), k, i, c;
+  for (k in attrs) if (attrs[k] != null) el.setAttribute(k, attrs[k]);
+  for (i = 2; i < arguments.length; i++){ c = arguments[i]; if (c == null) continue;
+    if (Array.isArray(c)) c.forEach(function(x){ if (x != null) el.appendChild(typeof x === 'string' ? document.createTextNode(x) : x); });
+    else el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); }
+  return el;
+}
+function esc(t){ return String(t).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+function wrap(text, maxChars, maxLines){
+  var words = text.split(' '), lines = [], cur = '';
+  words.forEach(function(w){ if (!cur) cur = w; else if ((cur + ' ' + w).length <= maxChars) cur += ' ' + w; else { lines.push(cur); cur = w; } });
+  if (cur) lines.push(cur);
+  if (maxLines && lines.length > maxLines){ lines = lines.slice(0, maxLines - 1).concat([lines.slice(maxLines - 1).join(' ')]); }
+  return lines;
+}
+function roundPath(pts, r){
+  var d = 'M' + pts[0][0] + ',' + pts[0][1], i;
+  for (i = 1; i < pts.length - 1; i++){
+    var a = pts[i-1], b = pts[i], c = pts[i+1];
+    var d1 = Math.hypot(b[0]-a[0], b[1]-a[1]), d2 = Math.hypot(c[0]-b[0], c[1]-b[1]);
+    var rr = Math.min(r, d1/2, d2/2);
+    var ax = b[0]-(b[0]-a[0])/d1*rr, ay = b[1]-(b[1]-a[1])/d1*rr, bx = b[0]+(c[0]-b[0])/d2*rr, by = b[1]+(c[1]-b[1])/d2*rr;
+    d += 'L' + ax + ',' + ay + 'Q' + b[0] + ',' + b[1] + ' ' + bx + ',' + by;
+  }
+  var last = pts[pts.length-1];
+  return d + 'L' + last[0] + ',' + last[1];
+}
+function arrow(tip, from, len, half){
+  var dx = tip[0]-from[0], dy = tip[1]-from[1], n = Math.hypot(dx, dy) || 1; dx /= n; dy /= n;
+  var bx = tip[0]-dx*len, by = tip[1]-dy*len;
+  return {pts: tip[0]+','+tip[1]+' '+(bx-dy*half)+','+(by+dx*half)+' '+(bx+dy*half)+','+(by-dx*half), base:[tip[0]-dx*(len-1.5), tip[1]-dy*(len-1.5)]};
+}
+function statusGlyph(st, cx, cy, r){
+  if (st === 'works') return s('circle', {cx:cx, cy:cy, r:r, 'class':'sg sg-ok'});
+  if (st === 'partial') return s('g', {'class':'sg'}, s('circle', {cx:cx, cy:cy, r:r, 'class':'sg-ring'}),
+    s('path', {d:'M'+cx+','+(cy-r)+'A'+r+','+r+' 0 0 0 '+cx+','+(cy+r)+'Z', 'class':'sg-gap'}));
+  if (st === 'planned') return s('circle', {cx:cx, cy:cy, r:r, 'class':'sg sg-plan'});
+  return s('circle', {cx:cx, cy:cy, r:r, 'class':'sg sg-unk'});
+}
+function statusHtml(st){
+  var c = {works:'<circle cx="5.5" cy="5.5" r="4.6" fill="#1E8E5A"/>',
+    partial:'<circle cx="5.5" cy="5.5" r="4.2" fill="#fff" stroke="#C97A00" stroke-width="1.4"/><path d="M5.5,1.3A4.2,4.2 0 0 0 5.5,9.7Z" fill="#C97A00"/>',
+    planned:'<circle cx="5.5" cy="5.5" r="4.2" fill="#fff" stroke="#6B7B8A" stroke-width="1.4" stroke-dasharray="2 1.4"/>',
+    unknown:'<circle cx="5.5" cy="5.5" r="4.2" fill="#fff" stroke="#7A868F" stroke-width="1.2"/>'}[st];
+  return '<svg class="st" viewBox="0 0 11 11" aria-label="' + STATUS_WORD[st] + '">' + c + '</svg>';
+}
+
+/* ================= state from the hash ================= */
+var S = {view:'floor', r:null, e:null, v:null, tip:null};
+function parse(hash){
+  var p = hash.replace(/^#/, '').split('/'), st = {view: p[0] === 'things' ? 'things' : 'floor', r:null, e:null, v:null, tip:null};
+  p.slice(1).forEach(function(kv){
+    var i = kv.indexOf('='); if (i < 0) return;
+    var k = kv.slice(0, i), val = decodeURIComponent(kv.slice(i+1));
+    if (k === 'r' && R[val]) st.r = val;
+    else if (k === 'e' && (E[val] || L[val])) st.e = val;
+    else if (k === 'tip' && (E[val] || L[val])) st.tip = val;
+    else if (k === 'v'){ var a = val.split(',').map(Number);
+      if (a.length === 3 && a.every(isFinite)) st.v = {z:clamp(a[0], ZMIN, ZMAX), cx:a[1], cy:a[2]}; }
+  });
+  return st;
+}
+function fmt(st){
+  var h = '#' + st.view;
+  if (st.r) h += '/r=' + st.r;
+  if (st.e) h += '/e=' + st.e;
+  if (st.v && !(Math.abs(st.v.z-1) < .005 && Math.abs(st.v.cx-W/2) < 1 && Math.abs(st.v.cy-H/2) < 1))
+    h += '/v=' + [+st.v.z.toFixed(2), Math.round(st.v.cx), Math.round(st.v.cy)].join(',');
+  return h;
+}
+function go(patch, replace){
+  var st = {view:S.view, r:S.r, e:S.e, v:S.v, tip:null}, k;
+  for (k in patch) st[k] = patch[k];
+  var h = fmt(st);
+  if (replace){ history.replaceState(null, '', h); S = st; apply(); }
+  else if (h !== location.hash) location.hash = h;
+  else { S = st; apply(); }
+}
+window.addEventListener('hashchange', function(){ S = parse(location.hash); apply(); });
+
+/* ================= build the floor once ================= */
+var floor = document.getElementById('floor'), thingsSvg = document.getElementById('things');
+var gDistricts = s('g', {}), gBelts = s('g', {}), gNodes = s('g', {}), gLabels = s('g', {}), gBadges = s('g', {}), gKey = s('g', {'class':'key'});
+floor.appendChild(gDistricts); floor.appendChild(gBelts); floor.appendChild(gNodes); floor.appendChild(gLabels); floor.appendChild(gKey); floor.appendChild(gBadges);
+var DOM = {};      // id -> svg element on the floor
+var LABEL = {};    // link id -> label element
+
+function districtOf(id){ var e = E[id]; return e ? (e.kind === 'district' ? e.id : e.district) : null; }
+
+D.elements.forEach(function(e){
+  if (e.kind !== 'district') return;
+  var p = e.pos, g = s('g', {'class':'district', 'data-id':e.id, tabindex:0, role:'button', 'aria-label':'District: ' + e.name},
+    s('rect', {x:p.x, y:p.y, width:p.w, height:p.h, rx:9}),
+    s('text', {'class':'small', x:e.label.x, y:e.label.y, 'text-anchor':e.label.anchor}, e.name));
+  var lines = wrap(e.name, p.w > 300 ? 30 : 9, 3), ly = p.y + p.h/2 - (lines.length-1)*15 + 9;
+  lines.forEach(function(t, i){ g.appendChild(s('text', {'class':'big', x:p.x + p.w/2, y:ly + i*30, 'text-anchor':'middle'}, t)); });
+  gDistricts.appendChild(g); DOM[e.id] = g;
+});
+
+FLOOR_LINKS.forEach(function(l){
+  var pts = l.path.map(function(p){ return p.slice(); }), n = pts.length;
+  var inner = districtOf(l.from) && districtOf(l.from) === districtOf(l.to) && E[l.to].kind !== 'district';
+  var a = arrow(pts[n-1], pts[n-2], 8, 3.6), heads = [s('polygon', {'class':'head', points:a.pts})];
+  pts[n-1] = a.base;
+  if (l.both){ var b = arrow(pts[0], pts[1], 8, 3.6); heads.push(s('polygon', {'class':'head', points:b.pts})); pts[0] = b.base; }
+  var d = roundPath(pts, 7);
+  var g = s('g', {'class':'belt ' + l.kind + (inner ? ' inner' : ''), 'data-id':l.id},
+    s('path', {'class':'case', d:d}), s('path', {'class':'line', d:d}), heads, s('path', {'class':'hit', d:d}));
+  gBelts.appendChild(g); DOM[l.id] = g;
+  if (l.label){
+    var t = s('text', {'class':'blabel ' + l.kind + (inner ? ' inner' : ''), x:l.labelPos.x, y:l.labelPos.y, 'text-anchor':l.labelPos.anchor, 'data-id':l.id}, l.label);
+    gLabels.appendChild(t); LABEL[l.id] = t;
+  }
+});
+
+function nameLines(g, cls, lines, cx, y0, lh, anchor){
+  lines.forEach(function(t, i){ g.appendChild(s('text', {'class':cls, x:cx, y:y0 + i*lh, 'text-anchor':anchor || 'middle'}, t)); });
+}
+D.elements.forEach(function(e){
+  var p = e.pos, g, x = p && p.x, y = p && p.y, w = p && p.w, h = p && p.h;
+  if (e.kind === 'machine' || e.kind === 'store'){
+    var hasParts = e.parts && e.parts.length;
+    g = s('g', {'class':'node inner ' + e.kind + (hasParts ? ' has-parts' : '') + (e.status === 'planned' ? ' planned' : ''), 'data-id':e.id,
+      tabindex:0, role:'button', 'aria-label':KIND_WORD[e.kind] + ': ' + e.name});
+    g.appendChild(s('rect', {'class':'ring', x:x-3.5, y:y-3.5, width:w+7, height:h+7, rx:8}));
+    var tx;
+    if (e.kind === 'machine'){
+      g.appendChild(s('rect', {'class':'box', x:x, y:y, width:w, height:h, rx:4}));
+      g.appendChild(s('path', {'class':'bar', d:'M'+(x+4)+','+y+'H'+(x+6)+'V'+(y+h)+'H'+(x+4)+'A4,4 0 0 1 '+x+','+(y+h-4)+'V'+(y+4)+'A4,4 0 0 1 '+(x+4)+','+y+'Z'}));
+      tx = x + 6 + (w-6)/2;
+    } else {
+      var ry = 5;
+      g.appendChild(s('path', {'class':'box', d:'M'+x+','+(y+ry)+'A'+(w/2)+','+ry+' 0 0 1 '+(x+w)+','+(y+ry)+'V'+(y+h-ry)+'A'+(w/2)+','+ry+' 0 0 1 '+x+','+(y+h-ry)+'Z'}));
+      g.appendChild(s('path', {'class':'lid', d:'M'+x+','+(y+ry)+'A'+(w/2)+','+ry+' 0 0 0 '+(x+w)+','+(y+ry)}));
+      tx = x + w/2;
+    }
+    var lines = wrap(e.name, Math.floor((w - (e.kind === 'store' ? 8 : 22))/6.6), 2), block = lines.length*15 + (e.tag ? 14 : 0);
+    var y0 = y + (h - block)/2 + 12 + (e.kind === 'store' ? 4 : 0);
+    nameLines(g, 'name', lines, tx, y0, 15);
+    if (e.tag) g.appendChild(s('text', {'class':'tag', x:tx, y:y0 + lines.length*15 - 1, 'text-anchor':'middle'}, e.tag));
+    g.appendChild(s('text', {'class':'name-s', x:(e.kind === 'machine' ? x+9 : x+w/2), y:y + (e.kind === 'store' ? 16.5 : 8), 'text-anchor':(e.kind === 'machine' ? 'start' : 'middle')}, e.name));
+    var inside = (e.parts || []).filter(function(pid){ return E[pid].status === 'partial' || E[pid].status === 'planned'; }).length;
+    if (e.status === 'partial' || e.status === 'planned') g.appendChild(statusGlyph(e.status, x+w-9, y+9, 4.2));
+    else if (inside){ var sg = statusGlyph('partial', x+w-8, y+8, 3.1); g.appendChild(sg);
+      g.appendChild(s('text', {'class':'sg gapn', x:x+w-13.5, y:y+11.2, 'text-anchor':'end'}, String(inside))); }
+    gNodes.appendChild(g); DOM[e.id] = g;
+  } else if (e.kind === 'terminal'){
+    g = s('g', {'class':'node terminal ' + e.role, 'data-id':e.id, tabindex:0, role:'button', 'aria-label':e.name});
+    var rx = Math.min(h/2, 20);
+    g.appendChild(s('rect', {'class':'ring', x:x-3.5, y:y-3.5, width:w+7, height:h+7, rx:rx+3}));
+    g.appendChild(s('rect', {'class':'box', x:x, y:y, width:w, height:h, rx:rx}));
+    var tl = wrap(e.name, 15, 3), cy = y + h/2, gx = x + w/2;
+    if (e.role === 'clock'){
+      g.appendChild(s('circle', {'class':'glyph', cx:x+30, cy:cy, r:7}));
+      g.appendChild(s('path', {'class':'glyph', d:'M'+(x+30)+','+(cy-4)+'V'+cy+'H'+(x+33.5)}));
+      nameLines(g, 'name', tl, x+44, cy+4, 13, 'start');
+    } else if (h > 80){
+      g.appendChild(s('circle', {'class':'glyph', cx:gx, cy:cy-34, r:7}));
+      g.appendChild(s('path', {'class':'glyph', d:'M'+(gx-13)+','+(cy-8)+'A13,13 0 0 1 '+(gx+13)+','+(cy-8)}));
+      nameLines(g, 'name', tl, gx, cy+12, 14);
+    } else {
+      nameLines(g, 'name', tl, gx, cy + 4 - (tl.length-1)*6.5, 13);
+    }
+    gNodes.appendChild(g); DOM[e.id] = g;
+  }
+});
+// parts go on top of their machines
+D.elements.forEach(function(e){
+  if (e.kind !== 'part') return;
+  var p = e.pos, fs = e.rows === 1 ? 5.2 : (e.rows === 2 ? 4.5 : 4.1), lh = fs * 1.16;
+  var lines = wrap(e.name, Math.max(6, Math.floor((p.w-3)/(fs*0.54))), Math.max(1, Math.floor((p.h-1.5)/lh)));
+  var g = s('g', {'class':'part' + (e.status === 'planned' ? ' planned' : ''), 'data-id':e.id},
+    s('rect', {x:p.x, y:p.y, width:p.w, height:p.h, rx:1.4}));
+  var y0 = p.y + p.h/2 - (lines.length-1)*lh/2 + fs*0.35;
+  lines.forEach(function(t, i){ g.appendChild(s('text', {x:p.x + p.w/2, y:y0 + i*lh, 'text-anchor':'middle', 'font-size':fs}, t)); });
+  if (e.status === 'partial' || e.status === 'planned') g.appendChild(statusGlyph(e.status, p.x+p.w-2.6, p.y+2.6, 1.5));
+  gNodes.appendChild(g); DOM[e.id] = g;
+});
+
+// key, drawn on the floor so it has a stable place too
+(function(){
+  var x = 900, y = 446, g = gKey, r = 0;
+  g.appendChild(s('rect', {'class':'frame', x:x, y:y, width:246, height:168, rx:9}));
+  g.appendChild(s('text', {'class':'kt', x:x+10, y:y+17}, 'Key'));
+  function row(build, label, col){ var cx = x + 12 + col*118, cy = y + 36 + r*19; build(cx, cy); g.appendChild(s('text', {x:cx+34, y:cy+3.5}, label)); if (col === 1) r++; }
+  row(function(cx, cy){ g.appendChild(s('rect', {x:cx, y:cy-6, width:26, height:12, rx:2, fill:'#fff', stroke:'#14212B', 'stroke-width':1.2})); g.appendChild(s('rect', {x:cx, y:cy-6, width:3.5, height:12, fill:'#14212B'})); }, 'does a job', 0);
+  row(function(cx, cy){ g.appendChild(s('path', {d:'M'+cx+','+(cy-4)+'A13,3 0 0 1 '+(cx+26)+','+(cy-4)+'V'+(cy+4)+'A13,3 0 0 1 '+cx+','+(cy+4)+'Z', fill:'#fff', stroke:'#14212B', 'stroke-width':1.2})); g.appendChild(s('path', {d:'M'+cx+','+(cy-4)+'A13,3 0 0 0 '+(cx+26)+','+(cy-4), fill:'none', stroke:'#14212B', 'stroke-width':1})); }, 'keeps things', 1);
+  row(function(cx, cy){ g.appendChild(s('rect', {x:cx, y:cy-6, width:26, height:12, rx:6, fill:'#14212B'})); }, 'person', 0);
+  row(function(cx, cy){ g.appendChild(s('rect', {x:cx, y:cy-6, width:26, height:12, rx:6, fill:'#fff', stroke:'#14212B', 'stroke-width':1.8})); }, 'outside system', 1);
+  function belt(cls, label, col){ row(function(cx, cy){ var b = s('g', {'class':'belt ' + cls}, s('path', {'class':'line', d:'M'+cx+','+cy+'H'+(cx+21)}), s('polygon', {'class':'head', points:(cx+27)+','+cy+' '+(cx+20)+','+(cy-3.4)+' '+(cx+20)+','+(cy+3.4)})); g.appendChild(b); }, label, col); }
+  belt('job', 'orders, transfers', 0); belt('talk', "operator's say", 1);
+  belt('access', 'site access', 0); belt('ops', 'running it', 1);
+  belt('tick', 'timer', 0);
+  row(function(cx, cy){ g.appendChild(s('rect', {x:cx+4, y:cy-7, width:17, height:14, rx:7, fill:'#FFD21F', stroke:'#14212B'})); g.appendChild(s('text', {x:cx+12.5, y:cy+3.6, 'text-anchor':'middle', style:'font-weight:700;fill:#14212B'}, '3')); }, 'use-case step', 1);
+  row(function(cx, cy){ g.appendChild(statusGlyph('partial', cx+13, cy, 4.4)); }, 'gap (n: inside)', 0);
+  row(function(cx, cy){ g.appendChild(statusGlyph('planned', cx+13, cy, 4.4)); }, 'planned', 1);
+  g.appendChild(s('text', {x:x+12, y:y+36+r*19+4, style:'fill:#7A868F'}, 'Zoom in and the machines open up.'));
+})();
+
+/* ================= things map ================= */
+var TDOM = {};
+(function(){
+  var gRel = s('g', {}), gCards = s('g', {});
+  thingsSvg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  thingsSvg.appendChild(gRel); thingsSvg.appendChild(gCards);
+  THING_LINKS.forEach(function(l){
+    var pts = l.path.map(function(p){ return p.slice(); }), n = pts.length, a = arrow(pts[n-1], pts[n-2], 8, 3.6);
+    pts[n-1] = a.base;
+    var g = s('g', {'class':'rel', 'data-id':l.id}, s('path', {'class':'line', d:roundPath(pts, 7)}), s('polygon', {'class':'head', points:a.pts}),
+      s('text', {x:l.labelPos.x, y:l.labelPos.y, 'text-anchor':l.labelPos.anchor}, l.label));
+    gRel.appendChild(g); TDOM[l.id] = g;
+  });
+  THINGS.forEach(function(t){
+    var p = t.pos, col = FAM[t.family].color;
+    var g = s('g', {'class':'card', 'data-id':t.id, tabindex:0, role:'button', 'aria-label':'Thing: ' + t.name},
+      s('rect', {'class':'ring', x:p.x-3.5, y:p.y-3.5, width:p.w+7, height:p.h+7, rx:8}),
+      s('rect', {'class':'box', x:p.x, y:p.y, width:p.w, height:p.h, rx:5}),
+      s('path', {d:'M'+(p.x+5)+','+p.y+'H'+(p.x+p.w-5)+'A5,5 0 0 1 '+(p.x+p.w)+','+(p.y+5)+'V'+(p.y+7)+'H'+p.x+'V'+(p.y+5)+'A5,5 0 0 1 '+(p.x+5)+','+p.y+'Z', fill:col}),
+      s('text', {'class':'name', x:p.x+10, y:p.y+27}, t.name),
+      s('path', {'class':'rule', d:'M'+(p.x+10)+','+(p.y+35)+'H'+(p.x+p.w-10)}));
+    var yy = p.y + 50;
+    (t.fields || []).forEach(function(f){ g.appendChild(s('text', {'class':'field', x:p.x+10, y:yy}, f)); yy += 13.5; });
+    function layout(list){   // -> rows of {st, x, w}
+      var rows = [[]], px = 0, max = p.w - 18;
+      list.forEach(function(st){
+        var pw = st.length*5.5 + 12;
+        if (px > 0 && px + 12 + pw > max){ rows.push([]); px = 0; }
+        var row = rows[rows.length-1], lead = (px > 0 || rows.length > 1) ? 12 : 0;
+        row.push({st:st, x:px + lead, w:pw, arrow: lead > 0}); px += lead + pw;
+      });
+      return rows;
+    }
+    var all = [];
+    if (t.states && t.states.length) all = all.concat(layout(t.states));
+    if (t.altStates) all = all.concat(layout(t.altStates));
+    all.forEach(function(row, ri){
+      var py = p.y + p.h - 10 - (all.length-1-ri)*20;
+      row.forEach(function(it){
+        var x0 = p.x + 9 + it.x;
+        if (it.arrow){
+          var ax = x0 - 10.5;
+          g.appendChild(s('path', {'class':'ar', d:'M'+ax+','+(py-3)+'H'+(ax+8)+'M'+(ax+5)+','+(py-6)+'L'+(ax+8.5)+','+(py-3)+'L'+(ax+5)+','+(py) + (t.loop ? 'M'+(ax+3.5)+','+(py-6)+'L'+ax+','+(py-3)+'L'+(ax+3.5)+','+py : '')}));
+        }
+        g.appendChild(s('g', {'class':'pill'}, s('rect', {x:x0, y:py-11, width:it.w, height:16, rx:8}), s('text', {x:x0+it.w/2, y:py+0.6, 'text-anchor':'middle'}, it.st)));
+      });
+    });
+    gCards.appendChild(g); TDOM[t.id] = g;
+  });
+  [['Orders and transfers', 34], ["Operator's say", 296], ['Access and running it', 558]].forEach(function(b){
+    thingsSvg.appendChild(s('text', {'class':'band', x:30, y:b[1]-10}, b[0]));
+  });
+})();
+
+/* ================= strip ================= */
+var strip = document.getElementById('strip');
+(function(){
+  var html = '<span class="lead">Things</span>';
+  THINGS.forEach(function(t){ html += '<button class="chip" data-e="' + t.id + '" style="border-left-color:' + FAM[t.family].color + '">' + esc(t.name) + '</button>'; });
+  strip.innerHTML = html;
+})();
+document.getElementById('tagline').textContent = D.project.tagline;
+document.getElementById('src').textContent = 'read at commit ' + D.repo.commit;
+
+/* ================= focus: what is lit ================= */
+var ROUTE_TOUCH = {};
+D.routes.forEach(function(r){
+  var t = {};
+  r.steps.forEach(function(id){
+    t[id] = 1;
+    if (L[id]){ t[L[id].from] = 1; t[L[id].to] = 1; (L[id].carries || []).forEach(function(c){ t[c] = 1; }); }
+    else { var e = E[id]; if (e.parent) t[e.parent] = 1; if (e.district) t[e.district] = 1; (e.holds || []).forEach(function(c){ t[c] = 1; }); }
+  });
+  ROUTE_TOUCH[r.id] = t;
+});
+function focus(){
+  var lit = {}, nums = {}, things = {}, active = false;
+  function addEl(id){ lit[id] = 1; var e = E[id]; if (e && e.parent) lit[e.parent] = 1; }
+  function addLink(id){ var l = L[id]; lit[id] = 1; addEl(l.from); addEl(l.to); (l.carries || []).forEach(function(c){ things[c] = 1; }); }
+  function num(id, n){ (nums[id] = nums[id] || []).push(n); }
+  if (S.r){
+    active = true; var n = 0;
+    R[S.r].steps.forEach(function(id){
+      if (L[id]) addLink(id);
+      else { addEl(id); n++; num(id, n); var e = E[id]; if (e.parent) num(e.parent, n); (e.holds || []).forEach(function(c){ things[c] = 1; }); }
+    });
+  } else if (S.e){
+    active = true; var id = S.e;
+    if (L[id]){ if (L[id].view === 'floor') addLink(id); else { lit[id] = 1; things[L[id].from] = 1; things[L[id].to] = 1; } }
+    else {
+      var e = E[id];
+      if (e.kind === 'thing'){
+        things[id] = 1;
+        FLOOR_LINKS.forEach(function(l){ if ((l.carries || []).indexOf(id) >= 0){ lit[l.id] = 1; addEl(l.from); addEl(l.to); } });
+        D.elements.forEach(function(x){ if ((x.holds || []).indexOf(id) >= 0) addEl(x.id); });
+        THING_LINKS.forEach(function(l){ if (l.from === id || l.to === id){ lit[l.id] = 1; things[l.from] = 1; things[l.to] = 1; } });
+      } else if (e.kind === 'district'){
+        lit[id] = 1;
+        D.elements.forEach(function(x){ if (x.district === id && x.kind !== 'part') addEl(x.id); });
+        FLOOR_LINKS.forEach(function(l){ if (districtOf(l.from) === id || districtOf(l.to) === id) addLink(l.id); });
+      } else {
+        addEl(id); var key = e.kind === 'part' ? e.parent : id;
+        FLOOR_LINKS.forEach(function(l){ if (l.from === key || l.to === key) addLink(l.id); });
+        (E[key].holds || []).forEach(function(c){ things[c] = 1; });
+      }
+    }
+  }
+  return {active:active, lit:lit, nums:nums, things:things};
+}
+
+/* ================= paint ================= */
+var cam = {z:1, cx:W/2, cy:H/2};
+function setCam(c){
+  cam = {z:clamp(c.z, ZMIN, ZMAX), cx:c.cx, cy:c.cy};
+  var vw = W/cam.z, vh = H/cam.z;
+  floor.setAttribute('viewBox', (cam.cx - vw/2) + ' ' + (cam.cy - vh/2) + ' ' + vw + ' ' + vh);
+  var lod = cam.z < 0.8 ? 0 : (cam.z < 2 ? 1 : 2);
+  floor.classList.toggle('lod0', lod === 0); floor.classList.toggle('lod1', lod === 1); floor.classList.toggle('lod2', lod === 2);
+  document.getElementById('lvl').textContent = ['districts', 'machines', 'inside machines'][lod] + ' · ' + Math.round(cam.z*100) + '%';
+}
+function paintFloor(F){
+  floor.classList.toggle('focus', F.active);
+  var memberLit = {};
+  D.elements.forEach(function(e){ if (F.lit[e.id] && e.district) memberLit[e.district] = 1; });
+  // parts: lit when named, or when the parent is lit and no sibling was named
+  var named = {};
+  D.elements.forEach(function(e){ if (e.kind === 'part' && F.lit[e.id]) named[e.parent] = 1; });
+  D.elements.forEach(function(e){
+    var el = DOM[e.id]; if (!el) return;
+    var on = !!F.lit[e.id];
+    if (e.kind === 'district') on = on || !!memberLit[e.id];
+    if (e.kind === 'part') on = on || (!!F.lit[e.parent] && !named[e.parent]);
+    el.classList.toggle('lit', on);
+    el.classList.toggle('sel', S.e === e.id || (!!S.e && E[S.e] && E[S.e].parent === e.id));
+  });
+  FLOOR_LINKS.forEach(function(l){
+    var on = !!F.lit[l.id];
+    DOM[l.id].classList.toggle('lit', on); DOM[l.id].classList.toggle('sel', S.e === l.id);
+    if (LABEL[l.id]) LABEL[l.id].classList.toggle('lit', on);
+  });
+  while (gBadges.firstChild) gBadges.removeChild(gBadges.firstChild);
+  Object.keys(F.nums).forEach(function(id){
+    var e = E[id], p = e.pos, txt = F.nums[id].filter(function(v, i, a){ return a.indexOf(v) === i; }).join(' ');
+    if (e.kind === 'part'){
+      var w2 = 4.6 + (txt.length-1)*2;
+      gBadges.appendChild(s('g', {'class':'badge small'}, s('rect', {x:p.x-1.6, y:p.y-2.2, width:w2, height:4.6, rx:2.3}),
+        s('text', {x:p.x-1.6+w2/2, y:p.y+1.4, 'text-anchor':'middle'}, txt)));
+    } else {
+      var w1 = 17 + (txt.length-1)*6.2, bx = p.x - 7, by = p.y - 8;
+      if (e.kind === 'terminal'){ bx = p.x + p.w/2 - w1/2; by = p.y - 10; }
+      gBadges.appendChild(s('g', {'class':'badge onnode'}, s('rect', {x:bx, y:by, width:w1, height:16, rx:8}),
+        s('text', {x:bx + w1/2, y:by + 11.8, 'text-anchor':'middle'}, txt)));
+    }
+  });
+}
+function paintThings(F){
+  var any = F.active && Object.keys(F.things).length > 0;
+  thingsSvg.classList.toggle('focus', any);
+  THINGS.forEach(function(t){ TDOM[t.id].classList.toggle('lit', !!F.things[t.id]); TDOM[t.id].classList.toggle('sel', S.e === t.id); });
+  THING_LINKS.forEach(function(l){ TDOM[l.id].classList.toggle('lit', !!F.things[l.from] && !!F.things[l.to]); });
+  strip.classList.toggle('focus', any);
+  Array.prototype.forEach.call(strip.querySelectorAll('.chip'), function(c){
+    c.classList.toggle('lit', !!F.things[c.dataset.e]); c.classList.toggle('sel', S.e === c.dataset.e);
+  });
+}
+
+/* ================= left panel ================= */
+var panel = document.getElementById('panel');
+function elName(id){ return E[id] ? E[id].name : (L[id] ? L[id].label : id); }
+function codeItems(paths){
+  return paths.map(function(p){
+    var i = p.replace(/\/$/, '').lastIndexOf('/');
+    return '<li><span class="dir">' + esc(p.slice(0, i+1)).replace(/\//g, '/<wbr>') + '</span><b>' + esc(p.slice(i+1)) + '</b></li>'; }).join('');
+}
+function codeList(paths){ return '<div class="sec"><h4>Change it here</h4><ul class="code">' + codeItems(paths) + '</ul></div>'; }
+function bullets(cls, title, items){
+  if (!items || !items.length) return '';
+  return '<div class="sec ' + cls + '"><h4>' + title + '</h4><ul>' + items.map(function(t){ return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>';
+}
+function board(){
+  var html = '<div class="p-head"><h2>Use cases</h2><span class="n">' + D.routes.length + '</span></div>' +
+    '<div class="keyline"><span>' + statusHtml('works') + 'works</span><span>' + statusHtml('partial') + 'has a gap</span><span>' + statusHtml('planned') + 'planned</span></div>';
+  var sel = !S.r && S.e ? S.e : null;
+  D.groups.forEach(function(gr){
+    html += '<div class="grp"><h3>' + esc(gr.name) + '</h3>';
+    D.routes.forEach(function(r){
+      if (r.group !== gr.id) return;
+      var on = S.r === r.id, cls = 'uc' + (on ? ' on' : '');
+      if (sel) cls += ROUTE_TOUCH[r.id][sel] ? ' touch' : ' fade';
+      html += '<div class="' + cls + '"><button data-r="' + r.id + '" aria-expanded="' + on + '" title="' + esc(r.summary) + '">' + statusHtml(r.status) + '<span>' + esc(r.name) + '</span></button>';
+      if (on) html += '<div class="body"><p class="sum">' + esc(r.summary) + '</p>' + stepList(r) + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+  return html;
+}
+function stepList(r){
+  var n = 0, html = '<ol class="steps">';
+  r.steps.forEach(function(id){
+    if (L[id]) return;
+    var e = E[id], where = e.kind === 'part' ? E[e.parent].name + ', ' + e.name : e.name;
+    html += '<li' + (S.e === id ? ' class="cur"' : '') + '><button data-e="' + id + '"><span class="num">' + (n+1) + '</span><span class="what">' + esc(r.stepNotes[n]) + '</span><span class="where">' + esc(where) + '</span></button></li>';
+    n++;
+  });
+  return html + '</ol>';
+}
+function detail(id){
+  var html = '<div class="det">';
+  if (S.r){
+    var r = R[S.r], n = 0;
+    html += '<div class="crumb"><div class="rn">' + statusHtml(r.status) + esc(r.name) + '</div><div class="nums">';
+    r.steps.forEach(function(sid){ if (L[sid]) return; n++; html += '<button data-e="' + sid + '" class="' + (sid === id ? 'cur' : '') + '" title="' + esc(r.stepNotes[n-1]) + '">' + n + '</button>'; });
+    html += '</div></div>';
+  }
+  html += '<button class="back" data-clear="e">Back to the use cases</button>';
+  if (L[id]) return html + linkDetail(L[id]) + '</div>';
+  var e = E[id], kind = KIND_WORD[e.kind];
+  if (e.kind === 'part') kind = 'Inside <button data-e="' + e.parent + '">' + esc(E[e.parent].name) + '</button>';
+  else if (e.district) kind += ' in <button data-e="' + e.district + '">' + esc(E[e.district].name) + '</button>';
+  else if (e.kind === 'thing') kind = 'Thing, ' + esc(FAM[e.family].name.toLowerCase());
+  html += '<div class="kind">' + kind + '</div><h2>' + esc(e.name) + '</h2>';
+  if (e.kind !== 'thing') html += '<div class="status">' + statusHtml(e.status) + STATUS_WORD[e.status] + (e.app || (e.parent && E[e.parent].app) ? '<span class="app">' + esc(APP_WORD[e.app || E[e.parent].app]) + '</span>' : '') + '</div>';
+  html += '<p class="sum">' + esc(e.summary) + '</p>';
+  if (e.kind === 'part' && cam.z < 2) html += '<div class="sec"><button class="back" data-zoomto="' + e.parent + '">Zoom in to see it</button></div>';
+  if (e.kind === 'thing'){
+    if (e.fields) html += '<div class="sec"><h4>What it holds</h4><ul>' + e.fields.map(function(f){ return '<li>' + esc(f) + '</li>'; }).join('') + '</ul></div>';
+    if (e.states && e.states.length){
+      var sep = e.loop ? '⇄' : '→';
+      html += '<div class="sec"><h4>States it goes through</h4><div class="pills">' + e.states.map(function(x){ return '<span class="pill">' + esc(x) + '</span>'; }).join('<span class="ar">' + sep + '</span>') + '</div>';
+      if (e.altStates) html += '<div class="pills" style="margin-top:4px">' + e.altStates.map(function(x){ return '<span class="pill">' + esc(x) + '</span>'; }).join('<span class="ar">' + sep + '</span>') + '</div>';
+      html += '</div>';
+    }
+    var rel = THING_LINKS.filter(function(l){ return l.from === id || l.to === id; });
+    if (rel.length) html += '<div class="sec flow"><h4>How it relates</h4><ul>' + rel.map(function(l){
+      var other = l.from === id ? l.to : l.from;
+      return '<li><button data-e="' + other + '">' + (l.from === id ? '<span class="muted">' + esc(l.label) + '</span><b>' + esc(E[other].name) + '</b>' : '<b>' + esc(E[other].name) + '</b><span class="muted">' + esc(l.label) + ' it</span>') + '</button></li>'; }).join('') + '</ul></div>';
+    var on = FLOOR_LINKS.filter(function(l){ return (l.carries || []).indexOf(id) >= 0; });
+    if (on.length) html += '<div class="sec flow"><h4>Travels on</h4><ul>' + on.map(function(l){
+      return '<li><button data-e="' + l.id + '"><i class="dot" style="background:' + FAM[l.kind].color + '"></i><span>' + esc(E[l.from].name) + ' <span class="muted">to</span> ' + esc(E[l.to].name) + '</span></button></li>'; }).join('') + '</ul></div>';
+  } else {
+    var key = e.kind === 'part' ? null : id, isD = e.kind === 'district', ins = [], outs = [];
+    function mine(end){ return end === key || (isD && districtOf(end) === key); }
+    if (key) FLOOR_LINKS.forEach(function(l){
+      var a = mine(l.from), b = mine(l.to);
+      if (a === b) return;
+      if (b || l.both) ins.push(l);
+      if (a || l.both) outs.push(l);
+    });
+    function flow(title, list, word){
+      if (!list.length) return '';
+      return '<div class="sec flow"><h4>' + title + '</h4><ul>' + list.map(function(l){
+        var o = mine(l.from) ? E[l.to] : E[l.from];
+        return '<li><button data-e="' + l.id + '"><i class="dot" style="background:' + FAM[l.kind].color + '"></i><span><b>' + esc(l.label || 'non-compliant orders') + '</b> <span class="muted">' + word + ' ' + esc(o.name) + '</span></span></button></li>'; }).join('') + '</ul></div>';
+    }
+    html += flow('Takes in', ins, 'from') + flow('Gives out', outs, 'to');
+    html += bullets('', 'Always true', e.rules) + bullets('gaps', 'Gaps', e.caveats) + bullets('unv', 'Not verified', e.unverified);
+    if (e.parts && e.parts.length) html += '<div class="sec inside"><h4>Inside</h4><ul>' + e.parts.map(function(pid){
+      return '<li><button data-e="' + pid + '" title="' + esc(E[pid].summary) + '">' + statusHtml(E[pid].status) + '<span>' + esc(E[pid].name) + '</span></button></li>'; }).join('') + '</ul></div>';
+    if (e.kind === 'district'){
+      var mem = D.elements.filter(function(x){ return x.district === id && x.kind !== 'part'; });
+      html += '<div class="sec inside"><h4>Machines and stores</h4><ul>' + mem.map(function(x){
+        return '<li><button data-e="' + x.id + '">' + statusHtml(x.status) + '<span>' + esc(x.name) + '</span></button></li>'; }).join('') + '</ul></div>';
+    }
+  }
+  if (e.kind === 'thing') html += bullets('', 'Always true', e.rules);
+  if (e.code && e.code.length) html += codeList(e.code);
+  var used = D.routes.filter(function(r){ return ROUTE_TOUCH[r.id][id]; });
+  if (used.length) html += '<div class="sec used"><h4>Use cases that pass here</h4><ul>' + used.map(function(r){
+    return '<li><button data-r="' + r.id + '" data-keep="1">' + statusHtml(r.status) + '<span>' + esc(r.name) + '</span></button></li>'; }).join('') + '</ul></div>';
+  return html + '</div>';
+}
+function linkDetail(l){
+  var html = '<div class="kind">' + (l.view === 'floor' ? 'Belt, ' + esc(FAM[l.kind].name.toLowerCase()) : 'Relation') + '</div><h2>' + esc(l.label || 'non-compliant orders') + '</h2>';
+  html += '<div class="sec flow"><ul><li><button data-e="' + l.from + '"><span class="muted">from</span><b>' + esc(E[l.from].name) + '</b></button></li><li><button data-e="' + l.to + '"><span class="muted">' + (l.both ? 'and back, to' : 'to') + '</span><b>' + esc(E[l.to].name) + '</b></button></li></ul></div>';
+  if (l.summary) html += '<p class="sum">' + esc(l.summary) + '</p>';
+  if (l.carries && l.carries.length) html += '<div class="sec flow"><h4>Carries</h4><ul>' + l.carries.map(function(c){
+    return '<li><button data-e="' + c + '"><i class="dot" style="background:' + FAM[E[c].family].color + '"></i><b>' + esc(E[c].name) + '</b></button></li>'; }).join('') + '</ul></div>';
+  var code = (E[l.from].code || []).slice(0, 2).concat((E[l.to].code || []).slice(0, 2));
+  if (l.view === 'floor') html += '<div class="sec"><h4>Change it at either end</h4><ul class="code">' + codeItems(code.filter(function(v, i, a){ return a.indexOf(v) === i; })) + '</ul></div>';
+  var used = D.routes.filter(function(r){ return r.steps.indexOf(l.id) >= 0; });
+  if (used.length) html += '<div class="sec used"><h4>Use cases that pass here</h4><ul>' + used.map(function(r){
+    return '<li><button data-r="' + r.id + '" data-keep="1">' + statusHtml(r.status) + '<span>' + esc(r.name) + '</span></button></li>'; }).join('') + '</ul></div>';
+  return html;
+}
+function renderPanel(){
+  var top = panel.scrollTop, was = panel.dataset.mode, mode = S.e ? 'detail:' + S.e : 'board';
+  panel.innerHTML = S.e ? detail(S.e) : board();
+  panel.dataset.mode = mode;
+  panel.scrollTop = (was === mode) ? top : 0;
+}
+
+/* ================= apply ================= */
+function apply(){
+  document.body.dataset.view = S.view;
+  Array.prototype.forEach.call(document.querySelectorAll('.seg button'), function(b){ b.setAttribute('aria-pressed', String(b.dataset.view === S.view)); });
+  setCam(S.v || HOME);
+  var F = focus();
+  paintFloor(F); paintThings(F); renderPanel();
+  if (S.tip) tipFor(S.tip); else hideTip();
+}
+
+/* ================= interaction ================= */
+panel.addEventListener('click', function(ev){
+  var b = ev.target.closest('button'); if (!b) return;
+  if (b.dataset.r){ if (b.dataset.keep) go({r:b.dataset.r, e:null}); else go({r: S.r === b.dataset.r ? null : b.dataset.r, e:null}); }
+  else if (b.dataset.e) pick(b.dataset.e);
+  else if (b.dataset.clear) go({e:null});
+  else if (b.dataset.zoomto) zoomTo(b.dataset.zoomto, S.e);
+});
+function pick(id){
+  var e = E[id];
+  if (e && e.kind === 'thing' && S.view === 'floor'){ go({e:id}); return; }
+  if (e && e.kind !== 'thing' && S.view === 'things'){ go({view:'floor', e:id}); return; }
+  if (L[id] && L[id].view === 'floor' && S.view === 'things'){ go({view:'floor', e:id}); return; }
+  go({e:id});
+}
+function zoomTo(id, keepSel){
+  var p = E[id].pos, z = clamp(Math.min(W/(p.w*2.4), H/(p.h*2.6)), 2.2, 5);
+  go({v:{z:z, cx:p.x + p.w/2, cy:p.y + p.h/2}, e: keepSel || id});
+}
+strip.addEventListener('click', function(ev){ var b = ev.target.closest('.chip'); if (b) go({e: S.e === b.dataset.e ? null : b.dataset.e}); });
+document.getElementById('bar').addEventListener('click', function(ev){
+  var b = ev.target.closest('button'); if (!b) return;
+  if (b.dataset.view) go({view:b.dataset.view});
+  else if (b.dataset.zoom === 'home') go({v:null});
+  else if (b.dataset.zoom) go({v:{z:clamp(cam.z * (b.dataset.zoom === 'in' ? 1.5 : 1/1.5), ZMIN, ZMAX), cx:cam.cx, cy:cam.cy}}, true);
+});
+thingsSvg.addEventListener('click', function(ev){
+  var c = ev.target.closest('.card, .rel');
+  go({e: c ? (S.e === c.dataset.id ? null : c.dataset.id) : null});
+});
+
+// floor: drag to pan, wheel to zoom, click to select, double click to zoom into a machine
+function toWorld(x, y){ var m = floor.getScreenCTM().inverse(); return {x: m.a*x + m.c*y + m.e, y: m.b*x + m.d*y + m.f}; }
+var drag = null, moved = false, camTimer = null;
+function camLater(){ clearTimeout(camTimer); camTimer = setTimeout(function(){ go({v:cam}, true); }, 160); }
+floor.addEventListener('pointerdown', function(ev){ if (ev.button !== 0) return; drag = {x:ev.clientX, y:ev.clientY, cx:cam.cx, cy:cam.cy, k:(W/cam.z)/floor.getBoundingClientRect().width}; moved = false; });
+window.addEventListener('pointermove', function(ev){
+  if (!drag) return;
+  var dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
+  if (!moved && Math.hypot(dx, dy) < 5) return;
+  moved = true; floor.classList.add('drag'); hideTip();
+  var r = floor.getBoundingClientRect(), k = Math.max((W/cam.z)/r.width, (H/cam.z)/r.height);
+  setCam({z:cam.z, cx:drag.cx - dx*k, cy:drag.cy - dy*k});
+});
+window.addEventListener('pointerup', function(){ if (drag && moved){ floor.classList.remove('drag'); camLater(); } drag = null; });
+floor.addEventListener('wheel', function(ev){
+  ev.preventDefault();
+  var p = toWorld(ev.clientX, ev.clientY), z2 = clamp(cam.z * Math.exp(-ev.deltaY * 0.0016), ZMIN, ZMAX), k = cam.z / z2;
+  setCam({z:z2, cx:p.x - (p.x - cam.cx)*k, cy:p.y - (p.y - cam.cy)*k}); hideTip(); camLater();
+}, {passive:false});
+function targetId(ev){ var g = ev.target.closest('[data-id]'); return g ? g.getAttribute('data-id') : null; }
+floor.addEventListener('click', function(ev){
+  if (moved){ moved = false; return; }
+  var id = targetId(ev);
+  go({e: id ? (S.e === id ? null : id) : null, v: S.v || (cam.z !== 1 ? cam : null)});
+});
+floor.addEventListener('dblclick', function(ev){
+  var id = targetId(ev), e = id && E[id]; if (!e) return;
+  if (e.kind === 'part') e = E[e.parent];
+  if (e.kind === 'machine' || e.kind === 'store' || e.kind === 'district') zoomTo(e.id);
+});
+document.addEventListener('keydown', function(ev){
+  if (ev.key === 'Escape'){ if (S.e) go({e:null}); else if (S.r) go({r:null}); else if (S.v) go({v:null}); }
+  else if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.getAttribute && ev.target.getAttribute('data-id') && ev.target.namespaceURI === NS){ ev.preventDefault(); go({e:ev.target.getAttribute('data-id')}); }
+});
+
+/* ================= tooltip ================= */
+var tip = document.getElementById('tip'), stage = document.getElementById('stage');
+function tipHtml(id){
+  var x = E[id] || L[id]; if (!x) return '';
+  var title = E[id] ? x.name : (x.label || 'non-compliant orders'), extra = '';
+  if (E[id] && (x.status === 'partial' || x.status === 'planned')) extra = '<span class="s">' + STATUS_WORD[x.status] + '</span>';
+  if (L[id] && x.view === 'floor') title += ': ' + E[x.from].name + ' to ' + E[x.to].name;
+  return '<b>' + esc(title) + '</b>' + esc(x.summary || '') + extra;
+}
+function showTip(id, cx, cy){
+  var html = tipHtml(id); if (!html){ hideTip(); return; }
+  tip.innerHTML = html; tip.style.display = 'block';
+  var r = stage.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+  var x = clamp(cx - r.left + 14, 6, r.width - tw - 6), y = cy - r.top + 16;
+  if (y + th > r.height - 6) y = cy - r.top - th - 12;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+function hideTip(){ tip.style.display = 'none'; }
+function tipFor(id){
+  var el = (S.view === 'things' ? TDOM[id] : DOM[id]) || DOM[id]; if (!el) return;
+  var b = el.getBoundingClientRect(); showTip(id, b.left + b.width/2, b.top + b.height/2);
+}
+[floor, thingsSvg].forEach(function(svgEl){
+  svgEl.addEventListener('mousemove', function(ev){ if (drag && moved) return; var id = targetId(ev); if (id) showTip(id, ev.clientX, ev.clientY); else hideTip(); });
+  svgEl.addEventListener('mouseleave', hideTip);
+});
+
+S = parse(location.hash);
+apply();
+})();
+</script>
+</body>
+</html>

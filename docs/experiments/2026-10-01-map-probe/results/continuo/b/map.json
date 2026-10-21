@@ -1,0 +1,5630 @@
+{
+ "title": "Continuo: what you can do with it",
+ "stance": "Variant B: use cases first (board -> floor -> part -> code)",
+ "repo": {
+  "path": "/mnt/c/projects/continuo",
+  "windowsPath": "C:/projects/continuo",
+  "commit": "a2142f1",
+  "commitDate": "2026-09-04",
+  "trackedFiles": 271
+ },
+ "statusLegend": {
+  "works": "built, with evidence: tests or a recorded in-game run",
+  "partial": "built, with a known gap (stated in `evidence` or `gaps`)",
+  "planned": "not in the code; only in the roadmap or a spec",
+  "unknown": "could not be determined"
+ },
+ "kinds": {
+  "actor": "who uses or feeds the project",
+  "group": "a floor: one group of use cases",
+  "usecase": "something someone can do; drawn as a route on its floor",
+  "part": "a job, named by what it does; may span several code units",
+  "thing": "what moves between parts",
+  "rule": "what must always hold"
+ },
+ "elements": [
+  {
+   "id": "player",
+   "kind": "actor",
+   "name": "You, in the game",
+   "summary": "Whoever sits at the Minecraft client: presses the four Continuo keys and reads the log.",
+   "code": [
+    "docs/smoke-checklist.md"
+   ],
+   "status": "works",
+   "icon": "person"
+  },
+  {
+   "id": "game",
+   "kind": "actor",
+   "name": "The Minecraft client",
+   "summary": "The running game, on Fabric 1.21.11 or Forge 1.7.10: it feeds ticks, the world and your position, and takes key states back.",
+   "code": [
+    "adapters/adapter-fabric-1.21.11/",
+    "adapters/adapter-forge-1.7.10/"
+   ],
+   "status": "works",
+   "icon": "block"
+  },
+  {
+   "id": "maintainer",
+   "kind": "actor",
+   "name": "You or an agent, coding",
+   "summary": "Whoever changes the project: runs the build, edits the block lists, adds movements.",
+   "code": [
+    "docs/superpowers/"
+   ],
+   "status": "works",
+   "icon": "desk"
+  },
+  {
+   "id": "ci",
+   "kind": "actor",
+   "name": "CI, on every push",
+   "summary": "A GitHub Actions job that builds everything and runs every check on each push and pull request.",
+   "code": [
+    ".github/workflows/ci.yml"
+   ],
+   "status": "works",
+   "icon": "loop"
+  },
+  {
+   "id": "plugin",
+   "kind": "actor",
+   "name": "A movement plugin jar",
+   "summary": "A separate jar that adds a kind of movement; found on the classpath, no core change needed.",
+   "code": [
+    "movement-parkour/"
+   ],
+   "status": "works",
+   "icon": "plug"
+  },
+  {
+   "id": "remote",
+   "kind": "actor",
+   "name": "A browser or outside tool",
+   "summary": "A future external client that would steer and watch the bot over a local connection; nothing of it exists yet.",
+   "code": [
+    "mc-automation-architecture.md",
+    "docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md"
+   ],
+   "status": "planned",
+   "icon": "screen"
+  },
+  {
+   "id": "walk",
+   "kind": "group",
+   "name": "Walk to a spot",
+   "summary": "You mark a block and the bot walks you there, steering every tick.",
+   "code": [],
+   "status": "partial",
+   "floor": 1,
+   "parts": [
+    "keys",
+    "mark",
+    "gate",
+    "core",
+    "steer",
+    "anchor",
+    "turn",
+    "press",
+    "see",
+    "search",
+    "blocks",
+    "log",
+    "goals"
+   ],
+   "usecases": [
+    "mark-spot",
+    "walk-to-mark",
+    "climb-stairs",
+    "long-route",
+    "teleported",
+    "stuck",
+    "give-up",
+    "retarget",
+    "inventory",
+    "smooth-turn",
+    "goto",
+    "sprint-jump"
+   ],
+   "linesLinked": 2096,
+   "homeParts": 6
+  },
+  {
+   "id": "plan",
+   "kind": "group",
+   "name": "Plan a route",
+   "summary": "How a route is found: which moves exist, what they cost, how far a search may go.",
+   "code": [],
+   "status": "partial",
+   "floor": 2,
+   "parts": [
+    "steer",
+    "search",
+    "astar",
+    "backoff",
+    "goalcheck",
+    "moves",
+    "registry",
+    "stand",
+    "costs",
+    "freeze",
+    "blocks",
+    "probe"
+   ],
+   "usecases": [
+    "around",
+    "step-up",
+    "drop",
+    "corner",
+    "gap",
+    "quickest",
+    "no-freeze",
+    "far",
+    "same-path",
+    "no-way",
+    "plugin-move",
+    "column"
+   ],
+   "linesLinked": 3435,
+   "homeParts": 9
+  },
+  {
+   "id": "world",
+   "kind": "group",
+   "name": "Read the world",
+   "summary": "How game blocks become walkable-or-not facts, the same way on both game versions.",
+   "code": [],
+   "status": "partial",
+   "floor": 3,
+   "parts": [
+    "core",
+    "moves",
+    "stand",
+    "freeze",
+    "blocks",
+    "rawblocks",
+    "classify",
+    "table",
+    "version"
+   ],
+   "usecases": [
+    "floor-wall",
+    "lava",
+    "carpet",
+    "unloaded",
+    "teach",
+    "unlisted",
+    "read-once",
+    "classify-once",
+    "forget",
+    "agree",
+    "ice"
+   ],
+   "linesLinked": 1742,
+   "homeParts": 5
+  },
+  {
+   "id": "host",
+   "kind": "group",
+   "name": "Live inside the game",
+   "summary": "How the bot is started, ticked and stopped by the game without ever harming it.",
+   "code": [],
+   "status": "partial",
+   "floor": 4,
+   "parts": [
+    "keys",
+    "mark",
+    "gate",
+    "core",
+    "steer",
+    "press",
+    "blocks",
+    "hook",
+    "log"
+   ],
+   "usecases": [
+    "start",
+    "world-change",
+    "no-world-keys",
+    "contain-crash",
+    "idle",
+    "client-close",
+    "two-versions",
+    "drop-mark"
+   ],
+   "linesLinked": 1540,
+   "homeParts": 5
+  },
+  {
+   "id": "inspect",
+   "kind": "group",
+   "name": "Inspect and measure",
+   "summary": "In-game tools that show what the bot would do and how long it takes.",
+   "code": [],
+   "status": "partial",
+   "floor": 5,
+   "parts": [
+    "keys",
+    "mark",
+    "press",
+    "see",
+    "search",
+    "freeze",
+    "rawblocks",
+    "log",
+    "probe",
+    "draw",
+    "dump",
+    "files"
+   ],
+   "usecases": [
+    "preview",
+    "time-search",
+    "split",
+    "feet",
+    "look-check",
+    "save-map",
+    "reuse-map",
+    "dump-row"
+   ],
+   "linesLinked": 1846,
+   "homeParts": 4
+  },
+  {
+   "id": "honest",
+   "kind": "group",
+   "name": "Keep it honest",
+   "summary": "The build gates, offline tests and hand checks that keep the rules true.",
+   "code": [],
+   "status": "partial",
+   "floor": 6,
+   "parts": [
+    "dump",
+    "build",
+    "guard",
+    "cirun",
+    "tests",
+    "conform",
+    "fixtures",
+    "fakewalk",
+    "audit",
+    "parity",
+    "smoke"
+   ],
+   "usecases": [
+    "build-both",
+    "no-minecraft",
+    "java8",
+    "deps",
+    "on-push",
+    "offline-rules",
+    "terrain",
+    "scripted",
+    "price",
+    "parity",
+    "by-hand"
+   ],
+   "linesLinked": 19273,
+   "homeParts": 10
+  },
+  {
+   "id": "later",
+   "kind": "group",
+   "name": "Not built yet",
+   "summary": "What the roadmap promises beyond today: commands, remote control, tasks, more versions.",
+   "code": [],
+   "status": "planned",
+   "floor": 7,
+   "parts": [
+    "gate",
+    "steer",
+    "search",
+    "goals",
+    "bridge",
+    "webui",
+    "scripts",
+    "moreversions",
+    "flying"
+   ],
+   "usecases": [
+    "remote-goal",
+    "watch",
+    "settings",
+    "mine",
+    "schematic",
+    "juggle",
+    "more-versions",
+    "elytra"
+   ],
+   "linesLinked": 0,
+   "homeParts": 0
+  },
+  {
+   "id": "uc-mark-spot",
+   "kind": "usecase",
+   "name": "Mark where to go",
+   "summary": "Stand on the destination and press H: the block your feet are in becomes the goal.",
+   "code": [],
+   "status": "works",
+   "group": "walk",
+   "actor": "player",
+   "evidence": "Used in the in-game runs of 2026-08-31 and 2026-09-02.",
+   "route": "route-mark-spot"
+  },
+  {
+   "id": "uc-walk-to-mark",
+   "kind": "usecase",
+   "name": "Walk to the mark",
+   "summary": "Press K: the bot searches from where you stand, then steers you step by step until your feet are within half a block of the marked block.",
+   "code": [],
+   "status": "partial",
+   "group": "walk",
+   "actor": "player",
+   "evidence": "Built and unit-tested; never run in a real game (checklist steps 13-22 unrun).",
+   "route": "route-walk-to-mark"
+  },
+  {
+   "id": "uc-climb-stairs",
+   "kind": "usecase",
+   "name": "Climb stairs steadily",
+   "summary": "On a step-up it presses jump only while the game says you are on the ground, which releases the key between jumps and avoids the game's ten-tick jump cooldown.",
+   "code": [],
+   "status": "partial",
+   "group": "walk",
+   "actor": "player",
+   "evidence": "Built and unit-tested; never run in a real game (checklist steps 13-22 unrun). It is the first thing to depend on each version's on-ground flag.",
+   "route": "route-climb-stairs"
+  },
+  {
+   "id": "uc-long-route",
+   "kind": "usecase",
+   "name": "Walk long routes",
+   "summary": "When 20 or fewer steps remain and the path stops short of the goal, it searches on from the path's end while still walking, then appends the result.",
+   "code": [],
+   "status": "partial",
+   "group": "walk",
+   "actor": "player",
+   "evidence": "Built and unit-tested; never run in a real game (checklist steps 13-22 unrun).",
+   "route": "route-long-route"
+  },
+  {
+   "id": "uc-teleported",
+   "kind": "usecase",
+   "name": "Recover after a teleport",
+   "summary": "If your feet are more than two blocks from every nearby path step, it releases all keys, logs 'off path, repathing' and searches again from where you now are.",
+   "code": [],
+   "status": "partial",
+   "group": "walk",
+   "actor": "player",
+   "evidence": "Built and unit-tested; never run in a real game (checklist steps 13-22 unrun). This is what replaced the planned 'server moved you' event.",
+   "route": "route-teleported"
+  },
+  {
+   "id": "uc-stuck",
+   "kind": "usecase",
+   "name": "Notice it is stuck",
+   "summary": "If your position on the path has not advanced for 40 ticks, it logs 'stuck, repathing' and searches again from where you are.",
+   "code": [],
+   "status": "partial",
+   "group": "walk",
+   "actor": "player",
+   "evidence": "Built and unit-tested; never run in a real game (checklist steps 13-22 unrun).",
+   "route": "route-stuck"
+  },
+  {
+   "id": "uc-give-up",
+   "kind": "usecase",
+   "name": "Give up cleanly",
+   "summary": "After three repaths without progress, or when a search proves there is no way, it logs why, releases every key and goes idle.",
+   "code": [],
+   "status": "partial",
+   "group": "walk",
+   "actor": "player",
+   "evidence": "Built and unit-tested; never run in a real game (checklist steps 13-22 unrun).",
+   "route": "route-give-up"
+  },
+  {
+   "id": "uc-retarget",
+   "kind": "usecase",
+   "name": "Retarget mid-walk",
+   "summary": "Marking a new spot and pressing K while walking drops the old walk, releases the keys and starts a fresh search.",
+   "code": [],
+   "status": "partial",
+   "group": "walk",
+   "actor": "player",
+   "evidence": "Built and unit-tested; never run in a real game (checklist steps 13-22 unrun).",
+   "route": "route-retarget"
+  },
+  {
+   "id": "uc-inventory",
+   "kind": "usecase",
+   "name": "Survive an open screen",
+   "summary": "Opening a screen clears held keys in the game; because every key is restated each tick, the walk loses one tick and carries on.",
+   "code": [],
+   "status": "partial",
+   "group": "walk",
+   "actor": "player",
+   "evidence": "The mechanism was seen in game with the old 40-tick demo walk (2026-09-02); not yet with the path walker.",
+   "route": "route-inventory"
+  },
+  {
+   "id": "uc-smooth-turn",
+   "kind": "usecase",
+   "name": "Turn smoothly, not snap",
+   "summary": "Each tick the view turns at most 30 degrees toward the next step, starting from where you actually face.",
+   "code": [],
+   "status": "partial",
+   "group": "walk",
+   "actor": "player",
+   "evidence": "Built and unit-tested; never run in a real game (checklist steps 13-22 unrun).",
+   "route": "route-smooth-turn"
+  },
+  {
+   "id": "uc-goto",
+   "kind": "usecase",
+   "name": "Go there by command",
+   "summary": "A 'goto x y z' command and named goals are the next planned sub-project (D3); today the only way to name a destination is to stand on it.",
+   "code": [
+    "docs/superpowers/specs/2026-09-03-d2-path-executor-design.md",
+    "docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md"
+   ],
+   "status": "planned",
+   "group": "walk",
+   "actor": "player",
+   "evidence": "Not built: named in the D2 spec as D3.",
+   "route": "route-goto"
+  },
+  {
+   "id": "uc-sprint-jump",
+   "kind": "usecase",
+   "name": "Sprint and jump gaps",
+   "summary": "The walker never presses sprint and stops if a path contains a gap-jump; executing parkour is carried forward as later work.",
+   "code": [
+    "docs/superpowers/specs/2026-09-03-d2-path-executor-design.md"
+   ],
+   "status": "planned",
+   "group": "walk",
+   "actor": "player",
+   "evidence": "Not built: listed under 'carried forward' in the D2 spec.",
+   "route": "route-sprint-jump"
+  },
+  {
+   "id": "uc-around",
+   "kind": "usecase",
+   "name": "Route around obstacles",
+   "summary": "From the start it keeps expanding the cheapest spot, asking each allowed movement where you could stand next, until it reaches the goal block.",
+   "code": [],
+   "status": "works",
+   "group": "plan",
+   "actor": "player",
+   "evidence": "Unit-tested on text-art worlds and five captured terrains, against a shortest-path oracle.",
+   "route": "route-around"
+  },
+  {
+   "id": "uc-step-up",
+   "kind": "usecase",
+   "name": "Step up one block",
+   "summary": "A step-up is offered when the block above your head is clear and the higher neighbour can be stood on; it costs a block's walk plus a jump.",
+   "code": [],
+   "status": "works",
+   "group": "plan",
+   "actor": "player",
+   "evidence": "Unit-tested (AscendMoveTest).",
+   "route": "route-step-up"
+  },
+  {
+   "id": "uc-drop",
+   "kind": "usecase",
+   "name": "Drop up to three blocks",
+   "summary": "Walking off a ledge is offered only if the first thing below is a real floor within three blocks; lava, a bottom slab or the unknown below means no offer.",
+   "code": [],
+   "status": "works",
+   "group": "plan",
+   "actor": "player",
+   "evidence": "Unit-tested (DescendMoveTest).",
+   "route": "route-drop"
+  },
+  {
+   "id": "uc-corner",
+   "kind": "usecase",
+   "name": "Cut corners when clear",
+   "summary": "A diagonal step is offered only if both squares beside the corner are clear at feet and head height.",
+   "code": [],
+   "status": "works",
+   "group": "plan",
+   "actor": "player",
+   "evidence": "Unit-tested (DiagonalMoveTest).",
+   "route": "route-corner"
+  },
+  {
+   "id": "uc-gap",
+   "kind": "usecase",
+   "name": "Jump a one-block gap",
+   "summary": "The parkour plugin offers a jump over a one-block hole, but only searches that grant gap-jumps see it: the preview does, the walker does not.",
+   "code": [],
+   "status": "partial",
+   "group": "plan",
+   "actor": "plugin",
+   "evidence": "Works in searches and tests; the walker refuses to execute it.",
+   "route": "route-gap"
+  },
+  {
+   "id": "uc-quickest",
+   "kind": "usecase",
+   "name": "Take the quickest route",
+   "summary": "Moves are priced in game ticks and the estimate never overshoots, so the first route to reach the goal is the fastest one under those prices.",
+   "code": [],
+   "status": "works",
+   "group": "plan",
+   "actor": "player",
+   "evidence": "Unit-tested against an oracle; the prices themselves were never checked against a real walk.",
+   "route": "route-quickest"
+  },
+  {
+   "id": "uc-no-freeze",
+   "kind": "usecase",
+   "name": "Search without freezing",
+   "summary": "A search explores 2,000 spots per tick and carries on next tick, so a 245-step route took about 13 ticks instead of one long stall.",
+   "code": [],
+   "status": "works",
+   "group": "plan",
+   "actor": "player",
+   "evidence": "Measured in game: worst slice 22 ms cold, 6-9 ms warm (2026-09-02).",
+   "route": "route-no-freeze"
+  },
+  {
+   "id": "uc-far",
+   "kind": "usecase",
+   "name": "Reach far goals in stages",
+   "summary": "If one stage explores 25,000 spots without reaching the goal, it settles for the explored spot nearest the goal and starts the next stage there.",
+   "code": [],
+   "status": "works",
+   "group": "plan",
+   "actor": "player",
+   "evidence": "Unit-tested; a 2-stage route was found in game.",
+   "route": "route-far"
+  },
+  {
+   "id": "uc-same-path",
+   "kind": "usecase",
+   "name": "Same world, same path",
+   "summary": "Fixed movement order, fixed tie-breaking and name-sorted plugins make every search repeatable, which is what lets tests assert the exact path.",
+   "code": [],
+   "status": "works",
+   "group": "plan",
+   "actor": "maintainer",
+   "evidence": "Unit-tested (QueuedNodeOrderTest, SliceEquivalenceTest).",
+   "route": "route-same-path"
+  },
+  {
+   "id": "uc-no-way",
+   "kind": "usecase",
+   "name": "Know there is no way",
+   "summary": "If everything reachable was explored without finding the goal the answer is 'no path'; running out of budget is reported differently.",
+   "code": [],
+   "status": "works",
+   "group": "plan",
+   "actor": "player",
+   "evidence": "Unit-tested; the walker stops for good on 'no path'.",
+   "route": "route-no-way"
+  },
+  {
+   "id": "uc-plugin-move",
+   "kind": "usecase",
+   "name": "Add a movement plugin",
+   "summary": "A jar that names its movement in a service file is found at startup and joins the allowed set if the caller grants what it requires.",
+   "code": [],
+   "status": "works",
+   "group": "plan",
+   "actor": "maintainer",
+   "evidence": "The parkour module is exactly this, with its own tests.",
+   "route": "route-plugin-move"
+  },
+  {
+   "id": "uc-column",
+   "kind": "usecase",
+   "name": "Aim at a column",
+   "summary": "A second kind of goal, any height at one x and z, exists and is tested.",
+   "code": [],
+   "status": "partial",
+   "group": "plan",
+   "actor": "maintainer",
+   "evidence": "Nothing in the bot uses it; only tests do.",
+   "route": "route-column"
+  },
+  {
+   "id": "uc-floor-wall",
+   "kind": "usecase",
+   "name": "Tell floor from wall",
+   "summary": "A block's collision boxes decide its shape; a top between 0.9 and 1.0 is a floor, a top over 1.0 is a fence, a top up to 0.25 is walked through.",
+   "code": [],
+   "status": "works",
+   "group": "world",
+   "actor": "game",
+   "evidence": "40 classifier tests and 22 standability tests.",
+   "route": "route-floor-wall"
+  },
+  {
+   "id": "uc-lava",
+   "kind": "usecase",
+   "name": "Keep out of lava and fire",
+   "summary": "The per-version list tags lava, fire, cactus and magma as harmful; a harmful block or any fluid can be neither entered nor stood on.",
+   "code": [],
+   "status": "works",
+   "group": "world",
+   "actor": "player",
+   "evidence": "Unit-tested (StandabilityTest).",
+   "route": "route-lava"
+  },
+  {
+   "id": "uc-carpet",
+   "kind": "usecase",
+   "name": "Walk over carpet, snow",
+   "summary": "Anything whose top is at most a quarter block is treated as passable, so carpet and snow layers are walked over rather than around.",
+   "code": [],
+   "status": "works",
+   "group": "world",
+   "actor": "player",
+   "evidence": "Unit-tested.",
+   "route": "route-carpet"
+  },
+  {
+   "id": "uc-unloaded",
+   "kind": "usecase",
+   "name": "Unloaded land is a wall",
+   "summary": "A position in an unloaded chunk or outside the world's height comes back 'unknown', which nothing may enter or stand on.",
+   "code": [],
+   "status": "works",
+   "group": "world",
+   "actor": "game",
+   "evidence": "Unit-tested.",
+   "route": "route-unloaded"
+  },
+  {
+   "id": "uc-teach",
+   "kind": "usecase",
+   "name": "Teach it a harmful block",
+   "summary": "Add a row to a version's JSON list; the strict loader rejects any misspelt shape, fluid or tag instead of ignoring it.",
+   "code": [],
+   "status": "works",
+   "group": "world",
+   "actor": "maintainer",
+   "evidence": "Unit-tested loader (20 tests).",
+   "route": "route-teach"
+  },
+  {
+   "id": "uc-unlisted",
+   "kind": "usecase",
+   "name": "Run on unlisted versions",
+   "summary": "A game version with no list still works: every block is classified from its shape alone, with no harmful or slow overrides.",
+   "code": [],
+   "status": "works",
+   "group": "world",
+   "actor": "maintainer",
+   "evidence": "Unit-tested.",
+   "route": "route-unlisted"
+  },
+  {
+   "id": "uc-read-once",
+   "kind": "usecase",
+   "name": "Read each block once",
+   "summary": "During a search every position is fetched from the game at most once; repeated questions are answered from the search's own copy.",
+   "code": [],
+   "status": "works",
+   "group": "world",
+   "actor": "player",
+   "evidence": "Measured in game: positions were otherwise read 4 to 16 times.",
+   "route": "route-read-once"
+  },
+  {
+   "id": "uc-classify-once",
+   "kind": "usecase",
+   "name": "Classify each type once",
+   "summary": "The cheap state id is read per position; the costly description and classification run only the first time a state id is seen.",
+   "code": [],
+   "status": "works",
+   "group": "world",
+   "actor": "player",
+   "evidence": "Unit-tested (BlockLookupTest).",
+   "route": "route-classify-once"
+  },
+  {
+   "id": "uc-forget",
+   "kind": "usecase",
+   "name": "Forget blocks per world",
+   "summary": "State ids only mean something within one world, so the memo is cleared whenever the bot is stopped for a world change.",
+   "code": [],
+   "status": "works",
+   "group": "world",
+   "actor": "game",
+   "evidence": "Unit-tested.",
+   "route": "route-forget"
+  },
+  {
+   "id": "uc-agree",
+   "kind": "usecase",
+   "name": "Agree on both versions",
+   "summary": "Both mods report raw facts into one shared classifier, so they cannot reach different conclusions about the same boxes.",
+   "code": [],
+   "status": "works",
+   "group": "world",
+   "actor": "maintainer",
+   "evidence": "In-game dumps: 27 of 27 compared blocks match; carpet and farmland differ because the games do.",
+   "route": "route-agree"
+  },
+  {
+   "id": "uc-ice",
+   "kind": "usecase",
+   "name": "Account for slippery ice",
+   "summary": "Ice and packed ice classify exactly like stone; there is no tag for slipperiness yet.",
+   "code": [
+    "docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md"
+   ],
+   "status": "planned",
+   "group": "world",
+   "actor": "player",
+   "evidence": "Not built: named as a live candidate in the roadmap.",
+   "route": "route-ice"
+  },
+  {
+   "id": "uc-start",
+   "kind": "usecase",
+   "name": "Start with the game",
+   "summary": "When the mod loads it builds the bot, hands it the platform bundle exactly once and logs 'Continuo core started on <version> / <loader>'.",
+   "code": [],
+   "status": "works",
+   "group": "host",
+   "actor": "game",
+   "evidence": "Seen in game on both versions (records up to 2026-09-02).",
+   "route": "route-start"
+  },
+  {
+   "id": "uc-world-change",
+   "kind": "usecase",
+   "name": "Stop on world change",
+   "summary": "Quit to title, disconnect, a portal or a fresh load all change the world object; the bot is stopped, keys go up, blocks and the mark are forgotten.",
+   "code": [],
+   "status": "works",
+   "group": "host",
+   "actor": "game",
+   "evidence": "28 conformance cases; the portal step passed in game on both versions.",
+   "route": "route-world-change"
+  },
+  {
+   "id": "uc-no-world-keys",
+   "kind": "usecase",
+   "name": "Ignore out-of-world keys",
+   "summary": "Clicks queued while no world is loaded, or while the bot is faulted, are thrown away so they cannot fire later.",
+   "code": [],
+   "status": "works",
+   "group": "host",
+   "actor": "player",
+   "evidence": "Conformance cases only: no hand test can reach this.",
+   "route": "route-no-world-keys"
+  },
+  {
+   "id": "uc-contain-crash",
+   "kind": "usecase",
+   "name": "Contain a bot crash",
+   "summary": "If the bot throws, the gate logs it with a stack trace, stops the bot so no key stays down, and delivers no more ticks until the next world load.",
+   "code": [],
+   "status": "works",
+   "group": "host",
+   "actor": "game",
+   "evidence": "Conformance cases only: never triggered in a real game.",
+   "route": "route-contain-crash"
+  },
+  {
+   "id": "uc-idle",
+   "kind": "usecase",
+   "name": "Hands off keys when idle",
+   "summary": "Ticks still arrive while the bot is idle, but it writes nothing, so your own key presses are never overridden.",
+   "code": [],
+   "status": "works",
+   "group": "host",
+   "actor": "player",
+   "evidence": "Unit-tested (ContinuoCoreTest).",
+   "route": "route-idle"
+  },
+  {
+   "id": "uc-client-close",
+   "kind": "usecase",
+   "name": "Stop when game closes",
+   "summary": "On Fabric the bot is stopped when the client shuts down; Forge 1.7.10 has no such event, so there it simply is not.",
+   "code": [],
+   "status": "partial",
+   "group": "host",
+   "actor": "game",
+   "evidence": "By design: stopping has no effect that outlives the process.",
+   "route": "route-client-close"
+  },
+  {
+   "id": "uc-two-versions",
+   "kind": "usecase",
+   "name": "One core, two versions",
+   "summary": "The same game-free jars run under Fabric 1.21.11 and Forge 1.7.10; each mod is about 600 lines of translation.",
+   "code": [],
+   "status": "works",
+   "group": "host",
+   "actor": "maintainer",
+   "evidence": "Both mods come out of one build and were run in game.",
+   "route": "route-two-versions"
+  },
+  {
+   "id": "uc-drop-mark",
+   "kind": "usecase",
+   "name": "Drop mark in new world",
+   "summary": "A mark made in one world means nothing in another, so it is discarded on the same world-identity change that stops the bot.",
+   "code": [],
+   "status": "works",
+   "group": "host",
+   "actor": "game",
+   "evidence": "Unit-tested (PathProbeTest).",
+   "route": "route-drop-mark"
+  },
+  {
+   "id": "uc-preview",
+   "kind": "usecase",
+   "name": "Preview a route",
+   "summary": "Press L: it turns you toward the mark, searches over a few ticks, logs one summary line and writes a text map of the route.",
+   "code": [],
+   "status": "works",
+   "group": "inspect",
+   "actor": "player",
+   "evidence": "Run in game on both versions (2026-08-31, 2026-09-02).",
+   "route": "route-preview"
+  },
+  {
+   "id": "uc-time-search",
+   "kind": "usecase",
+   "name": "Time a search per slice",
+   "summary": "The summary reports how many slices the search took and how long the worst one was.",
+   "code": [],
+   "status": "works",
+   "group": "inspect",
+   "actor": "player",
+   "evidence": "This is how the 2,000-spots-per-tick figure was set.",
+   "route": "route-time-search"
+  },
+  {
+   "id": "uc-split",
+   "kind": "usecase",
+   "name": "Split read from search",
+   "summary": "After the live search it replays the same search twice against the sealed copy; the time difference is what reading the world cost.",
+   "code": [],
+   "status": "works",
+   "group": "inspect",
+   "actor": "player",
+   "evidence": "Unit-tested; figures recorded from in-game runs.",
+   "route": "route-split"
+  },
+  {
+   "id": "uc-feet",
+   "kind": "usecase",
+   "name": "Catch wrong feet height",
+   "summary": "If the game says you are on the ground but the block under the reported feet cannot hold you, the summary carries a notice.",
+   "code": [],
+   "status": "works",
+   "group": "inspect",
+   "actor": "player",
+   "evidence": "Proven by deliberately breaking the 1.7.10 mod in game (2026-09-02).",
+   "route": "route-feet"
+  },
+  {
+   "id": "uc-look-check",
+   "kind": "usecase",
+   "name": "Check a turn took effect",
+   "summary": "It asks for a facing, then on the next tick reads the facing back; more than one degree apart produces a notice.",
+   "code": [],
+   "status": "works",
+   "group": "inspect",
+   "actor": "player",
+   "evidence": "Seen in game on both versions.",
+   "route": "route-look-check"
+  },
+  {
+   "id": "uc-save-map",
+   "kind": "usecase",
+   "name": "Save route as text map",
+   "summary": "The map shows terrain layer by layer with the start, goal, path and explored spots, clamped to 64 blocks per axis around the start.",
+   "code": [],
+   "status": "works",
+   "group": "inspect",
+   "actor": "player",
+   "evidence": "Unit-tested; produced in game.",
+   "route": "route-save-map"
+  },
+  {
+   "id": "uc-reuse-map",
+   "kind": "usecase",
+   "name": "Reuse saved map as test",
+   "summary": "A saved map can be pasted into a test as a world, because it is written in the same format tests read.",
+   "code": [],
+   "status": "partial",
+   "group": "inspect",
+   "actor": "maintainer",
+   "evidence": "With limits: blocks drawn as '?' read back as walls, and a clamped map may have no goal.",
+   "route": "route-reuse-map"
+  },
+  {
+   "id": "uc-dump-row",
+   "kind": "usecase",
+   "name": "Dump a row of blocks",
+   "summary": "Press J at the west end of the 32-block test row: one line per block with what the game said and how it was classified.",
+   "code": [],
+   "status": "works",
+   "group": "inspect",
+   "actor": "player",
+   "evidence": "Run in game on both versions 2026-08-15.",
+   "route": "route-dump-row"
+  },
+  {
+   "id": "uc-build-both",
+   "kind": "usecase",
+   "name": "Build both mods at once",
+   "summary": "One 'gradlew build' compiles the core once and both mods against it, so 'the same core jar' is a fact of the build.",
+   "code": [],
+   "status": "works",
+   "group": "honest",
+   "actor": "maintainer",
+   "evidence": "The build graph in the repo.",
+   "route": "route-build-both"
+  },
+  {
+   "id": "uc-no-minecraft",
+   "kind": "usecase",
+   "name": "No Minecraft in the core",
+   "summary": "After compiling, every class file and dependency of the eight game-free modules is scanned for Minecraft and loader names.",
+   "code": [],
+   "status": "works",
+   "group": "honest",
+   "actor": "ci",
+   "evidence": "A build task that fails the build.",
+   "route": "route-no-minecraft"
+  },
+  {
+   "id": "uc-java8",
+   "kind": "usecase",
+   "name": "Keep the core on Java 8",
+   "summary": "Every class file in a game-free module must be Java 8 bytecode, because Forge 1.7.10 runs on Java 8.",
+   "code": [],
+   "status": "works",
+   "group": "honest",
+   "actor": "ci",
+   "evidence": "A build task that fails the build.",
+   "route": "route-java8"
+  },
+  {
+   "id": "uc-deps",
+   "kind": "usecase",
+   "name": "Block bad dependencies",
+   "summary": "Each module's allowed dependencies are listed in one place and anything outside the list fails the build.",
+   "code": [],
+   "status": "works",
+   "group": "honest",
+   "actor": "ci",
+   "evidence": "A build task that fails the build.",
+   "route": "route-deps"
+  },
+  {
+   "id": "uc-on-push",
+   "kind": "usecase",
+   "name": "Run all checks on push",
+   "summary": "On every push and pull request CI builds, runs all tests, then re-runs the three guard checks by name.",
+   "code": [],
+   "status": "works",
+   "group": "honest",
+   "actor": "ci",
+   "evidence": "The workflow file.",
+   "route": "route-on-push"
+  },
+  {
+   "id": "uc-offline-rules",
+   "kind": "usecase",
+   "name": "Test game rules offline",
+   "summary": "The lifecycle and crash rules are replayed against the tick gate with stand-in worlds, players and clicks; no game needed.",
+   "code": [],
+   "status": "works",
+   "group": "honest",
+   "actor": "maintainer",
+   "evidence": "28 cases.",
+   "route": "route-offline-rules"
+  },
+  {
+   "id": "uc-terrain",
+   "kind": "usecase",
+   "name": "Test routes on terrain",
+   "summary": "Route searches run on hand-drawn worlds and on five maps captured from a real world, and are compared with an exhaustive search.",
+   "code": [],
+   "status": "works",
+   "group": "honest",
+   "actor": "maintainer",
+   "evidence": "About 190 tests.",
+   "route": "route-terrain"
+  },
+  {
+   "id": "uc-scripted",
+   "kind": "usecase",
+   "name": "Walk a scripted player",
+   "summary": "The walker is ticked against a fake player whose position the test moves, checking every key it states and every stop reason.",
+   "code": [],
+   "status": "works",
+   "group": "honest",
+   "actor": "maintainer",
+   "evidence": "65 tests.",
+   "route": "route-scripted"
+  },
+  {
+   "id": "uc-price",
+   "kind": "usecase",
+   "name": "Catch a mispriced move",
+   "summary": "A movement that declares a cheapest price higher than something it actually offers would silently break shortest routes; the audit reports it.",
+   "code": [],
+   "status": "works",
+   "group": "honest",
+   "actor": "maintainer",
+   "evidence": "Runs for every built-in movement and the plugin.",
+   "route": "route-price"
+  },
+  {
+   "id": "uc-parity",
+   "kind": "usecase",
+   "name": "Diff versions' blocks",
+   "summary": "Someone runs the dump in each game version, checks both files in, and a test diffs them against each other and against the reviewed copies.",
+   "code": [],
+   "status": "works",
+   "group": "honest",
+   "actor": "maintainer",
+   "evidence": "8 tests; last dumps 2026-08-15.",
+   "route": "route-parity"
+  },
+  {
+   "id": "uc-by-hand",
+   "kind": "usecase",
+   "name": "Check by hand in game",
+   "summary": "A 22-step list: basic walk and lifecycle, then the walker's criteria, then measuring its seven tuning numbers.",
+   "code": [],
+   "status": "partial",
+   "group": "honest",
+   "actor": "player",
+   "evidence": "Steps 1-12 passed before the walker existed; steps 13-22 have never been run.",
+   "route": "route-by-hand"
+  },
+  {
+   "id": "uc-remote-goal",
+   "kind": "usecase",
+   "name": "Set a goal from outside",
+   "summary": "Planned: an outside client sends 'set goal' over a local connection instead of you standing on the spot.",
+   "code": [
+    "docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md"
+   ],
+   "status": "planned",
+   "group": "later",
+   "actor": "remote",
+   "evidence": "Roadmap milestone 6; no code.",
+   "route": "route-remote-goal"
+  },
+  {
+   "id": "uc-watch",
+   "kind": "usecase",
+   "name": "Watch the search live",
+   "summary": "Planned: the bot streams its position, path and explored spots to a browser.",
+   "code": [
+    "docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md"
+   ],
+   "status": "planned",
+   "group": "later",
+   "actor": "remote",
+   "evidence": "Roadmap milestones 6-7; no code.",
+   "route": "route-watch"
+  },
+  {
+   "id": "uc-settings",
+   "kind": "usecase",
+   "name": "Change settings live",
+   "summary": "Planned: settings declared once in the bot become forms in the browser and can be changed while it runs.",
+   "code": [
+    "docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md"
+   ],
+   "status": "planned",
+   "group": "later",
+   "actor": "remote",
+   "evidence": "Roadmap milestone 6; today every setting is a constant in the code.",
+   "route": "route-settings"
+  },
+  {
+   "id": "uc-mine",
+   "kind": "usecase",
+   "name": "Mine a vein",
+   "summary": "Planned: a mining task hands the walker one goal after another.",
+   "code": [
+    "docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md"
+   ],
+   "status": "planned",
+   "group": "later",
+   "actor": "player",
+   "evidence": "Roadmap milestone 8; no code. The bot cannot break or place blocks today.",
+   "route": "route-mine"
+  },
+  {
+   "id": "uc-schematic",
+   "kind": "usecase",
+   "name": "Build from a schematic",
+   "summary": "Planned: a building task reads a schematic file and places blocks in order.",
+   "code": [
+    "docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md"
+   ],
+   "status": "planned",
+   "group": "later",
+   "actor": "player",
+   "evidence": "Roadmap milestone 8; no code.",
+   "route": "route-schematic"
+  },
+  {
+   "id": "uc-juggle",
+   "kind": "usecase",
+   "name": "Juggle competing tasks",
+   "summary": "Planned: a process manager picks which goal is active by priority.",
+   "code": [
+    "docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md",
+    "docs/superpowers/specs/2026-09-03-d2-path-executor-design.md"
+   ],
+   "status": "planned",
+   "group": "later",
+   "actor": "player",
+   "evidence": "Part of D3 and milestone 8; no code.",
+   "route": "route-juggle"
+  },
+  {
+   "id": "uc-more-versions",
+   "kind": "usecase",
+   "name": "Run on NeoForge or 1.20",
+   "summary": "Planned: further mods for other versions and loaders, reusing the same tick gate and contract.",
+   "code": [
+    "docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md"
+   ],
+   "status": "planned",
+   "group": "later",
+   "actor": "maintainer",
+   "evidence": "Roadmap milestone 9; no code.",
+   "route": "route-more-versions"
+  },
+  {
+   "id": "uc-elytra",
+   "kind": "usecase",
+   "name": "Fly with elytra",
+   "summary": "Planned: flight and modded movements as extra plugins, switched off automatically where the game lacks them.",
+   "code": [
+    "docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md"
+   ],
+   "status": "planned",
+   "group": "later",
+   "actor": "player",
+   "evidence": "Roadmap milestone 10; no code.",
+   "route": "route-elytra"
+  },
+  {
+   "id": "keys",
+   "kind": "part",
+   "name": "Listens for your keys",
+   "summary": "Registers four keys in each game version (H mark, K walk, L preview, J dump) and polls them once per tick.",
+   "code": [
+    "adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/ContinuoFabricMod.java",
+    "adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ContinuoForgeMod.java",
+    "adapters/adapter-fabric-1.21.11/src/main/resources/assets/continuo/lang/en_us.json",
+    "adapters/adapter-forge-1.7.10/src/main/resources/assets/continuo/lang/en_US.lang"
+   ],
+   "status": "works",
+   "floors": [
+    "host",
+    "walk",
+    "inspect"
+   ],
+   "home": "host",
+   "shared": true,
+   "perGameVersion": true,
+   "evidence": "Used in every recorded in-game run (2026-08-13 to 2026-09-02).",
+   "tests": [],
+   "knobs": [
+    {
+     "name": "Walk key",
+     "value": "K",
+     "where": "adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/ContinuoFabricMod.java",
+     "line": 62
+    },
+    {
+     "name": "Dump key",
+     "value": "J",
+     "where": "adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/ContinuoFabricMod.java",
+     "line": 72
+    },
+    {
+     "name": "Mark key",
+     "value": "H",
+     "where": "adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/ContinuoFabricMod.java",
+     "line": 81
+    },
+    {
+     "name": "Preview key",
+     "value": "L",
+     "where": "adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/ContinuoFabricMod.java",
+     "line": 87
+    },
+    {
+     "name": "Same four keys, Forge",
+     "value": "K J H L",
+     "where": "adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ContinuoForgeMod.java",
+     "line": 80
+    }
+   ],
+   "gaps": [
+    "These are development keys; there is no chat command or menu yet."
+   ],
+   "docConflicts": [],
+   "rules": [
+    "rule-translate"
+   ],
+   "linesLinked": 490
+  },
+  {
+   "id": "mark",
+   "kind": "part",
+   "name": "Remembers the marked spot",
+   "summary": "Keeps the one block you marked as the destination and drops it when the world changes.",
+   "code": [
+    "runtime/src/main/java/dev/continuo/runtime/PathProbe.java"
+   ],
+   "status": "works",
+   "floors": [
+    "walk",
+    "host",
+    "inspect"
+   ],
+   "home": "walk",
+   "shared": true,
+   "perGameVersion": false,
+   "evidence": "Unit-tested (PathProbeTest) and used in the in-game runs of 2026-08-31 and 2026-09-02.",
+   "tests": [
+    "runtime/src/test/java/dev/continuo/runtime/PathProbeTest.java"
+   ],
+   "knobs": [],
+   "gaps": [
+    "For one tick after a world change, a queued K click can still use the old world's mark (noted in both mod classes, not fixed)."
+   ],
+   "docConflicts": [],
+   "rules": [],
+   "linesLinked": 747
+  },
+  {
+   "id": "gate",
+   "kind": "part",
+   "name": "Lets ticks and clicks through",
+   "summary": "Decides each tick whether the bot may run: only inside a loaded world, never after a crash, queued K clicks first.",
+   "code": [
+    "runtime/src/main/java/dev/continuo/runtime/AdapterRuntime.java",
+    "runtime/src/main/java/dev/continuo/runtime/ClickSource.java",
+    "runtime/src/main/java/dev/continuo/runtime/package-info.java"
+   ],
+   "status": "works",
+   "floors": [
+    "host",
+    "walk",
+    "later"
+   ],
+   "home": "host",
+   "shared": true,
+   "perGameVersion": false,
+   "evidence": "28 offline conformance cases; behaviour re-checked in game on both versions 2026-08-14.",
+   "tests": [
+    "runtime/src/test/java/dev/continuo/runtime/AdapterRuntimeConformanceTest.java",
+    "runtime/src/test/java/dev/continuo/runtime/QueuedClicks.java",
+    "platform-testkit/src/main/java/dev/continuo/testkit/AdapterConformanceTest.java"
+   ],
+   "knobs": [],
+   "gaps": [],
+   "docConflicts": [],
+   "rules": [
+    "rule-stop-on-change",
+    "rule-crash"
+   ],
+   "linesLinked": 262
+  },
+  {
+   "id": "core",
+   "kind": "part",
+   "name": "Runs the bot each tick",
+   "summary": "The bot's single entry point: started once, it forwards walk orders and ticks to the walker and stops everything on demand.",
+   "code": [
+    "core-engine/src/main/java/dev/continuo/engine/ContinuoCore.java",
+    "core/src/main/java/dev/continuo/core/CoreApi.java"
+   ],
+   "status": "works",
+   "floors": [
+    "host",
+    "walk",
+    "world"
+   ],
+   "home": "host",
+   "shared": true,
+   "perGameVersion": false,
+   "evidence": "14 unit tests (ContinuoCoreTest).",
+   "tests": [
+    "core-engine/src/test/java/dev/continuo/engine/ContinuoCoreTest.java"
+   ],
+   "knobs": [],
+   "gaps": [
+    "It ignores the after-tick phase entirely; only the before-input phase does work."
+   ],
+   "docConflicts": [],
+   "rules": [
+    "rule-idle",
+    "rule-stop-on-change"
+   ],
+   "linesLinked": 177
+  },
+  {
+   "id": "steer",
+   "kind": "part",
+   "name": "Steers along the path",
+   "summary": "Every tick it works out where you are on the path and restates all seven keys and the facing; it searches ahead, repaths when off the path or stuck, and gives up after three failed repaths.",
+   "code": [
+    "core-engine/src/main/java/dev/continuo/engine/PathExecutor.java"
+   ],
+   "status": "partial",
+   "floors": [
+    "walk",
+    "plan",
+    "host",
+    "later"
+   ],
+   "home": "walk",
+   "shared": true,
+   "perGameVersion": false,
+   "evidence": "Built and unit-tested, but never run in a real game: checklist steps 13-22 are unrun.",
+   "tests": [
+    "core-engine/src/test/java/dev/continuo/engine/PathExecutorDriveTest.java",
+    "core-engine/src/test/java/dev/continuo/engine/PathExecutorSearchTest.java"
+   ],
+   "knobs": [
+    {
+     "name": "Search ahead when this few steps remain",
+     "value": "20 steps",
+     "where": "core-engine/src/main/java/dev/continuo/engine/PathExecutor.java",
+     "line": 65
+    },
+    {
+     "name": "No progress for this long means stuck",
+     "value": "40 ticks (2 s)",
+     "where": "core-engine/src/main/java/dev/continuo/engine/PathExecutor.java",
+     "line": 74
+    },
+    {
+     "name": "Failed repaths before giving up",
+     "value": "3",
+     "where": "core-engine/src/main/java/dev/continuo/engine/PathExecutor.java",
+     "line": 82
+    }
+   ],
+   "gaps": [
+    "All its tuning numbers are extrapolated, not measured in a game.",
+    "It never sprints, although every move is priced at sprint speed.",
+    "It stops dead on a gap-jump step: it does not grant or execute parkour.",
+    "It stands still while repathing.",
+    "The 'search ran out of budget with nothing' case has no test."
+   ],
+   "docConflicts": [],
+   "rules": [
+    "rule-restate",
+    "rule-idle",
+    "rule-one-name"
+   ],
+   "linesLinked": 485
+  },
+  {
+   "id": "anchor",
+   "kind": "part",
+   "name": "Finds you on the path",
+   "summary": "Each tick it looks six steps either side of your last known step for the one nearest your feet; too far from all of them means off the path.",
+   "code": [
+    "core-engine/src/main/java/dev/continuo/engine/PathFollower.java"
+   ],
+   "status": "partial",
+   "floors": [
+    "walk"
+   ],
+   "home": "walk",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "Built and unit-tested, but never run in a real game: checklist steps 13-22 are unrun.",
+   "tests": [
+    "core-engine/src/test/java/dev/continuo/engine/PathFollowerTest.java"
+   ],
+   "knobs": [
+    {
+     "name": "Steps scanned either side",
+     "value": "6",
+     "where": "core-engine/src/main/java/dev/continuo/engine/PathFollower.java",
+     "line": 39
+    },
+    {
+     "name": "Further than this is off the path",
+     "value": "2.0 blocks",
+     "where": "core-engine/src/main/java/dev/continuo/engine/PathFollower.java",
+     "line": 47
+    },
+    {
+     "name": "Closer than this is arrived",
+     "value": "0.5 blocks",
+     "where": "core-engine/src/main/java/dev/continuo/engine/PathFollower.java",
+     "line": 54
+    }
+   ],
+   "gaps": [
+    "The scan window is sized against a spiral staircase that was reasoned about, not counted."
+   ],
+   "docConflicts": [
+    "The roadmap and the architecture doc promise a 'server moved you' event (onPositionCorrection). The code has no such event: finding you on the path every tick replaced it (D1 spec, section 3.5)."
+   ],
+   "rules": [],
+   "linesLinked": 196
+  },
+  {
+   "id": "turn",
+   "kind": "part",
+   "name": "Limits how fast it turns",
+   "summary": "Caps each tick's turn at 30 degrees from your actual facing so the view eases round instead of snapping; key presses pass straight through.",
+   "code": [
+    "core-engine/src/main/java/dev/continuo/engine/HumanizedActuator.java",
+    "core/src/main/java/dev/continuo/core/Yaw.java"
+   ],
+   "status": "partial",
+   "floors": [
+    "walk"
+   ],
+   "home": "walk",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "Built and unit-tested, but never run in a real game: checklist steps 13-22 are unrun.",
+   "tests": [
+    "core-engine/src/test/java/dev/continuo/engine/HumanizedActuatorTest.java",
+    "core/src/test/java/dev/continuo/core/YawTest.java"
+   ],
+   "knobs": [
+    {
+     "name": "Most degrees turned per tick",
+     "value": "30",
+     "where": "core-engine/src/main/java/dev/continuo/engine/HumanizedActuator.java",
+     "line": 48
+    }
+   ],
+   "gaps": [
+    "Only turning is made human-like; key presses are not."
+   ],
+   "docConflicts": [],
+   "rules": [],
+   "linesLinked": 149
+  },
+  {
+   "id": "press",
+   "kind": "part",
+   "name": "Presses keys and turns you",
+   "summary": "The only way the bot acts on the game: it sets one of seven movement keys down or up, and sets where you face.",
+   "code": [
+    "adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/FabricActuator.java",
+    "adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ForgeActuator.java",
+    "adapters/adapter-forge-1.7.10/src/main/resources/META-INF/continuo_at.cfg",
+    "platform/src/main/java/dev/continuo/platform/IActuator.java",
+    "platform/src/main/java/dev/continuo/platform/Input.java"
+   ],
+   "status": "works",
+   "floors": [
+    "walk",
+    "host",
+    "inspect"
+   ],
+   "home": "walk",
+   "shared": true,
+   "perGameVersion": true,
+   "evidence": "Forward and facing were seen working in game on both versions; no automated test can reach it.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [
+    "Only the forward key and the facing have been observed in a game; jump, sneak, sprint and the rest never have.",
+    "On 1.7.10 it writes a private game field that a build-time access rule opens up."
+   ],
+   "docConflicts": [],
+   "rules": [
+    "rule-translate",
+    "rule-main-thread"
+   ],
+   "linesLinked": 267
+  },
+  {
+   "id": "see",
+   "kind": "part",
+   "name": "Reports where you stand",
+   "summary": "Reads six facts about you from the live game: feet x, y, z, facing yaw and pitch, and whether you are on the ground.",
+   "code": [
+    "adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/FabricPlayerView.java",
+    "adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ForgePlayerView.java",
+    "platform/src/main/java/dev/continuo/platform/IPlayerView.java"
+   ],
+   "status": "works",
+   "floors": [
+    "walk",
+    "inspect"
+   ],
+   "home": "walk",
+   "shared": true,
+   "perGameVersion": true,
+   "evidence": "Checked in game on both versions 2026-09-02, including a deliberate break of the feet height on 1.7.10.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [
+    "The two versions' on-ground flags were never compared, and stair climbing now depends on them."
+   ],
+   "docConflicts": [
+    "The architecture doc's player state includes velocity, inventory and capabilities. The code reads six values only; the rest is left out on purpose until something needs it."
+   ],
+   "rules": [
+    "rule-translate",
+    "rule-main-thread"
+   ],
+   "linesLinked": 252
+  },
+  {
+   "id": "search",
+   "kind": "part",
+   "name": "Searches for a route",
+   "summary": "Runs the route search a slice at a time so it can span game ticks, chaining stages until the goal is reached, proven unreachable, or out of budget.",
+   "code": [
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/SegmentedSearch.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/Run.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/SegmentedResult.java"
+   ],
+   "status": "works",
+   "floors": [
+    "plan",
+    "walk",
+    "inspect",
+    "later"
+   ],
+   "home": "plan",
+   "shared": true,
+   "perGameVersion": false,
+   "evidence": "Unit-tested; the same 245-step route came back identical in game on 2026-08-31 and 2026-09-02.",
+   "tests": [
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/SegmentedSearchTest.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/SliceEquivalenceTest.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/SliceBoundSweepTest.java"
+   ],
+   "knobs": [
+    {
+     "name": "Spots explored per tick",
+     "value": "2,000",
+     "where": "core-pathfinder/src/main/java/dev/continuo/pathfinder/Run.java",
+     "line": 59
+    }
+   ],
+   "gaps": [
+    "Its result keeps every explored spot from every stage, with no upper bound."
+   ],
+   "docConflicts": [
+    "The architecture doc describes the search running on a background thread pool. The code runs it on the game's own thread, 2,000 spots per tick; the background design was measured and rejected (C5 spec)."
+   ],
+   "rules": [
+    "rule-one-name",
+    "rule-deterministic"
+   ],
+   "linesLinked": 432
+  },
+  {
+   "id": "astar",
+   "kind": "part",
+   "name": "Explores cheapest spot first",
+   "summary": "Always expands the spot with the lowest cost so far plus estimated remainder, in a fully fixed order, until the goal or the budget is hit.",
+   "code": [
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/AStarPathfinder.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/Search.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/PathNode.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/QueuedNode.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/QueuedNodeOrder.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/Pos.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/PathResult.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/PathResults.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/PathOutcome.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/package-info.java"
+   ],
+   "status": "works",
+   "floors": [
+    "plan"
+   ],
+   "home": "plan",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "Checked against an exhaustive shortest-path oracle in tests.",
+   "tests": [
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/AStarPathfinderTest.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/QueuedNodeOrderTest.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/OctileSearchTest.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/PathfinderAcceptanceTest.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/DijkstraOracle.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/SnapshotSearchTest.java"
+   ],
+   "knobs": [
+    {
+     "name": "Spots one stage may explore",
+     "value": "25,000",
+     "where": "core-pathfinder/src/main/java/dev/continuo/pathfinder/AStarPathfinder.java",
+     "line": 36
+    }
+   ],
+   "gaps": [],
+   "docConflicts": [],
+   "rules": [
+    "rule-deterministic"
+   ],
+   "linesLinked": 798
+  },
+  {
+   "id": "backoff",
+   "kind": "part",
+   "name": "Falls back to a nearer spot",
+   "summary": "When a stage's budget runs out it picks the explored spot closest to the goal, if that is at least four blocks nearer than the start, as the end of a partial stage.",
+   "code": [
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/SegmentSelector.java"
+   ],
+   "status": "works",
+   "floors": [
+    "plan"
+   ],
+   "home": "plan",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "Unit-tested, with the margin chosen from a sweep over three recorded terrains.",
+   "tests": [
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/SegmentSelectorTest.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/BackoffTest.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/MinProgressSweepTest.java"
+   ],
+   "knobs": [
+    {
+     "name": "A stage must get this much closer",
+     "value": "4 blocks",
+     "where": "core-pathfinder/src/main/java/dev/continuo/pathfinder/AStarPathfinder.java",
+     "line": 60
+    }
+   ],
+   "gaps": [
+    "A safety net only: it fails when the budget is below roughly 70% of what the route needs."
+   ],
+   "docConflicts": [],
+   "rules": [],
+   "linesLinked": 86
+  },
+  {
+   "id": "goalcheck",
+   "kind": "part",
+   "name": "Says when it has arrived",
+   "summary": "Defines the target, one exact block or any height in one column, and estimates the remaining cost without ever overshooting.",
+   "code": [
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/Goal.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/GoalBlock.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/GoalXZ.java"
+   ],
+   "status": "works",
+   "floors": [
+    "plan"
+   ],
+   "home": "plan",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "Unit-tested (GoalTest).",
+   "tests": [
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/GoalTest.java"
+   ],
+   "knobs": [],
+   "gaps": [
+    "The column goal is only ever used by tests; the bot always aims at one exact block."
+   ],
+   "docConflicts": [],
+   "rules": [
+    "rule-admissible"
+   ],
+   "linesLinked": 116
+  },
+  {
+   "id": "moves",
+   "kind": "part",
+   "name": "Offers the next steps",
+   "summary": "Five movements each propose where you could go from a spot: walk, walk diagonally, step up one, drop up to three, or (plugin) jump a one-block gap.",
+   "code": [
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/TraverseMove.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/AscendMove.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/DescendMove.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/DiagonalMove.java",
+    "movement-parkour/src/main/java/dev/continuo/movement/parkour/ParkourMove.java",
+    "movement-parkour/src/main/resources/META-INF/services/dev.continuo.movement.IMovementType",
+    "core-movement/src/main/java/dev/continuo/movement/IMovementType.java",
+    "core-movement/src/main/java/dev/continuo/movement/MoveSink.java",
+    "core-movement/src/main/java/dev/continuo/movement/ExpansionContext.java",
+    "core-movement/src/main/java/dev/continuo/movement/MutableExpansionContext.java",
+    "core-movement/src/main/java/dev/continuo/movement/Cardinals.java"
+   ],
+   "status": "works",
+   "floors": [
+    "plan",
+    "world"
+   ],
+   "home": "plan",
+   "shared": true,
+   "perGameVersion": false,
+   "evidence": "Each movement has its own unit tests.",
+   "tests": [
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/TraverseMoveTest.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/AscendMoveTest.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/DescendMoveTest.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/DiagonalMoveTest.java",
+    "movement-parkour/src/test/java/dev/continuo/movement/parkour/ParkourMoveTest.java"
+   ],
+   "knobs": [],
+   "gaps": [
+    "No ladders, no swimming, no jump across more than one block."
+   ],
+   "docConflicts": [
+    "The architecture doc and the movement package notes give each movement its own executor. That was not built: the walker works out what to press from the step's name instead (D2 spec, decision 1)."
+   ],
+   "rules": [
+    "rule-safe-fall",
+    "rule-deterministic"
+   ],
+   "linesLinked": 650
+  },
+  {
+   "id": "registry",
+   "kind": "part",
+   "name": "Picks the allowed movements",
+   "summary": "Holds the known movements, finds plugin jars on the classpath in a fixed order, and keeps only those the caller has permitted.",
+   "code": [
+    "core-movement/src/main/java/dev/continuo/movement/MovementRegistry.java",
+    "core-movement/src/main/java/dev/continuo/movement/IMovementRegistry.java",
+    "core-movement/src/main/java/dev/continuo/movement/ActiveMovements.java",
+    "core-movement/src/main/java/dev/continuo/movement/Capability.java",
+    "core-movement/src/main/java/dev/continuo/movement/CapabilitySet.java",
+    "core-movement/src/main/java/dev/continuo/movement/package-info.java"
+   ],
+   "status": "works",
+   "floors": [
+    "plan"
+   ],
+   "home": "plan",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "Unit-tested, including discovery order.",
+   "tests": [
+    "core-movement/src/test/java/dev/continuo/movement/MovementRegistryTest.java",
+    "core-movement/src/test/java/dev/continuo/movement/MovementDiscoveryTest.java",
+    "core-movement/src/test/java/dev/continuo/movement/CapabilitySetTest.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/DefaultRegistryTest.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/RegistryInjectionTest.java"
+   ],
+   "knobs": [],
+   "gaps": [
+    "Only one permission exists (gap-jumps), and the caller chooses it."
+   ],
+   "docConflicts": [
+    "The architecture doc has movements switched on by what the game version and the player can do. None of that negotiation exists: the code says so itself in Capability.java."
+   ],
+   "rules": [
+    "rule-deterministic",
+    "rule-admissible"
+   ],
+   "linesLinked": 389
+  },
+  {
+   "id": "stand",
+   "kind": "part",
+   "name": "Decides what can be stood on",
+   "summary": "The one place block facts become movement facts: can a body pass through it, is it a floor, can you stand here.",
+   "code": [
+    "core-movement/src/main/java/dev/continuo/movement/Standability.java"
+   ],
+   "status": "works",
+   "floors": [
+    "plan",
+    "world"
+   ],
+   "home": "plan",
+   "shared": true,
+   "perGameVersion": false,
+   "evidence": "22 unit tests (StandabilityTest).",
+   "tests": [
+    "core-movement/src/test/java/dev/continuo/movement/StandabilityTest.java"
+   ],
+   "knobs": [
+    {
+     "name": "Walk through anything this low",
+     "value": "0.25 block",
+     "where": "core-movement/src/main/java/dev/continuo/movement/Standability.java",
+     "line": 36
+    },
+    {
+     "name": "Lowest top that is a floor",
+     "value": "0.9 block",
+     "where": "core-movement/src/main/java/dev/continuo/movement/Standability.java",
+     "line": 39
+    },
+    {
+     "name": "Highest top that is a floor",
+     "value": "1.0 block",
+     "where": "core-movement/src/main/java/dev/continuo/movement/Standability.java",
+     "line": 49
+    }
+   ],
+   "gaps": [
+    "Any fluid is impassable, so a route never enters water.",
+    "A bottom slab is neither a floor nor passable, so routes go around it."
+   ],
+   "docConflicts": [],
+   "rules": [
+    "rule-unknown-wall",
+    "rule-no-harm"
+   ],
+   "linesLinked": 107
+  },
+  {
+   "id": "costs",
+   "kind": "part",
+   "name": "Prices each move in ticks",
+   "summary": "Fixed prices worked out from both games' physics: 3.56 ticks per block, 2.99 more for a jump, 4.6, 6.8 or 8.5 ticks for a one, two or three block fall.",
+   "code": [
+    "core-movement/src/main/java/dev/continuo/movement/MovementCosts.java",
+    "core-movement/src/main/java/dev/continuo/movement/HeuristicRates.java"
+   ],
+   "status": "works",
+   "floors": [
+    "plan"
+   ],
+   "home": "plan",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "Unit-tested for consistency; never compared with a real walk.",
+   "tests": [
+    "core-movement/src/test/java/dev/continuo/movement/MovementCostsTest.java",
+    "core-movement/src/test/java/dev/continuo/movement/HeuristicRatesTest.java"
+   ],
+   "knobs": [
+    {
+     "name": "Ticks to cross one block",
+     "value": "3.5636",
+     "where": "core-movement/src/main/java/dev/continuo/movement/MovementCosts.java",
+     "line": 93
+    },
+    {
+     "name": "Extra ticks for a jump",
+     "value": "2.9946",
+     "where": "core-movement/src/main/java/dev/continuo/movement/MovementCosts.java",
+     "line": 102
+    },
+    {
+     "name": "Ticks to fall 1, 2, 3 blocks",
+     "value": "4.6147, 6.7881, 8.4687",
+     "where": "core-movement/src/main/java/dev/continuo/movement/MovementCosts.java",
+     "line": 147
+    },
+    {
+     "name": "Deepest drop taken",
+     "value": "3 blocks",
+     "where": "core-movement/src/main/java/dev/continuo/movement/MovementCosts.java",
+     "line": 167
+    }
+   ],
+   "gaps": [
+    "No penalty for turning.",
+    "The code itself says: self-consistent, not validated."
+   ],
+   "docConflicts": [
+    "The price table's own notes say the walker 'sprints wherever it can', and every move is priced at sprint speed. The walker as built never presses sprint, so real walks are about 30% slower than priced."
+   ],
+   "rules": [
+    "rule-admissible",
+    "rule-safe-fall"
+   ],
+   "linesLinked": 365
+  },
+  {
+   "id": "freeze",
+   "kind": "part",
+   "name": "Remembers every block it read",
+   "summary": "A per-search copy of the world: each position is read from the live game at most once, then answered from memory; it can be sealed and replayed.",
+   "code": [
+    "core/src/main/java/dev/continuo/core/WorldSnapshot.java",
+    "core/src/main/java/dev/continuo/core/SealedSnapshot.java",
+    "core/src/main/java/dev/continuo/core/SectionStore.java",
+    "core/src/main/java/dev/continuo/core/PositionKey.java"
+   ],
+   "status": "works",
+   "floors": [
+    "plan",
+    "world",
+    "inspect"
+   ],
+   "home": "plan",
+   "shared": true,
+   "perGameVersion": false,
+   "evidence": "Unit-tested; in game it turned 4 to 16 reads of a position into one.",
+   "tests": [
+    "core/src/test/java/dev/continuo/core/WorldSnapshotTest.java",
+    "core/src/test/java/dev/continuo/core/SealedSnapshotTest.java",
+    "core/src/test/java/dev/continuo/core/SectionStoreTest.java",
+    "core/src/test/java/dev/continuo/core/SectionShapeSweepTest.java"
+   ],
+   "knobs": [],
+   "gaps": [
+    "Never refreshed: if the world changes under a path, only the stuck and off-path checks notice.",
+    "Its 'do I really know this position' question has no user."
+   ],
+   "docConflicts": [],
+   "rules": [],
+   "linesLinked": 492
+  },
+  {
+   "id": "blocks",
+   "kind": "part",
+   "name": "Answers what block is where",
+   "summary": "Looks up the game's block state at a position and classifies each distinct state only once per world.",
+   "code": [
+    "core/src/main/java/dev/continuo/core/BlockLookup.java",
+    "core/src/main/java/dev/continuo/core/BlockSource.java"
+   ],
+   "status": "works",
+   "floors": [
+    "world",
+    "walk",
+    "plan",
+    "host"
+   ],
+   "home": "world",
+   "shared": true,
+   "perGameVersion": false,
+   "evidence": "10 unit tests (BlockLookupTest).",
+   "tests": [
+    "core/src/test/java/dev/continuo/core/BlockLookupTest.java",
+    "core/src/test/java/dev/continuo/core/BlockSourceTest.java"
+   ],
+   "knobs": [],
+   "gaps": [],
+   "docConflicts": [],
+   "rules": [
+    "rule-unknown-wall"
+   ],
+   "linesLinked": 127
+  },
+  {
+   "id": "rawblocks",
+   "kind": "part",
+   "name": "Reports raw block facts",
+   "summary": "Asks the live game for a block's id, state, collision boxes, fluid, and whether it is climbable or falls; facts only, no judgement.",
+   "code": [
+    "adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/FabricBlockView.java",
+    "adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ForgeBlockView.java",
+    "platform/src/main/java/dev/continuo/platform/IBlockView.java",
+    "platform/src/main/java/dev/continuo/platform/BlockDescription.java"
+   ],
+   "status": "works",
+   "floors": [
+    "world",
+    "inspect"
+   ],
+   "home": "world",
+   "shared": true,
+   "perGameVersion": true,
+   "evidence": "Checked by the in-game block dump on both versions 2026-08-15; no automated test can reach it.",
+   "tests": [
+    "platform/src/test/java/dev/continuo/platform/BlockDescriptionTest.java"
+   ],
+   "knobs": [],
+   "gaps": [
+    "On 1.7.10, collision boxes lose precision about a million blocks from the origin; untested.",
+    "No modded blocks were ever tried."
+   ],
+   "docConflicts": [],
+   "rules": [
+    "rule-translate",
+    "rule-main-thread",
+    "rule-unknown-wall"
+   ],
+   "linesLinked": 476
+  },
+  {
+   "id": "classify",
+   "kind": "part",
+   "name": "Sorts blocks into shapes",
+   "summary": "Turns raw collision boxes into one of nine shapes (air, full, two slabs, thin layer, stair, fence, partial, unknown) plus a top height, a fluid and tags.",
+   "code": [
+    "core/src/main/java/dev/continuo/core/BlockClassifier.java",
+    "core/src/main/java/dev/continuo/core/BlockData.java",
+    "core/src/main/java/dev/continuo/core/BlockShape.java",
+    "core/src/main/java/dev/continuo/core/BlockTag.java",
+    "core/src/main/java/dev/continuo/core/Fluid.java"
+   ],
+   "status": "works",
+   "floors": [
+    "world"
+   ],
+   "home": "world",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "40 unit tests; both game versions agree on 27 of 27 compared blocks.",
+   "tests": [
+    "core/src/test/java/dev/continuo/core/BlockClassifierGeometryTest.java",
+    "core/src/test/java/dev/continuo/core/BlockClassifierTableTest.java",
+    "core/src/test/java/dev/continuo/core/BlockDataTest.java"
+   ],
+   "knobs": [
+    {
+     "name": "A thin layer is at most",
+     "value": "0.25 block high",
+     "where": "core/src/main/java/dev/continuo/core/BlockClassifier.java",
+     "line": 46
+    }
+   ],
+   "gaps": [
+    "Ice classifies exactly like stone: slipperiness cannot be expressed.",
+    "'Falls', 'climbable' and 'slow' are recorded on blocks, but no movement reads them."
+   ],
+   "docConflicts": [],
+   "rules": [],
+   "linesLinked": 488
+  },
+  {
+   "id": "table",
+   "kind": "part",
+   "name": "Lists harmful and slow blocks",
+   "summary": "A small list per game version of what shape alone cannot tell: water, lava, fire, cactus, magma, soul sand, cobweb, honey.",
+   "code": [
+    "core/src/main/resources/blocks/1.21.11.json",
+    "core/src/main/resources/blocks/1.7.10.json",
+    "core/src/main/java/dev/continuo/core/BlockTable.java",
+    "core/src/main/java/dev/continuo/core/BlockTableLoader.java",
+    "core/src/main/java/dev/continuo/core/JsonReader.java",
+    "core/src/main/java/dev/continuo/core/JsonValue.java"
+   ],
+   "status": "works",
+   "floors": [
+    "world"
+   ],
+   "home": "world",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "Unit-tested loader that rejects any typo; two lists ship.",
+   "tests": [
+    "core/src/test/java/dev/continuo/core/BlockTableLoaderTest.java",
+    "core/src/test/java/dev/continuo/core/JsonReaderTest.java"
+   ],
+   "knobs": [
+    {
+     "name": "The 1.21.11 list",
+     "value": "9 blocks",
+     "where": "core/src/main/resources/blocks/1.21.11.json",
+     "line": 4
+    },
+    {
+     "name": "The 1.7.10 list",
+     "value": "8 blocks",
+     "where": "core/src/main/resources/blocks/1.7.10.json",
+     "line": 4
+    }
+   ],
+   "gaps": [
+    "Only 'harmful' changes routes today; 'slow' is listed but ignored."
+   ],
+   "docConflicts": [],
+   "rules": [
+    "rule-no-harm"
+   ],
+   "linesLinked": 557
+  },
+  {
+   "id": "version",
+   "kind": "part",
+   "name": "Says which game it is",
+   "summary": "Reports the game version text and the mod loader; used to pick the block list and print the startup line.",
+   "code": [
+    "adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/FabricPlatformInfo.java",
+    "adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ForgePlatformInfo.java",
+    "platform/src/main/java/dev/continuo/platform/IPlatformInfo.java",
+    "platform/src/main/java/dev/continuo/platform/Loader.java"
+   ],
+   "status": "works",
+   "floors": [
+    "world"
+   ],
+   "home": "world",
+   "shared": false,
+   "perGameVersion": true,
+   "evidence": "The startup line was seen in game on both versions.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [
+    "Deliberately not used to switch behaviour by version."
+   ],
+   "docConflicts": [],
+   "rules": [
+    "rule-translate"
+   ],
+   "linesLinked": 94
+  },
+  {
+   "id": "hook",
+   "kind": "part",
+   "name": "Plugs into the game",
+   "summary": "The mod entry point for each game version: it hands the game's ticks, world and player to the bot and writes the dev files, nothing more.",
+   "code": [
+    "adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/ContinuoFabricMod.java",
+    "adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ContinuoForgeMod.java",
+    "adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/FabricPlatformContext.java",
+    "adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ForgePlatformContext.java",
+    "adapters/adapter-fabric-1.21.11/src/main/resources/fabric.mod.json",
+    "adapters/adapter-forge-1.7.10/src/main/resources/mcmod.info",
+    "adapters/adapter-fabric-1.21.11/build.gradle.kts",
+    "adapters/adapter-forge-1.7.10/build.gradle.kts",
+    "platform/src/main/java/dev/continuo/platform/IPlatformContext.java",
+    "platform/src/main/java/dev/continuo/platform/IGameEvents.java",
+    "platform/src/main/java/dev/continuo/platform/TickPhase.java",
+    "platform/src/main/java/dev/continuo/platform/package-info.java"
+   ],
+   "status": "works",
+   "floors": [
+    "host"
+   ],
+   "home": "host",
+   "shared": false,
+   "perGameVersion": true,
+   "evidence": "Loaded and run on both versions in every recorded in-game check.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [
+    "Forge 1.7.10 has no 'client is closing' event, so the bot is not stopped on exit there.",
+    "Neither mod has a single automated test; only the hand checklist covers them.",
+    "Deeper hooks via Mixin are decided on paper (docs/injection-strategy.md) and unused."
+   ],
+   "docConflicts": [
+    "The architecture doc lists game events for server corrections, block changes, chunk loads, world change and death. The code has exactly one event, the tick; world change is detected by comparing the world object each tick."
+   ],
+   "rules": [
+    "rule-translate",
+    "rule-main-thread"
+   ],
+   "linesLinked": 1019
+  },
+  {
+   "id": "log",
+   "kind": "part",
+   "name": "Writes log lines you read",
+   "summary": "Every stop reason and status goes to the game log as fixed text, identical on both versions.",
+   "code": [
+    "core/src/main/java/dev/continuo/core/RuntimeLog.java",
+    "adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/Slf4jRuntimeLog.java",
+    "adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/Log4jRuntimeLog.java"
+   ],
+   "status": "works",
+   "floors": [
+    "host",
+    "walk",
+    "inspect"
+   ],
+   "home": "host",
+   "shared": true,
+   "perGameVersion": false,
+   "evidence": "The hand checklist matches on these exact lines.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [
+    "The log is the bot's only voice: nothing is shown on screen or in chat."
+   ],
+   "docConflicts": [],
+   "rules": [],
+   "linesLinked": 70
+  },
+  {
+   "id": "probe",
+   "kind": "part",
+   "name": "Previews a route, no walking",
+   "summary": "On L it turns you to face the mark, searches with gap-jumps allowed, then reports the outcome, the timings and two self-checks.",
+   "code": [
+    "runtime/src/main/java/dev/continuo/runtime/PathProbe.java",
+    "runtime/src/main/java/dev/continuo/runtime/ProbeReport.java"
+   ],
+   "status": "works",
+   "floors": [
+    "inspect",
+    "plan"
+   ],
+   "home": "inspect",
+   "shared": true,
+   "perGameVersion": false,
+   "evidence": "43 unit tests; run in game on both versions 2026-08-31 and 2026-09-02.",
+   "tests": [
+    "runtime/src/test/java/dev/continuo/runtime/PathProbeTest.java",
+    "runtime/src/test/java/dev/continuo/runtime/ProbeWorld.java"
+   ],
+   "knobs": [
+    {
+     "name": "Spots one stage may explore",
+     "value": "25,000",
+     "where": "runtime/src/main/java/dev/continuo/runtime/PathProbe.java",
+     "line": 82
+    },
+    {
+     "name": "Turn check tolerance",
+     "value": "1 degree",
+     "where": "runtime/src/main/java/dev/continuo/runtime/PathProbe.java",
+     "line": 93
+    }
+   ],
+   "gaps": [
+    "Pressed while the bot is walking, it gives false alarms: two things then write the facing."
+   ],
+   "docConflicts": [],
+   "rules": [],
+   "linesLinked": 820
+  },
+  {
+   "id": "draw",
+   "kind": "part",
+   "name": "Draws the route as text",
+   "summary": "Renders terrain, path and explored spots as text art in the same format test worlds are written in, at most 64 blocks per axis.",
+   "code": [
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/PathRenderer.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/BlockLegend.java",
+    "runtime/src/main/java/dev/continuo/runtime/ProbeBounds.java"
+   ],
+   "status": "works",
+   "floors": [
+    "inspect"
+   ],
+   "home": "inspect",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "Unit-tested for what survives a round trip and what does not.",
+   "tests": [
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/PathRendererTest.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/BlockLegendTest.java",
+    "runtime/src/test/java/dev/continuo/runtime/ProbeBoundsTest.java"
+   ],
+   "knobs": [
+    {
+     "name": "Largest map side",
+     "value": "64 blocks",
+     "where": "runtime/src/main/java/dev/continuo/runtime/ProbeBounds.java",
+     "line": 32
+    },
+    {
+     "name": "Margin drawn around the route",
+     "value": "2 blocks",
+     "where": "runtime/src/main/java/dev/continuo/runtime/ProbeBounds.java",
+     "line": 29
+    }
+   ],
+   "gaps": [
+    "Sand, gravel, ladders and vines draw as '?' and read back as walls."
+   ],
+   "docConflicts": [],
+   "rules": [],
+   "linesLinked": 444
+  },
+  {
+   "id": "dump",
+   "kind": "part",
+   "name": "Dumps a row of blocks",
+   "summary": "On J it writes the 32 blocks east of you, raw and classified, one line each: the input to the cross-version comparison.",
+   "code": [
+    "runtime/src/main/java/dev/continuo/runtime/BlockDumpWalker.java"
+   ],
+   "status": "works",
+   "floors": [
+    "inspect",
+    "honest"
+   ],
+   "home": "inspect",
+   "shared": true,
+   "perGameVersion": false,
+   "evidence": "5 unit tests; run in game on both versions 2026-08-15.",
+   "tests": [
+    "runtime/src/test/java/dev/continuo/runtime/BlockDumpWalkerTest.java"
+   ],
+   "knobs": [],
+   "gaps": [],
+   "docConflicts": [],
+   "rules": [],
+   "linesLinked": 104
+  },
+  {
+   "id": "files",
+   "kind": "part",
+   "name": "Saves files in the game folder",
+   "summary": "Writes the preview map and the block dump as two text files in the game's run folder and logs their path.",
+   "code": [
+    "adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/ContinuoFabricMod.java",
+    "adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ContinuoForgeMod.java"
+   ],
+   "status": "works",
+   "floors": [
+    "inspect"
+   ],
+   "home": "inspect",
+   "shared": false,
+   "perGameVersion": true,
+   "evidence": "Both files were produced in the recorded in-game runs.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [
+    "File names are fixed: continuo-path-probe.txt and continuo-block-dump.txt, overwritten each time."
+   ],
+   "docConflicts": [],
+   "rules": [],
+   "linesLinked": 478
+  },
+  {
+   "id": "build",
+   "kind": "part",
+   "name": "Builds every module",
+   "summary": "One Gradle build compiles the game-free core once and both mods, each with its own Minecraft toolchain.",
+   "code": [
+    "settings.gradle.kts",
+    "build.gradle.kts",
+    "gradle.properties",
+    "gradle/gradle-daemon-jvm.properties",
+    "gradle/wrapper/gradle-wrapper.properties",
+    "gradlew",
+    "buildSrc/build.gradle.kts",
+    "core/build.gradle.kts",
+    "core-engine/build.gradle.kts",
+    "core-movement/build.gradle.kts",
+    "core-pathfinder/build.gradle.kts",
+    "movement-parkour/build.gradle.kts",
+    "platform/build.gradle.kts",
+    "platform-testkit/build.gradle.kts",
+    "runtime/build.gradle.kts",
+    "docs/toolchain-decision.md"
+   ],
+   "status": "works",
+   "floors": [
+    "honest"
+   ],
+   "home": "honest",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "CI runs it on every push.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [
+    "Never run 'gradlew clean': it deletes the decompiled 1.7.10 sources that adapter review relies on.",
+    "Two unrelated toolchains (Fabric Loom, RetroFuturaGradle); the single-plugin plan did not survive."
+   ],
+   "docConflicts": [],
+   "rules": [],
+   "linesLinked": 747
+  },
+  {
+   "id": "guard",
+   "kind": "part",
+   "name": "Guards the core at build time",
+   "summary": "Fails the build if a game-free module mentions Minecraft, compiles above Java 8, depends on a module it may not, or has a broken doc link.",
+   "code": [
+    "buildSrc/src/main/kotlin/continuo-pure-module.gradle.kts",
+    "buildSrc/src/main/kotlin/dev/continuo/build/ClassScan.kt",
+    "build.gradle.kts"
+   ],
+   "status": "works",
+   "floors": [
+    "honest"
+   ],
+   "home": "honest",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "Runs in every build and again by name in CI.",
+   "tests": [],
+   "knobs": [
+    {
+     "name": "Who may depend on whom",
+     "value": "the allow-list",
+     "where": "build.gradle.kts",
+     "line": 10
+    },
+    {
+     "name": "Forbidden package names",
+     "value": "4 families",
+     "where": "buildSrc/src/main/kotlin/continuo-pure-module.gradle.kts",
+     "line": 23
+    }
+   ],
+   "gaps": [],
+   "docConflicts": [],
+   "rules": [
+    "rule-core-pure",
+    "rule-java8",
+    "rule-one-way"
+   ],
+   "linesLinked": 222
+  },
+  {
+   "id": "cirun",
+   "kind": "part",
+   "name": "Runs every check on push",
+   "summary": "A GitHub Actions job: build, test, then the three guard checks again by name so a failure is easy to spot.",
+   "code": [
+    ".github/workflows/ci.yml"
+   ],
+   "status": "works",
+   "floors": [
+    "honest"
+   ],
+   "home": "honest",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "The workflow file is in the repo; its run history is not.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [
+    "CI cannot start a game, so neither mod's game-facing code is ever exercised there."
+   ],
+   "docConflicts": [],
+   "rules": [],
+   "linesLinked": 56
+  },
+  {
+   "id": "tests",
+   "kind": "part",
+   "name": "Runs the offline tests",
+   "summary": "About 590 JUnit tests across eight game-free modules, all run with no Minecraft on the classpath.",
+   "code": [
+    "core/src/test/",
+    "core-movement/src/test/",
+    "core-pathfinder/src/test/",
+    "core-engine/src/test/",
+    "movement-parkour/src/test/",
+    "runtime/src/test/",
+    "platform/src/test/",
+    "platform-testkit/src/test/"
+   ],
+   "status": "works",
+   "floors": [
+    "honest"
+   ],
+   "home": "honest",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "592 @Test methods counted in the tracked sources.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [
+    "The two mods have no tests at all."
+   ],
+   "docConflicts": [],
+   "rules": [],
+   "linesLinked": 16432
+  },
+  {
+   "id": "conform",
+   "kind": "part",
+   "name": "Replays the game's rules offline",
+   "summary": "28 cases that drive the tick gate with fake worlds, players and clicks to prove the lifecycle and crash rules.",
+   "code": [
+    "platform-testkit/src/main/java/dev/continuo/testkit/",
+    "runtime/src/test/java/dev/continuo/runtime/AdapterRuntimeConformanceTest.java",
+    "runtime/src/test/java/dev/continuo/runtime/QueuedClicks.java"
+   ],
+   "status": "works",
+   "floors": [
+    "honest"
+   ],
+   "home": "honest",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "28 @Test methods in AdapterConformanceTest.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [
+    "A green run says nothing about whether a mod is wired to the right game objects."
+   ],
+   "docConflicts": [],
+   "rules": [
+    "rule-stop-on-change",
+    "rule-crash"
+   ],
+   "linesLinked": 1185
+  },
+  {
+   "id": "fixtures",
+   "kind": "part",
+   "name": "Tests routes on text-art worlds",
+   "summary": "Worlds drawn as text, five of them captured from real terrain, searched and compared with an exhaustive shortest-path oracle.",
+   "code": [
+    "core-pathfinder/src/test/",
+    "movement-parkour/src/test/"
+   ],
+   "status": "works",
+   "floors": [
+    "honest"
+   ],
+   "home": "honest",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "About 190 tests in core-pathfinder and movement-parkour.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [],
+   "docConflicts": [],
+   "rules": [
+    "rule-deterministic",
+    "rule-admissible"
+   ],
+   "linesLinked": 9304
+  },
+  {
+   "id": "fakewalk",
+   "kind": "part",
+   "name": "Walks a scripted player",
+   "summary": "Drives the walker tick by tick against a fake player and a recording key-presser to check every key it states.",
+   "code": [
+    "core-engine/src/test/",
+    "platform-testkit/src/main/java/dev/continuo/testkit/FakeActuator.java",
+    "platform-testkit/src/main/java/dev/continuo/testkit/FakePlayerView.java"
+   ],
+   "status": "works",
+   "floors": [
+    "honest"
+   ],
+   "home": "honest",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "65 tests in core-engine.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [
+    "A scripted player cannot show whether the real game moves as expected."
+   ],
+   "docConflicts": [],
+   "rules": [
+    "rule-restate",
+    "rule-idle"
+   ],
+   "linesLinked": 1932
+  },
+  {
+   "id": "audit",
+   "kind": "part",
+   "name": "Audits each movement's price",
+   "summary": "Generates 200 random small worlds per movement and checks that its declared cheapest price is never beaten by what it actually offers.",
+   "code": [
+    "core-movement/src/main/java/dev/continuo/movement/MovementContract.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/BuiltInMovementContractTest.java",
+    "core-movement/src/test/java/dev/continuo/movement/MovementContractTest.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/MovementKindCoverageTest.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/HeuristicMultiplierAdmissibilityTest.java",
+    "movement-parkour/src/test/java/dev/continuo/movement/parkour/ParkourOptimalityTest.java"
+   ],
+   "status": "works",
+   "floors": [
+    "honest"
+   ],
+   "home": "honest",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "Runs over the four built-in movements and the plugin.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [],
+   "docConflicts": [],
+   "rules": [
+    "rule-admissible",
+    "rule-one-name"
+   ],
+   "linesLinked": 1131
+  },
+  {
+   "id": "parity",
+   "kind": "part",
+   "name": "Compares both versions' blocks",
+   "summary": "Diffs the two block dumps against each other and against a hand-reviewed copy per version.",
+   "code": [
+    "core/src/test/java/dev/continuo/core/BlockParityTest.java",
+    "docs/parity/",
+    "core/src/test/resources/parity/"
+   ],
+   "status": "works",
+   "floors": [
+    "honest"
+   ],
+   "home": "honest",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "8 tests; 27 of 27 compared blocks match, 2 differ for real, 3 exist on one version only.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [
+    "Agreement between the two versions is not proof that the classification is right.",
+    "One 32-block row; no modded blocks."
+   ],
+   "docConflicts": [],
+   "rules": [
+    "rule-goldens"
+   ],
+   "linesLinked": 480
+  },
+  {
+   "id": "smoke",
+   "kind": "part",
+   "name": "Lists what to check by hand",
+   "summary": "A 22-step checklist for a real game on both versions, because nothing automated can start Minecraft.",
+   "code": [
+    "docs/smoke-checklist.md"
+   ],
+   "status": "partial",
+   "floors": [
+    "honest"
+   ],
+   "home": "honest",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "Steps 1-12 passed on both versions (last 2026-08-15, before the walker existed); steps 13-22 have never been run.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [
+    "Every recorded run predates the walker.",
+    "Records are one-line summaries from the owner, not step-by-step results."
+   ],
+   "docConflicts": [],
+   "rules": [],
+   "linesLinked": 403
+  },
+  {
+   "id": "goals",
+   "kind": "part",
+   "name": "Chooses what to pursue",
+   "summary": "Planned next step (D3): named goals, a process manager that picks the active one, and a 'goto x y z' command.",
+   "code": [
+    "docs/superpowers/specs/2026-09-03-d2-path-executor-design.md",
+    "docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md",
+    "mc-automation-architecture.md"
+   ],
+   "status": "planned",
+   "floors": [
+    "later",
+    "walk"
+   ],
+   "home": "later",
+   "shared": true,
+   "perGameVersion": false,
+   "evidence": "Named in the D2 spec as the next sub-project; no code.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [],
+   "docConflicts": [],
+   "rules": [],
+   "linesLinked": 0
+  },
+  {
+   "id": "bridge",
+   "kind": "part",
+   "name": "Talks to outside tools",
+   "summary": "Planned (milestone 6): a local connection that streams the bot's state out and takes commands and settings in.",
+   "code": [
+    "docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md",
+    "mc-automation-architecture.md"
+   ],
+   "status": "planned",
+   "floors": [
+    "later"
+   ],
+   "home": "later",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "Roadmap only; no code.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [],
+   "docConflicts": [],
+   "rules": [],
+   "linesLinked": 0
+  },
+  {
+   "id": "webui",
+   "kind": "part",
+   "name": "Shows the bot in a browser",
+   "summary": "Planned (milestone 7): a separate web app with settings forms and a live picture of the route search.",
+   "code": [
+    "docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md",
+    "mc-automation-architecture.md"
+   ],
+   "status": "planned",
+   "floors": [
+    "later"
+   ],
+   "home": "later",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "Roadmap only; it would live in another repository.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [],
+   "docConflicts": [],
+   "rules": [],
+   "linesLinked": 0
+  },
+  {
+   "id": "scripts",
+   "kind": "part",
+   "name": "Runs tasks like mine, build",
+   "summary": "Planned (milestone 8): tasks that sit on top of walking and hand it goals, such as mining a vein or building from a schematic.",
+   "code": [
+    "docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md",
+    "mc-automation-architecture.md"
+   ],
+   "status": "planned",
+   "floors": [
+    "later"
+   ],
+   "home": "later",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "Roadmap only; no code.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [],
+   "docConflicts": [],
+   "rules": [],
+   "linesLinked": 0
+  },
+  {
+   "id": "moreversions",
+   "kind": "part",
+   "name": "Supports more game versions",
+   "summary": "Planned (milestone 9): a third and fourth mod for other versions and loaders, each touching only the adapters folder.",
+   "code": [
+    "docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md",
+    "platform/src/main/java/dev/continuo/platform/Loader.java",
+    "docs/injection-strategy.md"
+   ],
+   "status": "planned",
+   "floors": [
+    "later"
+   ],
+   "home": "later",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "Roadmap only; the loader list already names NeoForge.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [],
+   "docConflicts": [],
+   "rules": [],
+   "linesLinked": 0
+  },
+  {
+   "id": "flying",
+   "kind": "part",
+   "name": "Flies and uses modded moves",
+   "summary": "Planned (milestone 10): elytra flight and modded movements, with extra state such as fuel in the search.",
+   "code": [
+    "docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md",
+    "mc-automation-architecture.md"
+   ],
+   "status": "planned",
+   "floors": [
+    "later"
+   ],
+   "home": "later",
+   "shared": false,
+   "perGameVersion": false,
+   "evidence": "Roadmap only; no code.",
+   "tests": [],
+   "knobs": [],
+   "gaps": [],
+   "docConflicts": [],
+   "rules": [],
+   "linesLinked": 0
+  },
+  {
+   "id": "t-goal",
+   "kind": "thing",
+   "name": "Goal block",
+   "summary": "The x, y, z of the block your feet should end up in.",
+   "code": [
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/Pos.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/GoalBlock.java"
+   ],
+   "status": "works"
+  },
+  {
+   "id": "t-path",
+   "kind": "thing",
+   "name": "Path with named steps",
+   "summary": "A list of block positions where each step is named walk, diagonal, step-up, drop or gap-jump.",
+   "code": [
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/SegmentedResult.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/Step.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/Steps.java",
+    "core-movement/src/main/java/dev/continuo/movement/MovementKind.java"
+   ],
+   "status": "works"
+  },
+  {
+   "id": "t-keys",
+   "kind": "thing",
+   "name": "Seven key states",
+   "summary": "Forward, back, left, right, jump, sneak, sprint: each stated as down or up.",
+   "code": [
+    "platform/src/main/java/dev/continuo/platform/Input.java",
+    "platform/src/main/java/dev/continuo/platform/IActuator.java"
+   ],
+   "status": "works"
+  },
+  {
+   "id": "t-look",
+   "kind": "thing",
+   "name": "Facing",
+   "summary": "Yaw and pitch in degrees; yaw 0 faces +Z on both game versions.",
+   "code": [
+    "platform/src/main/java/dev/continuo/platform/IActuator.java",
+    "core/src/main/java/dev/continuo/core/Yaw.java"
+   ],
+   "status": "works"
+  },
+  {
+   "id": "t-player",
+   "kind": "thing",
+   "name": "Player state",
+   "summary": "Feet x, y, z, yaw, pitch and the game's own on-ground flag, valid for the current tick only.",
+   "code": [
+    "platform/src/main/java/dev/continuo/platform/IPlayerView.java"
+   ],
+   "status": "works"
+  },
+  {
+   "id": "t-raw",
+   "kind": "thing",
+   "name": "Raw block facts",
+   "summary": "A block's id, state key, collision boxes, fluid id, climbable flag and falls flag, as the game reports them.",
+   "code": [
+    "platform/src/main/java/dev/continuo/platform/BlockDescription.java"
+   ],
+   "status": "works"
+  },
+  {
+   "id": "t-block",
+   "kind": "thing",
+   "name": "Classified block",
+   "summary": "A shape, the height of its collision top, a fluid and a set of tags: all the bot knows about a block.",
+   "code": [
+    "core/src/main/java/dev/continuo/core/BlockData.java",
+    "core/src/main/java/dev/continuo/core/BlockShape.java",
+    "core/src/main/java/dev/continuo/core/BlockTag.java",
+    "core/src/main/java/dev/continuo/core/Fluid.java"
+   ],
+   "status": "works"
+  },
+  {
+   "id": "t-tick",
+   "kind": "thing",
+   "name": "Game tick",
+   "summary": "Twenty a second, each delivered twice: before the game reads input and after it finishes.",
+   "code": [
+    "platform/src/main/java/dev/continuo/platform/TickPhase.java",
+    "platform/src/main/java/dev/continuo/platform/IGameEvents.java"
+   ],
+   "status": "works"
+  },
+  {
+   "id": "t-click",
+   "kind": "thing",
+   "name": "Key click",
+   "summary": "One queued press of a Continuo key, consumed at most once.",
+   "code": [
+    "runtime/src/main/java/dev/continuo/runtime/ClickSource.java"
+   ],
+   "status": "works"
+  },
+  {
+   "id": "t-perms",
+   "kind": "thing",
+   "name": "Permissions",
+   "summary": "What a search is allowed to use; today the only one is gap-jumps.",
+   "code": [
+    "core-movement/src/main/java/dev/continuo/movement/Capability.java",
+    "core-movement/src/main/java/dev/continuo/movement/CapabilitySet.java"
+   ],
+   "status": "works"
+  },
+  {
+   "id": "t-outcome",
+   "kind": "thing",
+   "name": "Search outcome",
+   "summary": "Found, partial, no path, or budget exceeded: how a search or a stage of it ended.",
+   "code": [
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/PathOutcome.java"
+   ],
+   "status": "works"
+  },
+  {
+   "id": "t-summary",
+   "kind": "thing",
+   "name": "Preview summary line",
+   "summary": "One log line: outcome, stages, steps, spots explored, cost, timings, and any self-check notice.",
+   "code": [
+    "runtime/src/main/java/dev/continuo/runtime/ProbeReport.java",
+    "runtime/src/main/java/dev/continuo/runtime/PathProbe.java"
+   ],
+   "status": "works"
+  },
+  {
+   "id": "t-map",
+   "kind": "thing",
+   "name": "Text-art map",
+   "summary": "The terrain, route and explored spots as characters, written to continuo-path-probe.txt.",
+   "code": [
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/PathRenderer.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/BlockLegend.java"
+   ],
+   "status": "works"
+  },
+  {
+   "id": "t-dump",
+   "kind": "thing",
+   "name": "Block dump file",
+   "summary": "32 lines of index, block id, state and classification, written to continuo-block-dump.txt.",
+   "code": [
+    "runtime/src/main/java/dev/continuo/runtime/BlockDumpWalker.java",
+    "docs/parity/blocks-1.21.11.txt",
+    "docs/parity/blocks-1.7.10.txt"
+   ],
+   "status": "works"
+  },
+  {
+   "id": "t-table",
+   "kind": "thing",
+   "name": "Block override list",
+   "summary": "A JSON file per game version naming blocks with a fluid, a forced shape or tags.",
+   "code": [
+    "core/src/main/resources/blocks/1.21.11.json",
+    "core/src/main/resources/blocks/1.7.10.json"
+   ],
+   "status": "works"
+  },
+  {
+   "id": "t-level",
+   "kind": "thing",
+   "name": "World identity",
+   "summary": "The game's current world object, compared by identity: a different one means a different world.",
+   "code": [
+    "runtime/src/main/java/dev/continuo/runtime/AdapterRuntime.java"
+   ],
+   "status": "works"
+  },
+  {
+   "id": "t-logline",
+   "kind": "thing",
+   "name": "Log line",
+   "summary": "Fixed text such as 'Continuo executor: arrived'.",
+   "code": [
+    "core/src/main/java/dev/continuo/core/RuntimeLog.java"
+   ],
+   "status": "works"
+  },
+  {
+   "id": "t-bundle",
+   "kind": "thing",
+   "name": "Platform bundle",
+   "summary": "The four things a mod hands the bot at start: key-presser, player reader, block reader, version info.",
+   "code": [
+    "platform/src/main/java/dev/continuo/platform/IPlatformContext.java"
+   ],
+   "status": "works"
+  },
+  {
+   "id": "rule-core-pure",
+   "kind": "rule",
+   "name": "No Minecraft in the core",
+   "summary": "Eight game-free modules may not reference Minecraft or a mod loader in bytecode or dependencies; the build fails if one does.",
+   "code": [
+    "buildSrc/src/main/kotlin/continuo-pure-module.gradle.kts"
+   ],
+   "status": "works",
+   "enforcedBy": "build",
+   "parts": [
+    "guard"
+   ]
+  },
+  {
+   "id": "rule-java8",
+   "kind": "rule",
+   "name": "Core stays Java 8",
+   "summary": "Every game-free class must be Java 8 bytecode so one jar loads on both game versions; the build fails otherwise.",
+   "code": [
+    "buildSrc/src/main/kotlin/continuo-pure-module.gradle.kts"
+   ],
+   "status": "works",
+   "enforcedBy": "build",
+   "parts": [
+    "guard"
+   ]
+  },
+  {
+   "id": "rule-one-way",
+   "kind": "rule",
+   "name": "One-way dependencies",
+   "summary": "Each module may depend only on the modules listed for it, and nothing may depend on a mod; the build fails otherwise.",
+   "code": [
+    "build.gradle.kts"
+   ],
+   "status": "works",
+   "enforcedBy": "build",
+   "parts": [
+    "guard"
+   ]
+  },
+  {
+   "id": "rule-main-thread",
+   "kind": "rule",
+   "name": "Game thread only",
+   "summary": "Every call between bot and game happens on the client's main thread and none may block; stated as rule 1, with no test possible.",
+   "code": [
+    "platform/src/main/java/dev/continuo/platform/package-info.java"
+   ],
+   "status": "partial",
+   "enforcedBy": "convention",
+   "parts": [
+    "press",
+    "see",
+    "rawblocks",
+    "hook"
+   ]
+  },
+  {
+   "id": "rule-stop-on-change",
+   "kind": "rule",
+   "name": "Stop on every world change",
+   "summary": "Whenever the game's world object changes (quit, disconnect, portal, load) the bot is stopped and its keys are released.",
+   "code": [
+    "runtime/src/main/java/dev/continuo/runtime/AdapterRuntime.java",
+    "platform/src/main/java/dev/continuo/platform/package-info.java",
+    "platform-testkit/src/main/java/dev/continuo/testkit/AdapterConformanceTest.java"
+   ],
+   "status": "works",
+   "enforcedBy": "tests",
+   "parts": [
+    "gate",
+    "core",
+    "conform"
+   ]
+  },
+  {
+   "id": "rule-crash",
+   "kind": "rule",
+   "name": "Bot crash can't crash game",
+   "summary": "Anything the bot throws is caught and logged, the bot is stopped, and it gets no more ticks until the next world load.",
+   "code": [
+    "runtime/src/main/java/dev/continuo/runtime/AdapterRuntime.java",
+    "platform/src/main/java/dev/continuo/platform/package-info.java",
+    "platform-testkit/src/main/java/dev/continuo/testkit/AdapterConformanceTest.java"
+   ],
+   "status": "works",
+   "enforcedBy": "tests",
+   "parts": [
+    "gate",
+    "conform"
+   ]
+  },
+  {
+   "id": "rule-restate",
+   "kind": "rule",
+   "name": "Walking: restate all keys",
+   "summary": "A walking bot states all seven keys and its facing every tick and relies on nothing it pressed before, so a screen that clears keys costs one tick.",
+   "code": [
+    "core-engine/src/main/java/dev/continuo/engine/PathExecutor.java",
+    "platform/src/main/java/dev/continuo/platform/package-info.java",
+    "core-engine/src/test/java/dev/continuo/engine/PathExecutorDriveTest.java"
+   ],
+   "status": "works",
+   "enforcedBy": "tests",
+   "parts": [
+    "steer",
+    "fakewalk"
+   ]
+  },
+  {
+   "id": "rule-idle",
+   "kind": "rule",
+   "name": "Idle: touch no keys",
+   "summary": "A bot that is not walking writes nothing at all, not even a release, so it never fights your own keyboard.",
+   "code": [
+    "core-engine/src/main/java/dev/continuo/engine/ContinuoCore.java",
+    "core-engine/src/main/java/dev/continuo/engine/PathExecutor.java",
+    "core-engine/src/test/java/dev/continuo/engine/ContinuoCoreTest.java"
+   ],
+   "status": "works",
+   "enforcedBy": "tests",
+   "parts": [
+    "core",
+    "steer",
+    "fakewalk"
+   ]
+  },
+  {
+   "id": "rule-translate",
+   "kind": "rule",
+   "name": "Mods translate, never decide",
+   "summary": "Per-version code may only rename and forward what the game says; any judgement belongs in the shared core. Checked by a hand audit after each sub-project.",
+   "code": [
+    "docs/superpowers/specs/2026-08-01-mc-automation-roadmap-design.md",
+    "adapters/adapter-fabric-1.21.11/src/main/java/dev/continuo/adapter/fabric/FabricActuator.java",
+    "adapters/adapter-forge-1.7.10/src/main/java/dev/continuo/adapter/forge/ForgeActuator.java"
+   ],
+   "status": "partial",
+   "enforcedBy": "convention",
+   "parts": [
+    "keys",
+    "press",
+    "see",
+    "rawblocks",
+    "version",
+    "hook"
+   ]
+  },
+  {
+   "id": "rule-deterministic",
+   "kind": "rule",
+   "name": "Same world, same path",
+   "summary": "Movements expand in a fixed order, ties break in a fixed order and plugins are sorted by name, so an identical search returns an identical path.",
+   "code": [
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/QueuedNodeOrder.java",
+    "core-movement/src/main/java/dev/continuo/movement/MovementRegistry.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/QueuedNodeOrderTest.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/SliceEquivalenceTest.java"
+   ],
+   "status": "works",
+   "enforcedBy": "tests",
+   "parts": [
+    "search",
+    "astar",
+    "moves",
+    "registry",
+    "fixtures"
+   ]
+  },
+  {
+   "id": "rule-admissible",
+   "kind": "rule",
+   "name": "Estimate never overshoots",
+   "summary": "The distance estimate uses the cheapest price any allowed movement declares, and an audit checks each declaration, so the search returns shortest routes.",
+   "code": [
+    "core-movement/src/main/java/dev/continuo/movement/ActiveMovements.java",
+    "core-movement/src/main/java/dev/continuo/movement/HeuristicRates.java",
+    "core-movement/src/main/java/dev/continuo/movement/MovementContract.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/HeuristicMultiplierAdmissibilityTest.java"
+   ],
+   "status": "works",
+   "enforcedBy": "tests",
+   "parts": [
+    "goalcheck",
+    "registry",
+    "costs",
+    "fixtures",
+    "audit"
+   ]
+  },
+  {
+   "id": "rule-unknown-wall",
+   "kind": "rule",
+   "name": "Unknown block is a wall",
+   "summary": "A block in an unloaded chunk or outside the world is 'unknown', and unknown can be neither walked through nor stood on.",
+   "code": [
+    "core/src/main/java/dev/continuo/core/BlockData.java",
+    "core-movement/src/main/java/dev/continuo/movement/Standability.java",
+    "core-movement/src/test/java/dev/continuo/movement/StandabilityTest.java"
+   ],
+   "status": "works",
+   "enforcedBy": "tests",
+   "parts": [
+    "stand",
+    "blocks",
+    "rawblocks"
+   ]
+  },
+  {
+   "id": "rule-no-harm",
+   "kind": "rule",
+   "name": "Never enter lava or fire",
+   "summary": "A block tagged harmful, or holding any fluid, can be neither entered nor used as a floor.",
+   "code": [
+    "core-movement/src/main/java/dev/continuo/movement/Standability.java",
+    "core/src/main/resources/blocks/1.21.11.json",
+    "core-movement/src/test/java/dev/continuo/movement/StandabilityTest.java"
+   ],
+   "status": "works",
+   "enforcedBy": "tests",
+   "parts": [
+    "stand",
+    "table"
+   ]
+  },
+  {
+   "id": "rule-safe-fall",
+   "kind": "rule",
+   "name": "Max drop: three blocks",
+   "summary": "A planned drop is at most three blocks, the deepest fall without damage on both game versions.",
+   "code": [
+    "core-movement/src/main/java/dev/continuo/movement/MovementCosts.java",
+    "core-pathfinder/src/main/java/dev/continuo/pathfinder/DescendMove.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/DescendMoveTest.java"
+   ],
+   "status": "works",
+   "enforcedBy": "tests",
+   "parts": [
+    "moves",
+    "costs"
+   ]
+  },
+  {
+   "id": "rule-one-name",
+   "kind": "rule",
+   "name": "Every step has one name",
+   "summary": "Each step a search can produce maps to exactly one movement name; a test fails the build if a new movement makes that ambiguous.",
+   "code": [
+    "core-movement/src/main/java/dev/continuo/movement/MovementKind.java",
+    "core-pathfinder/src/test/java/dev/continuo/pathfinder/MovementKindCoverageTest.java"
+   ],
+   "status": "works",
+   "enforcedBy": "tests",
+   "parts": [
+    "steer",
+    "search",
+    "audit"
+   ]
+  },
+  {
+   "id": "rule-goldens",
+   "kind": "rule",
+   "name": "Reviewed dumps stay frozen",
+   "summary": "The hand-reviewed block dump per version is only replaced after a fresh line-by-line review, never by pressing the dump key.",
+   "code": [
+    "docs/parity/README.md"
+   ],
+   "status": "partial",
+   "enforcedBy": "convention",
+   "parts": [
+    "parity"
+   ]
+  }
+ ],
+ "links": [
+  {
+   "id": "walk.player-keys",
+   "from": "player",
+   "to": "keys",
+   "kind": "input",
+   "label": "H, K",
+   "floor": "walk",
+   "carries": [
+    "t-click"
+   ]
+  },
+  {
+   "id": "walk.keys-mark",
+   "from": "keys",
+   "to": "mark",
+   "kind": "command",
+   "label": "mark my feet block",
+   "floor": "walk",
+   "carries": [
+    "t-goal"
+   ]
+  },
+  {
+   "id": "walk.keys-gate",
+   "from": "keys",
+   "to": "gate",
+   "kind": "data",
+   "label": "K click",
+   "floor": "walk",
+   "carries": [
+    "t-click"
+   ]
+  },
+  {
+   "id": "walk.game-gate",
+   "from": "game",
+   "to": "gate",
+   "kind": "input",
+   "label": "ticks, world",
+   "floor": "walk",
+   "carries": [
+    "t-tick",
+    "t-level"
+   ]
+  },
+  {
+   "id": "walk.gate-core",
+   "from": "gate",
+   "to": "core",
+   "kind": "data",
+   "label": "click, then tick",
+   "floor": "walk",
+   "carries": [
+    "t-click",
+    "t-tick"
+   ]
+  },
+  {
+   "id": "walk.mark-core",
+   "from": "mark",
+   "to": "core",
+   "kind": "data",
+   "label": "goal block",
+   "floor": "walk",
+   "carries": [
+    "t-goal"
+   ]
+  },
+  {
+   "id": "walk.goals-core",
+   "from": "goals",
+   "to": "core",
+   "kind": "planned",
+   "label": "destination",
+   "floor": "walk",
+   "carries": [
+    "t-goal"
+   ]
+  },
+  {
+   "id": "walk.core-steer",
+   "from": "core",
+   "to": "steer",
+   "kind": "command",
+   "label": "walk to, tick",
+   "floor": "walk",
+   "carries": [
+    "t-goal",
+    "t-tick"
+   ]
+  },
+  {
+   "id": "walk.steer-search",
+   "from": "steer",
+   "to": "search",
+   "kind": "command",
+   "label": "start, goal",
+   "floor": "walk",
+   "carries": [
+    "t-goal"
+   ]
+  },
+  {
+   "id": "walk.search-steer",
+   "from": "search",
+   "to": "steer",
+   "kind": "data",
+   "label": "path, named steps",
+   "floor": "walk",
+   "carries": [
+    "t-path",
+    "t-outcome"
+   ]
+  },
+  {
+   "id": "walk.blocks-search",
+   "from": "blocks",
+   "to": "search",
+   "kind": "data",
+   "label": "classified blocks",
+   "floor": "walk",
+   "carries": [
+    "t-block"
+   ]
+  },
+  {
+   "id": "walk.game-see",
+   "from": "game",
+   "to": "see",
+   "kind": "input",
+   "label": "you, live",
+   "floor": "walk",
+   "carries": [
+    "t-player"
+   ]
+  },
+  {
+   "id": "walk.see-steer",
+   "from": "see",
+   "to": "steer",
+   "kind": "data",
+   "label": "feet, facing, on-ground",
+   "floor": "walk",
+   "carries": [
+    "t-player"
+   ]
+  },
+  {
+   "id": "walk.steer-anchor",
+   "from": "steer",
+   "to": "anchor",
+   "kind": "data",
+   "label": "feet position",
+   "floor": "walk",
+   "carries": [
+    "t-player"
+   ]
+  },
+  {
+   "id": "walk.anchor-steer",
+   "from": "anchor",
+   "to": "steer",
+   "kind": "data",
+   "label": "step N, off path, arrived",
+   "floor": "walk",
+   "carries": []
+  },
+  {
+   "id": "walk.steer-turn",
+   "from": "steer",
+   "to": "turn",
+   "kind": "command",
+   "label": "7 keys + facing",
+   "floor": "walk",
+   "carries": [
+    "t-keys",
+    "t-look"
+   ]
+  },
+  {
+   "id": "walk.see-turn",
+   "from": "see",
+   "to": "turn",
+   "kind": "data",
+   "label": "current facing",
+   "floor": "walk",
+   "carries": [
+    "t-look"
+   ]
+  },
+  {
+   "id": "walk.turn-press",
+   "from": "turn",
+   "to": "press",
+   "kind": "command",
+   "label": "keys + eased turn",
+   "floor": "walk",
+   "carries": [
+    "t-keys",
+    "t-look"
+   ]
+  },
+  {
+   "id": "walk.press-game",
+   "from": "press",
+   "to": "game",
+   "kind": "output",
+   "label": "key states, rotation",
+   "floor": "walk",
+   "carries": [
+    "t-keys",
+    "t-look"
+   ]
+  },
+  {
+   "id": "walk.steer-log",
+   "from": "steer",
+   "to": "log",
+   "kind": "data",
+   "label": "why it stopped",
+   "floor": "walk",
+   "carries": [
+    "t-logline"
+   ]
+  },
+  {
+   "id": "plan.steer-search",
+   "from": "steer",
+   "to": "search",
+   "kind": "command",
+   "label": "start, goal, no extras",
+   "floor": "plan",
+   "carries": [
+    "t-goal",
+    "t-perms"
+   ]
+  },
+  {
+   "id": "plan.search-steer",
+   "from": "search",
+   "to": "steer",
+   "kind": "data",
+   "label": "path, named steps",
+   "floor": "plan",
+   "carries": [
+    "t-path",
+    "t-outcome"
+   ]
+  },
+  {
+   "id": "plan.probe-search",
+   "from": "probe",
+   "to": "search",
+   "kind": "command",
+   "label": "start, goal, +gap-jumps",
+   "floor": "plan",
+   "carries": [
+    "t-goal",
+    "t-perms"
+   ]
+  },
+  {
+   "id": "plan.search-probe",
+   "from": "search",
+   "to": "probe",
+   "kind": "data",
+   "label": "path, explored spots",
+   "floor": "plan",
+   "carries": [
+    "t-path",
+    "t-outcome"
+   ]
+  },
+  {
+   "id": "plan.search-astar",
+   "from": "search",
+   "to": "astar",
+   "kind": "command",
+   "label": "one stage, 2,000 a tick",
+   "floor": "plan",
+   "carries": []
+  },
+  {
+   "id": "plan.astar-search",
+   "from": "astar",
+   "to": "search",
+   "kind": "data",
+   "label": "found, partial, none",
+   "floor": "plan",
+   "carries": [
+    "t-outcome"
+   ]
+  },
+  {
+   "id": "plan.astar-backoff",
+   "from": "astar",
+   "to": "backoff",
+   "kind": "data",
+   "label": "budget spent",
+   "floor": "plan",
+   "carries": []
+  },
+  {
+   "id": "plan.backoff-astar",
+   "from": "backoff",
+   "to": "astar",
+   "kind": "data",
+   "label": "nearest good spot",
+   "floor": "plan",
+   "carries": []
+  },
+  {
+   "id": "plan.search-registry",
+   "from": "search",
+   "to": "registry",
+   "kind": "data",
+   "label": "permissions",
+   "floor": "plan",
+   "carries": [
+    "t-perms"
+   ]
+  },
+  {
+   "id": "plan.registry-astar",
+   "from": "registry",
+   "to": "astar",
+   "kind": "data",
+   "label": "allowed moves, floor price",
+   "floor": "plan",
+   "carries": []
+  },
+  {
+   "id": "plan.plugin-registry",
+   "from": "plugin",
+   "to": "registry",
+   "kind": "input",
+   "label": "found on classpath",
+   "floor": "plan",
+   "carries": []
+  },
+  {
+   "id": "plan.moves-astar",
+   "from": "moves",
+   "to": "astar",
+   "kind": "data",
+   "label": "next spots + price",
+   "floor": "plan",
+   "carries": []
+  },
+  {
+   "id": "plan.costs-moves",
+   "from": "costs",
+   "to": "moves",
+   "kind": "data",
+   "label": "ticks per move",
+   "floor": "plan",
+   "carries": []
+  },
+  {
+   "id": "plan.stand-moves",
+   "from": "stand",
+   "to": "moves",
+   "kind": "data",
+   "label": "standable or not",
+   "floor": "plan",
+   "carries": []
+  },
+  {
+   "id": "plan.freeze-stand",
+   "from": "freeze",
+   "to": "stand",
+   "kind": "data",
+   "label": "block at a position",
+   "floor": "plan",
+   "carries": [
+    "t-block"
+   ]
+  },
+  {
+   "id": "plan.blocks-freeze",
+   "from": "blocks",
+   "to": "freeze",
+   "kind": "data",
+   "label": "first read only",
+   "floor": "plan",
+   "carries": [
+    "t-block"
+   ]
+  },
+  {
+   "id": "plan.goalcheck-astar",
+   "from": "goalcheck",
+   "to": "astar",
+   "kind": "data",
+   "label": "there yet, how far",
+   "floor": "plan",
+   "carries": []
+  },
+  {
+   "id": "world.game-version",
+   "from": "game",
+   "to": "version",
+   "kind": "input",
+   "label": "version text",
+   "floor": "world",
+   "carries": []
+  },
+  {
+   "id": "world.game-rawblocks",
+   "from": "game",
+   "to": "rawblocks",
+   "kind": "input",
+   "label": "live world",
+   "floor": "world",
+   "carries": []
+  },
+  {
+   "id": "world.version-table",
+   "from": "version",
+   "to": "table",
+   "kind": "data",
+   "label": "which list",
+   "floor": "world",
+   "carries": []
+  },
+  {
+   "id": "world.maintainer-table",
+   "from": "maintainer",
+   "to": "table",
+   "kind": "input",
+   "label": "edits the list",
+   "floor": "world",
+   "carries": [
+    "t-table"
+   ]
+  },
+  {
+   "id": "world.table-classify",
+   "from": "table",
+   "to": "classify",
+   "kind": "data",
+   "label": "overrides",
+   "floor": "world",
+   "carries": [
+    "t-table"
+   ]
+  },
+  {
+   "id": "world.rawblocks-classify",
+   "from": "rawblocks",
+   "to": "classify",
+   "kind": "data",
+   "label": "raw facts, first sighting",
+   "floor": "world",
+   "carries": [
+    "t-raw"
+   ]
+  },
+  {
+   "id": "world.rawblocks-blocks",
+   "from": "rawblocks",
+   "to": "blocks",
+   "kind": "data",
+   "label": "state id, cheap",
+   "floor": "world",
+   "carries": []
+  },
+  {
+   "id": "world.classify-blocks",
+   "from": "classify",
+   "to": "blocks",
+   "kind": "data",
+   "label": "classified block",
+   "floor": "world",
+   "carries": [
+    "t-block"
+   ]
+  },
+  {
+   "id": "world.blocks-freeze",
+   "from": "blocks",
+   "to": "freeze",
+   "kind": "data",
+   "label": "block, first read",
+   "floor": "world",
+   "carries": [
+    "t-block"
+   ]
+  },
+  {
+   "id": "world.freeze-stand",
+   "from": "freeze",
+   "to": "stand",
+   "kind": "data",
+   "label": "block at a position",
+   "floor": "world",
+   "carries": [
+    "t-block"
+   ]
+  },
+  {
+   "id": "world.stand-moves",
+   "from": "stand",
+   "to": "moves",
+   "kind": "data",
+   "label": "passable, floor, standable",
+   "floor": "world",
+   "carries": []
+  },
+  {
+   "id": "world.core-blocks",
+   "from": "core",
+   "to": "blocks",
+   "kind": "command",
+   "label": "forget, world changed",
+   "floor": "world",
+   "carries": []
+  },
+  {
+   "id": "host.player-keys",
+   "from": "player",
+   "to": "keys",
+   "kind": "input",
+   "label": "K, any time",
+   "floor": "host",
+   "carries": [
+    "t-click"
+   ]
+  },
+  {
+   "id": "host.game-hook",
+   "from": "game",
+   "to": "hook",
+   "kind": "input",
+   "label": "ticks, world, player",
+   "floor": "host",
+   "carries": [
+    "t-tick",
+    "t-level"
+   ]
+  },
+  {
+   "id": "host.hook-gate",
+   "from": "hook",
+   "to": "gate",
+   "kind": "data",
+   "label": "tick + world identity",
+   "floor": "host",
+   "carries": [
+    "t-tick",
+    "t-level",
+    "t-bundle"
+   ]
+  },
+  {
+   "id": "host.hook-mark",
+   "from": "hook",
+   "to": "mark",
+   "kind": "command",
+   "label": "new world: forget",
+   "floor": "host",
+   "carries": [
+    "t-level"
+   ]
+  },
+  {
+   "id": "host.keys-gate",
+   "from": "keys",
+   "to": "gate",
+   "kind": "data",
+   "label": "queued clicks",
+   "floor": "host",
+   "carries": [
+    "t-click"
+   ]
+  },
+  {
+   "id": "host.gate-core",
+   "from": "gate",
+   "to": "core",
+   "kind": "command",
+   "label": "start, tick, stop",
+   "floor": "host",
+   "carries": [
+    "t-tick",
+    "t-bundle"
+   ]
+  },
+  {
+   "id": "host.core-gate",
+   "from": "core",
+   "to": "gate",
+   "kind": "data",
+   "label": "a crash",
+   "floor": "host",
+   "carries": []
+  },
+  {
+   "id": "host.gate-log",
+   "from": "gate",
+   "to": "log",
+   "kind": "data",
+   "label": "stopping, faulted",
+   "floor": "host",
+   "carries": [
+    "t-logline"
+   ]
+  },
+  {
+   "id": "host.core-steer",
+   "from": "core",
+   "to": "steer",
+   "kind": "command",
+   "label": "stop",
+   "floor": "host",
+   "carries": []
+  },
+  {
+   "id": "host.core-blocks",
+   "from": "core",
+   "to": "blocks",
+   "kind": "command",
+   "label": "forget blocks",
+   "floor": "host",
+   "carries": []
+  },
+  {
+   "id": "host.steer-press",
+   "from": "steer",
+   "to": "press",
+   "kind": "command",
+   "label": "all seven keys up",
+   "floor": "host",
+   "carries": [
+    "t-keys"
+   ]
+  },
+  {
+   "id": "host.press-game",
+   "from": "press",
+   "to": "game",
+   "kind": "output",
+   "label": "keys released",
+   "floor": "host",
+   "carries": [
+    "t-keys"
+   ]
+  },
+  {
+   "id": "inspect.player-keys",
+   "from": "player",
+   "to": "keys",
+   "kind": "input",
+   "label": "L, J, H",
+   "floor": "inspect",
+   "carries": [
+    "t-click"
+   ]
+  },
+  {
+   "id": "inspect.keys-mark",
+   "from": "keys",
+   "to": "mark",
+   "kind": "command",
+   "label": "mark my feet block",
+   "floor": "inspect",
+   "carries": [
+    "t-goal"
+   ]
+  },
+  {
+   "id": "inspect.keys-probe",
+   "from": "keys",
+   "to": "probe",
+   "kind": "data",
+   "label": "L click",
+   "floor": "inspect",
+   "carries": [
+    "t-click"
+   ]
+  },
+  {
+   "id": "inspect.mark-probe",
+   "from": "mark",
+   "to": "probe",
+   "kind": "data",
+   "label": "goal block",
+   "floor": "inspect",
+   "carries": [
+    "t-goal"
+   ]
+  },
+  {
+   "id": "inspect.game-see",
+   "from": "game",
+   "to": "see",
+   "kind": "input",
+   "label": "you, live",
+   "floor": "inspect",
+   "carries": [
+    "t-player"
+   ]
+  },
+  {
+   "id": "inspect.see-probe",
+   "from": "see",
+   "to": "probe",
+   "kind": "data",
+   "label": "feet, facing, on-ground",
+   "floor": "inspect",
+   "carries": [
+    "t-player"
+   ]
+  },
+  {
+   "id": "inspect.probe-press",
+   "from": "probe",
+   "to": "press",
+   "kind": "command",
+   "label": "face the goal",
+   "floor": "inspect",
+   "carries": [
+    "t-look"
+   ]
+  },
+  {
+   "id": "inspect.press-game",
+   "from": "press",
+   "to": "game",
+   "kind": "output",
+   "label": "rotation",
+   "floor": "inspect",
+   "carries": [
+    "t-look"
+   ]
+  },
+  {
+   "id": "inspect.probe-search",
+   "from": "probe",
+   "to": "search",
+   "kind": "command",
+   "label": "start, goal, +gap-jumps",
+   "floor": "inspect",
+   "carries": [
+    "t-goal",
+    "t-perms"
+   ]
+  },
+  {
+   "id": "inspect.search-probe",
+   "from": "search",
+   "to": "probe",
+   "kind": "data",
+   "label": "path, explored spots",
+   "floor": "inspect",
+   "carries": [
+    "t-path",
+    "t-outcome"
+   ]
+  },
+  {
+   "id": "inspect.freeze-search",
+   "from": "freeze",
+   "to": "search",
+   "kind": "data",
+   "label": "blocks, read once",
+   "floor": "inspect",
+   "carries": [
+    "t-block"
+   ]
+  },
+  {
+   "id": "inspect.probe-freeze",
+   "from": "probe",
+   "to": "freeze",
+   "kind": "command",
+   "label": "seal, replay twice",
+   "floor": "inspect",
+   "carries": []
+  },
+  {
+   "id": "inspect.probe-draw",
+   "from": "probe",
+   "to": "draw",
+   "kind": "data",
+   "label": "world + route",
+   "floor": "inspect",
+   "carries": [
+    "t-path"
+   ]
+  },
+  {
+   "id": "inspect.draw-probe",
+   "from": "draw",
+   "to": "probe",
+   "kind": "data",
+   "label": "text map",
+   "floor": "inspect",
+   "carries": [
+    "t-map"
+   ]
+  },
+  {
+   "id": "inspect.probe-log",
+   "from": "probe",
+   "to": "log",
+   "kind": "data",
+   "label": "summary + notices",
+   "floor": "inspect",
+   "carries": [
+    "t-summary"
+   ]
+  },
+  {
+   "id": "inspect.probe-files",
+   "from": "probe",
+   "to": "files",
+   "kind": "data",
+   "label": "map file",
+   "floor": "inspect",
+   "carries": [
+    "t-map"
+   ]
+  },
+  {
+   "id": "inspect.keys-dump",
+   "from": "keys",
+   "to": "dump",
+   "kind": "data",
+   "label": "J click",
+   "floor": "inspect",
+   "carries": [
+    "t-click"
+   ]
+  },
+  {
+   "id": "inspect.game-rawblocks",
+   "from": "game",
+   "to": "rawblocks",
+   "kind": "input",
+   "label": "live world",
+   "floor": "inspect",
+   "carries": []
+  },
+  {
+   "id": "inspect.rawblocks-dump",
+   "from": "rawblocks",
+   "to": "dump",
+   "kind": "data",
+   "label": "32 blocks, raw",
+   "floor": "inspect",
+   "carries": [
+    "t-raw"
+   ]
+  },
+  {
+   "id": "inspect.dump-files",
+   "from": "dump",
+   "to": "files",
+   "kind": "data",
+   "label": "block dump",
+   "floor": "inspect",
+   "carries": [
+    "t-dump"
+   ]
+  },
+  {
+   "id": "honest.maintainer-build",
+   "from": "maintainer",
+   "to": "build",
+   "kind": "input",
+   "label": "gradlew build",
+   "floor": "honest",
+   "carries": []
+  },
+  {
+   "id": "honest.ci-cirun",
+   "from": "ci",
+   "to": "cirun",
+   "kind": "input",
+   "label": "every push",
+   "floor": "honest",
+   "carries": []
+  },
+  {
+   "id": "honest.cirun-build",
+   "from": "cirun",
+   "to": "build",
+   "kind": "command",
+   "label": "build, then 3 checks",
+   "floor": "honest",
+   "carries": []
+  },
+  {
+   "id": "honest.build-guard",
+   "from": "build",
+   "to": "guard",
+   "kind": "data",
+   "label": "classes, module graph",
+   "floor": "honest",
+   "carries": []
+  },
+  {
+   "id": "honest.build-tests",
+   "from": "build",
+   "to": "tests",
+   "kind": "data",
+   "label": "compiled tests",
+   "floor": "honest",
+   "carries": []
+  },
+  {
+   "id": "honest.tests-conform",
+   "from": "tests",
+   "to": "conform",
+   "kind": "command",
+   "label": "28 rule cases",
+   "floor": "honest",
+   "carries": []
+  },
+  {
+   "id": "honest.tests-parity",
+   "from": "tests",
+   "to": "parity",
+   "kind": "command",
+   "label": "8 diff tests",
+   "floor": "honest",
+   "carries": []
+  },
+  {
+   "id": "honest.tests-audit",
+   "from": "tests",
+   "to": "audit",
+   "kind": "command",
+   "label": "price audits",
+   "floor": "honest",
+   "carries": []
+  },
+  {
+   "id": "honest.tests-fixtures",
+   "from": "tests",
+   "to": "fixtures",
+   "kind": "command",
+   "label": "route searches",
+   "floor": "honest",
+   "carries": []
+  },
+  {
+   "id": "honest.tests-fakewalk",
+   "from": "tests",
+   "to": "fakewalk",
+   "kind": "command",
+   "label": "scripted walks",
+   "floor": "honest",
+   "carries": []
+  },
+  {
+   "id": "honest.player-smoke",
+   "from": "player",
+   "to": "smoke",
+   "kind": "input",
+   "label": "22 steps by hand",
+   "floor": "honest",
+   "carries": []
+  },
+  {
+   "id": "honest.smoke-dump",
+   "from": "smoke",
+   "to": "dump",
+   "kind": "command",
+   "label": "step 12: press J",
+   "floor": "honest",
+   "carries": []
+  },
+  {
+   "id": "honest.dump-parity",
+   "from": "dump",
+   "to": "parity",
+   "kind": "data",
+   "label": "one dump per version",
+   "floor": "honest",
+   "carries": [
+    "t-dump"
+   ]
+  },
+  {
+   "id": "later.remote-webui",
+   "from": "remote",
+   "to": "webui",
+   "kind": "planned",
+   "label": "opens it",
+   "floor": "later",
+   "carries": []
+  },
+  {
+   "id": "later.webui-bridge",
+   "from": "webui",
+   "to": "bridge",
+   "kind": "planned",
+   "label": "commands, settings",
+   "floor": "later",
+   "carries": []
+  },
+  {
+   "id": "later.bridge-webui",
+   "from": "bridge",
+   "to": "webui",
+   "kind": "planned",
+   "label": "state stream",
+   "floor": "later",
+   "carries": []
+  },
+  {
+   "id": "later.bridge-goals",
+   "from": "bridge",
+   "to": "goals",
+   "kind": "planned",
+   "label": "set goal, start task",
+   "floor": "later",
+   "carries": [
+    "t-goal"
+   ]
+  },
+  {
+   "id": "later.scripts-goals",
+   "from": "scripts",
+   "to": "goals",
+   "kind": "planned",
+   "label": "goal + priority",
+   "floor": "later",
+   "carries": [
+    "t-goal"
+   ]
+  },
+  {
+   "id": "later.goals-steer",
+   "from": "goals",
+   "to": "steer",
+   "kind": "planned",
+   "label": "walk to",
+   "floor": "later",
+   "carries": [
+    "t-goal"
+   ]
+  },
+  {
+   "id": "later.flying-search",
+   "from": "flying",
+   "to": "search",
+   "kind": "planned",
+   "label": "new movements",
+   "floor": "later",
+   "carries": []
+  },
+  {
+   "id": "later.game-moreversions",
+   "from": "game",
+   "to": "moreversions",
+   "kind": "planned",
+   "label": "another version",
+   "floor": "later",
+   "carries": []
+  },
+  {
+   "id": "later.moreversions-gate",
+   "from": "moreversions",
+   "to": "gate",
+   "kind": "planned",
+   "label": "ticks, clicks",
+   "floor": "later",
+   "carries": [
+    "t-tick",
+    "t-click"
+   ]
+  },
+  {
+   "id": "guard.core-pure-guard",
+   "from": "rule-core-pure",
+   "to": "guard",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.java8-guard",
+   "from": "rule-java8",
+   "to": "guard",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.one-way-guard",
+   "from": "rule-one-way",
+   "to": "guard",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.main-thread-press",
+   "from": "rule-main-thread",
+   "to": "press",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.main-thread-see",
+   "from": "rule-main-thread",
+   "to": "see",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.main-thread-rawblocks",
+   "from": "rule-main-thread",
+   "to": "rawblocks",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.main-thread-hook",
+   "from": "rule-main-thread",
+   "to": "hook",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.stop-on-change-gate",
+   "from": "rule-stop-on-change",
+   "to": "gate",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.stop-on-change-core",
+   "from": "rule-stop-on-change",
+   "to": "core",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.stop-on-change-conform",
+   "from": "rule-stop-on-change",
+   "to": "conform",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.crash-gate",
+   "from": "rule-crash",
+   "to": "gate",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.crash-conform",
+   "from": "rule-crash",
+   "to": "conform",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.restate-steer",
+   "from": "rule-restate",
+   "to": "steer",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.restate-fakewalk",
+   "from": "rule-restate",
+   "to": "fakewalk",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.idle-core",
+   "from": "rule-idle",
+   "to": "core",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.idle-steer",
+   "from": "rule-idle",
+   "to": "steer",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.idle-fakewalk",
+   "from": "rule-idle",
+   "to": "fakewalk",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.translate-keys",
+   "from": "rule-translate",
+   "to": "keys",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.translate-press",
+   "from": "rule-translate",
+   "to": "press",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.translate-see",
+   "from": "rule-translate",
+   "to": "see",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.translate-rawblocks",
+   "from": "rule-translate",
+   "to": "rawblocks",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.translate-version",
+   "from": "rule-translate",
+   "to": "version",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.translate-hook",
+   "from": "rule-translate",
+   "to": "hook",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.deterministic-search",
+   "from": "rule-deterministic",
+   "to": "search",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.deterministic-astar",
+   "from": "rule-deterministic",
+   "to": "astar",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.deterministic-moves",
+   "from": "rule-deterministic",
+   "to": "moves",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.deterministic-registry",
+   "from": "rule-deterministic",
+   "to": "registry",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.deterministic-fixtures",
+   "from": "rule-deterministic",
+   "to": "fixtures",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.admissible-goalcheck",
+   "from": "rule-admissible",
+   "to": "goalcheck",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.admissible-registry",
+   "from": "rule-admissible",
+   "to": "registry",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.admissible-costs",
+   "from": "rule-admissible",
+   "to": "costs",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.admissible-fixtures",
+   "from": "rule-admissible",
+   "to": "fixtures",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.admissible-audit",
+   "from": "rule-admissible",
+   "to": "audit",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.unknown-wall-stand",
+   "from": "rule-unknown-wall",
+   "to": "stand",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.unknown-wall-blocks",
+   "from": "rule-unknown-wall",
+   "to": "blocks",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.unknown-wall-rawblocks",
+   "from": "rule-unknown-wall",
+   "to": "rawblocks",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.no-harm-stand",
+   "from": "rule-no-harm",
+   "to": "stand",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.no-harm-table",
+   "from": "rule-no-harm",
+   "to": "table",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.safe-fall-moves",
+   "from": "rule-safe-fall",
+   "to": "moves",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.safe-fall-costs",
+   "from": "rule-safe-fall",
+   "to": "costs",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.one-name-steer",
+   "from": "rule-one-name",
+   "to": "steer",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.one-name-search",
+   "from": "rule-one-name",
+   "to": "search",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.one-name-audit",
+   "from": "rule-one-name",
+   "to": "audit",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  },
+  {
+   "id": "guard.goldens-parity",
+   "from": "rule-goldens",
+   "to": "parity",
+   "kind": "holds-for",
+   "label": "must hold",
+   "floor": null,
+   "carries": []
+  }
+ ],
+ "routes": [
+  {
+   "id": "route-mark-spot",
+   "name": "Mark where to go",
+   "usecase": "uc-mark-spot",
+   "floor": "walk",
+   "steps": [
+    "walk.player-keys",
+    "walk.keys-mark"
+   ]
+  },
+  {
+   "id": "route-walk-to-mark",
+   "name": "Walk to the mark",
+   "usecase": "uc-walk-to-mark",
+   "floor": "walk",
+   "steps": [
+    "walk.player-keys",
+    "walk.keys-gate",
+    "walk.game-gate",
+    "walk.gate-core",
+    "walk.mark-core",
+    "walk.core-steer",
+    "walk.steer-search",
+    "walk.blocks-search",
+    "walk.search-steer",
+    "walk.game-see",
+    "walk.see-steer",
+    "walk.steer-anchor",
+    "walk.anchor-steer",
+    "walk.steer-turn",
+    "walk.see-turn",
+    "walk.turn-press",
+    "walk.press-game",
+    "walk.steer-log"
+   ]
+  },
+  {
+   "id": "route-climb-stairs",
+   "name": "Climb stairs steadily",
+   "usecase": "uc-climb-stairs",
+   "floor": "walk",
+   "steps": [
+    "walk.search-steer",
+    "walk.game-see",
+    "walk.see-steer",
+    "walk.steer-turn",
+    "walk.turn-press",
+    "walk.press-game"
+   ]
+  },
+  {
+   "id": "route-long-route",
+   "name": "Walk long routes",
+   "usecase": "uc-long-route",
+   "floor": "walk",
+   "steps": [
+    "walk.steer-anchor",
+    "walk.anchor-steer",
+    "walk.steer-search",
+    "walk.blocks-search",
+    "walk.search-steer",
+    "walk.steer-turn",
+    "walk.turn-press",
+    "walk.press-game"
+   ]
+  },
+  {
+   "id": "route-teleported",
+   "name": "Recover after a teleport",
+   "usecase": "uc-teleported",
+   "floor": "walk",
+   "steps": [
+    "walk.game-see",
+    "walk.see-steer",
+    "walk.steer-anchor",
+    "walk.anchor-steer",
+    "walk.steer-log",
+    "walk.steer-turn",
+    "walk.turn-press",
+    "walk.press-game",
+    "walk.steer-search",
+    "walk.blocks-search",
+    "walk.search-steer"
+   ]
+  },
+  {
+   "id": "route-stuck",
+   "name": "Notice it is stuck",
+   "usecase": "uc-stuck",
+   "floor": "walk",
+   "steps": [
+    "walk.steer-anchor",
+    "walk.anchor-steer",
+    "walk.steer-log",
+    "walk.steer-turn",
+    "walk.turn-press",
+    "walk.press-game",
+    "walk.steer-search",
+    "walk.blocks-search",
+    "walk.search-steer"
+   ]
+  },
+  {
+   "id": "route-give-up",
+   "name": "Give up cleanly",
+   "usecase": "uc-give-up",
+   "floor": "walk",
+   "steps": [
+    "walk.search-steer",
+    "walk.steer-log",
+    "walk.steer-turn",
+    "walk.turn-press",
+    "walk.press-game"
+   ]
+  },
+  {
+   "id": "route-retarget",
+   "name": "Retarget mid-walk",
+   "usecase": "uc-retarget",
+   "floor": "walk",
+   "steps": [
+    "walk.player-keys",
+    "walk.keys-mark",
+    "walk.keys-gate",
+    "walk.gate-core",
+    "walk.mark-core",
+    "walk.core-steer",
+    "walk.steer-turn",
+    "walk.turn-press",
+    "walk.press-game",
+    "walk.steer-search",
+    "walk.blocks-search",
+    "walk.search-steer"
+   ]
+  },
+  {
+   "id": "route-inventory",
+   "name": "Survive an open screen",
+   "usecase": "uc-inventory",
+   "floor": "walk",
+   "steps": [
+    "walk.game-gate",
+    "walk.gate-core",
+    "walk.core-steer",
+    "walk.steer-turn",
+    "walk.turn-press",
+    "walk.press-game"
+   ]
+  },
+  {
+   "id": "route-smooth-turn",
+   "name": "Turn smoothly, not snap",
+   "usecase": "uc-smooth-turn",
+   "floor": "walk",
+   "steps": [
+    "walk.steer-turn",
+    "walk.see-turn",
+    "walk.turn-press",
+    "walk.press-game"
+   ]
+  },
+  {
+   "id": "route-goto",
+   "name": "Go there by command",
+   "usecase": "uc-goto",
+   "floor": "walk",
+   "steps": [
+    "walk.goals-core",
+    "walk.core-steer"
+   ]
+  },
+  {
+   "id": "route-sprint-jump",
+   "name": "Sprint and jump gaps",
+   "usecase": "uc-sprint-jump",
+   "floor": "walk",
+   "steps": [
+    "walk.search-steer",
+    "walk.steer-log"
+   ]
+  },
+  {
+   "id": "route-around",
+   "name": "Route around obstacles",
+   "usecase": "uc-around",
+   "floor": "plan",
+   "steps": [
+    "plan.steer-search",
+    "plan.search-registry",
+    "plan.registry-astar",
+    "plan.search-astar",
+    "plan.blocks-freeze",
+    "plan.freeze-stand",
+    "plan.stand-moves",
+    "plan.costs-moves",
+    "plan.moves-astar",
+    "plan.goalcheck-astar",
+    "plan.astar-search",
+    "plan.search-steer"
+   ]
+  },
+  {
+   "id": "route-step-up",
+   "name": "Step up one block",
+   "usecase": "uc-step-up",
+   "floor": "plan",
+   "steps": [
+    "plan.freeze-stand",
+    "plan.stand-moves",
+    "plan.costs-moves",
+    "plan.moves-astar"
+   ]
+  },
+  {
+   "id": "route-drop",
+   "name": "Drop up to three blocks",
+   "usecase": "uc-drop",
+   "floor": "plan",
+   "steps": [
+    "plan.freeze-stand",
+    "plan.stand-moves",
+    "plan.costs-moves",
+    "plan.moves-astar"
+   ]
+  },
+  {
+   "id": "route-corner",
+   "name": "Cut corners when clear",
+   "usecase": "uc-corner",
+   "floor": "plan",
+   "steps": [
+    "plan.freeze-stand",
+    "plan.stand-moves",
+    "plan.costs-moves",
+    "plan.moves-astar"
+   ]
+  },
+  {
+   "id": "route-gap",
+   "name": "Jump a one-block gap",
+   "usecase": "uc-gap",
+   "floor": "plan",
+   "steps": [
+    "plan.probe-search",
+    "plan.search-registry",
+    "plan.plugin-registry",
+    "plan.registry-astar",
+    "plan.stand-moves",
+    "plan.moves-astar",
+    "plan.astar-search",
+    "plan.search-probe"
+   ]
+  },
+  {
+   "id": "route-quickest",
+   "name": "Take the quickest route",
+   "usecase": "uc-quickest",
+   "floor": "plan",
+   "steps": [
+    "plan.costs-moves",
+    "plan.moves-astar",
+    "plan.goalcheck-astar",
+    "plan.astar-search"
+   ]
+  },
+  {
+   "id": "route-no-freeze",
+   "name": "Search without freezing",
+   "usecase": "uc-no-freeze",
+   "floor": "plan",
+   "steps": [
+    "plan.steer-search",
+    "plan.search-astar",
+    "plan.astar-search",
+    "plan.search-steer"
+   ]
+  },
+  {
+   "id": "route-far",
+   "name": "Reach far goals in stages",
+   "usecase": "uc-far",
+   "floor": "plan",
+   "steps": [
+    "plan.search-astar",
+    "plan.astar-backoff",
+    "plan.backoff-astar",
+    "plan.astar-search",
+    "plan.search-steer"
+   ]
+  },
+  {
+   "id": "route-same-path",
+   "name": "Same world, same path",
+   "usecase": "uc-same-path",
+   "floor": "plan",
+   "steps": [
+    "plan.registry-astar",
+    "plan.moves-astar",
+    "plan.astar-search"
+   ]
+  },
+  {
+   "id": "route-no-way",
+   "name": "Know there is no way",
+   "usecase": "uc-no-way",
+   "floor": "plan",
+   "steps": [
+    "plan.goalcheck-astar",
+    "plan.astar-search",
+    "plan.search-steer"
+   ]
+  },
+  {
+   "id": "route-plugin-move",
+   "name": "Add a movement plugin",
+   "usecase": "uc-plugin-move",
+   "floor": "plan",
+   "steps": [
+    "plan.plugin-registry",
+    "plan.registry-astar",
+    "plan.moves-astar"
+   ]
+  },
+  {
+   "id": "route-column",
+   "name": "Aim at a column",
+   "usecase": "uc-column",
+   "floor": "plan",
+   "steps": [
+    "plan.goalcheck-astar"
+   ]
+  },
+  {
+   "id": "route-floor-wall",
+   "name": "Tell floor from wall",
+   "usecase": "uc-floor-wall",
+   "floor": "world",
+   "steps": [
+    "world.game-rawblocks",
+    "world.rawblocks-classify",
+    "world.classify-blocks",
+    "world.blocks-freeze",
+    "world.freeze-stand",
+    "world.stand-moves"
+   ]
+  },
+  {
+   "id": "route-lava",
+   "name": "Keep out of lava and fire",
+   "usecase": "uc-lava",
+   "floor": "world",
+   "steps": [
+    "world.table-classify",
+    "world.classify-blocks",
+    "world.blocks-freeze",
+    "world.freeze-stand",
+    "world.stand-moves"
+   ]
+  },
+  {
+   "id": "route-carpet",
+   "name": "Walk over carpet, snow",
+   "usecase": "uc-carpet",
+   "floor": "world",
+   "steps": [
+    "world.rawblocks-classify",
+    "world.classify-blocks",
+    "world.blocks-freeze",
+    "world.freeze-stand"
+   ]
+  },
+  {
+   "id": "route-unloaded",
+   "name": "Unloaded land is a wall",
+   "usecase": "uc-unloaded",
+   "floor": "world",
+   "steps": [
+    "world.game-rawblocks",
+    "world.rawblocks-blocks",
+    "world.blocks-freeze",
+    "world.freeze-stand",
+    "world.stand-moves"
+   ]
+  },
+  {
+   "id": "route-teach",
+   "name": "Teach it a harmful block",
+   "usecase": "uc-teach",
+   "floor": "world",
+   "steps": [
+    "world.maintainer-table",
+    "world.table-classify",
+    "world.classify-blocks"
+   ]
+  },
+  {
+   "id": "route-unlisted",
+   "name": "Run on unlisted versions",
+   "usecase": "uc-unlisted",
+   "floor": "world",
+   "steps": [
+    "world.game-version",
+    "world.version-table",
+    "world.table-classify"
+   ]
+  },
+  {
+   "id": "route-read-once",
+   "name": "Read each block once",
+   "usecase": "uc-read-once",
+   "floor": "world",
+   "steps": [
+    "world.blocks-freeze",
+    "world.freeze-stand"
+   ]
+  },
+  {
+   "id": "route-classify-once",
+   "name": "Classify each type once",
+   "usecase": "uc-classify-once",
+   "floor": "world",
+   "steps": [
+    "world.rawblocks-blocks",
+    "world.rawblocks-classify",
+    "world.classify-blocks"
+   ]
+  },
+  {
+   "id": "route-forget",
+   "name": "Forget blocks per world",
+   "usecase": "uc-forget",
+   "floor": "world",
+   "steps": [
+    "world.core-blocks"
+   ]
+  },
+  {
+   "id": "route-agree",
+   "name": "Agree on both versions",
+   "usecase": "uc-agree",
+   "floor": "world",
+   "steps": [
+    "world.game-rawblocks",
+    "world.rawblocks-classify",
+    "world.classify-blocks"
+   ]
+  },
+  {
+   "id": "route-ice",
+   "name": "Account for slippery ice",
+   "usecase": "uc-ice",
+   "floor": "world",
+   "steps": [
+    "world.rawblocks-classify"
+   ]
+  },
+  {
+   "id": "route-start",
+   "name": "Start with the game",
+   "usecase": "uc-start",
+   "floor": "host",
+   "steps": [
+    "host.game-hook",
+    "host.hook-gate",
+    "host.gate-core"
+   ]
+  },
+  {
+   "id": "route-world-change",
+   "name": "Stop on world change",
+   "usecase": "uc-world-change",
+   "floor": "host",
+   "steps": [
+    "host.game-hook",
+    "host.hook-gate",
+    "host.gate-log",
+    "host.gate-core",
+    "host.core-steer",
+    "host.steer-press",
+    "host.press-game",
+    "host.core-blocks",
+    "host.hook-mark"
+   ]
+  },
+  {
+   "id": "route-no-world-keys",
+   "name": "Ignore out-of-world keys",
+   "usecase": "uc-no-world-keys",
+   "floor": "host",
+   "steps": [
+    "host.player-keys",
+    "host.keys-gate"
+   ]
+  },
+  {
+   "id": "route-contain-crash",
+   "name": "Contain a bot crash",
+   "usecase": "uc-contain-crash",
+   "floor": "host",
+   "steps": [
+    "host.core-gate",
+    "host.gate-log",
+    "host.gate-core",
+    "host.core-steer",
+    "host.steer-press",
+    "host.press-game"
+   ]
+  },
+  {
+   "id": "route-idle",
+   "name": "Hands off keys when idle",
+   "usecase": "uc-idle",
+   "floor": "host",
+   "steps": [
+    "host.game-hook",
+    "host.hook-gate",
+    "host.gate-core"
+   ]
+  },
+  {
+   "id": "route-client-close",
+   "name": "Stop when game closes",
+   "usecase": "uc-client-close",
+   "floor": "host",
+   "steps": [
+    "host.game-hook",
+    "host.hook-gate",
+    "host.gate-log",
+    "host.gate-core",
+    "host.core-steer",
+    "host.steer-press"
+   ]
+  },
+  {
+   "id": "route-two-versions",
+   "name": "One core, two versions",
+   "usecase": "uc-two-versions",
+   "floor": "host",
+   "steps": [
+    "host.game-hook",
+    "host.hook-gate",
+    "host.gate-core"
+   ]
+  },
+  {
+   "id": "route-drop-mark",
+   "name": "Drop mark in new world",
+   "usecase": "uc-drop-mark",
+   "floor": "host",
+   "steps": [
+    "host.game-hook",
+    "host.hook-mark"
+   ]
+  },
+  {
+   "id": "route-preview",
+   "name": "Preview a route",
+   "usecase": "uc-preview",
+   "floor": "inspect",
+   "steps": [
+    "inspect.player-keys",
+    "inspect.keys-probe",
+    "inspect.mark-probe",
+    "inspect.game-see",
+    "inspect.see-probe",
+    "inspect.probe-press",
+    "inspect.press-game",
+    "inspect.probe-search",
+    "inspect.freeze-search",
+    "inspect.search-probe",
+    "inspect.probe-draw",
+    "inspect.draw-probe",
+    "inspect.probe-log",
+    "inspect.probe-files"
+   ]
+  },
+  {
+   "id": "route-time-search",
+   "name": "Time a search per slice",
+   "usecase": "uc-time-search",
+   "floor": "inspect",
+   "steps": [
+    "inspect.probe-search",
+    "inspect.search-probe",
+    "inspect.probe-log"
+   ]
+  },
+  {
+   "id": "route-split",
+   "name": "Split read from search",
+   "usecase": "uc-split",
+   "floor": "inspect",
+   "steps": [
+    "inspect.probe-search",
+    "inspect.freeze-search",
+    "inspect.search-probe",
+    "inspect.probe-freeze",
+    "inspect.probe-log"
+   ]
+  },
+  {
+   "id": "route-feet",
+   "name": "Catch wrong feet height",
+   "usecase": "uc-feet",
+   "floor": "inspect",
+   "steps": [
+    "inspect.game-see",
+    "inspect.see-probe",
+    "inspect.probe-log"
+   ]
+  },
+  {
+   "id": "route-look-check",
+   "name": "Check a turn took effect",
+   "usecase": "uc-look-check",
+   "floor": "inspect",
+   "steps": [
+    "inspect.probe-press",
+    "inspect.press-game",
+    "inspect.game-see",
+    "inspect.see-probe",
+    "inspect.probe-log"
+   ]
+  },
+  {
+   "id": "route-save-map",
+   "name": "Save route as text map",
+   "usecase": "uc-save-map",
+   "floor": "inspect",
+   "steps": [
+    "inspect.probe-draw",
+    "inspect.draw-probe",
+    "inspect.probe-files"
+   ]
+  },
+  {
+   "id": "route-reuse-map",
+   "name": "Reuse saved map as test",
+   "usecase": "uc-reuse-map",
+   "floor": "inspect",
+   "steps": [
+    "inspect.probe-draw",
+    "inspect.draw-probe",
+    "inspect.probe-files"
+   ]
+  },
+  {
+   "id": "route-dump-row",
+   "name": "Dump a row of blocks",
+   "usecase": "uc-dump-row",
+   "floor": "inspect",
+   "steps": [
+    "inspect.player-keys",
+    "inspect.keys-dump",
+    "inspect.game-rawblocks",
+    "inspect.rawblocks-dump",
+    "inspect.dump-files"
+   ]
+  },
+  {
+   "id": "route-build-both",
+   "name": "Build both mods at once",
+   "usecase": "uc-build-both",
+   "floor": "honest",
+   "steps": [
+    "honest.maintainer-build"
+   ]
+  },
+  {
+   "id": "route-no-minecraft",
+   "name": "No Minecraft in the core",
+   "usecase": "uc-no-minecraft",
+   "floor": "honest",
+   "steps": [
+    "honest.maintainer-build",
+    "honest.build-guard"
+   ]
+  },
+  {
+   "id": "route-java8",
+   "name": "Keep the core on Java 8",
+   "usecase": "uc-java8",
+   "floor": "honest",
+   "steps": [
+    "honest.build-guard"
+   ]
+  },
+  {
+   "id": "route-deps",
+   "name": "Block bad dependencies",
+   "usecase": "uc-deps",
+   "floor": "honest",
+   "steps": [
+    "honest.build-guard"
+   ]
+  },
+  {
+   "id": "route-on-push",
+   "name": "Run all checks on push",
+   "usecase": "uc-on-push",
+   "floor": "honest",
+   "steps": [
+    "honest.ci-cirun",
+    "honest.cirun-build",
+    "honest.build-guard",
+    "honest.build-tests"
+   ]
+  },
+  {
+   "id": "route-offline-rules",
+   "name": "Test game rules offline",
+   "usecase": "uc-offline-rules",
+   "floor": "honest",
+   "steps": [
+    "honest.build-tests",
+    "honest.tests-conform"
+   ]
+  },
+  {
+   "id": "route-terrain",
+   "name": "Test routes on terrain",
+   "usecase": "uc-terrain",
+   "floor": "honest",
+   "steps": [
+    "honest.build-tests",
+    "honest.tests-fixtures"
+   ]
+  },
+  {
+   "id": "route-scripted",
+   "name": "Walk a scripted player",
+   "usecase": "uc-scripted",
+   "floor": "honest",
+   "steps": [
+    "honest.build-tests",
+    "honest.tests-fakewalk"
+   ]
+  },
+  {
+   "id": "route-price",
+   "name": "Catch a mispriced move",
+   "usecase": "uc-price",
+   "floor": "honest",
+   "steps": [
+    "honest.build-tests",
+    "honest.tests-audit"
+   ]
+  },
+  {
+   "id": "route-parity",
+   "name": "Diff versions' blocks",
+   "usecase": "uc-parity",
+   "floor": "honest",
+   "steps": [
+    "honest.player-smoke",
+    "honest.smoke-dump",
+    "honest.dump-parity",
+    "honest.build-tests",
+    "honest.tests-parity"
+   ]
+  },
+  {
+   "id": "route-by-hand",
+   "name": "Check by hand in game",
+   "usecase": "uc-by-hand",
+   "floor": "honest",
+   "steps": [
+    "honest.player-smoke"
+   ]
+  },
+  {
+   "id": "route-remote-goal",
+   "name": "Set a goal from outside",
+   "usecase": "uc-remote-goal",
+   "floor": "later",
+   "steps": [
+    "later.remote-webui",
+    "later.webui-bridge",
+    "later.bridge-goals",
+    "later.goals-steer"
+   ]
+  },
+  {
+   "id": "route-watch",
+   "name": "Watch the search live",
+   "usecase": "uc-watch",
+   "floor": "later",
+   "steps": [
+    "later.remote-webui",
+    "later.bridge-webui"
+   ]
+  },
+  {
+   "id": "route-settings",
+   "name": "Change settings live",
+   "usecase": "uc-settings",
+   "floor": "later",
+   "steps": [
+    "later.remote-webui",
+    "later.webui-bridge"
+   ]
+  },
+  {
+   "id": "route-mine",
+   "name": "Mine a vein",
+   "usecase": "uc-mine",
+   "floor": "later",
+   "steps": [
+    "later.scripts-goals",
+    "later.goals-steer"
+   ]
+  },
+  {
+   "id": "route-schematic",
+   "name": "Build from a schematic",
+   "usecase": "uc-schematic",
+   "floor": "later",
+   "steps": [
+    "later.scripts-goals",
+    "later.goals-steer"
+   ]
+  },
+  {
+   "id": "route-juggle",
+   "name": "Juggle competing tasks",
+   "usecase": "uc-juggle",
+   "floor": "later",
+   "steps": [
+    "later.scripts-goals",
+    "later.bridge-goals"
+   ]
+  },
+  {
+   "id": "route-more-versions",
+   "name": "Run on NeoForge or 1.20",
+   "usecase": "uc-more-versions",
+   "floor": "later",
+   "steps": [
+    "later.game-moreversions",
+    "later.moreversions-gate"
+   ]
+  },
+  {
+   "id": "route-elytra",
+   "name": "Fly with elytra",
+   "usecase": "uc-elytra",
+   "floor": "later",
+   "steps": [
+    "later.flying-search"
+   ]
+  }
+ ]
+}
